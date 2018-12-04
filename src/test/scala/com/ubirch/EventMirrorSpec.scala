@@ -44,7 +44,9 @@ class QuillMirrorSpec extends WordSpec
 
       val runQuery = mirrorDB.run(Events.selectAllQ).string
 
-      assert(runQuery == "SELECT id, service_class, category, event, event_time, signature, created, updated FROM events")
+      println(runQuery)
+
+      assert(runQuery == "SELECT id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, created, updated FROM events")
 
     }
 
