@@ -12,7 +12,7 @@ trait EventDAOMirrorBase {
 
   object Events {
 
-    implicit val eventSchemaMeta = schemaMeta[EventLog]("events", _.event.serviceClass -> "service_class")
+    implicit val eventSchemaMeta = schemaMeta[EventLog]("events")
 
     def selectAllQ = quote(query[EventLog])
 

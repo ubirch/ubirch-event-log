@@ -10,6 +10,8 @@ create table if not exists events (
     service_class text,
     category text,
     signature text,
+    event text,
+    event_time timestamp,
     created timestamp,
     updated timestamp,
     PRIMARY KEY (id)
