@@ -9,9 +9,7 @@ import org.json4s.JValue
 
 import scala.concurrent.ExecutionContext
 
-case class TimeInfo(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int) extends Embedded
-
-case class Event(id: UUID, serviceClass: String, category: String, event: JValue, eventTime: Date, timeInfo: TimeInfo) extends Embedded
+case class Event(id: UUID, serviceClass: String, category: String, event: JValue, eventTime: Date, eventTimeInfo: TimeInfo) extends Embedded
 
 case class EventLog(event: Event, signature: String, created: Date, updated: Date)
 
