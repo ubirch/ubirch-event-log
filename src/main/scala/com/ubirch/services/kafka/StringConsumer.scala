@@ -5,6 +5,7 @@ import java.util.UUID
 import com.google.inject.Provider
 import com.typesafe.config.Config
 import com.ubirch.Alias.ExecutorProcessRaw
+import com.ubirch.ConfPaths
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
@@ -22,13 +23,15 @@ class StringConsumer[R](
 
 }
 
-class DefaultStringConsumerUnit @Inject() (config: Config,
+class DefaultStringConsumerUnit @Inject() (
+    config: Config,
     lifecycle: Lifecycle,
     events: Events,
     executor: DefaultExecutor) extends Provider[StringConsumer[Unit]] {
 
-  val topic = config.getString("eventLog.kafkaConsumer.topic")
-  val groupId = config.getString("eventLog.kafkaConsumer.groupId")
+  val topic = config.getString(ConfPaths.TOPIC_PATH)
+  val groupId = config.getString(ConfPaths.GROUP_ID_PATH)
+  val gracefulTimeout = config.getInt(ConfPaths.GRACEFUL_TIMEOUT_PATH)
 
   def threadName = topic + "_thread" + "_" + UUID.randomUUID()
 
@@ -44,7 +47,7 @@ class DefaultStringConsumerUnit @Inject() (config: Config,
   override def get(): StringConsumer[Unit] = consumer
 
   lifecycle.addStopHook { () ⇒
-    Future.successful(consumer.shutdown(2, java.util.concurrent.TimeUnit.SECONDS))
+    Future.successful(consumer.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
   }
 
 }
