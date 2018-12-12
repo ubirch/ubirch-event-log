@@ -4,9 +4,10 @@ import java.util.UUID
 
 import com.google.inject.Provider
 import com.typesafe.config.Config
+import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
-import org.apache.kafka.clients.consumer.ConsumerRecords
 import javax.inject._
+import org.apache.kafka.clients.consumer.ConsumerRecords
 
 import scala.concurrent.Future
 
@@ -21,7 +22,10 @@ class StringConsumer[R](
 
 }
 
-class DefaultStringConsumerUnit @Inject() (config: Config, lifecycle: Lifecycle) extends Provider[StringConsumer[Unit]] {
+class DefaultStringConsumerUnit @Inject() (config: Config,
+    lifecycle: Lifecycle,
+    events: Events,
+    executor: DefaultExecutor) extends Provider[StringConsumer[Unit]] {
 
   val topic = config.getString("eventLog.kafkaConsumer.topic")
   val groupId = config.getString("eventLog.kafkaConsumer.groupId")
@@ -30,18 +34,12 @@ class DefaultStringConsumerUnit @Inject() (config: Config, lifecycle: Lifecycle)
 
   val configs = Configs(groupId = groupId)
 
-  val wrapper = new Wrapper
-  val nonEmpty = new FilterEmpty
-  val logger = new Logger
-
-  val executor = Option(wrapper andThen nonEmpty andThen logger)
-
   def consumer =
     new StringConsumer(
       topic,
       configs,
       threadName,
-      executor)
+      Option(executor.executor))
 
   override def get(): StringConsumer[Unit] = consumer
 

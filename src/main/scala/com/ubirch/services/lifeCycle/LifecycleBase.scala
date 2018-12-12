@@ -3,11 +3,11 @@ package com.ubirch.services.lifeCycle
 import java.util.concurrent.ConcurrentLinkedDeque
 
 import com.typesafe.scalalogging.LazyLogging
+import javax.inject._
 
 import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import javax.inject._
 
 trait Lifecycle {
 
