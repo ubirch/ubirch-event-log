@@ -1,13 +1,13 @@
 package com.ubirch.models
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
 import com.ubirch.services.cluster.ConnectionService
-import io.getquill.{CassandraAsyncContext, Embedded, SnakeCase}
+import io.getquill.{ CassandraAsyncContext, Embedded, SnakeCase }
 import javax.inject._
 import org.json4s.JValue
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait EventBase {
   val id: UUID
