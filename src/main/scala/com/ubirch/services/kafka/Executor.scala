@@ -47,13 +47,24 @@ class Logger extends Executor[Vector[MessageEnvelope[String]], Unit] {
   override def apply(v1: Vector[MessageEnvelope[String]]): Unit = println(v1)
 }
 
-class DefaultExecutor @Inject() (
-    wrapper: Wrapper,
-    filterEmpty: FilterEmpty,
-    logger: Logger,
-    eventsStore: EventsStore,
-    events: Events) {
+trait ExecutorFamily {
+  def wrapper: Wrapper
+  def filterEmpty: FilterEmpty
+  def logger: Logger
+  def eventsStore: EventsStore
+}
+
+case class DefaultExecutorFamily @Inject() (
+  wrapper: Wrapper,
+  filterEmpty: FilterEmpty,
+  logger: Logger,
+  eventsStore: EventsStore) extends ExecutorFamily
+
+class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events) {
+
+  import executorFamily._
 
   def executor: ExecutorProcess[Unit] =
     wrapper andThen filterEmpty andThen eventsStore
+
 }
