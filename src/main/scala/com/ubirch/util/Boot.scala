@@ -3,6 +3,7 @@ package com.ubirch.util
 import com.google.inject.{ Guice, Injector }
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.lifeCycle.JVMHook
+
 import scala.reflect._
 
 trait Boot {

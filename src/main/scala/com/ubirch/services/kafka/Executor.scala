@@ -1,5 +1,8 @@
 package com.ubirch.services.kafka
 
+import com.ubirch.Alias.ExecutorProcess
+import com.ubirch.models.Events
+import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecords
 
 trait Executor[-T1, +R] extends (T1 ⇒ R) {
@@ -34,6 +37,23 @@ class FilterEmpty extends Executor[Vector[MessageEnvelope[String]], Vector[Messa
 
 }
 
+class EventsStore @Inject() (events: Events) extends Executor[Vector[MessageEnvelope[String]], Unit] {
+  override def apply(v1: Vector[MessageEnvelope[String]]): Unit = {
+    println("Storing data...")
+  }
+}
+
 class Logger extends Executor[Vector[MessageEnvelope[String]], Unit] {
   override def apply(v1: Vector[MessageEnvelope[String]]): Unit = println(v1)
+}
+
+class DefaultExecutor @Inject() (
+    wrapper: Wrapper,
+    filterEmpty: FilterEmpty,
+    logger: Logger,
+    eventsStore: EventsStore,
+    events: Events) {
+
+  def executor: ExecutorProcess[Unit] =
+    wrapper andThen filterEmpty andThen eventsStore
 }

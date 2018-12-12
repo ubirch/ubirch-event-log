@@ -2,8 +2,7 @@ package com.ubirch.services.kafka
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.ShutdownableThread
-import org.apache.kafka.clients.consumer.ConsumerRecords
-import org.apache.kafka.clients.consumer.{ KafkaConsumer ⇒ JKafkaConsumer }
+import org.apache.kafka.clients.consumer.{ ConsumerRecords, KafkaConsumer ⇒ JKafkaConsumer }
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._

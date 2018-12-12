@@ -1,12 +1,14 @@
 package com.ubirch.util
 
 import java.util.Properties
+
 import com.typesafe.config.Config
+import com.ubirch.models.TimeInfo
+import org.joda.time.DateTime
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
 import scala.collection.mutable
-import com.ubirch.models.TimeInfo
-import org.joda.time.DateTime
 import scala.language.implicitConversions
 
 case class EnrichedDatetime(dateTime: DateTime) {
