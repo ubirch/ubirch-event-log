@@ -46,30 +46,34 @@ abstract class AbstractConsumer[K, V, R](name: String)
     new Thread(this).start()
   }
 
+  def doWork() = {
+    val records = pollRecords
+    records match {
+      case Success(crs) ⇒
+        maybeExecutor match {
+          case Some(executor) ⇒
+            executor(crs)
+          case None ⇒
+            logger.warn("No Executor Found. Shutting down")
+            startGracefulShutdown()
+
+        }
+      case Failure(NonFatal(e)) ⇒
+        e.printStackTrace()
+        logger.error("Got this error:  {} ", e.getMessage)
+      case Failure(e) ⇒
+        e.printStackTrace()
+        logger.error("Got FATAL error:  {} ", e.getMessage)
+        startGracefulShutdown()
+    }
+  }
+
   override def execute(): Unit = {
     createConsumer(props)
     if (Option(consumer).isDefined) {
       subscribe()
       while (getRunning) {
-        val records = pollRecords
-        records match {
-          case Success(crs) ⇒
-            maybeExecutor match {
-              case Some(executor) ⇒
-                executor(crs)
-              case None ⇒
-                logger.warn("No Executor Found. Shutting down")
-                startGracefulShutdown()
-
-            }
-          case Failure(NonFatal(e)) ⇒
-            e.printStackTrace()
-            logger.error("Got this error:  {} ", e.getMessage)
-          case Failure(e) ⇒
-            e.printStackTrace()
-            logger.error("Got FATAL error:  {} ", e.getMessage)
-            startGracefulShutdown()
-        }
+        doWork()
       }
       consumer.close()
     }
