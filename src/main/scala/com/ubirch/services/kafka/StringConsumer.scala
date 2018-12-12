@@ -4,10 +4,10 @@ import java.util.UUID
 
 import com.google.inject.Provider
 import com.typesafe.config.Config
+import com.ubirch.Alias.ExecutorProcessRaw
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
-import org.apache.kafka.clients.consumer.ConsumerRecords
 
 import scala.concurrent.Future
 
@@ -15,7 +15,7 @@ class StringConsumer[R](
   val topic: String,
   configs: Configs,
   name: String,
-  val maybeExecutor: Option[Executor[ConsumerRecords[String, String], R]])
+  val maybeExecutor: Option[ExecutorProcessRaw[R]])
     extends AbstractStringConsumer[R](name) {
 
   override val props: Map[String, AnyRef] = configs.props
