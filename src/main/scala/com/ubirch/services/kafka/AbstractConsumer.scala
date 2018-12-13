@@ -6,6 +6,7 @@ import org.apache.kafka.clients.consumer.{ ConsumerRecords, KafkaConsumer ⇒ JK
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
@@ -21,7 +22,9 @@ abstract class AbstractConsumer[K, V, R](name: String)
 
   val valueDeserializer: Deserializer[V]
 
-  val maybeExecutor: Option[Executor[ConsumerRecords[K, V], R]]
+  val maybeExecutor: Option[Executor[ConsumerRecords[K, V], Future[R]]]
+
+  implicit def ec: ExecutionContext
 
   var consumer: JKafkaConsumer[K, V] = _
 
@@ -45,7 +48,7 @@ abstract class AbstractConsumer[K, V, R](name: String)
     new Thread(this).start()
   }
 
-  def doWork() = {
+  def doWork(): Unit = {
     val records = pollRecords
     records match {
       case Success(crs) ⇒

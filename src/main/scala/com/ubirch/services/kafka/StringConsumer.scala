@@ -10,13 +10,13 @@ import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 class StringConsumer[R](
   val topic: String,
   configs: Configs,
   name: String,
-  val maybeExecutor: Option[ExecutorProcessRaw[R]])
+  val maybeExecutor: Option[ExecutorProcessRaw[Future[R]]])(implicit val ec: ExecutionContext)
     extends AbstractStringConsumer[R](name) {
 
   override val props: Map[String, AnyRef] = configs.props
@@ -27,7 +27,7 @@ class DefaultStringConsumerUnit @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     events: Events,
-    executor: DefaultExecutor) extends Provider[StringConsumer[Unit]] {
+    executor: DefaultExecutor)(implicit ec: ExecutionContext) extends Provider[StringConsumer[Vector[Unit]]] {
 
   val topic = config.getString(ConfPaths.TOPIC_PATH)
   val groupId = config.getString(ConfPaths.GROUP_ID_PATH)
@@ -37,14 +37,16 @@ class DefaultStringConsumerUnit @Inject() (
 
   val configs = Configs(groupId = groupId)
 
+  def maybeExecutor = Option(executor.executor)
+
   def consumer =
-    new StringConsumer(
+    new StringConsumer[Vector[Unit]](
       topic,
       configs,
       threadName,
-      Option(executor.executor))
+      maybeExecutor)
 
-  override def get(): StringConsumer[Unit] = consumer
+  override def get(): StringConsumer[Vector[Unit]] = consumer
 
   lifecycle.addStopHook { () ⇒
     Future.successful(consumer.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
