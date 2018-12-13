@@ -4,12 +4,11 @@ import java.util.UUID
 
 import com.google.inject.Provider
 import com.typesafe.config.Config
-import com.ubirch.Alias.ExecutorProcessRaw
 import com.ubirch.ConfPaths
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
+import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -17,7 +16,7 @@ class StringConsumer[R](
   val topic: String,
   configs: Configs,
   name: String,
-  val maybeExecutor: Option[ExecutorProcessRaw[Future[R]]])(implicit val ec: ExecutionContext)
+  val maybeExecutor: Option[Executor[ConsumerRecords[String, String], Future[R]]])(implicit val ec: ExecutionContext)
     extends AbstractStringConsumer[R](name) {
 
   override val props: Map[String, AnyRef] = configs.props

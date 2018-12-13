@@ -1,7 +1,6 @@
 package com.ubirch.services.kafka
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.Alias.{ EnvelopedEventLog, ExecutorProcessEnveloped, ExecutorProcessRaw, MessagesInEnvelope }
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.util.FromString
 import javax.inject._
@@ -19,9 +18,11 @@ trait Executor[-T1, +R] extends (T1 ⇒ R) {
 
 }
 
-class Wrapper extends Executor[ConsumerRecords[String, String], MessagesInEnvelope[String]] with LazyLogging {
+class Wrapper
+    extends Executor[ConsumerRecords[String, String], Vector[MessageEnvelope[String]]]
+    with LazyLogging {
 
-  override def apply(v1: ConsumerRecords[String, String]): MessagesInEnvelope[String] = {
+  override def apply(v1: ConsumerRecords[String, String]): Vector[MessageEnvelope[String]] = {
 
     logger.info("Wrapping message ... " + v1)
 
@@ -36,9 +37,11 @@ class Wrapper extends Executor[ConsumerRecords[String, String], MessagesInEnvelo
 
 }
 
-class FilterEmpty extends Executor[MessagesInEnvelope[String], MessagesInEnvelope[String]] with LazyLogging {
+class FilterEmpty
+    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[String]]]
+    with LazyLogging {
 
-  override def apply(v1: MessagesInEnvelope[String]): MessagesInEnvelope[String] = {
+  override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[String]] = {
 
     logger.info("Filtering message ... " + v1)
 
@@ -47,9 +50,11 @@ class FilterEmpty extends Executor[MessagesInEnvelope[String], MessagesInEnvelop
 
 }
 
-class EventLogParser extends ExecutorProcessEnveloped[MessagesInEnvelope[EventLog]] with LazyLogging {
+class EventLogParser
+    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]]
+    with LazyLogging {
 
-  override def apply(v1: MessagesInEnvelope[String]): MessagesInEnvelope[EventLog] = {
+  override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[EventLog]] = {
 
     logger.info("Parsing message ... " + v1)
 
@@ -70,8 +75,9 @@ class EventLogParser extends ExecutorProcessEnveloped[MessagesInEnvelope[EventLo
   }
 }
 
-class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) extends EnvelopedEventLog[Future[Vector[Unit]]] with LazyLogging {
-  override def apply(v1: MessagesInEnvelope[EventLog]): Future[Vector[Unit]] = {
+class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
+    extends Executor[Vector[MessageEnvelope[EventLog]], Future[Vector[Unit]]] with LazyLogging {
+  override def apply(v1: Vector[MessageEnvelope[EventLog]]): Future[Vector[Unit]] = {
 
     logger.info("Storing message ... " + v1)
 
@@ -84,23 +90,11 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) exte
   }
 }
 
-class StringLogger extends ExecutorProcessEnveloped[Unit] {
-  override def apply(v1: MessagesInEnvelope[String]): Unit = println(v1)
-}
-
-class EventLogLogger extends EnvelopedEventLog[Unit] {
-  override def apply(v1: MessagesInEnvelope[EventLog]): Unit = println(v1)
-}
-
 trait ExecutorFamily {
 
   def wrapper: Wrapper
 
   def filterEmpty: FilterEmpty
-
-  def stringLogger: StringLogger
-
-  def eventLogLogger: EventLogLogger
 
   def eventsStore: EventsStore
 
@@ -111,8 +105,6 @@ trait ExecutorFamily {
 case class DefaultExecutorFamily @Inject() (
   wrapper: Wrapper,
   filterEmpty: FilterEmpty,
-  stringLogger: StringLogger,
-  eventLogLogger: EventLogLogger,
   eventLogParser: EventLogParser,
   eventsStore: EventsStore) extends ExecutorFamily
 
@@ -122,6 +114,6 @@ class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events)
 
   def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
 
-  def executor: ExecutorProcessRaw[Future[Vector[Unit]]] = composed
+  def executor = composed
 
 }
