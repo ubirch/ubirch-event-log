@@ -60,15 +60,14 @@ class EventLogParser @Inject() (events: Events) extends ExecutorProcessEnveloped
   }
 }
 
-class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) extends EnvelopedEventLog[Unit] {
-  override def apply(v1: MessagesInEnvelope[EventLog]): Unit = {
-    if (v1.nonEmpty) {
-      val vectorOfFutureResults = v1.map { m ⇒
-        events.insert(m.payload)
-      }
-
-      Future.sequence(vectorOfFutureResults)
+class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) extends EnvelopedEventLog[Future[Vector[Unit]]] {
+  override def apply(v1: MessagesInEnvelope[EventLog]): Future[Vector[Unit]] = {
+    val vectorOfFutureResults = v1.map { m ⇒
+      events.insert(m.payload)
     }
+
+    Future.sequence(vectorOfFutureResults)
+
   }
 }
 
@@ -108,7 +107,8 @@ class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events)
 
   import executorFamily._
 
-  def executor: ExecutorProcessRaw[Unit] =
-    wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
+  def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
+
+  def executor: ExecutorProcessRaw[Future[Vector[Unit]]] = composed
 
 }

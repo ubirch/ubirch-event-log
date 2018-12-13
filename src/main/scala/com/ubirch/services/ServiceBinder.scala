@@ -22,7 +22,7 @@ class ServiceBinder extends AbstractModule {
 
     bind(classOf[Config]).toProvider(classOf[ConfigProvider])
     bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
-    bind(classOf[StringConsumer[Unit]]).toProvider(classOf[DefaultStringConsumerUnit])
+    bind(classOf[StringConsumer[Vector[Unit]]]).toProvider(classOf[DefaultStringConsumerUnit])
 
   }
 
