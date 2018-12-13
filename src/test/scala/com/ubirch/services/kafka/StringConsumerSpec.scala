@@ -10,7 +10,7 @@ import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ Future, Promise }
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
@@ -29,17 +29,23 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         when(events.insert(Entities.Events.eventExample))
           .thenReturn(Future.successful(()))
 
+        val p = Promise[Vector[Unit]]()
+
         val executor = new DefaultExecutor(
           DefaultExecutorFamily(
             new Wrapper,
             new FilterEmpty,
             new EventLogParser,
-            new EventsStore(events)), events) {
+            new EventsStore(events)),
+          events) {
+
           override def composed: Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] = {
-            super.composed andThen new Executor[Future[Vector[Unit]], Future[Vector[Unit]]] {
-              override def apply(v1: Future[Vector[Unit]]): Future[Vector[Unit]] = {
-                println("INTERCETED....")
-                v1
+            new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
+              override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
+                val f = Future.successful(Vector(()))
+                p.completeWith(f)
+                f
+
               }
             }
           }
@@ -53,7 +59,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         consumer.get().startPolling()
 
-        Thread.sleep(5000)
+        assert(await(p.future).nonEmpty)
 
       }
 
