@@ -1,7 +1,8 @@
 package com.ubirch.services.kafka
 
-import com.ubirch.Alias.{ ExecutorProcessEnveloped, ExecutorProcessRaw, MessagesInEnvelope }
-import com.ubirch.models.Events
+import com.ubirch.Alias.{EnvelopedEventLog, ExecutorProcessEnveloped, ExecutorProcessRaw, MessagesInEnvelope}
+import com.ubirch.models.{EventLog, Events}
+import com.ubirch.util.FromString
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecords
 
@@ -37,30 +38,62 @@ class FilterEmpty extends Executor[MessagesInEnvelope[String], MessagesInEnvelop
 
 }
 
+class EventLogParser @Inject() (events: Events) extends ExecutorProcessEnveloped[MessagesInEnvelope[EventLog]] {
+
+  override def apply(v1: MessagesInEnvelope[String]): MessagesInEnvelope[EventLog] = {
+    val result: Vector[Option[MessageEnvelope[EventLog]]] =
+      v1.map { m ⇒
+
+        try {
+          Option(m.copy(payload = FromString[EventLog](m.payload).get))
+        } catch {
+          case e: Exception ⇒
+            e.printStackTrace()
+            None
+        }
+      }
+
+    //TODO: We need to use traverse here
+    result.filter(_.isDefined).map(_.get)
+  }
+}
+
 class EventsStore @Inject() (events: Events) extends ExecutorProcessEnveloped[Unit] {
   override def apply(v1: MessagesInEnvelope[String]): Unit = {
     println("Storing data...")
   }
 }
 
-class Logger extends ExecutorProcessEnveloped[Unit] {
+class StringLogger extends ExecutorProcessEnveloped[Unit] {
   override def apply(v1: MessagesInEnvelope[String]): Unit = println(v1)
 }
 
+class EventLogLogger extends EnvelopedEventLog[Unit] {
+  override def apply(v1: MessagesInEnvelope[EventLog]): Unit = println(v1)
+}
+
 trait ExecutorFamily {
+
   def wrapper: Wrapper
 
   def filterEmpty: FilterEmpty
 
-  def logger: Logger
+  def stringLogger: StringLogger
+
+  def eventLogLogger: EventLogLogger
 
   def eventsStore: EventsStore
+
+  def eventLogParser: EventLogParser
+
 }
 
 case class DefaultExecutorFamily @Inject() (
   wrapper: Wrapper,
   filterEmpty: FilterEmpty,
-  logger: Logger,
+  stringLogger: StringLogger,
+  eventLogLogger: EventLogLogger,
+  eventLogParser: EventLogParser,
   eventsStore: EventsStore) extends ExecutorFamily
 
 class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events) {
@@ -68,6 +101,6 @@ class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events)
   import executorFamily._
 
   def executor: ExecutorProcessRaw[Unit] =
-    wrapper andThen filterEmpty andThen eventsStore
+    wrapper andThen filterEmpty andThen eventLogParser andThen eventLogLogger
 
 }
