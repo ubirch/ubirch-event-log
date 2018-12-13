@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import net.manub.embeddedkafka.{ EmbeddedKafka, EmbeddedKafkaConfig }
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 
@@ -25,16 +26,24 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val lifeCycle = mock[DefaultLifecycle]
         val events = mock[Events]
-        when(events.insert(Entities.Events.eventExample)).thenReturn(Future.successful(()))
+        when(events.insert(Entities.Events.eventExample))
+          .thenReturn(Future.successful(()))
 
         val executor = new DefaultExecutor(
           DefaultExecutorFamily(
             new Wrapper,
             new FilterEmpty,
-            new StringLogger,
-            new EventLogLogger,
             new EventLogParser,
-            new EventsStore(events)), events)
+            new EventsStore(events)), events) {
+          override def composed: Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] = {
+            super.composed andThen new Executor[Future[Vector[Unit]], Future[Vector[Unit]]] {
+              override def apply(v1: Future[Vector[Unit]]): Future[Vector[Unit]] = {
+                println("INTERCETED....")
+                v1
+              }
+            }
+          }
+        }
 
         val consumer = new DefaultStringConsumerUnit(
           ConfigFactory.load(),
