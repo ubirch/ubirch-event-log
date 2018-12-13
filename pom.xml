@@ -75,13 +75,6 @@
     </dependency>
 
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.json4s</groupId>
       <artifactId>json4s-native_2.12</artifactId>
       <version>3.6.0</version>
@@ -107,12 +100,17 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- https://mvnrepository.com/artifact/net.manub/scalatest-embedded-kafka -->
     <dependency>
       <groupId>net.manub</groupId>
       <artifactId>scalatest-embedded-kafka_2.12</artifactId>
       <version>2.0.0</version>
       <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>2.23.4</version>
     </dependency>
 
 

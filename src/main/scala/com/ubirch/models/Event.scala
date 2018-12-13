@@ -53,6 +53,6 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 
   def selectAll: Future[List[EventLog]] = run(selectAllQ)
 
-  def insert(eventLog: EventLog): Result[RunActionResult] = run(insertQ(eventLog))
+  def insert(eventLog: EventLog): Future[RunActionResult] = run(insertQ(eventLog))
 
 }

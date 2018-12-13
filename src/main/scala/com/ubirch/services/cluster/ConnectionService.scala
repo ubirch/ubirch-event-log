@@ -2,6 +2,7 @@ package com.ubirch.services.cluster
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import io.getquill.{ CassandraAsyncContext, NamingStrategy, SnakeCase }
 import javax.inject._
@@ -26,8 +27,8 @@ trait ConnectionService extends ConnectionServiceBase {
 class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
     extends ConnectionService with LazyLogging {
 
-  val keyspace: String = config.getString("eventLog.cluster.keyspace")
-  val preparedStatementCacheSize: Int = config.getInt("eventLog.cluster.preparedStatementCacheSize")
+  val keyspace: String = config.getString(ConfPaths.KEYSPACE)
+  val preparedStatementCacheSize: Int = config.getInt(ConfPaths.PREPARED_STATEMENT_CACHE_SIZE)
 
   private def createContext() = new CassandraAsyncContext(
     SnakeCase,
