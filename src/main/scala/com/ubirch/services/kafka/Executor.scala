@@ -1,5 +1,6 @@
 package com.ubirch.services.kafka
 
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.Alias.{ EnvelopedEventLog, ExecutorProcessEnveloped, ExecutorProcessRaw, MessagesInEnvelope }
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.util.FromString
@@ -18,9 +19,12 @@ trait Executor[-T1, +R] extends (T1 ⇒ R) {
 
 }
 
-class Wrapper extends Executor[ConsumerRecords[String, String], MessagesInEnvelope[String]] {
+class Wrapper extends Executor[ConsumerRecords[String, String], MessagesInEnvelope[String]] with LazyLogging {
 
   override def apply(v1: ConsumerRecords[String, String]): MessagesInEnvelope[String] = {
+
+    logger.info("Wrapping message ... " + v1)
+
     val buffer = scala.collection.mutable.ListBuffer.empty[MessageEnvelope[String]]
     v1.iterator().forEachRemaining { record ⇒
       buffer += MessageEnvelope.fromRecord(record)
@@ -32,17 +36,23 @@ class Wrapper extends Executor[ConsumerRecords[String, String], MessagesInEnvelo
 
 }
 
-class FilterEmpty extends Executor[MessagesInEnvelope[String], MessagesInEnvelope[String]] {
+class FilterEmpty extends Executor[MessagesInEnvelope[String], MessagesInEnvelope[String]] with LazyLogging {
 
   override def apply(v1: MessagesInEnvelope[String]): MessagesInEnvelope[String] = {
+
+    logger.info("Filtering message ... " + v1)
+
     v1.filter(_.payload.nonEmpty).map(x ⇒ x.copy(payload = x.payload))
   }
 
 }
 
-class EventLogParser @Inject() (events: Events) extends ExecutorProcessEnveloped[MessagesInEnvelope[EventLog]] {
+class EventLogParser extends ExecutorProcessEnveloped[MessagesInEnvelope[EventLog]] with LazyLogging {
 
   override def apply(v1: MessagesInEnvelope[String]): MessagesInEnvelope[EventLog] = {
+
+    logger.info("Parsing message ... " + v1)
+
     val result: Vector[Option[MessageEnvelope[EventLog]]] =
       v1.map { m ⇒
 
@@ -60,8 +70,11 @@ class EventLogParser @Inject() (events: Events) extends ExecutorProcessEnveloped
   }
 }
 
-class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) extends EnvelopedEventLog[Future[Vector[Unit]]] {
+class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext) extends EnvelopedEventLog[Future[Vector[Unit]]] with LazyLogging {
   override def apply(v1: MessagesInEnvelope[EventLog]): Future[Vector[Unit]] = {
+
+    logger.info("Storing message ... " + v1)
+
     val vectorOfFutureResults = v1.map { m ⇒
       events.insert(m.payload)
     }

@@ -54,6 +54,7 @@ abstract class AbstractConsumer[K, V, R](name: String)
       case Success(crs) ⇒
         maybeExecutor match {
           case Some(executor) ⇒
+            logger.debug("Doing work...")
             executor(crs)
           case None ⇒
             logger.warn("No Executor Found. Shutting down")
@@ -73,11 +74,14 @@ abstract class AbstractConsumer[K, V, R](name: String)
   override def execute(): Unit = {
     createConsumer(props)
     if (Option(consumer).isDefined) {
+      logger.debug("Starting work ...")
       subscribe()
       while (getRunning) {
         doWork()
       }
       consumer.close()
+    } else {
+      logger.debug("No consumer created ...")
     }
   }
 

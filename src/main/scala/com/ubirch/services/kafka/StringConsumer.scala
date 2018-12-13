@@ -9,6 +9,7 @@ import com.ubirch.ConfPaths
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
+import org.apache.kafka.clients.consumer.OffsetResetStrategy
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -29,13 +30,13 @@ class DefaultStringConsumerUnit @Inject() (
     events: Events,
     executor: DefaultExecutor)(implicit ec: ExecutionContext) extends Provider[StringConsumer[Vector[Unit]]] {
 
-  val topic = config.getString(ConfPaths.TOPIC_PATH)
-  val groupId = config.getString(ConfPaths.GROUP_ID_PATH)
-  val gracefulTimeout = config.getInt(ConfPaths.GRACEFUL_TIMEOUT_PATH)
+  val topic: String = config.getString(ConfPaths.TOPIC_PATH)
+  val groupId: String = config.getString(ConfPaths.GROUP_ID_PATH)
+  val gracefulTimeout: Int = config.getInt(ConfPaths.GRACEFUL_TIMEOUT_PATH)
 
-  def threadName = topic + "_thread" + "_" + UUID.randomUUID()
+  def threadName: String = topic + "_thread" + "_" + UUID.randomUUID()
 
-  val configs = Configs(groupId = groupId)
+  val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
   def maybeExecutor = Option(executor.executor)
 
