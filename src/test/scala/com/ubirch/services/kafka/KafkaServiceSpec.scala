@@ -1,15 +1,14 @@
 package com.ubirch.services.kafka
 
-import net.manub.embeddedkafka.EmbeddedKafkaConfig
-
 class KafkaServiceSpec extends TestBase {
 
   "Kafka Service" must {
 
-    "hello" in {
+    "should respond to simple publish/subscribe test" in {
 
       withRunningKafka {
-
+        publishStringMessageToKafka("topic", "message")
+        consumeFirstStringMessageFrom("topic") mustBe "message"
       }
 
     }
