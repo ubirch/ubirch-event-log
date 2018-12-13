@@ -6,7 +6,9 @@ import org.apache.kafka.clients.consumer.{ ConsumerRecords, KafkaConsumer ⇒ JK
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
@@ -48,26 +50,29 @@ abstract class AbstractConsumer[K, V, R](name: String)
     new Thread(this).start()
   }
 
-  def doWork(): Unit = {
+  def doWork(): Option[R] = {
     val records = pollRecords
     records match {
       case Success(crs) ⇒
         maybeExecutor match {
           case Some(executor) ⇒
             logger.debug("Doing work...")
-            executor(crs)
+            Option(Await.result(executor(crs), 2 second))
           case None ⇒
             logger.warn("No Executor Found. Shutting down")
             startGracefulShutdown()
+            None
 
         }
       case Failure(NonFatal(e)) ⇒
         e.printStackTrace()
         logger.error("Got this error:  {} ", e.getMessage)
+        None
       case Failure(e) ⇒
         e.printStackTrace()
         logger.error("Got FATAL error:  {} ", e.getMessage)
         startGracefulShutdown()
+        None
     }
   }
 

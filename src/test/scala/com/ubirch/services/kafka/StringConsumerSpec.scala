@@ -9,6 +9,7 @@ import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
@@ -24,6 +25,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val lifeCycle = mock[DefaultLifecycle]
         val events = mock[Events]
+        when(events.insert(Entities.Events.eventExample)).thenReturn(Future.successful(()))
 
         val executor = new DefaultExecutor(
           DefaultExecutorFamily(
