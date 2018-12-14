@@ -7,10 +7,10 @@ import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
+import scala.util.Try
 import scala.util.control.NonFatal
-import scala.util.{ Failure, Success, Try }
 
 trait KafkaConsumerBase[K, V] {
 
@@ -67,7 +67,6 @@ abstract class AbstractConsumer[K, V, R](name: String)
   override def execute(): Unit = {
     createConsumer(props)
     if (Option(consumer).isDefined) {
-      logger.debug("Starting work ...")
       subscribe()
       while (getRunning) {
         doWork().recover {
@@ -81,7 +80,7 @@ abstract class AbstractConsumer[K, V, R](name: String)
       }
       consumer.close()
     } else {
-      logger.debug("No consumer created ...")
+      logger.warn("No consumer created ...")
     }
   }
 
