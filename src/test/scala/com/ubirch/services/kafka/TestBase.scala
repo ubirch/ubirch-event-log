@@ -15,6 +15,8 @@ trait TestBase
     with MustMatchers
     with EmbeddedKafka {
 
-  def await[T](future: Future[T]): T = Await.result(future, Duration.Inf)
+  def await[T](future: Future[T]): T = await(future, Duration.Inf)
+
+  def await[T](future: Future[T], atMost: Duration): T = Await.result(future, atMost)
 
 }
