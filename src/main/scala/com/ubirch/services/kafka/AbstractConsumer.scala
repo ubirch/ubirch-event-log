@@ -12,23 +12,15 @@ import scala.language.postfixOps
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
-abstract class AbstractConsumer[K, V, R](name: String)
-    extends ShutdownableThread(name)
-    with LazyLogging {
+trait KafkaConsumerBase[K, V] {
+
+  var consumer: JKafkaConsumer[K, V] = _
 
   val topic: String
-
-  val props: Map[String, AnyRef]
 
   val keyDeserializer: Deserializer[K]
 
   val valueDeserializer: Deserializer[V]
-
-  val maybeExecutor: Option[Executor[ConsumerRecords[K, V], Future[R]]]
-
-  implicit def ec: ExecutionContext
-
-  var consumer: JKafkaConsumer[K, V] = _
 
   def createConsumer(props: Map[String, AnyRef]): JKafkaConsumer[K, V] = {
     keyDeserializer.configure(props.asJava, true)
@@ -46,34 +38,30 @@ abstract class AbstractConsumer[K, V, R](name: String)
     Try(consumer.poll(java.time.Duration.ofSeconds(1)))
   }
 
+}
+
+trait WithConsumerRecordsExecutor[K, V, R] {
+
+  val executor: Executor[ConsumerRecords[K, V], R]
+
+}
+
+abstract class AbstractConsumer[K, V, R](name: String)
+    extends ShutdownableThread(name)
+    with KafkaConsumerBase[K, V]
+    with WithConsumerRecordsExecutor[K, V, Future[R]]
+    with LazyLogging {
+
+  val props: Map[String, AnyRef]
+
   def startPolling(): Unit = {
     new Thread(this).start()
   }
 
-  def doWork(): Option[R] = {
-    val records = pollRecords
-    records match {
-      case Success(crs) ⇒
-        maybeExecutor match {
-          case Some(executor) ⇒
-            logger.debug("Doing work...")
-            Option(Await.result(executor(crs), 2 second))
-          case None ⇒
-            logger.warn("No Executor Found. Shutting down")
-            startGracefulShutdown()
-            None
-
-        }
-      case Failure(NonFatal(e)) ⇒
-        e.printStackTrace()
-        logger.error("Got this error:  {} ", e.getMessage)
-        None
-      case Failure(e) ⇒
-        e.printStackTrace()
-        logger.error("Got FATAL error:  {} ", e.getMessage)
-        startGracefulShutdown()
-        None
-    }
+  def doWork(): Try[R] = {
+    pollRecords
+      .map(executor)
+      .map(Await.result(_, 2 seconds))
   }
 
   override def execute(): Unit = {
@@ -82,7 +70,14 @@ abstract class AbstractConsumer[K, V, R](name: String)
       logger.debug("Starting work ...")
       subscribe()
       while (getRunning) {
-        doWork()
+        doWork().recover {
+          case e: Exception ⇒
+            e.printStackTrace()
+            logger.error("Got an ERROR processing records.")
+            if (!NonFatal(e)) {
+              startGracefulShutdown()
+            }
+        }
       }
       consumer.close()
     } else {
