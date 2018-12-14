@@ -26,8 +26,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val lifeCycle = mock[DefaultLifecycle]
         val events = mock[Events]
-        when(events.insert(Entities.Events.eventExample))
-          .thenReturn(Future.successful(()))
 
         val p = Promise[Vector[Unit]]()
 
