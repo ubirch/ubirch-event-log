@@ -16,7 +16,7 @@ class StringConsumer[R](
   val topic: String,
   configs: Configs,
   name: String,
-  val maybeExecutor: Option[Executor[ConsumerRecords[String, String], Future[R]]])(implicit val ec: ExecutionContext)
+  val executor: Executor[ConsumerRecords[String, String], Future[R]])
     extends AbstractStringConsumer[R](name) {
 
   override val props: Map[String, AnyRef] = configs.props
@@ -27,7 +27,7 @@ class DefaultStringConsumerUnit @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     events: Events,
-    executor: DefaultExecutor)(implicit ec: ExecutionContext) extends Provider[StringConsumer[Vector[Unit]]] {
+    executor: DefaultExecutor) extends Provider[StringConsumer[Vector[Unit]]] {
 
   val topic: String = config.getString(ConfPaths.TOPIC_PATH)
   val groupId: String = config.getString(ConfPaths.GROUP_ID_PATH)
@@ -37,14 +37,12 @@ class DefaultStringConsumerUnit @Inject() (
 
   val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
-  def maybeExecutor = Option(executor.executor)
-
   def consumer =
     new StringConsumer[Vector[Unit]](
       topic,
       configs,
       threadName,
-      maybeExecutor)
+      executor.executor)
 
   override def get(): StringConsumer[Vector[Unit]] = consumer
 
