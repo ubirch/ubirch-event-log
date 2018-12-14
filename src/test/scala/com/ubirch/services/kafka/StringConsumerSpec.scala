@@ -2,21 +2,23 @@ package com.ubirch.services.kafka
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.Events
+import com.ubirch.models.{EventLog, Events}
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import net.manub.embeddedkafka.{ EmbeddedKafka, EmbeddedKafkaConfig }
+import com.ubirch.util.FromString
+import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.ConsumerRecords
-import org.scalatest.mockito.MockitoSugar
 import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.duration._
+import scala.concurrent.{Future, Promise}
+import scala.language.postfixOps
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
   "StringConsumerSpec" must {
 
-    "should respond to simple publish/subscribe test" in {
+    "should run Executors successfully and complete expected promise" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092)
 
@@ -24,27 +26,36 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         publishStringMessageToKafka("test", Entities.Events.eventExampleAsString)
 
+        val promiseTestSuccess = Promise[Vector[String]]()
+
         val lifeCycle = mock[DefaultLifecycle]
         val events = mock[Events]
 
-        val p = Promise[Vector[Unit]]()
+        val executor = mock[DefaultExecutor]
 
-        val executor = new DefaultExecutor(
-          DefaultExecutorFamily(
-            new Wrapper,
-            new FilterEmpty,
-            new EventLogParser,
-            new EventsStore(events)),
-          events) {
+        when(executor.executor).thenReturn {
+          new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
+            override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
 
-          override def composed: Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] = {
-            new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
-              override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
-                val f = Future.successful(Vector(()))
-                p.completeWith(f)
-                f
+              val promiseTest = Promise[Vector[Unit]]()
 
+              lazy val somethingStored = promiseTest.completeWith(Future.successful(Vector(())))
+              lazy val nothingStored = promiseTest.completeWith(Future.successful(Vector.empty[Unit]))
+
+              if (v1.count() > 0) {
+                v1.iterator().forEachRemaining { x ⇒
+                  if (x.value().nonEmpty) {
+                    promiseTestSuccess.completeWith(Future.successful(Vector(x.value())))
+                    somethingStored
+                  } else {
+                    nothingStored
+                  }
+                }
+              } else {
+                nothingStored
               }
+
+              promiseTest.future
             }
           }
         }
@@ -57,7 +68,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         consumer.get().startPolling()
 
-        assert(await(p.future).nonEmpty)
+        val caseOfInterest = await(promiseTestSuccess.future, 10 seconds)
+
+        assert(caseOfInterest.nonEmpty)
+        assert(caseOfInterest == Vector(Entities.Events.eventExampleAsString))
+        assert(caseOfInterest.size == 1)
+        assert(caseOfInterest.map(x ⇒ FromString[EventLog](x).get) == Vector(Entities.Events.eventExample))
 
       }
 
