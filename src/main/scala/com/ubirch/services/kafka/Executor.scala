@@ -1,6 +1,5 @@
 package com.ubirch.services.kafka
 
-import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.util.FromString
 import javax.inject._
@@ -18,13 +17,9 @@ trait Executor[-T1, +R] extends (T1 ⇒ R) {
 
 }
 
-class Wrapper
-    extends Executor[ConsumerRecords[String, String], Vector[MessageEnvelope[String]]]
-    with LazyLogging {
+class Wrapper extends Executor[ConsumerRecords[String, String], Vector[MessageEnvelope[String]]] {
 
   override def apply(v1: ConsumerRecords[String, String]): Vector[MessageEnvelope[String]] = {
-
-    logger.info("Wrapping message ... " + v1)
 
     val buffer = scala.collection.mutable.ListBuffer.empty[MessageEnvelope[String]]
     v1.iterator().forEachRemaining { record ⇒
@@ -37,26 +32,19 @@ class Wrapper
 
 }
 
-class FilterEmpty
-    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[String]]]
-    with LazyLogging {
+class FilterEmpty extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[String]]] {
 
   override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[String]] = {
 
-    logger.info("Filtering message ... " + v1)
-
     v1.filter(_.payload.nonEmpty).map(x ⇒ x.copy(payload = x.payload))
+
   }
 
 }
 
-class EventLogParser
-    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]]
-    with LazyLogging {
+class EventLogParser extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]] {
 
   override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[EventLog]] = {
-
-    logger.info("Parsing message ... " + v1)
 
     val result: Vector[Option[MessageEnvelope[EventLog]]] =
       v1.map { m ⇒
@@ -76,10 +64,9 @@ class EventLogParser
 }
 
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-    extends Executor[Vector[MessageEnvelope[EventLog]], Future[Vector[Unit]]] with LazyLogging {
-  override def apply(v1: Vector[MessageEnvelope[EventLog]]): Future[Vector[Unit]] = {
+    extends Executor[Vector[MessageEnvelope[EventLog]], Future[Vector[Unit]]] {
 
-    logger.info("Storing message ... " + v1)
+  override def apply(v1: Vector[MessageEnvelope[EventLog]]): Future[Vector[Unit]] = {
 
     val vectorOfFutureResults = v1.map { m ⇒
       events.insert(m.payload)

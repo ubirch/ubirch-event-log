@@ -10,7 +10,7 @@ import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 
 class StringConsumer[R](
   val topic: String,
