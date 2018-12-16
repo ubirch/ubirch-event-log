@@ -38,6 +38,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.inject.extensions</groupId>
+      <artifactId>guice-assistedinject</artifactId>
+      <version>4.1.0</version>
+    </dependency>
+
+    <dependency>
       <groupId>io.getquill</groupId>
       <artifactId>quill-cassandra_2.12</artifactId>
       <version>2.6.0</version>
