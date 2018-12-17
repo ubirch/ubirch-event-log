@@ -16,11 +16,11 @@ trait KafkaConsumerBase[K, V] {
 
   val valueDeserializer: Deserializer[V]
 
-  def createConsumer(props: Map[String, AnyRef]): JKafkaConsumer[K, V] = {
+  def createConsumer(props: Map[String, AnyRef]): this.type = {
     keyDeserializer.configure(props.asJava, true)
     valueDeserializer.configure(props.asJava, false)
     consumer = new JKafkaConsumer[K, V](props.asJava, keyDeserializer, valueDeserializer)
-    consumer
+    this
   }
 
   def subscribe(): this.type = {

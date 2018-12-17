@@ -57,26 +57,31 @@ abstract class AbstractConsumer[K, V, R](name: String)
   }
 
   override def execute(): Unit = {
-    createConsumer(props)
-    if (isConsumerDefined && isTopicDefined) {
-      subscribe()
-      while (getRunning) {
-        doWork()
-          .map { _ ⇒
-            if (isAutoCommit)
-              consumer.commitSync()
-          }
-          .recover {
-            case e: Exception ⇒
-              logger.error("Got an ERROR processing records: " + e.getMessage)
-              if (!NonFatal(e)) {
-                startGracefulShutdown()
-              }
-          }
+    if (props.nonEmpty) {
+      createConsumer(props)
+      if (isConsumerDefined && isTopicDefined) {
+        subscribe()
+        while (getRunning) {
+          doWork()
+            .map { _ ⇒
+              if (isAutoCommit)
+                consumer.commitSync()
+            }
+            .recover {
+              case e: Exception ⇒
+                logger.error("Got an ERROR processing records: " + e.getMessage)
+                if (!NonFatal(e)) {
+                  startGracefulShutdown()
+                }
+            }
+        }
+        consumer.close()
+      } else {
+        logger.error("consumer: {} and topic: {} ", isConsumerDefined, isTopicDefined)
+        startGracefulShutdown()
       }
-      consumer.close()
     } else {
-      logger.error("consumer: {} and topic: {} ", isConsumerDefined, isTopicDefined)
+      logger.error("props: {} ", props.toString())
       startGracefulShutdown()
     }
   }
