@@ -9,6 +9,7 @@ import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
+import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
 import scala.concurrent.Future
 
@@ -16,9 +17,12 @@ class StringConsumer[R](
   configs: Configs,
   name: String,
   val executor: Executor[ConsumerRecords[String, String], Future[R]])
-    extends AbstractStringConsumer[R](name) {
+    extends AbstractConsumer[String, String, R](name) {
 
-  override val props: Map[String, AnyRef] = configs.props
+  val keyDeserializer: Deserializer[String] = new StringDeserializer()
+  val valueDeserializer: Deserializer[String] = new StringDeserializer()
+
+  val props: Map[String, AnyRef] = configs.props
 
 }
 
