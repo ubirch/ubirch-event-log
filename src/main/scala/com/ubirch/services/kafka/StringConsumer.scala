@@ -13,7 +13,6 @@ import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy 
 import scala.concurrent.Future
 
 class StringConsumer[R](
-  val topic: String,
   configs: Configs,
   name: String,
   val executor: Executor[ConsumerRecords[String, String], Future[R]])
@@ -37,12 +36,16 @@ class DefaultStringConsumerUnit @Inject() (
 
   val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
-  def consumer =
-    new StringConsumer[Vector[Unit]](
-      topic,
+  def consumer = {
+    val consumer = new StringConsumer[Vector[Unit]](
       configs,
       threadName,
       executor.executor)
+
+    consumer.withTopic(topic) //Default topic
+
+    consumer
+  }
 
   override def get(): StringConsumer[Vector[Unit]] = consumer
 
