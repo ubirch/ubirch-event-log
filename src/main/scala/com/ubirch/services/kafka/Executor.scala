@@ -1,5 +1,6 @@
 package com.ubirch.services.kafka
 
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.util.FromString
 import javax.inject._
@@ -42,7 +43,9 @@ class FilterEmpty extends Executor[Vector[MessageEnvelope[String]], Vector[Messa
 
 }
 
-class EventLogParser extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]] {
+class EventLogParser
+    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]]
+    with LazyLogging {
 
   override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[EventLog]] = {
 
@@ -53,13 +56,14 @@ class EventLogParser extends Executor[Vector[MessageEnvelope[String]], Vector[Me
           Option(m.copy(payload = FromString[EventLog](m.payload).get))
         } catch {
           case e: Exception ⇒
-            e.printStackTrace()
+            logger.error("Error Parsing Event: " + e.getMessage)
             None
         }
       }
 
-    //TODO: We need to use traverse here
-    result.filter(_.isDefined).map(_.get)
+    result
+      .filter(_.isDefined)
+      .flatMap(x ⇒ Option(x.get))
   }
 }
 
