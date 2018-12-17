@@ -10,14 +10,7 @@ trait KafkaConsumerBase[K, V] {
 
   var consumer: JKafkaConsumer[K, V] = _
 
-  private var _topic: String = ""
-
-  def topic = _topic
-
-  def withTopic(value: String): this.type = {
-    _topic = value
-    this
-  }
+  def topic: String
 
   val keyDeserializer: Deserializer[K]
 

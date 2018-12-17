@@ -36,4 +36,7 @@ val t = Extraction.decompose(event).underscoreKeys
 jackson.compactJson(t)
 
 
+val te = Map("1" -> "1") + ("1" -> "2")
+
+
 
