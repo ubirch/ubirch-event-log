@@ -20,6 +20,9 @@ trait Configs {
     }
   }
 
+  def withBootstrapServers(servers: String): Configs =
+    withProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers)
+
 }
 
 object Configs {
