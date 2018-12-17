@@ -5,16 +5,16 @@ The way this software collects events is consuming them from Kafka. The database
 
 # System Components
 
-1. Cluster: Controls the cassandra cluster.
-2. Config: Controls the configuration provision.
-3. Execution: Controls the execution context provision.
-4. Kafka
+1. __Cluster__: Controls the cassandra cluster.
+2. __Config__: Controls the configuration provision.
+3. __Execution__: Controls the execution context provision.
+4. __Kafka__
 
-    * Consumer: Controls the consumption of messages from Kafka
+    * __Consumer__: Controls the consumption of messages from Kafka
 
-    * Process Executor: Pipeline for applying transformations to the incoming messages.
+    * __Process Executor__: Pipeline for applying transformations to the incoming messages.
 
-5. Life Cycle: Controls the hooks that should be run at application shutdown.
+5. __Life Cycle__: Controls the hooks that should be run at application shutdown.
 
 # How to get started
 
@@ -92,7 +92,7 @@ You can now start sending messages of the expected structure to the topic in kaf
 
 The following structure represents the data that the system expects.
 
-```
+```json
 {
    "event":{
       "id":"fdfef472-2a70-488f-8cc9-2691ab36dd54",

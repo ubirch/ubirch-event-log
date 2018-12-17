@@ -33,10 +33,8 @@ val event = EventLog(Event(
 
 val t = Extraction.decompose(event).underscoreKeys
 
-jackson.compactJson(t)
+jackson.prettyJson(t)
 
-
-val te = Map("1" -> "1") + ("1" -> "2")
 
 
 
