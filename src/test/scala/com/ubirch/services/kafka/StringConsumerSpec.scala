@@ -8,13 +8,15 @@ import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.FromString
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.clients.consumer.ConsumerRecords
+import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
+import com.ubirch.util.Implicits.configsToProps
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.postfixOps
+import scala.language.implicitConversions
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
@@ -81,14 +83,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    /*    "should run Executors successfully and complete expected promise 2" in {
+    "should run Executors successfully and complete expected list of promises" in {
 
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9093, zooKeeperPort = 6001)
 
       var listf = List[Future[Vector[Unit]]]()
-      val max = new AtomicReference[Int](30)
+      val max = new AtomicReference[Int](3)
       val releasePromise = Promise[Boolean]()
 
       withRunningKafka {
@@ -136,13 +138,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           }
         }
 
+        val configs = Configs(bootstrapServers = "localhost:9093", groupId = "My_Group_ID", autoOffsetReset = OffsetResetStrategy.EARLIEST)
         val consumer = new DefaultStringConsumerUnit(
           ConfigFactory.load(),
           lifeCycle,
           events,
           executor)
 
-        consumer.get().withTopic(topic).startPolling()
+        consumer.get().withTopic(topic).withProps(configs).startPolling()
 
         await(releasePromise.future, 10 seconds)
 
@@ -150,13 +153,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val rlist = await(flist, 10 seconds)
 
-        println("############################################## " + rlist)
-
         assert(rlist.nonEmpty)
 
       }
 
-    }*/
+    }
 
   }
 
