@@ -1,8 +1,10 @@
 package com.ubirch.services.kafka
 
+import java.util.concurrent.atomic.AtomicReference
+
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLog, Events}
+import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.FromString
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -11,7 +13,7 @@ import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ Future, Promise }
 import scala.language.postfixOps
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
@@ -78,6 +80,83 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
     }
+
+    /*    "should run Executors successfully and complete expected promise 2" in {
+
+      import scala.concurrent.ExecutionContext.Implicits.global
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092)
+
+      var listf = List[Future[Vector[Unit]]]()
+      val max = new AtomicReference[Int](30)
+      val releasePromise = Promise[Boolean]()
+
+      withRunningKafka {
+
+        val topic = "test2"
+
+        publishStringMessageToKafka(topic, Entities.Events.eventExampleAsString)
+
+        val lifeCycle = mock[DefaultLifecycle]
+        val events = mock[Events]
+
+        val executor = mock[DefaultExecutor]
+
+        when(executor.executor).thenReturn {
+          new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
+            override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
+
+              val promiseTest = Promise[Vector[Unit]]()
+
+              lazy val somethingStored = promiseTest.completeWith(Future.successful(Vector(())))
+              lazy val nothingStored = promiseTest.completeWith(Future.successful(Vector.empty[Unit]))
+
+              if (v1.count() > 0) {
+                v1.iterator().forEachRemaining { x ⇒
+                  if (x.value().nonEmpty) {
+                    somethingStored
+                  } else {
+                    nothingStored
+                  }
+                }
+              } else {
+                nothingStored
+              }
+
+              listf = promiseTest.future :: listf
+
+              max.set(max.get() - 1)
+              val pending = max.get()
+              if (pending == 0) {
+                releasePromise.success(true)
+              }
+
+              promiseTest.future
+            }
+          }
+        }
+
+        val consumer = new DefaultStringConsumerUnit(
+          ConfigFactory.load(),
+          lifeCycle,
+          events,
+          executor)
+
+        consumer.get().withTopic(topic).startPolling()
+
+        await(releasePromise.future, 10 seconds)
+
+        val flist = Future.sequence(listf).filter(x ⇒ x.nonEmpty)
+
+        val rlist = await(flist, 10 seconds)
+
+        println("############################################## " + rlist)
+
+        assert(rlist.nonEmpty)
+
+      }
+
+    }*/
 
   }
 
