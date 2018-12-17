@@ -90,7 +90,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9093, zooKeeperPort = 6001)
 
       var listf = List[Future[Vector[Unit]]]()
-      val max = new AtomicReference[Int](3)
+      val max = new AtomicReference[Int](10)
       val releasePromise = Promise[Boolean]()
 
       withRunningKafka {
@@ -138,22 +138,30 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           }
         }
 
-        val configs = Configs(bootstrapServers = "localhost:9093", groupId = "My_Group_ID", autoOffsetReset = OffsetResetStrategy.EARLIEST)
+        val configs = Configs(
+          bootstrapServers = "localhost:9093",
+          groupId = "My_Group_ID",
+          autoOffsetReset =
+            OffsetResetStrategy.EARLIEST)
+
         val consumer = new DefaultStringConsumerUnit(
           ConfigFactory.load(),
           lifeCycle,
           events,
           executor)
 
-        consumer.get().withTopic(topic).withProps(configs).startPolling()
+        consumer.get()
+          .withTopic(topic)
+          .withProps(configs)
+          .startPolling()
 
         await(releasePromise.future, 10 seconds)
 
         val flist = Future.sequence(listf).filter(x ⇒ x.nonEmpty)
-
         val rlist = await(flist, 10 seconds)
 
         assert(rlist.nonEmpty)
+        assert(rlist.exists(_.nonEmpty))
 
       }
 
