@@ -15,7 +15,14 @@ abstract class AbstractConsumer[K, V, R](name: String)
     with WithConsumerRecordsExecutor[K, V, Future[R]]
     with LazyLogging {
 
-  val props: Map[String, AnyRef]
+  private var _props: Map[String, AnyRef] = Map.empty
+
+  def props = _props
+
+  def withProps(ps: Map[String, AnyRef]): this.type = {
+    _props = ps
+    this
+  }
 
   def startPolling(): Unit = {
     new Thread(this).start()

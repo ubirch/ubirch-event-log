@@ -24,7 +24,8 @@ trait Configs {
 
 object Configs {
 
-  def apply[K, V](bootstrapServers: String = "localhost:9092",
+  def apply[K, V](
+    bootstrapServers: String = "localhost:9092",
     groupId: String,
     enableAutoCommit: Boolean = true,
     autoCommitInterval: Int = 1000,

@@ -7,22 +7,21 @@ import com.typesafe.config.Config
 import com.ubirch.ConfPaths
 import com.ubirch.models.Events
 import com.ubirch.services.lifeCycle.Lifecycle
+import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
 import scala.concurrent.Future
+import scala.language.implicitConversions
 
 class StringConsumer[R](
-  configs: Configs,
   name: String,
   val executor: Executor[ConsumerRecords[String, String], Future[R]])
     extends AbstractConsumer[String, String, R](name) {
 
   val keyDeserializer: Deserializer[String] = new StringDeserializer()
   val valueDeserializer: Deserializer[String] = new StringDeserializer()
-
-  val props: Map[String, AnyRef] = configs.props
 
 }
 
@@ -41,14 +40,9 @@ class DefaultStringConsumerUnit @Inject() (
   val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
   def consumer = {
-    val consumer = new StringConsumer[Vector[Unit]](
-      configs,
-      threadName,
-      executor.executor)
-
-    consumer.withTopic(topic) //Default topic
-
-    consumer
+    new StringConsumer[Vector[Unit]](threadName, executor.executor)
+      .withTopic(topic)
+      .withProps(configs)
   }
 
   override def get(): StringConsumer[Vector[Unit]] = consumer

@@ -4,6 +4,7 @@ import java.util.Properties
 
 import com.typesafe.config.Config
 import com.ubirch.models.TimeInfo
+import com.ubirch.services.kafka.Configs
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._
@@ -48,5 +49,7 @@ object Implicits {
   implicit def enrichedDatetime(dateTime: DateTime) = EnrichedDatetime(dateTime)
 
   implicit def enrichedConfig(config: Config) = EnrichedConfig(config)
+
+  implicit def configsToProps(configs: Configs) = configs.props
 
 }
