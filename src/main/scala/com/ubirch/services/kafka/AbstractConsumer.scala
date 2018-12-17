@@ -29,7 +29,7 @@ abstract class AbstractConsumer[K, V, R](name: String)
 
   override def execute(): Unit = {
     createConsumer(props)
-    if (Option(consumer).isDefined) {
+    if (isConsumerDefined && isTopicDefined) {
       subscribe()
       while (getRunning) {
         doWork().recover {
@@ -43,7 +43,8 @@ abstract class AbstractConsumer[K, V, R](name: String)
       }
       consumer.close()
     } else {
-      logger.warn("No consumer created ...")
+      logger.error("consumer: {} and topic: {} ", isConsumerDefined, isTopicDefined)
+      startGracefulShutdown()
     }
   }
 

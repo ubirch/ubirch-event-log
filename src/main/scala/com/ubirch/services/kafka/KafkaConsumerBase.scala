@@ -10,7 +10,14 @@ trait KafkaConsumerBase[K, V] {
 
   var consumer: JKafkaConsumer[K, V] = _
 
-  val topic: String
+  private var _topic: String = ""
+
+  def topic = _topic
+
+  def withTopic(value: String): this.type = {
+    _topic = value
+    this
+  }
 
   val keyDeserializer: Deserializer[K]
 
@@ -32,4 +39,7 @@ trait KafkaConsumerBase[K, V] {
     Try(consumer.poll(java.time.Duration.ofSeconds(1)))
   }
 
+  def isConsumerDefined: Boolean = Option(consumer).isDefined
+
+  def isTopicDefined: Boolean = topic.nonEmpty
 }
