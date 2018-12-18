@@ -1,6 +1,7 @@
-package com.ubirch.services.kafka
+package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.services.kafka.TestBase
 import org.scalatest.mockito.MockitoSugar
 
 import scala.language.{ implicitConversions, postfixOps }

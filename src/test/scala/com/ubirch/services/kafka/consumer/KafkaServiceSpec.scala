@@ -1,4 +1,6 @@
-package com.ubirch.services.kafka
+package com.ubirch.services.kafka.consumer
+
+import com.ubirch.services.kafka.TestBase
 
 class KafkaServiceSpec extends TestBase {
 

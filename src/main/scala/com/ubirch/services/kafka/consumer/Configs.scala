@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka
+package com.ubirch.services.kafka.consumer
 
 import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
 import org.apache.kafka.common.requests.IsolationLevel
@@ -19,9 +19,6 @@ trait Configs {
       override val props: Map[String, AnyRef] = props ++ config.props
     }
   }
-
-  def withBootstrapServers(servers: String): Configs =
-    withProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers)
 
 }
 
