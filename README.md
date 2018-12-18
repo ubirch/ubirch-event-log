@@ -68,7 +68,8 @@ Optionally, make sure that the evolutions scripts have been successfully install
 
 Create a [topic](https://kafka.apache.org/quickstart#quickstart_createtopic).
 You can customize the name by changing it in src/main/resources/application.conf or with the
-withTopic helper on the created consumer.
+withTopic helper on the created consumer. By default the name of topic that the application tries to connect to
+is _com.ubirch.eventlog_ if none provided.
 
 ## Build
 
