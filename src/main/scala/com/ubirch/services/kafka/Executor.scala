@@ -2,9 +2,10 @@ package com.ubirch.services.kafka
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.util.Exceptions.{ EventLogParserException, FilterEmptyException }
 import com.ubirch.util.FromString
 import javax.inject._
-import org.apache.kafka.clients.consumer.ConsumerRecords
+import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -18,66 +19,53 @@ trait Executor[-T1, +R] extends (T1 ⇒ R) {
 
 }
 
-class Wrapper extends Executor[ConsumerRecords[String, String], Vector[MessageEnvelope[String]]] {
+class Wrapper extends Executor[ConsumerRecord[String, String], MessageEnvelope[String]] {
 
-  override def apply(v1: ConsumerRecords[String, String]): Vector[MessageEnvelope[String]] = {
-
-    val buffer = scala.collection.mutable.ListBuffer.empty[MessageEnvelope[String]]
-    v1.iterator().forEachRemaining { record ⇒
-      buffer += MessageEnvelope.fromRecord(record)
-    }
-
-    buffer.toVector
-
+  override def apply(v1: ConsumerRecord[String, String]): MessageEnvelope[String] = {
+    MessageEnvelope.fromRecord(v1)
   }
 
 }
 
-class FilterEmpty extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[String]]] {
+class FilterEmpty extends Executor[MessageEnvelope[String], MessageEnvelope[String]] {
 
-  override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[String]] = {
+  override def apply(v1: MessageEnvelope[String]): MessageEnvelope[String] = {
 
-    v1.filter(_.payload.nonEmpty).map(x ⇒ x.copy(payload = x.payload))
+    if (v1.payload.nonEmpty) {
+      v1
+    } else {
+
+      throw FilterEmptyException("Record is empty")
+    }
 
   }
 
 }
 
 class EventLogParser
-    extends Executor[Vector[MessageEnvelope[String]], Vector[MessageEnvelope[EventLog]]]
+    extends Executor[MessageEnvelope[String], MessageEnvelope[EventLog]]
     with LazyLogging {
 
-  override def apply(v1: Vector[MessageEnvelope[String]]): Vector[MessageEnvelope[EventLog]] = {
+  override def apply(v1: MessageEnvelope[String]): MessageEnvelope[EventLog] = {
 
-    val result: Vector[Option[MessageEnvelope[EventLog]]] =
-      v1.map { m ⇒
-
-        try {
-          Option(m.copy(payload = FromString[EventLog](m.payload).get))
-        } catch {
-          case e: Exception ⇒
-            logger.error("Error Parsing Event: " + e.getMessage)
-            None
-        }
-      }
+    val result: MessageEnvelope[EventLog] = try {
+      v1.copy(payload = FromString[EventLog](v1.payload).get)
+    } catch {
+      case e: Exception ⇒
+        logger.error("Error Parsing Event: " + e.getMessage)
+        throw EventLogParserException("Error Parsing Into Event Log")
+    }
 
     result
-      .filter(_.isDefined)
-      .flatMap(x ⇒ Option(x.get))
+
   }
 }
 
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-    extends Executor[Vector[MessageEnvelope[EventLog]], Future[Vector[Unit]]] {
+    extends Executor[MessageEnvelope[EventLog], Future[Unit]] {
 
-  override def apply(v1: Vector[MessageEnvelope[EventLog]]): Future[Vector[Unit]] = {
-
-    val vectorOfFutureResults = v1.map { m ⇒
-      events.insert(m.payload)
-    }
-
-    Future.sequence(vectorOfFutureResults)
-
+  override def apply(v1: MessageEnvelope[EventLog]): Future[Unit] = {
+    events.insert(v1.payload)
   }
 }
 

@@ -4,11 +4,10 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.ShutdownableThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 
+import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
-import scala.util.Try
-import scala.util.control.NonFatal
 
 trait ConfigBaseHelpers {
 
@@ -46,14 +45,10 @@ abstract class AbstractConsumer[K, V, R](name: String)
     with ConfigBaseHelpers
     with LazyLogging {
 
+  def isValueEmpty(v: V): Boolean
+
   def startPolling(): Unit = {
     new Thread(this).start()
-  }
-
-  def doWork(): Try[R] = {
-    pollRecords
-      .map(executor)
-      .map(Await.result(_, 2 seconds))
   }
 
   override def execute(): Unit = {
@@ -62,18 +57,25 @@ abstract class AbstractConsumer[K, V, R](name: String)
       if (isConsumerDefined && isTopicDefined) {
         subscribe()
         while (getRunning) {
-          doWork()
-            .map { _ ⇒
-              if (isAutoCommit)
-                consumer.commitSync()
-            }
-            .recover {
-              case e: Exception ⇒
-                logger.error("Got an ERROR processing records: " + e.getMessage)
-                if (!NonFatal(e)) {
-                  startGracefulShutdown()
-                }
-            }
+
+          val polledResults = consumer.poll(java.time.Duration.ofSeconds(1))
+
+          val records = polledResults.iterator().asScala
+
+          //This is only a description of the iterator
+          val mappedIterator = records
+            .filterNot(x ⇒ isValueEmpty(x.value()))
+            .map(executor)
+
+          //This is the actual traversal of the iterator
+          while (mappedIterator.hasNext) {
+            val processedRecord = mappedIterator.next()
+            Await.result(processedRecord, 2 seconds)
+          }
+
+          if (isAutoCommit)
+            consumer.commitSync()
+
         }
         consumer.close()
       } else {

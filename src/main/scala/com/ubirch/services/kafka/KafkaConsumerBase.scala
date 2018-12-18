@@ -1,10 +1,9 @@
 package com.ubirch.services.kafka
 
-import org.apache.kafka.clients.consumer.{ ConsumerRecords, KafkaConsumer ⇒ JKafkaConsumer }
+import org.apache.kafka.clients.consumer.{ KafkaConsumer ⇒ JKafkaConsumer }
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 trait KafkaConsumerBase[K, V] {
 
@@ -26,10 +25,6 @@ trait KafkaConsumerBase[K, V] {
   def subscribe(): this.type = {
     consumer.subscribe(List(topic).asJavaCollection)
     this
-  }
-
-  def pollRecords: Try[ConsumerRecords[K, V]] = {
-    Try(consumer.poll(java.time.Duration.ofSeconds(1)))
   }
 
   def isConsumerDefined: Boolean = Option(consumer).isDefined

@@ -9,7 +9,7 @@ import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
+import org.apache.kafka.clients.consumer.{ ConsumerRecord, ConsumerRecords, OffsetResetStrategy }
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
@@ -32,7 +32,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
-        val promiseTestSuccess = Promise[Vector[String]]()
+        val promiseTestSuccess = Promise[String]()
 
         val lifeCycle = mock[DefaultLifecycle]
         val events = mock[Events]
@@ -40,33 +40,19 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executor = mock[DefaultExecutor]
 
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
-            override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
+          new Executor[ConsumerRecord[String, String], Future[Unit]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
 
-              val promiseTest = Promise[Vector[Unit]]()
-
-              lazy val somethingStored = promiseTest.completeWith(Future.successful(Vector(())))
-              lazy val nothingStored = promiseTest.completeWith(Future.successful(Vector.empty[Unit]))
-
-              if (v1.count() > 0) {
-                v1.iterator().forEachRemaining { x ⇒
-                  if (x.value().nonEmpty) {
-                    promiseTestSuccess.completeWith(Future.successful(Vector(x.value())))
-                    somethingStored
-                  } else {
-                    nothingStored
-                  }
-                }
-              } else {
-                nothingStored
-              }
-
+              val promiseTest = Promise[Unit]()
+              promiseTestSuccess.completeWith(Future.successful(v1.value()))
+              promiseTest.completeWith(Future.successful(()))
               promiseTest.future
+
             }
           }
         }
 
-        val consumer = new DefaultStringConsumerUnit(
+        val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
           events,
@@ -77,23 +63,16 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val caseOfInterest = await(promiseTestSuccess.future, 10 seconds)
 
         assert(caseOfInterest.nonEmpty)
-        assert(caseOfInterest == Vector(entityAsString))
-        assert(caseOfInterest.size == 1)
-        assert(caseOfInterest.map(x ⇒ FromString[EventLog](x).get) == Vector(entity))
+        assert(caseOfInterest == entityAsString)
+        assert(FromString[EventLog](caseOfInterest).get == entity)
 
       }
 
     }
 
-    "run Executors successfully and complete expected list of promises" in {
-
-      import scala.concurrent.ExecutionContext.Implicits.global
+    "run Executors successfully and complete expected promises when using a different topic" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9093, zooKeeperPort = 6001)
-
-      var listf = List[Future[Vector[Unit]]]()
-      val max = new AtomicReference[Int](10)
-      val releasePromise = Promise[Boolean]()
 
       withRunningKafka {
 
@@ -109,35 +88,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val executor = mock[DefaultExecutor]
 
+        val promiseTest = Promise[Unit]()
+
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
-            override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
-
-              val promiseTest = Promise[Vector[Unit]]()
-
-              lazy val somethingStored = promiseTest.completeWith(Future.successful(Vector(())))
-              lazy val nothingStored = promiseTest.completeWith(Future.successful(Vector.empty[Unit]))
-
-              if (v1.count() > 0) {
-                v1.iterator().forEachRemaining { x ⇒
-                  if (x.value().nonEmpty) {
-                    somethingStored
-                  } else {
-                    nothingStored
-                  }
-                }
-              } else {
-                nothingStored
-              }
-
-              listf = promiseTest.future :: listf
-
-              max.set(max.get() - 1)
-              val pending = max.get()
-              if (pending == 0) {
-                releasePromise.success(true)
-              }
-
+          new Executor[ConsumerRecord[String, String], Future[Unit]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+              promiseTest.completeWith(Future.successful(()))
               promiseTest.future
             }
           }
@@ -149,7 +105,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val consumer = new DefaultStringConsumerUnit(
+        val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
           events,
@@ -160,13 +116,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           .withProps(configs)
           .startPolling()
 
-        await(releasePromise.future, 10 seconds)
+        val caseOfInterest = await(promiseTest.future, 10 seconds)
 
-        val flist = Future.sequence(listf).filter(x ⇒ x.nonEmpty)
-        val rlist = await(flist, 10 seconds)
-
-        assert(rlist.nonEmpty)
-        assert(rlist.exists(_.nonEmpty))
+        assert(caseOfInterest == ())
 
       }
 
@@ -186,7 +138,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val consumer = new StringConsumer[Vector[Unit]]("MyThreadName", executor.executor)
+        val consumer = new StringConsumer("MyThreadName", executor.executor)
 
         consumer.withProps(configs).startPolling()
 
@@ -205,7 +157,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val executor = mock[DefaultExecutor]
 
-        val consumer = new StringConsumer[Vector[Unit]]("MyThreadName", executor.executor)
+        val consumer = new StringConsumer("MyThreadName", executor.executor)
 
         consumer.withProps(Map.empty).startPolling()
 
@@ -226,18 +178,17 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = kafkaPort, zooKeeperPort = zooKeeperPort)
 
+      val maxEntities = 500
       var listfWithSuccess = List.empty[String]
-
-      var listf = List.empty[Future[Vector[Unit]]]
-
-      val max = new AtomicReference[Int](10)
+      var listf = List.empty[Future[Unit]]
+      val max = new AtomicReference[Int](maxEntities)
       val releasePromise = Promise[Boolean]()
 
       withRunningKafka {
 
         val topic = "test2"
 
-        val entities = (0 to 500).map(_ ⇒ Entities.Events.eventExample()).toList
+        val entities = (0 to maxEntities).map(_ ⇒ Entities.Events.eventExample()).toList
 
         val entitiesAsString = entities.map(x ⇒ Entities.Events.eventExampleAsString(x))
 
@@ -251,33 +202,22 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executor = mock[DefaultExecutor]
 
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecords[String, String], Future[Vector[Unit]]] {
-            override def apply(v1: ConsumerRecords[String, String]): Future[Vector[Unit]] = {
+          new Executor[ConsumerRecord[String, String], Future[Unit]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
 
-              val promiseTest = Promise[Vector[Unit]]()
+              val promiseTest = Promise[Unit]()
 
-              lazy val somethingStored = promiseTest.completeWith(Future.successful(Vector(())))
-              lazy val nothingStored = promiseTest.completeWith(Future.successful(Vector.empty[Unit]))
+              lazy val somethingStored = promiseTest.completeWith(Future.successful(()))
 
-              if (v1.count() > 0) {
-                v1.iterator().forEachRemaining { x ⇒
-                  if (x.value().nonEmpty) {
-                    listfWithSuccess = listfWithSuccess ++ Seq(x.value())
-                    somethingStored
-                  } else {
-                    nothingStored
-                  }
-                }
-              } else {
-                nothingStored
-              }
+              listfWithSuccess = listfWithSuccess ++ Seq(v1.value())
+              somethingStored
 
               listf = promiseTest.future :: listf
 
               max.set(max.get() - 1)
               val pending = max.get()
               if (pending == 0) {
-                releasePromise.success(true)
+                releasePromise.completeWith(Future(true))
               }
 
               promiseTest.future
@@ -291,7 +231,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val consumer = new DefaultStringConsumerUnit(
+        val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
           events,
@@ -308,7 +248,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val rlist = await(flist, 30 seconds)
 
         assert(rlist.nonEmpty)
-        assert(rlist.exists(_.nonEmpty))
+        assert(rlist.contains(()))
 
         listfWithSuccess must contain theSameElementsAs entitiesAsString
         listfWithSuccess.size must be(entitiesAsString.size)
