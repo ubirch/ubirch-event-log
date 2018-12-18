@@ -21,13 +21,13 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
   "StringConsumerSpec" must {
 
-    "should run Executors successfully and complete expected promise" in {
+    "run Executors successfully and complete expected promise" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092)
 
       withRunningKafka {
 
-        publishStringMessageToKafka("test", Entities.Events.eventExampleAsString)
+        publishStringMessageToKafka("com.ubirch.eventlog", Entities.Events.eventExampleAsString)
 
         val promiseTestSuccess = Promise[Vector[String]]()
 
@@ -82,7 +82,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "should run Executors successfully and complete expected list of promises" in {
+    "run Executors successfully and complete expected list of promises" in {
 
       import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -166,7 +166,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "should fail if topic is not provided" in {
+    "fail if topic is not provided" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9094, zooKeeperPort = 6004)
 
@@ -191,7 +191,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       }
     }
 
-    "should fail if props are empty" in {
+    "fail if props are empty" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9095, zooKeeperPort = 6005)
 
