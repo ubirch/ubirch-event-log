@@ -1,15 +1,16 @@
-package com.ubirch.services.kafka
+package com.ubirch.services.kafka.consumer
 
 import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.services.kafka.{ Entities, TestBase }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.clients.consumer.{ ConsumerRecord, ConsumerRecords, OffsetResetStrategy }
+import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
@@ -116,9 +117,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           .withProps(configs)
           .startPolling()
 
-        val caseOfInterest = await(promiseTest.future, 10 seconds)
+        await(promiseTest.future, 10 seconds)
 
-        assert(caseOfInterest == ())
+        assert(promiseTest.isCompleted)
 
       }
 

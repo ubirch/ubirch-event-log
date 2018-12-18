@@ -4,7 +4,7 @@ import java.util.Properties
 
 import com.typesafe.config.Config
 import com.ubirch.models.TimeInfo
-import com.ubirch.services.kafka.Configs
+import com.ubirch.services.kafka.consumer.Configs
 import org.joda.time.DateTime
 
 import scala.collection.JavaConverters._

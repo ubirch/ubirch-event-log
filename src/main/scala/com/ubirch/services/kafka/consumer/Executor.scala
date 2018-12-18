@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka
+package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
