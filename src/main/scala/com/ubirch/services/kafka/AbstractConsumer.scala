@@ -8,6 +8,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
+import scala.util.Try
 
 trait ConfigBaseHelpers {
 
@@ -64,13 +65,19 @@ abstract class AbstractConsumer[K, V, R](name: String)
 
           //This is only a description of the iterator
           val mappedIterator = records
-            .filterNot(x ⇒ isValueEmpty(x.value()))
-            .map(executor)
+            .filterNot(cr ⇒ isValueEmpty(cr.value()))
+            .map(cr ⇒ (cr, executor))
 
           //This is the actual traversal of the iterator
           while (mappedIterator.hasNext) {
-            val processedRecord = mappedIterator.next()
-            Await.result(processedRecord, 2 seconds)
+
+            val (cr, processedRecord) = mappedIterator.next()
+
+            Try(Await.result(processedRecord(cr), 2 seconds))
+              .recover {
+                case e: Exception ⇒
+                // TODO Send to producer
+              }
           }
 
           if (isAutoCommit)

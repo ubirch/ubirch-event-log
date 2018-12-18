@@ -2,7 +2,7 @@ package com.ubirch.services.kafka
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
-import com.ubirch.util.Exceptions.{ EventLogParserException, FilterEmptyException }
+import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util.FromString
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -35,7 +35,7 @@ class FilterEmpty extends Executor[MessageEnvelope[String], MessageEnvelope[Stri
       v1
     } else {
 
-      throw FilterEmptyException("Record is empty")
+      throw ExecutionException("Record is empty", ExecutionException.EmptyValue)
     }
 
   }
@@ -53,7 +53,7 @@ class EventLogParser
     } catch {
       case e: Exception ⇒
         logger.error("Error Parsing Event: " + e.getMessage)
-        throw EventLogParserException("Error Parsing Into Event Log")
+        throw ExecutionException("Error Parsing Into Event Log", ExecutionException.ParsingIntoEventLog)
     }
 
     result

@@ -2,8 +2,11 @@ package com.ubirch.util
 
 object Exceptions {
 
-  case class FilterEmptyException(message: String) extends Exception(message)
+  case class ExecutionException(message: String, `type`: ExecutionException.Value) extends Exception(message)
 
-  case class EventLogParserException(message: String) extends Exception(message)
+  object ExecutionException extends Enumeration {
+    val EmptyValue = Value
+    val ParsingIntoEventLog = Value
+  }
 
 }
