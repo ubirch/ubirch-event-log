@@ -9,7 +9,7 @@ object App extends Boot with LazyLogging with Execution {
 
   def main(args: Array[String]): Unit = {
 
-    val consumer = get[StringConsumer[Vector[Unit]]]
+    val consumer = get[StringConsumer]
 
     consumer.startPolling()
 
