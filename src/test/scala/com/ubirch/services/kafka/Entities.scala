@@ -9,11 +9,12 @@ import org.json4s.jackson.JsonMethods.parse
 object Entities {
 
   object Events {
+
     val data = parse(""" { "numbers" : [1, 2, 3, 4] } """)
 
-    val eventExample = EventLog(
+    def eventExample(id: UUID = UUID.randomUUID()) = EventLog(
       Event(
-        UUID.randomUUID(),
+        id,
         "this is a service class",
         "this is a category",
         data,
@@ -23,7 +24,7 @@ object Entities {
       new Date(),
       new Date())
 
-    val eventExampleAsString = ToJson[EventLog](eventExample).toString
+    def eventExampleAsString(eventLog: EventLog) = ToJson[EventLog](eventLog).toString
 
   }
 
