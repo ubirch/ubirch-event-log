@@ -1,26 +1,8 @@
 package com.ubirch.services.kafka.consumer
 
+import com.ubirch.services.kafka.ConfigProperties
 import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
 import org.apache.kafka.common.requests.IsolationLevel
-
-trait Configs {
-
-  val props: Map[String, AnyRef]
-
-  def withProperty(key: String, value: AnyRef): Configs = {
-    new Configs {
-      override val props: Map[String, AnyRef] = props + (key -> value)
-    }
-
-  }
-
-  def withConf(config: Configs): Configs = {
-    new Configs {
-      override val props: Map[String, AnyRef] = props ++ config.props
-    }
-  }
-
-}
 
 object Configs {
 
@@ -35,9 +17,9 @@ object Configs {
     maxPollInterval: Int = 300000,
     maxMetaDataAge: Long = 300000,
     autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,
-    isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED): Configs = {
+    isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED): ConfigProperties = {
 
-    new Configs {
+    new ConfigProperties {
       override val props: Map[String, AnyRef] = {
         Map[String, AnyRef](
           ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> bootstrapServers,
