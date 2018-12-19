@@ -6,7 +6,6 @@ import java.util.{Date, UUID}
 import com.ubirch.models.{Event, EventLog, TimeInfo}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-
 import org.json4s.jackson.Serialization
 
 implicit lazy val formats = Serialization.formats(NoTypeHints) ++
