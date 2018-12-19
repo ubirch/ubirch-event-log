@@ -17,7 +17,8 @@ import scala.language.implicitConversions
 
 class StringConsumer(
   name: String,
-  val executor: Executor[ConsumerRecord[String, String], Future[Unit]])
+  val executor: Executor[ConsumerRecord[String, String], Future[Unit]],
+  val reporter: Reporter)
     extends AbstractConsumer[String, String, Unit](name) {
 
   val keyDeserializer: Deserializer[String] = new StringDeserializer()
@@ -30,7 +31,8 @@ class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     events: Events,
-    executor: DefaultExecutor) extends Provider[StringConsumer] {
+    executor: DefaultExecutor,
+    reporter: Reporter) extends Provider[StringConsumer] {
 
   val topic: String = config.getString(ConfPaths.TOPIC_PATH)
   val groupId: String = config.getString(ConfPaths.GROUP_ID_PATH)
@@ -39,7 +41,7 @@ class DefaultStringConsumer @Inject() (
   val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
   lazy val consumer = {
-    new StringConsumer(threadName, executor.executor)
+    new StringConsumer(threadName, executor.executor, reporter)
       .withTopic(topic)
       .withProps(configs)
   }

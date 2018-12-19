@@ -6,4 +6,6 @@ trait WithConsumerRecordsExecutor[K, V, R] {
 
   val executor: Executor[ConsumerRecord[K, V], R]
 
+  val reporter: Reporter
+
 }
