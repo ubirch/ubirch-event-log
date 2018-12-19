@@ -9,6 +9,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 import scala.util.Try
+import com.ubirch.models.Error
 
 trait ConfigBaseHelpers {
 
@@ -76,7 +77,8 @@ abstract class AbstractConsumer[K, V, R](name: String)
             Try(Await.result(processedRecord(cr), 2 seconds))
               .recover {
                 case e: Exception ⇒
-                // TODO Send to producer
+                  import reporter.Types._
+                  reporter.report(Error("MyId", e.getMessage))
               }
           }
 

@@ -6,6 +6,7 @@ The way this software collects events is consuming them from Kafka. The database
 # System Components
 
 1. __Cluster__: Controls the cassandra cluster.
+2. __Cassandra Connection Service__: Controls the context needed to run queries against Cassandra.
 2. __Config__: Controls the configuration provision.
 3. __Execution__: Controls the execution context provision.
 4. __Kafka__
@@ -35,7 +36,7 @@ Make sure you have the following systems up and running.
 
 * [Ubirch Event Log](https://github.com/ubirch/ubirch-event-log)
 
-    Make you you have cloned the application.
+    Make sure you have cloned the application and got it compiled.
 
 ## Configurations needed
 
@@ -64,9 +65,11 @@ Optionally, make sure that the evolutions scripts have been successfully install
     cassandra-migrate -H 127.0.0.1 -p 9042 status
 ```
 
-* __Kafka__:
+* __Kafka Topics__:
 
-Create a [topic](https://kafka.apache.org/quickstart#quickstart_createtopic).
+_Events to Log_
+
+Create an events [topic](https://kafka.apache.org/quickstart#quickstart_createtopic).
 You can customize the name by changing it in src/main/resources/application.conf or with the
 withTopic helper on the created consumer. By default the name of topic that the application tries to connect to
 is _com.ubirch.eventlog_ if none provided.
