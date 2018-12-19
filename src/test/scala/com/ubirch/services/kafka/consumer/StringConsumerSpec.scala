@@ -4,16 +4,19 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.{ Entities, TestBase }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
+import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
@@ -266,6 +269,72 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         listfWithSuccess must contain theSameElementsAs entitiesAsString
         listfWithSuccess.size must be(entitiesAsString.size)
+
+      }
+
+    }
+
+    "talk to reporter when error occurs" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9097, zooKeeperPort = 6007)
+
+      val topic = "test2"
+
+      val lifeCycle = mock[DefaultLifecycle]
+      val events = mock[Events]
+      val executor = mock[DefaultExecutor]
+
+      val promiseTest = Promise[String]()
+
+      when(executor.executor).thenReturn {
+        new Executor[ConsumerRecord[String, String], Future[Unit]] {
+          override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+            throw ExecutionException("OH_MY_GOD", ExecutionException.ParsingIntoEventLog)
+          }
+        }
+      }
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        autoOffsetReset =
+          OffsetResetStrategy.EARLIEST)
+
+      val reporter = mock[Reporter]
+
+      import reporter.Types._
+
+      when(reporter.Types).thenCallRealMethod()
+
+      when(reporter.report(any[Error]())).thenReturn {
+        promiseTest.completeWith(Future("Received message"))
+        ()
+      }
+
+      withRunningKafka {
+
+        val entity = Entities.Events.eventExample()
+        val entityAsString = Entities.Events.eventExampleAsString(entity)
+
+        publishStringMessageToKafka(topic, entityAsString)
+
+        val consumer = new DefaultStringConsumer(
+          ConfigFactory.load(),
+          lifeCycle,
+          events,
+          executor,
+          reporter)
+
+        consumer.get()
+          .withTopic(topic)
+          .withProps(configs)
+          .startPolling()
+
+        val result = await(promiseTest.future, 10 seconds)
+
+        assert(promiseTest.isCompleted)
+
+        assert(result == "Received message")
 
       }
 
