@@ -2,6 +2,7 @@ package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.services.kafka.MessageEnvelope
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util.FromString
 import javax.inject._
