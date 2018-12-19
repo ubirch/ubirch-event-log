@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Error, EventLog, Events }
-import com.ubirch.services.kafka.{ Entities, TestBase }
+import com.ubirch.services.kafka._
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util.FromString
@@ -27,7 +27,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run Executors successfully and complete expected promise" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
 
       withRunningKafka {
 
@@ -79,11 +79,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run Executors successfully and complete expected promises when using a different topic" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9093, zooKeeperPort = 6001)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
-        val topic = "test2"
+        val topic = NameGiver.giveMeATopicName
 
         val entity = Entities.Events.eventExample()
         val entityAsString = Entities.Events.eventExampleAsString(entity)
@@ -107,7 +107,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:9093",
+          bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
@@ -136,7 +136,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if topic is not provided" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9094, zooKeeperPort = 6004)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -145,12 +145,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val reporter = mock[Reporter]
 
         val configs = Configs(
-          bootstrapServers = "localhost:9094",
+          bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val consumer = new StringConsumer("MyThreadName", executor.executor, reporter)
+        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter)
 
         consumer.withProps(configs).startPolling()
 
@@ -163,7 +163,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if props are empty" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9095, zooKeeperPort = 6005)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -171,7 +171,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val consumer = new StringConsumer("MyThreadName", executor.executor, reporter)
+        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter)
 
         consumer.withProps(Map.empty).startPolling()
 
@@ -187,10 +187,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      val kafkaPort = 9096
-      val zooKeeperPort = 6006
-
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = kafkaPort, zooKeeperPort = zooKeeperPort)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val maxEntities = 500
       var listfWithSuccess = List.empty[String]
@@ -200,7 +197,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       withRunningKafka {
 
-        val topic = "test2"
+        val topic = NameGiver.giveMeATopicName
 
         val entities = (0 to maxEntities).map(_ ⇒ Entities.Events.eventExample()).toList
 
@@ -242,7 +239,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val reporter = mock[Reporter]
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + kafkaPort,
+          bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
@@ -276,9 +273,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "talk to reporter when error occurs" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9097, zooKeeperPort = 6007)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val topic = "test2"
+      val topic = NameGiver.giveMeATopicName
 
       val lifeCycle = mock[DefaultLifecycle]
       val events = mock[Events]
@@ -311,19 +308,19 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         ()
       }
 
+      val consumer = new DefaultStringConsumer(
+        ConfigFactory.load(),
+        lifeCycle,
+        events,
+        executor,
+        reporter)
+
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
         val entityAsString = Entities.Events.eventExampleAsString(entity)
 
         publishStringMessageToKafka(topic, entityAsString)
-
-        val consumer = new DefaultStringConsumer(
-          ConfigFactory.load(),
-          lifeCycle,
-          events,
-          executor,
-          reporter)
 
         consumer.get()
           .withTopic(topic)
