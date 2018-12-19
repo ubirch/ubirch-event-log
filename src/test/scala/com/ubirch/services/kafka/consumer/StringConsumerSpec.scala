@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka._
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.Exceptions.ExecutionException
+import com.ubirch.util.Exceptions.ParsingIntoEventLogException
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -286,7 +286,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       when(executor.executor).thenReturn {
         new Executor[ConsumerRecord[String, String], Future[Unit]] {
           override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
-            throw ExecutionException("OH_MY_GOD", ExecutionException.ParsingIntoEventLog)
+            throw ParsingIntoEventLogException("OH_MY_GOD", v1.value())
           }
         }
       }
