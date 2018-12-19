@@ -1,12 +1,17 @@
 package com.ubirch.util
 
+import com.ubirch.models.EventLog
+
 object Exceptions {
 
-  case class ExecutionException(message: String, `type`: ExecutionException.Value) extends Exception(message)
-
-  object ExecutionException extends Enumeration {
-    val EmptyValue = Value
-    val ParsingIntoEventLog = Value
+  abstract class ExecutionException(message: String) extends Exception(message) {
+    val name = this.getClass.getCanonicalName
   }
+
+  case class EmptyValueException(message: String) extends ExecutionException(message)
+
+  case class ParsingIntoEventLogException(message: String, value: String) extends ExecutionException(message)
+
+  case class StoringIntoEventLogException(message: String, eventLog: EventLog, reason: String) extends ExecutionException(message)
 
 }

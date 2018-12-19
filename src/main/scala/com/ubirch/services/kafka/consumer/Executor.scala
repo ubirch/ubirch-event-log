@@ -3,7 +3,7 @@ package com.ubirch.services.kafka.consumer
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.kafka.MessageEnvelope
-import com.ubirch.util.Exceptions.ExecutionException
+import com.ubirch.util.Exceptions._
 import com.ubirch.util.FromString
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -35,8 +35,7 @@ class FilterEmpty extends Executor[MessageEnvelope[String], MessageEnvelope[Stri
     if (v1.payload.nonEmpty) {
       v1
     } else {
-
-      throw ExecutionException("Record is empty", ExecutionException.EmptyValue)
+      throw EmptyValueException("Record is empty")
     }
 
   }
@@ -54,7 +53,7 @@ class EventLogParser
     } catch {
       case e: Exception ⇒
         logger.error("Error Parsing Event: " + e.getMessage)
-        throw ExecutionException("Error Parsing Into Event Log", ExecutionException.ParsingIntoEventLog)
+        throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1.payload)
     }
 
     result
@@ -63,10 +62,15 @@ class EventLogParser
 }
 
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-    extends Executor[MessageEnvelope[EventLog], Future[Unit]] {
+    extends Executor[MessageEnvelope[EventLog], Future[Unit]]
+    with LazyLogging {
 
   override def apply(v1: MessageEnvelope[EventLog]): Future[Unit] = {
-    events.insert(v1.payload)
+    events.insert(v1.payload).recover {
+      case e: Exception ⇒
+        logger.error("Error storing data: " + e.getMessage)
+        throw StoringIntoEventLogException("Error storing data", v1.payload, e.getMessage)
+    }
   }
 }
 
