@@ -1,6 +1,10 @@
 package com.ubirch.services.kafka.consumer
 
+import java.util.UUID
+
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.models.Error
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.ShutdownableThread
 import org.apache.kafka.clients.consumer.ConsumerConfig
 
@@ -9,7 +13,6 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 import scala.util.Try
-import com.ubirch.models.Error
 
 trait ConfigBaseHelpers {
 
@@ -74,11 +77,19 @@ abstract class AbstractConsumer[K, V, R](name: String)
 
             val (cr, processedRecord) = mappedIterator.next()
 
+            import reporter.Types._
+
             Try(Await.result(processedRecord(cr), 2 seconds))
               .recover {
+                case e: EmptyValueException ⇒
+                  reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name))
+                case e: ParsingIntoEventLogException ⇒
+                  reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name, value = e.value))
+                case e: StoringIntoEventLogException ⇒
+                  reporter.report(Error(id = e.eventLog.event.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
                 case e: Exception ⇒
-                  import reporter.Types._
-                  reporter.report(Error("MyId", e.getMessage))
+                  reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
+
               }
           }
 
