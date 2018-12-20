@@ -10,6 +10,7 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
+import scala.collection.JavaConverters._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
@@ -35,11 +36,18 @@ class DefaultStringConsumer @Inject() (
     executor: DefaultExecutor,
     reporter: Reporter) extends Provider[StringConsumer] {
 
-  val topic: String = config.getString(ConfPaths.TOPIC_PATH)
-  val groupId: String = config.getString(ConfPaths.GROUP_ID_PATH)
-  val gracefulTimeout: Int = config.getInt(ConfPaths.GRACEFUL_TIMEOUT_PATH)
+  import ConfPaths.Consumer._
+
+  val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
+  val topic: String = config.getString(TOPIC_PATH)
+  val groupId: String = config.getString(GROUP_ID_PATH)
+  val gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
   val threadName: String = topic + "_thread" + "_" + UUID.randomUUID()
-  val configs = Configs(groupId = groupId, autoOffsetReset = OffsetResetStrategy.EARLIEST)
+
+  val configs = Configs(
+    bootstrapServers = bootstrapServers,
+    groupId = groupId,
+    autoOffsetReset = OffsetResetStrategy.EARLIEST)
 
   lazy val consumer = {
     new StringConsumer(threadName, executor.executor, reporter)
