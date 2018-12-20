@@ -27,8 +27,10 @@ trait ConnectionService extends ConnectionServiceBase {
 class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
     extends ConnectionService with LazyLogging {
 
-  val keyspace: String = config.getString(ConfPaths.KEYSPACE)
-  val preparedStatementCacheSize: Int = config.getInt(ConfPaths.PREPARED_STATEMENT_CACHE_SIZE)
+  import ConfPaths.ConnectionService._
+
+  val keyspace: String = config.getString(KEYSPACE)
+  val preparedStatementCacheSize: Int = config.getInt(PREPARED_STATEMENT_CACHE_SIZE)
 
   private def createContext() = new CassandraAsyncContext(
     SnakeCase,

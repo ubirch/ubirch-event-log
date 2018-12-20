@@ -20,7 +20,9 @@ trait ReporterMagnet {
 @Singleton
 class Reporter @Inject() (producerManager: StringProducer, config: Config) {
 
-  val topic: String = config.getString(ConfPaths.ERROR_TOPIC_PATH)
+  import ConfPaths.Producer._
+
+  val topic: String = config.getString(ERROR_TOPIC_PATH)
 
   object Types {
     implicit def fromError(error: Error) = new ReporterMagnet {

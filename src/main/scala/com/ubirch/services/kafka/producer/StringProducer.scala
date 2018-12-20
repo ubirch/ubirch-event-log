@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
+import com.ubirch.ConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
@@ -30,6 +31,11 @@ class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[Strin
 class DefaultStringProducer @Inject() (
     config: Config,
     lifecycle: Lifecycle) extends Provider[StringProducer] {
+
+  import ConfPaths.Producer._
+
+  val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
+  val topic: String = config.getString(ERROR_TOPIC_PATH)
 
   val configs = Configs()
 
