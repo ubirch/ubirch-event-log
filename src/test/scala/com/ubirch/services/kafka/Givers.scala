@@ -28,6 +28,8 @@ object NameGiver {
 
   def giveMeATopicName = "com.ubirch.eventlog_" + UUID.randomUUID()
 
+  def giveMeAnErrorTopicName = "com.ubirch.eventlog.error_" + UUID.randomUUID()
+
   def giveMeAThreadName = "my_eventlog_thread" + UUID.randomUUID()
 
 }

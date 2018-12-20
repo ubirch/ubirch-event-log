@@ -12,14 +12,17 @@ import scala.concurrent.Future
 
 class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[String, String] {
 
-  override val producer: Producer[String, String] = createConsumer(props)
-  override val keySerializer: Serializer[String] = new StringSerializer()
-  override val valueSerializer: Serializer[String] = new StringSerializer()
+  require(props.nonEmpty, "Can't be empty")
+
+  val keySerializer: Serializer[String] = new StringSerializer()
+  val valueSerializer: Serializer[String] = new StringSerializer()
+
+  lazy val producer: Producer[String, String] = createConsumer(props)
 
   private def createConsumer(props: Map[String, AnyRef]): Producer[String, String] = {
     keySerializer.configure(props.asJava, true)
     valueSerializer.configure(props.asJava, false)
-    new JKafkaProducer(props.asJava, keySerializer, valueSerializer)
+    new JKafkaProducer[String, String](props.asJava, keySerializer, valueSerializer)
   }
 
 }

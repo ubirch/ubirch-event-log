@@ -5,7 +5,8 @@ import org.apache.kafka.clients.producer.ProducerConfig
 
 object Configs {
 
-  def apply[K, V](bootstrapServers: String = "localhost:9092",
+  def apply[K, V](
+    bootstrapServers: String = "localhost:9092",
     acks: String = "all",
     retries: Int = 0,
     batchSize: Int = 16384,

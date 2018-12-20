@@ -6,6 +6,7 @@ import com.google.inject.Provider
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
 import com.ubirch.models.Events
+import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
