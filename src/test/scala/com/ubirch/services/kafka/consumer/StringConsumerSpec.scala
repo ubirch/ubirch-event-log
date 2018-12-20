@@ -4,7 +4,8 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ Error, EventLog, Events }
+import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle

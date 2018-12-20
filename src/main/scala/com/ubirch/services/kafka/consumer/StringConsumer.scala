@@ -5,15 +5,15 @@ import java.util.UUID
 import com.google.inject.Provider
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
-import com.ubirch.models.Events
+import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
-import scala.collection.JavaConverters._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
