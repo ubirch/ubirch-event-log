@@ -7,11 +7,13 @@ import org.apache.kafka.common.header.internals.RecordHeader
 
 import scala.collection.JavaConverters._
 
+// errors -> { id, timestamp, error={}, signature }, log events -> {id, timestamp, event={}, signature }
+
 case class MessageEnvelope[T](payload: T, headers: Map[String, String])
 
 object MessageEnvelope {
   def apply[T](payload: T): MessageEnvelope[T] = {
-    MessageEnvelope(payload, Map())
+    MessageEnvelope(payload, Map.empty)
   }
 
   def fromRecord[T](consumerRecord: ConsumerRecord[String, T]): MessageEnvelope[T] = {
