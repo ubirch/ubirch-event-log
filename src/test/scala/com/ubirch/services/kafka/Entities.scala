@@ -2,7 +2,7 @@ package com.ubirch.services.kafka
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.models.{ Event, EventLog, TimeInfo }
+import com.ubirch.models.{ Error, Event, EventLog, TimeInfo }
 import com.ubirch.util.ToJson
 import org.json4s.jackson.JsonMethods.parse
 
@@ -25,6 +25,18 @@ object Entities {
       new Date())
 
     def eventExampleAsString(eventLog: EventLog) = ToJson[EventLog](eventLog).toString
+
+  }
+
+  object Errors {
+
+    def errorExample(id: UUID = UUID.randomUUID()) = Error(
+      id = id,
+      message = "This is an error message",
+      exceptionName = "My_Exception",
+      value = "Are you serious?")
+
+    def errorExampleAsString(error: Error) = ToJson[Error](error).toString
 
   }
 

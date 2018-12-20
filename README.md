@@ -144,6 +144,6 @@ mvn test
 or on suite in particular
 
 ```
-mvn test -Dsuites=com.ubirch.services.kafka.ExecutorSpec
+mvn test -Dsuites=com.ubirch.services.kafka.consumer.ExecutorSpec
 ```
 
