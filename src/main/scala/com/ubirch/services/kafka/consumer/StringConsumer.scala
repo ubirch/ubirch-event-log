@@ -32,7 +32,6 @@ class StringConsumer(
 class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    events: Events,
     executor: DefaultExecutor,
     reporter: Reporter) extends Provider[StringConsumer] {
 

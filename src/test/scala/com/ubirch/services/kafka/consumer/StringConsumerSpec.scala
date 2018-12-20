@@ -40,7 +40,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val promiseTestSuccess = Promise[String]()
 
         val lifeCycle = mock[DefaultLifecycle]
-        val events = mock[Events]
 
         val executor = mock[DefaultExecutor]
 
@@ -62,7 +61,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          events,
           executor,
           reporter)
 
@@ -92,7 +90,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         publishStringMessageToKafka(topic, entityAsString)
 
         val lifeCycle = mock[DefaultLifecycle]
-        val events = mock[Events]
 
         val executor = mock[DefaultExecutor]
 
@@ -118,7 +115,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          events,
           executor,
           reporter)
 
@@ -209,7 +205,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         }
 
         val lifeCycle = mock[DefaultLifecycle]
-        val events = mock[Events]
 
         val executor = mock[DefaultExecutor]
 
@@ -248,7 +243,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          events,
           executor,
           reporter)
 
@@ -279,7 +273,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val topic = NameGiver.giveMeATopicName
 
       val lifeCycle = mock[DefaultLifecycle]
-      val events = mock[Events]
       val executor = mock[DefaultExecutor]
 
       val promiseTest = Promise[String]()
@@ -312,7 +305,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),
         lifeCycle,
-        events,
         executor,
         reporter)
 
