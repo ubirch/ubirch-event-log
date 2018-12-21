@@ -1,7 +1,7 @@
 package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.services.execution.WithConsumerRecordsExecutor
+import com.ubirch.process.WithConsumerRecordsExecutor
 import com.ubirch.util.ShutdownableThread
 
 import scala.collection.JavaConverters._
