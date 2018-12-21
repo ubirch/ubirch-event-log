@@ -1,8 +1,11 @@
 package com.ubirch.process
 
+import java.util.UUID
+
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.MessageEnvelope
+import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.FromString
 import javax.inject._
@@ -86,18 +89,36 @@ trait ExecutorFamily {
 
 }
 
+@Singleton
 case class DefaultExecutorFamily @Inject() (
   wrapper: Wrapper,
   filterEmpty: FilterEmpty,
   eventLogParser: EventLogParser,
   eventsStore: EventsStore) extends ExecutorFamily
 
-class DefaultExecutor @Inject() (executorFamily: ExecutorFamily, events: Events) {
+@Singleton
+class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily, events: Events) {
 
   import executorFamily._
 
   def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
 
   def executor = composed
+
+  def executorExceptionHandler(exception: Exception): Unit = {
+    import reporter.Types._
+
+    exception match {
+      case e: EmptyValueException ⇒
+        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name))
+      case e: ParsingIntoEventLogException ⇒
+        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name, value = e.value))
+      case e: StoringIntoEventLogException ⇒
+        reporter.report(Error(id = e.eventLog.event.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
+      case e: Exception ⇒
+        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
+    }
+
+  }
 
 }
