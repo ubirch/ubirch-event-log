@@ -57,13 +57,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           }
         }
 
-        val reporter = mock[Reporter]
-
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor,
-          reporter)
+          executor)
 
         consumer.get().startPolling()
 
@@ -111,13 +108,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val reporter = mock[Reporter]
-
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor,
-          reporter)
+          executor)
 
         consumer.get()
           .withTopic(topic)
@@ -142,13 +136,15 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
+        val executorExceptionHandler = mock[Exception ⇒ Unit]
+
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
             OffsetResetStrategy.EARLIEST)
 
-        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter)
+        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
 
         consumer.withProps(configs).startPolling()
 
@@ -169,7 +165,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter)
+        val executorExceptionHandler = mock[Exception ⇒ Unit]
+
+        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
 
         consumer.withProps(Map.empty).startPolling()
 
@@ -244,8 +242,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor,
-          reporter)
+          executor)
 
         consumer.get()
           .withTopic(topic)
@@ -306,8 +303,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),
         lifeCycle,
-        executor,
-        reporter)
+        executor)
 
       withRunningKafka {
 
