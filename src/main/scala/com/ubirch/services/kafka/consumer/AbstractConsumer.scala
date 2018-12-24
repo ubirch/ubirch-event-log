@@ -46,8 +46,11 @@ abstract class AbstractConsumer[K, V, R](val name: String)
 
             Try(Await.result(processedRecord(cr), 2 seconds))
               .recover {
-                case e: Exception ⇒ executorExceptionHandler(e)
-                case _ ⇒
+                case e: Exception ⇒
+                  executorExceptionHandler(e)
+                case e ⇒
+                  logger.error(e.getMessage)
+                  startGracefulShutdown()
               }
 
           }
