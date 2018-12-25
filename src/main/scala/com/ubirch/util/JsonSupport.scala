@@ -18,7 +18,9 @@ trait JsonHelper extends WithJsonFormats {
 
   def getCamelized[T: Manifest](v1: JValue): T = get(v1.camelizeKeys)
 
-  def stringify(v1: JValue): String = jackson.prettyJson(v1)
+  def stringify(v1: JValue, compact: Boolean = true): String =
+    if (compact) jackson.compactJson(v1)
+    else jackson.prettyJson(v1)
 
 }
 
