@@ -1,7 +1,6 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.process.Executor
 import com.ubirch.services.kafka.TestBase
 import org.scalatest.mockito.MockitoSugar
 
