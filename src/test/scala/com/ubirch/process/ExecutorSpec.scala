@@ -1,10 +1,11 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.{ Entities, TestBase }
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.kafka.{ Entities, MessageEnvelope, TestBase }
+import com.ubirch.services.kafka.MessageEnvelope
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import org.scalatest.mockito.MockitoSugar
 import org.apache.kafka.clients.consumer.ConsumerRecord

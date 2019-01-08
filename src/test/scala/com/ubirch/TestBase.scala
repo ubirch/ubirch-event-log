@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka
+package com.ubirch
 
 import net.manub.embeddedkafka.EmbeddedKafka
 import org.scalatest.concurrent.ScalaFutures

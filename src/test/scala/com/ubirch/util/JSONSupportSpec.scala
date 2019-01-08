@@ -1,10 +1,8 @@
-package com.ubirch.services.util
+package com.ubirch.util
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.EventLog
-import com.ubirch.models.Error
-import com.ubirch.services.kafka.{ Entities, TestBase }
-import com.ubirch.util.{ FromJson, FromString, ToJson }
+import com.ubirch.{ Entities, TestBase }
+import com.ubirch.models.{ Error, EventLog }
 import org.scalatest.mockito.MockitoSugar
 
 class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
