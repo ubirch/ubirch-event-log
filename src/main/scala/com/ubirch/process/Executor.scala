@@ -97,7 +97,7 @@ case class DefaultExecutorFamily @Inject() (
   eventsStore: EventsStore) extends ExecutorFamily
 
 @Singleton
-class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily, events: Events) {
+class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
 
   import executorFamily._
 
