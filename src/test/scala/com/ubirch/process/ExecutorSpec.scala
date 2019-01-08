@@ -1,8 +1,13 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.services.kafka.TestBase
+import com.ubirch.services.kafka.{ MessageEnvelope, TestBase }
+import com.ubirch.util.Exceptions.EmptyValueException
 import org.scalatest.mockito.MockitoSugar
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
+import org.apache.kafka.common.header.{ Header, Headers }
+import org.mockito.Mockito._
 
 import scala.language.{ implicitConversions, postfixOps }
 
@@ -36,6 +41,54 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
+  }
+
+  "Wrapper" must {
+    "wrap consumer record successfully" in {
+
+      val wrapper = new Wrapper
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn("this is a value")
+
+      val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)
+
+      val headers = new RecordHeaders().add(header)
+
+      when(consumerRecord.headers()).thenReturn(headers)
+
+      val messageEnvelope = wrapper(consumerRecord)
+
+      assert(messageEnvelope.payload == consumerRecord.value())
+
+      assert(messageEnvelope.headers == MessageEnvelope.headersToMap(consumerRecord))
+
+    }
+  }
+
+  "FilterEmpty" must {
+    "filter successfully" in {
+
+      val messageEnvelope = MessageEnvelope("this is a payload", Map("headerX1" -> "headerX1Data"))
+
+      val filter = new FilterEmpty
+
+      val filtered = filter(messageEnvelope)
+
+      assert(filtered == messageEnvelope)
+
+    }
+
+    "throw EmptyValueException when empty value found" in {
+
+      val messageEnvelope = MessageEnvelope("", Map("headerX1" -> "headerX1Data"))
+
+      val filter = new FilterEmpty
+
+      assertThrows[EmptyValueException](filter(messageEnvelope))
+
+    }
   }
 
 }
