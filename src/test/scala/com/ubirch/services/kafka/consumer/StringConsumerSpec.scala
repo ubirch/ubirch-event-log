@@ -231,8 +231,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           }
         }
 
-        val reporter = mock[Reporter]
-
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
