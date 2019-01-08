@@ -1,17 +1,21 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.{ Entities, MessageEnvelope, TestBase }
-import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException }
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import org.scalatest.mockito.MockitoSugar
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
-import org.apache.kafka.common.header.{ Header, Headers }
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 
+import scala.concurrent.duration._
+import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
 
-class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging {
+class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Execution {
 
   "ExecutorSpec" must {
 
@@ -106,7 +110,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "throw EmptyValueException when empty value found" in {
+    "throw ParsingIntoEventLogException when empty value found" in {
 
       val messageEnvelope = MessageEnvelope("", Map("headerX1" -> "headerX1Data"))
 
@@ -116,13 +120,56 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "throw EmptyValueException when wrong json found" in {
+    "throw ParsingIntoEventLogException when wrong json found" in {
 
       val messageEnvelope = MessageEnvelope("{}", Map("headerX1" -> "headerX1Data"))
 
       val eventLogParser = new EventLogParser
 
       assertThrows[ParsingIntoEventLogException](eventLogParser(messageEnvelope))
+
+    }
+
+  }
+
+  "EventsStore" must {
+    "store successfully" in {
+
+      val messageEnvelope = MessageEnvelope(Entities.Events.eventExample(), Map("headerX1" -> "headerX1Data"))
+
+      val events = mock[Events]
+      val promiseTest = Promise[Unit]()
+
+      when(events.insert(any[EventLog]())).thenReturn {
+        promiseTest.completeWith(Future(()))
+        promiseTest.future
+      }
+
+      val eventsStore = new EventsStore(events)
+
+      eventsStore(messageEnvelope)
+
+      await(promiseTest.future, 10 seconds)
+
+      assert(promiseTest.isCompleted)
+
+    }
+
+    "throw StoringIntoEventLogException" in {
+
+      val messageEnvelope = MessageEnvelope(Entities.Events.eventExample(), Map("headerX1" -> "headerX1Data"))
+
+      val events = mock[Events]
+      val promiseTest = Promise[Unit]()
+
+      when(events.insert(any[EventLog]())).thenReturn {
+        promiseTest.completeWith(Future.failed(new Exception("Something happened when storing")))
+        promiseTest.future
+      }
+
+      val eventsStore = new EventsStore(events)
+
+      assertThrows[StoringIntoEventLogException](await(eventsStore(messageEnvelope), 10 seconds))
 
     }
 
