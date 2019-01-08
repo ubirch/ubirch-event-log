@@ -3,6 +3,7 @@ package com.ubirch.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
+import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.kafka.{ Entities, MessageEnvelope, TestBase }
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import org.scalatest.mockito.MockitoSugar
@@ -17,7 +18,7 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Execution {
 
-  "ExecutorSpec" must {
+  "Executor Function" must {
 
     "pass the same result as it comes in" in {
 
@@ -170,6 +171,49 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
       val eventsStore = new EventsStore(events)
 
       assertThrows[StoringIntoEventLogException](await(eventsStore(messageEnvelope), 10 seconds))
+
+    }
+
+  }
+
+  "Composed DefaultExecutor" must {
+    "filter successfully" in {
+
+      val reporter = mock[Reporter]
+
+      val events = mock[Events]
+      val promiseTest = Promise[Unit]()
+
+      when(events.insert(any[EventLog]())).thenReturn {
+        promiseTest.completeWith(Future(()))
+        promiseTest.future
+      }
+
+      val family = DefaultExecutorFamily(
+        new Wrapper(),
+        new FilterEmpty(),
+        new EventLogParser(),
+        new EventsStore(events))
+
+      val defaultExecutor = new DefaultExecutor(reporter, family)
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(
+        Entities.Events.eventExampleAsString(Entities.Events.eventExample()))
+
+      val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)
+
+      val headers = new RecordHeaders().add(header)
+
+      when(consumerRecord.headers()).thenReturn(headers)
+
+      val executor = defaultExecutor.executor
+      executor(consumerRecord)
+
+      await(promiseTest.future, 10 seconds)
+
+      assert(promiseTest.isCompleted)
 
     }
 
