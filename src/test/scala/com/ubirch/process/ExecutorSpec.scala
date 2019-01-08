@@ -1,8 +1,8 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.services.kafka.{ MessageEnvelope, TestBase }
-import com.ubirch.util.Exceptions.EmptyValueException
+import com.ubirch.services.kafka.{ Entities, MessageEnvelope, TestBase }
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException }
 import org.scalatest.mockito.MockitoSugar
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
@@ -89,6 +89,43 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging {
       assertThrows[EmptyValueException](filter(messageEnvelope))
 
     }
+  }
+
+  "EventLogParser" must {
+    "parse successfully" in {
+
+      val messageEnvelope = MessageEnvelope(
+        Entities.Events.eventExampleAsString(Entities.Events.eventExample()),
+        Map("headerX1" -> "headerX1Data"))
+
+      val filter = new FilterEmpty
+
+      val filtered = filter(messageEnvelope)
+
+      assert(filtered == messageEnvelope)
+
+    }
+
+    "throw EmptyValueException when empty value found" in {
+
+      val messageEnvelope = MessageEnvelope("", Map("headerX1" -> "headerX1Data"))
+
+      val eventLogParser = new EventLogParser
+
+      assertThrows[ParsingIntoEventLogException](eventLogParser(messageEnvelope))
+
+    }
+
+    "throw EmptyValueException when wrong json found" in {
+
+      val messageEnvelope = MessageEnvelope("{}", Map("headerX1" -> "headerX1Data"))
+
+      val eventLogParser = new EventLogParser
+
+      assertThrows[ParsingIntoEventLogException](eventLogParser(messageEnvelope))
+
+    }
+
   }
 
 }
