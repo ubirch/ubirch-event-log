@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.{ Entities, TestBase }
 import com.ubirch.models.Error
 import com.ubirch.services.kafka._
 import com.ubirch.util.Implicits.configsToProps

@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.consumer
 
-import com.ubirch.services.kafka.{ PortGiver, TestBase }
+import com.ubirch.TestBase
+import com.ubirch.services.kafka.PortGiver
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 
 class KafkaServiceSpec extends TestBase {

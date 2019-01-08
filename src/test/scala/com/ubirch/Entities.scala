@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka
+package com.ubirch
 
 import java.util.{ Date, UUID }
 

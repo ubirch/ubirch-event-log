@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.TestBase
 import com.ubirch.services.kafka._
 import org.scalatest.mockito.MockitoSugar
 
