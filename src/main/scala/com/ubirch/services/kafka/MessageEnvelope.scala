@@ -16,10 +16,14 @@ object MessageEnvelope {
     MessageEnvelope(payload, Map.empty)
   }
 
+  def headersToMap[T](consumerRecord: ConsumerRecord[String, T]) = {
+    consumerRecord.headers().asScala.map(h ⇒ h.key() -> new String(h.value())).toMap
+  }
+
   def fromRecord[T](consumerRecord: ConsumerRecord[String, T]): MessageEnvelope[T] = {
     MessageEnvelope(
       consumerRecord.value(),
-      consumerRecord.headers().asScala.map(h ⇒ h.key() -> new String(h.value())).toMap)
+      headersToMap(consumerRecord))
   }
 
   def toRecord[T](topic: String, key: String, messageEnvelope: MessageEnvelope[T]): ProducerRecord[String, T] = {
