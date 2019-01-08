@@ -5,6 +5,12 @@ The way this software collects events is consuming them from Kafka. The database
 
 # System Components
 
+## Process
+
+__Process Executor__: Pipeline for applying transformations to the incoming messages.
+
+## Services
+
 1. __Cluster__: Controls the cassandra cluster.
 2. __Cassandra Connection Service__: Controls the context needed to run queries against Cassandra.
 2. __Config__: Controls the configuration provision.
@@ -12,8 +18,7 @@ The way this software collects events is consuming them from Kafka. The database
 4. __Kafka__
 
     * __Consumer__: Controls the consumption of messages from Kafka
-
-    * __Process Executor__: Pipeline for applying transformations to the incoming messages.
+    * __Producer__: Controls the production of error messages to Kafka
 
 5. __Life Cycle__: Controls the hooks that should be run at application shutdown.
 
