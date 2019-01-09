@@ -5,7 +5,7 @@ import com.ubirch.ConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
 import javax.inject._
-import org.apache.kafka.clients.producer.{ Producer, KafkaProducer ⇒ JKafkaProducer }
+import org.apache.kafka.clients.producer.{ Producer, KafkaProducer => JKafkaProducer }
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
 
 import scala.collection.JavaConverters._
@@ -30,7 +30,8 @@ class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[Strin
 
 class DefaultStringProducer @Inject() (
     config: Config,
-    lifecycle: Lifecycle) extends Provider[StringProducer] {
+    lifecycle: Lifecycle
+) extends Provider[StringProducer] {
 
   import ConfPaths.Producer._
 
@@ -43,7 +44,7 @@ class DefaultStringProducer @Inject() (
 
   override def get(): StringProducer = producer
 
-  lifecycle.addStopHook { () ⇒
+  lifecycle.addStopHook { () =>
     Future.successful(producer.producer.close())
   }
 

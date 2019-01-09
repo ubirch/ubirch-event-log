@@ -19,10 +19,12 @@ object Entities {
         "this is a category",
         data,
         new Date(),
-        TimeInfo(2018, 12, 12, 12, 12, 12, 12)),
+        TimeInfo(2018, 12, 12, 12, 12, 12, 12)
+      ),
       "this is a signature",
       new Date(),
-      new Date())
+      new Date()
+    )
 
     def eventExampleAsString(eventLog: EventLog) = ToJson[EventLog](eventLog).toString
 
@@ -34,7 +36,8 @@ object Entities {
       id = id,
       message = "This is an error message",
       exceptionName = "My_Exception",
-      value = "Are you serious?")
+      value = "Are you serious?"
+    )
 
     def errorExampleAsString(error: Error) = ToJson[Error](error).toString
 

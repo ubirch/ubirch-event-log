@@ -13,12 +13,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait Executor[-T1, +R] extends (T1 ⇒ R) {
-  self ⇒
+trait Executor[-T1, +R] extends (T1 => R) {
+  self =>
   override def apply(v1: T1): R
 
   def andThen[Q](other: Executor[R, Q]): Executor[T1, Q] = {
-    v1: T1 ⇒ other(self(v1))
+    v1: T1 => other(self(v1))
   }
 
 }
@@ -46,15 +46,15 @@ class FilterEmpty extends Executor[MessageEnvelope[String], MessageEnvelope[Stri
 }
 
 class EventLogParser
-    extends Executor[MessageEnvelope[String], MessageEnvelope[EventLog]]
-    with LazyLogging {
+  extends Executor[MessageEnvelope[String], MessageEnvelope[EventLog]]
+  with LazyLogging {
 
   override def apply(v1: MessageEnvelope[String]): MessageEnvelope[EventLog] = {
 
     val result: MessageEnvelope[EventLog] = try {
       v1.copy(payload = FromString[EventLog](v1.payload).get)
     } catch {
-      case e: Exception ⇒
+      case e: Exception =>
         logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1.payload)
     }
@@ -65,12 +65,12 @@ class EventLogParser
 }
 
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-    extends Executor[MessageEnvelope[EventLog], Future[Unit]]
-    with LazyLogging {
+  extends Executor[MessageEnvelope[EventLog], Future[Unit]]
+  with LazyLogging {
 
   override def apply(v1: MessageEnvelope[EventLog]): Future[Unit] = {
     events.insert(v1.payload).recover {
-      case e: Exception ⇒
+      case e: Exception =>
         logger.error("Error storing data: " + e.getMessage)
         throw StoringIntoEventLogException("Error storing data", v1.payload, e.getMessage)
     }
@@ -91,10 +91,11 @@ trait ExecutorFamily {
 
 @Singleton
 case class DefaultExecutorFamily @Inject() (
-  wrapper: Wrapper,
-  filterEmpty: FilterEmpty,
-  eventLogParser: EventLogParser,
-  eventsStore: EventsStore) extends ExecutorFamily
+    wrapper: Wrapper,
+    filterEmpty: FilterEmpty,
+    eventLogParser: EventLogParser,
+    eventsStore: EventsStore
+) extends ExecutorFamily
 
 @Singleton
 class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
@@ -109,13 +110,13 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
     import reporter.Types._
 
     exception match {
-      case e: EmptyValueException ⇒
+      case e: EmptyValueException =>
         reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name))
-      case e: ParsingIntoEventLogException ⇒
+      case e: ParsingIntoEventLogException =>
         reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name, value = e.value))
-      case e: StoringIntoEventLogException ⇒
+      case e: StoringIntoEventLogException =>
         reporter.report(Error(id = e.eventLog.event.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
-      case e: Exception ⇒
+      case e: Exception =>
         reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
     }
 

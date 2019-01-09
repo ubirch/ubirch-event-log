@@ -11,7 +11,7 @@ import scala.concurrent.Future
 
 trait Lifecycle {
 
-  def addStopHook(hook: () ⇒ Future[_]): Unit
+  def addStopHook(hook: () => Future[_]): Unit
 
   def stop(): Future[_]
 
@@ -19,21 +19,21 @@ trait Lifecycle {
 
 @Singleton
 class DefaultLifecycle
-    extends Lifecycle
-    with LazyLogging {
+  extends Lifecycle
+  with LazyLogging {
 
-  private val hooks = new ConcurrentLinkedDeque[() ⇒ Future[_]]()
+  private val hooks = new ConcurrentLinkedDeque[() => Future[_]]()
 
-  override def addStopHook(hook: () ⇒ Future[_]): Unit = hooks.push(hook)
+  override def addStopHook(hook: () => Future[_]): Unit = hooks.push(hook)
 
   override def stop(): Future[_] = {
 
     @tailrec
     def clearHooks(previous: Future[Any] = Future.successful[Any](())): Future[Any] = {
       val hook = hooks.poll()
-      if (hook != null) clearHooks(previous.flatMap { _ ⇒
+      if (hook != null) clearHooks(previous.flatMap { _ =>
         hook().recover {
-          case e ⇒ logger.error("Error executing stop hook", e)
+          case e => logger.error("Error executing stop hook", e)
         }
       })
       else previous

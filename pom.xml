@@ -182,9 +182,9 @@
 
       <!-- code formatting -->
       <plugin>
-        <groupId>org.scalariform</groupId>
+        <groupId>com.github.tashoyan</groupId>
         <artifactId>scalariform-maven-plugin</artifactId>
-        <version>0.1.4</version>
+        <version>0.2.2</version>
         <executions>
           <execution>
             <phase>process-sources</phase>
@@ -192,7 +192,17 @@
               <goal>format</goal>
             </goals>
             <configuration>
-              <rewriteArrowSymbols>true</rewriteArrowSymbols>
+              <firstArgumentOnNewline>Force</firstArgumentOnNewline>
+              <firstParameterOnNewline>Force</firstParameterOnNewline>
+              <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
+              <danglingCloseParenthesis>Force</danglingCloseParenthesis>
+              <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
+              <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
+              <newlineAtEndOfFile>true</newlineAtEndOfFile>
+              <placeScaladocAsterisksBeneathSecondAsterisk>true</placeScaladocAsterisksBeneathSecondAsterisk>
+              <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
+              <spacesAroundMultiImports>true</spacesAroundMultiImports>
+              <rewriteArrowSymbols>false</rewriteArrowSymbols>
             </configuration>
           </execution>
         </executions>

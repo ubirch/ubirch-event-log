@@ -102,7 +102,8 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
 
       val messageEnvelope = MessageEnvelope(
         Entities.Events.eventExampleAsString(Entities.Events.eventExample()),
-        Map("headerX1" -> "headerX1Data"))
+        Map("headerX1" -> "headerX1Data")
+      )
 
       val filter = new FilterEmpty
 
@@ -194,14 +195,16 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
         new Wrapper(),
         new FilterEmpty(),
         new EventLogParser(),
-        new EventsStore(events))
+        new EventsStore(events)
+      )
 
       val defaultExecutor = new DefaultExecutor(reporter, family)
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
       when(consumerRecord.value()).thenReturn(
-        Entities.Events.eventExampleAsString(Entities.Events.eventExample()))
+        Entities.Events.eventExampleAsString(Entities.Events.eventExample())
+      )
 
       val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)
 

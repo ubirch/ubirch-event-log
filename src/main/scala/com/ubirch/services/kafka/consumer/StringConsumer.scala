@@ -18,11 +18,12 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 
 class StringConsumer(
-  name: String,
-  val executor: Executor[ConsumerRecord[String, String], Future[Unit]],
-  val reporter: Reporter,
-  val executorExceptionHandler: Exception ⇒ Unit)
-    extends AbstractConsumer[String, String, Unit](name) {
+    name: String,
+    val executor: Executor[ConsumerRecord[String, String], Future[Unit]],
+    val reporter: Reporter,
+    val executorExceptionHandler: Exception => Unit
+)
+  extends AbstractConsumer[String, String, Unit](name) {
 
   val keyDeserializer: Deserializer[String] = new StringDeserializer()
   val valueDeserializer: Deserializer[String] = new StringDeserializer()
@@ -33,7 +34,8 @@ class StringConsumer(
 class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    executor: DefaultExecutor) extends Provider[StringConsumer] {
+    executor: DefaultExecutor
+) extends Provider[StringConsumer] {
 
   import ConfPaths.Consumer._
 
@@ -50,21 +52,23 @@ class DefaultStringConsumer @Inject() (
   val configs = Configs(
     bootstrapServers = bootstrapServers,
     groupId = groupId,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST)
+    autoOffsetReset = OffsetResetStrategy.EARLIEST
+  )
 
   lazy val consumer = {
     new StringConsumer(
       threadName,
       executor.executor,
       executor.reporter,
-      executor.executorExceptionHandler)
+      executor.executorExceptionHandler
+    )
       .withTopic(topic)
       .withProps(configs)
   }
 
   override def get(): StringConsumer = consumer
 
-  lifecycle.addStopHook { () ⇒
+  lifecycle.addStopHook { () =>
     Future.successful(consumer.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
   }
 
