@@ -27,7 +27,7 @@ trait ConnectionService extends ConnectionServiceBase {
 class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
     extends ConnectionService with LazyLogging {
 
-  import ConfPaths.ConnectionService._
+  import ConfPaths.CassandraCluster._
 
   val keyspace: String = config.getString(KEYSPACE)
   val preparedStatementCacheSize: Int = config.getInt(PREPARED_STATEMENT_CACHE_SIZE)
