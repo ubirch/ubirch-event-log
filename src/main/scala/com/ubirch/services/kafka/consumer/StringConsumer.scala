@@ -39,7 +39,11 @@ class DefaultStringConsumer @Inject() (
 
   val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
   val topic: String = config.getString(TOPIC_PATH)
-  val groupId: String = config.getString(GROUP_ID_PATH)
+  val groupId: String = {
+    val gid = config.getString(GROUP_ID_PATH)
+    if (gid.isEmpty) "event_log_" + UUID.randomUUID()
+    else gid
+  }
   val gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
   val threadName: String = topic + "_thread" + "_" + UUID.randomUUID()
 
@@ -53,7 +57,8 @@ class DefaultStringConsumer @Inject() (
       threadName,
       executor.executor,
       executor.reporter,
-      executor.executorExceptionHandler).withTopic(topic)
+      executor.executorExceptionHandler)
+      .withTopic(topic)
       .withProps(configs)
   }
 
