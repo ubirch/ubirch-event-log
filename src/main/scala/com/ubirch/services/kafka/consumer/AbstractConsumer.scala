@@ -11,11 +11,11 @@ import scala.language.postfixOps
 import scala.util.Try
 
 abstract class AbstractConsumer[K, V, R](val name: String)
-    extends ShutdownableThread(name)
-    with KafkaConsumerBase[K, V]
-    with WithConsumerRecordsExecutor[K, V, Future[R]]
-    with ConfigBaseHelpers
-    with LazyLogging {
+  extends ShutdownableThread(name)
+  with KafkaConsumerBase[K, V]
+  with WithConsumerRecordsExecutor[K, V, Future[R]]
+  with ConfigBaseHelpers
+  with LazyLogging {
 
   def isValueEmpty(v: V): Boolean
 
@@ -36,8 +36,8 @@ abstract class AbstractConsumer[K, V, R](val name: String)
 
           //This is only a description of the iterator
           val mappedIterator = records
-            .filterNot(cr ⇒ isValueEmpty(cr.value()))
-            .map(cr ⇒ (cr, executor))
+            .filterNot(cr => isValueEmpty(cr.value()))
+            .map(cr => (cr, executor))
 
           //This is the actual traversal of the iterator
           while (mappedIterator.hasNext) {
@@ -46,9 +46,9 @@ abstract class AbstractConsumer[K, V, R](val name: String)
 
             Try(Await.result(processedRecord(cr), 2 seconds))
               .recover {
-                case e: Exception ⇒
+                case e: Exception =>
                   executorExceptionHandler(e)
-                case e ⇒
+                case e =>
                   logger.error(e.getMessage)
                   startGracefulShutdown()
               }

@@ -23,9 +23,9 @@ trait ConfigBaseHelpers {
   }
 
   def isAutoCommit: Boolean = props
-    .filterKeys(x ⇒ ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG == x)
+    .filterKeys(x => ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG == x)
     .exists {
-      case (_, b) ⇒
+      case (_, b) =>
         b.toString.toBoolean
     }
 

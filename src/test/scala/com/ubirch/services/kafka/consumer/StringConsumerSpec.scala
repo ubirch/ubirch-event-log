@@ -61,7 +61,8 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor)
+          executor
+        )
 
         consumer.get().startPolling()
 
@@ -107,12 +108,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
-            OffsetResetStrategy.EARLIEST)
+            OffsetResetStrategy.EARLIEST
+        )
 
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor)
+          executor
+        )
 
         consumer.get()
           .withTopic(topic)
@@ -137,13 +140,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val executorExceptionHandler = mock[Exception ⇒ Unit]
+        val executorExceptionHandler = mock[Exception => Unit]
 
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
-            OffsetResetStrategy.EARLIEST)
+            OffsetResetStrategy.EARLIEST
+        )
 
         val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
 
@@ -166,7 +170,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val executorExceptionHandler = mock[Exception ⇒ Unit]
+        val executorExceptionHandler = mock[Exception => Unit]
 
         val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
 
@@ -196,11 +200,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val topic = NameGiver.giveMeATopicName
 
-        val entities = (0 to maxEntities).map(_ ⇒ Entities.Events.eventExample()).toList
+        val entities = (0 to maxEntities).map(_ => Entities.Events.eventExample()).toList
 
-        val entitiesAsString = entities.map(x ⇒ Entities.Events.eventExampleAsString(x))
+        val entitiesAsString = entities.map(x => Entities.Events.eventExampleAsString(x))
 
-        entitiesAsString.foreach { entityAsString ⇒
+        entitiesAsString.foreach { entityAsString =>
           publishStringMessageToKafka(topic, entityAsString)
         }
 
@@ -236,12 +240,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset =
-            OffsetResetStrategy.EARLIEST)
+            OffsetResetStrategy.EARLIEST
+        )
 
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor)
+          executor
+        )
 
         consumer.get()
           .withTopic(topic)
@@ -250,7 +256,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         await(releasePromise.future, 30 seconds)
 
-        val flist = Future.sequence(listf).filter(x ⇒ x.nonEmpty)
+        val flist = Future.sequence(listf).filter(x => x.nonEmpty)
         val rlist = await(flist, 30 seconds)
 
         assert(rlist.nonEmpty)
@@ -286,7 +292,8 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         bootstrapServers = "localhost:" + config.kafkaPort,
         groupId = "My_Group_ID",
         autoOffsetReset =
-          OffsetResetStrategy.EARLIEST)
+          OffsetResetStrategy.EARLIEST
+      )
 
       val reporter = mock[Reporter]
 
@@ -302,7 +309,8 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),
         lifeCycle,
-        executor)
+        executor
+      )
 
       withRunningKafka {
 

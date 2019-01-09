@@ -8,12 +8,12 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 
 trait TestBase
-    extends WordSpec
-    with ScalaFutures
-    with BeforeAndAfterEach
-    with BeforeAndAfterAll
-    with MustMatchers
-    with EmbeddedKafka {
+  extends WordSpec
+  with ScalaFutures
+  with BeforeAndAfterEach
+  with BeforeAndAfterAll
+  with MustMatchers
+  with EmbeddedKafka {
 
   def await[T](future: Future[T]): T = await(future, Duration.Inf)
 

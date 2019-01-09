@@ -17,18 +17,19 @@ object MessageEnvelope {
   }
 
   def headersToMap[T](consumerRecord: ConsumerRecord[String, T]) = {
-    consumerRecord.headers().asScala.map(h ⇒ h.key() -> new String(h.value())).toMap
+    consumerRecord.headers().asScala.map(h => h.key() -> new String(h.value())).toMap
   }
 
   def fromRecord[T](consumerRecord: ConsumerRecord[String, T]): MessageEnvelope[T] = {
     MessageEnvelope(
       consumerRecord.value(),
-      headersToMap(consumerRecord))
+      headersToMap(consumerRecord)
+    )
   }
 
   def toRecord[T](topic: String, key: String, messageEnvelope: MessageEnvelope[T]): ProducerRecord[String, T] = {
     val kafkaHeaders: Iterable[Header] = messageEnvelope.headers.map {
-      case (k: String, v: Any) ⇒ new RecordHeader(k, v.getBytes)
+      case (k: String, v: Any) => new RecordHeader(k, v.getBytes)
     }
     new ProducerRecord[String, T](topic, null, key, messageEnvelope.payload, kafkaHeaders.asJava)
   }

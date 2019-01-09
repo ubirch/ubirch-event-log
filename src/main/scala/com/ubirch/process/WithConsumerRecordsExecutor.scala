@@ -7,7 +7,7 @@ trait WithConsumerRecordsExecutor[K, V, R] {
 
   val executor: Executor[ConsumerRecord[K, V], R]
 
-  val executorExceptionHandler: Exception ⇒ Unit
+  val executorExceptionHandler: Exception => Unit
 
   val reporter: Reporter
 

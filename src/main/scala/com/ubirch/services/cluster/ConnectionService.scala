@@ -25,7 +25,7 @@ trait ConnectionService extends ConnectionServiceBase {
 
 @Singleton
 class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
-    extends ConnectionService with LazyLogging {
+  extends ConnectionService with LazyLogging {
 
   import ConfPaths.CassandraCluster._
 
@@ -36,7 +36,8 @@ class DefaultConnectionService @Inject() (clusterService: ClusterService, config
     SnakeCase,
     clusterService.cluster,
     keyspace,
-    preparedStatementCacheSize)
+    preparedStatementCacheSize
+  )
 
   override val context = {
     val conn = createContext()
@@ -44,7 +45,7 @@ class DefaultConnectionService @Inject() (clusterService: ClusterService, config
     conn
   }
 
-  lifecycle.addStopHook { () ⇒
+  lifecycle.addStopHook { () =>
     Future.successful(context.close())
   }
 

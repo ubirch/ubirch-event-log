@@ -7,17 +7,18 @@ import org.apache.kafka.common.requests.IsolationLevel
 object Configs {
 
   def apply[K, V](
-    bootstrapServers: String = "localhost:9092",
-    groupId: String,
-    enableAutoCommit: Boolean = true,
-    autoCommitInterval: Int = 1000,
-    sessionTimeoutMs: Int = 10000,
-    maxPartitionFetchBytes: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES,
-    maxPollRecords: Int = 500,
-    maxPollInterval: Int = 300000,
-    maxMetaDataAge: Long = 300000,
-    autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,
-    isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED): ConfigProperties = {
+      bootstrapServers: String = "localhost:9092",
+      groupId: String,
+      enableAutoCommit: Boolean = true,
+      autoCommitInterval: Int = 1000,
+      sessionTimeoutMs: Int = 10000,
+      maxPartitionFetchBytes: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES,
+      maxPollRecords: Int = 500,
+      maxPollInterval: Int = 300000,
+      maxMetaDataAge: Long = 300000,
+      autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,
+      isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED
+  ): ConfigProperties = {
 
     new ConfigProperties {
       override val props: Map[String, AnyRef] = {
@@ -32,7 +33,8 @@ object Configs {
           ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG -> maxPollInterval.toString,
           ConsumerConfig.METADATA_MAX_AGE_CONFIG -> maxMetaDataAge.toString,
           ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> autoOffsetReset.toString.toLowerCase,
-          ConsumerConfig.ISOLATION_LEVEL_CONFIG -> isolationLevel.toString.toLowerCase())
+          ConsumerConfig.ISOLATION_LEVEL_CONFIG -> isolationLevel.toString.toLowerCase()
+        )
       }
     }
 

@@ -13,11 +13,11 @@ trait CustomEncodingsBase {
 }
 
 trait CustomEncodings[T] extends CustomEncodingsBase {
-  _: TablePointer[T] ⇒
+  _: TablePointer[T] =>
 
   import db._
 
   implicit def encodeJValue = MappedEncoding[JValue, String](Option(_).map(_.toString).getOrElse(""))
-  implicit def decodeJValue = MappedEncoding[String, JValue](x ⇒ parse(x))
+  implicit def decodeJValue = MappedEncoding[String, JValue](x => parse(x))
 
 }

@@ -1,6 +1,6 @@
 package com.ubirch.services.kafka.consumer
 
-import org.apache.kafka.clients.consumer.{ Consumer, KafkaConsumer ⇒ JKafkaConsumer }
+import org.apache.kafka.clients.consumer.{ Consumer, KafkaConsumer => JKafkaConsumer }
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
