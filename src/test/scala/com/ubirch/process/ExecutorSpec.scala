@@ -1,17 +1,17 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.{ Entities, TestBase }
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
-import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.kafka.MessageEnvelope
+import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
-import org.scalatest.mockito.MockitoSugar
+import com.ubirch.{ Entities, TestBase }
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
+import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
