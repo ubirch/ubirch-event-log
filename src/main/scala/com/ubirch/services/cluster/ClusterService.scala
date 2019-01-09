@@ -2,6 +2,7 @@ package com.ubirch.services.cluster
 
 import com.datastax.driver.core.{ Cluster, PoolingOptions }
 import com.typesafe.config.Config
+import com.ubirch.ConfPaths
 import javax.inject._
 
 import scala.collection.JavaConverters._
@@ -19,8 +20,12 @@ trait ClusterService extends ClusterConfigs {
 @Singleton
 class DefaultClusterService @Inject() (config: Config) extends ClusterService {
 
-  val contactPoints: List[String] = config.getStringList("eventLog.cluster.contactPoints").asScala.toList
-  val port: Int = config.getInt("eventLog.cluster.port")
+  import ConfPaths.CassandraCluster._
+
+  val contactPoints: List[String] = config.getStringList(CONTACT_POINTS).asScala.toList
+  val port: Int = config.getInt(PORT)
+  val username: String = config.getString(USERNAME)
+  val password: String = config.getString(PASSWORD)
 
   val poolingOptions = new PoolingOptions
 
@@ -28,6 +33,7 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService {
     .addContactPoints(contactPoints: _*)
     .withPort(port)
     .withPoolingOptions(poolingOptions)
+    .withCredentials(username, password)
     .build
 
 }

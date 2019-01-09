@@ -2,9 +2,13 @@ package com.ubirch
 
 object ConfPaths {
 
-  object ConnectionService {
-    final val KEYSPACE = "eventLog.cluster.keyspace"
-    final val PREPARED_STATEMENT_CACHE_SIZE = "eventLog.cluster.preparedStatementCacheSize"
+  object CassandraCluster {
+    final val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
+    final val PORT = "eventLog.cassandra.cluster.port"
+    final val USERNAME = "eventLog.cassandra.cluster.username"
+    final val PASSWORD = "eventLog.cassandra.cluster.password"
+    final val KEYSPACE = "eventLog.cassandra.cluster.keyspace"
+    final val PREPARED_STATEMENT_CACHE_SIZE = "eventLog.cassandra.cluster.preparedStatementCacheSize"
   }
 
   object Consumer {
