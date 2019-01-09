@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.{ Entities, TestBase }
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka._
@@ -13,6 +12,7 @@ import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.Exceptions.ParsingIntoEventLogException
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
+import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.mockito.ArgumentMatchers.any
