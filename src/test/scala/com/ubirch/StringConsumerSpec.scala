@@ -50,10 +50,10 @@ class StringConsumerSpec extends TestBase with EmbeddedCassandra with LazyLoggin
         def res = events.selectAll
         //Read
 
-        val res1 = res
+        val res1 = await(res)
 
-        assert(await(res1).nonEmpty)
-        assert(await(res1).headOption == Option(entity1))
+        assert(res1.nonEmpty)
+        assert(res1.headOption == Option(entity1))
 
         val entity2 = Entities.Events.eventExample()
         val entityAsString2 = Entities.Events.eventExampleAsString(entity2)
@@ -62,12 +62,12 @@ class StringConsumerSpec extends TestBase with EmbeddedCassandra with LazyLoggin
 
         Thread.sleep(5000) //Wait for next consumption
 
-        val res2 = res
+        val res2 = await(res)
 
-        assert(await(res2).nonEmpty)
-        assert(await(res2).headOption == Option(entity2))
+        assert(res2.nonEmpty)
+        assert(res2.contains(entity2))
 
-        assert(await(res2).size == 2)
+        assert(res2.size == 2)
 
       }
 
