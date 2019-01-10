@@ -132,7 +132,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Next Message with same id but different stuff inside
 
-        val entity1Modified = entity1.copy(signature = "This is another signature", created = new Date)
+        val entity1Modified = entity1.copy(signature = "This is another signature", created = new Date, event = entity1.event.copy(category = "This is a brand new cat"))
         val entityAsString1Modified = Entities.Events.eventExampleAsString(entity1Modified)
 
         publishStringMessageToKafka(topic, entityAsString1Modified)
@@ -143,9 +143,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         assert(res3.nonEmpty)
 
-        assert(!res3.contains(entity1))
+        assert(res3.contains(entity1))
 
-        assert(res3.size == 1)
+        assert(res3.size == 2)
 
       }
     }
