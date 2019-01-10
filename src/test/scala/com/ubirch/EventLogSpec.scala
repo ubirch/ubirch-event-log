@@ -77,7 +77,56 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     }
 
-    "not insert message twice with same id" in {
+    "consume messages and store them in cassandra" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        autoOffsetReset =
+          OffsetResetStrategy.EARLIEST
+      )
+
+      withRunningKafka {
+
+        import InjectorHelper._
+
+        val topic = "com.ubirch.eventlog"
+
+        val entities = (0 to 500).map(_ => Entities.Events.eventExample()).toList
+
+        val entitiesAsString = entities.map(x => Entities.Events.eventExampleAsString(x))
+
+        entitiesAsString.foreach { entityAsString =>
+          publishStringMessageToKafka(topic, entityAsString)
+        }
+
+        //Consumer
+        val consumer = get[StringConsumer].withProps(configs)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(10000)
+
+        //Read Events
+        val events = get[Events]
+        def res = events.selectAll
+        //Read
+
+        val res1 = await(res)
+
+        assert(res1.nonEmpty)
+
+        res1 must contain theSameElementsAs entities
+        res1.size must be(entities.size)
+
+      }
+
+    }
+
+    "not insert message twice with same id unless the primary value parts don't change" in {
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
