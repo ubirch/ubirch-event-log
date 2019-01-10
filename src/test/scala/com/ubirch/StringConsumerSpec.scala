@@ -24,11 +24,14 @@ class StringConsumerSpec extends TestBase with EmbeddedCassandra with LazyLoggin
 
         import InjectorHelper._
 
-        val entity = Entities.Events.eventExample()
-        val entityAsString = Entities.Events.eventExampleAsString(entity)
+        val topic = "com.ubirch.eventlog"
 
-        publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
+        val entity1 = Entities.Events.eventExample()
+        val entityAsString1 = Entities.Events.eventExampleAsString(entity1)
 
+        publishStringMessageToKafka(topic, entityAsString1)
+
+        //Consumer
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
@@ -38,15 +41,33 @@ class StringConsumerSpec extends TestBase with EmbeddedCassandra with LazyLoggin
         val consumer = get[StringConsumer].withProps(configs)
 
         consumer.startPolling()
+        //Consumer
 
         Thread.sleep(5000)
 
+        //Read Events
         val events = get[Events]
+        def res = events.selectAll
+        //Read
 
-        val res = events.selectAll
+        val res1 = res
 
-        assert(await(res).nonEmpty)
-        assert(await(res).headOption == Option(entity))
+        assert(await(res1).nonEmpty)
+        assert(await(res1).headOption == Option(entity1))
+
+        val entity2 = Entities.Events.eventExample()
+        val entityAsString2 = Entities.Events.eventExampleAsString(entity2)
+
+        publishStringMessageToKafka(topic, entityAsString2)
+
+        Thread.sleep(5000) //Wait for next consumption
+
+        val res2 = res
+
+        assert(await(res2).nonEmpty)
+        assert(await(res2).headOption == Option(entity2))
+
+        assert(await(res2).size == 2)
 
       }
 
