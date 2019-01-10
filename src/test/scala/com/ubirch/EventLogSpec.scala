@@ -199,6 +199,57 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       }
     }
 
+    "consume message and store it in cassandra less the error" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        autoOffsetReset =
+          OffsetResetStrategy.EARLIEST
+      )
+
+      withRunningKafka {
+
+        import InjectorHelper._
+
+        val topic = "com.ubirch.eventlog"
+
+        val entities = (0 to 10).map(_ => Entities.Events.eventExample()).toList
+
+        val entitiesAsStringWithErrors = entities.map(x => Entities.Events.eventExampleAsString(x)) ++ //Malformed data
+          List("{}")
+
+        entitiesAsStringWithErrors.foreach { entityAsString =>
+          publishStringMessageToKafka(topic, entityAsString)
+        }
+
+        //Consumer
+        val consumer = get[StringConsumer].withProps(configs)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        //Read Events
+        val events = get[Events]
+
+        def res = events.selectAll
+        //Read
+
+        val res1 = await(res)
+
+        assert(res1.nonEmpty)
+
+        res1 must contain theSameElementsAs entities
+        res1.size must be(entities.size)
+
+      }
+
+    }
+
   }
 
   override protected def beforeEach(): Unit = {

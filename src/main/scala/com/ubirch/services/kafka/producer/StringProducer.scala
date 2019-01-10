@@ -36,9 +36,8 @@ class DefaultStringProducer @Inject() (
   import ConfPaths.Producer._
 
   val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
-  val topic: String = config.getString(ERROR_TOPIC_PATH)
 
-  val configs = Configs()
+  val configs = Configs(bootstrapServers)
 
   lazy val producer = new StringProducer(configs)
 
