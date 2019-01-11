@@ -1,6 +1,6 @@
 package com.ubirch.services.kafka.consumer
 
-import com.ubirch.services.kafka.ConfigProperties
+import com.ubirch.util.ConfigProperties
 import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
 import org.apache.kafka.common.requests.IsolationLevel
 
