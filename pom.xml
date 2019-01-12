@@ -135,7 +135,7 @@
 
     <!-- sub modules -->
     <modules>
-        <module>event-log</module>
+        <module>event-log-core</module>
     </modules>
 
 </project>
