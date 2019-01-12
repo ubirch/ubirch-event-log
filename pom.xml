@@ -33,8 +33,10 @@
         <scala.compat.version>2.12</scala.compat.version>
         <scalatest.version>3.0.5</scalatest.version>
         <mockito.version>2.23.4</mockito.version>
+        <scala.logging.version>3.9.0</scala.logging.version>
         <slf4j.api.version>1.7.15</slf4j.api.version>
         <slf4j.simple.version>1.6.4</slf4j.simple.version>
+        <scalariform.version>0.2.2</scalariform.version>
 
         <!-- versions -->
 
@@ -52,15 +54,15 @@
             <version>${scala.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.typesafe.scala-logging</groupId>
-            <artifactId>scala-logging_2.12</artifactId>
-            <version>3.9.0</version>
-        </dependency>
-
         <!-- Scala -->
 
         <!-- Logging -->
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_2.12</artifactId>
+            <version>${scala.logging.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -95,6 +97,41 @@
         <!-- Test -->
 
     </dependencies>
+
+
+    <build>
+        <plugins>
+            <!-- code formatting -->
+            <plugin>
+                <groupId>com.github.tashoyan</groupId>
+                <artifactId>scalariform-maven-plugin</artifactId>
+                <version>${scalariform.version}</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                        <configuration>
+                            <firstArgumentOnNewline>Force</firstArgumentOnNewline>
+                            <firstParameterOnNewline>Force</firstParameterOnNewline>
+                            <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
+                            <danglingCloseParenthesis>Force</danglingCloseParenthesis>
+                            <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
+                            <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
+                            <newlineAtEndOfFile>true</newlineAtEndOfFile>
+                            <placeScaladocAsterisksBeneathSecondAsterisk>true</placeScaladocAsterisksBeneathSecondAsterisk>
+                            <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
+                            <spacesAroundMultiImports>true</spacesAroundMultiImports>
+                            <rewriteArrowSymbols>false</rewriteArrowSymbols>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- code formatting -->
+        </plugins>
+    </build>
+
 
     <!-- sub modules -->
     <modules>
