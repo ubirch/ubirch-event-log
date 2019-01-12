@@ -138,34 +138,6 @@
         </executions>
       </plugin>
 
-      <!-- code formatting -->
-      <plugin>
-        <groupId>com.github.tashoyan</groupId>
-        <artifactId>scalariform-maven-plugin</artifactId>
-        <version>0.2.2</version>
-        <executions>
-          <execution>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>format</goal>
-            </goals>
-            <configuration>
-              <firstArgumentOnNewline>Force</firstArgumentOnNewline>
-              <firstParameterOnNewline>Force</firstParameterOnNewline>
-              <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
-              <danglingCloseParenthesis>Force</danglingCloseParenthesis>
-              <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
-              <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
-              <newlineAtEndOfFile>true</newlineAtEndOfFile>
-              <placeScaladocAsterisksBeneathSecondAsterisk>true</placeScaladocAsterisksBeneathSecondAsterisk>
-              <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
-              <spacesAroundMultiImports>true</spacesAroundMultiImports>
-              <rewriteArrowSymbols>false</rewriteArrowSymbols>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.6</version>
