@@ -26,16 +26,74 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
+
+        <!-- versions -->
+
         <scala.version>2.12.6</scala.version>
         <scala.compat.version>2.12</scala.compat.version>
+        <scalatest.version>3.0.5</scalatest.version>
+        <mockito.version>2.23.4</mockito.version>
+        <slf4j.api.version>1.7.15</slf4j.api.version>
+        <slf4j.simple.version>1.6.4</slf4j.simple.version>
+
+        <!-- versions -->
+
     </properties>
 
+    <!-- dependencies -->
+
     <dependencies>
+
+        <!-- Scala -->
+
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_2.12</artifactId>
+            <version>3.9.0</version>
+        </dependency>
+
+        <!-- Scala -->
+
+        <!-- Logging -->
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.api.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.simple.version}</version>
+        </dependency>
+
+        <!-- Logging -->
+
+
+        <!-- Test -->
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+        </dependency>
+
+        <!-- Test -->
+
     </dependencies>
 
     <!-- sub modules -->
