@@ -1,34 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.ubirch</groupId>
-  <artifactId>event-log</artifactId>
+
+  <!-- parent pom -->
+  <parent>
+    <groupId>com.ubirch</groupId>
+    <artifactId>event-log</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
+  <!-- basic info -->
+  <artifactId>event-log-core</artifactId>
   <version>1.0-SNAPSHOT</version>
   <name>${project.artifactId}</name>
   <description>Event logger for the Ubirch Platform</description>
   <inceptionYear>2018</inceptionYear>
-  <licenses>
-    <license>
-      <name>My License</name>
-      <url>http://....</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-
-  <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <encoding>UTF-8</encoding>
-    <scala.version>2.12.6</scala.version>
-    <scala.compat.version>2.12</scala.compat.version>
-    <spec2.version>4.2.0</spec2.version>
-  </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
 
     <!-- Core -->
     <dependency>
@@ -242,4 +230,5 @@
 
     </plugins>
   </build>
+
 </project>
