@@ -60,7 +60,7 @@
 
         <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
-            <artifactId>scala-logging_2.12</artifactId>
+            <artifactId>scala-logging_${scala.compat.version}</artifactId>
             <version>${scala.logging.version}</version>
         </dependency>
 
@@ -136,6 +136,7 @@
     <!-- sub modules -->
     <modules>
         <module>event-log-core</module>
+        <module>event-log-service</module>
     </modules>
 
 </project>
