@@ -36,7 +36,12 @@
         <scala.logging.version>3.9.0</scala.logging.version>
         <slf4j.api.version>1.7.15</slf4j.api.version>
         <slf4j.simple.version>1.6.4</slf4j.simple.version>
+
+        <!-- plugins -->
         <scalariform.version>0.2.2</scalariform.version>
+        <maven-dependency-plugin.version>2.8</maven-dependency-plugin.version>
+        <!-- plugins -->
+
 
         <!-- versions -->
 
@@ -120,7 +125,8 @@
                             <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
                             <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
                             <newlineAtEndOfFile>true</newlineAtEndOfFile>
-                            <placeScaladocAsterisksBeneathSecondAsterisk>true</placeScaladocAsterisksBeneathSecondAsterisk>
+                            <placeScaladocAsterisksBeneathSecondAsterisk>true
+                            </placeScaladocAsterisksBeneathSecondAsterisk>
                             <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
                             <spacesAroundMultiImports>true</spacesAroundMultiImports>
                             <rewriteArrowSymbols>false</rewriteArrowSymbols>
@@ -129,6 +135,25 @@
                 </executions>
             </plugin>
             <!-- code formatting -->
+
+            <!-- copy all dependencies into the target/lib dir for our docker image -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <overWriteReleases>false</overWriteReleases>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
