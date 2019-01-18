@@ -1,195 +1,171 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <!-- parent pom -->
-  <parent>
-    <groupId>com.ubirch</groupId>
-    <artifactId>event-log</artifactId>
+    <!-- parent pom -->
+    <parent>
+        <groupId>com.ubirch</groupId>
+        <artifactId>event-log</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <!-- basic info -->
+    <artifactId>event-log-core</artifactId>
     <version>1.0-SNAPSHOT</version>
-  </parent>
+    <name>${project.artifactId}</name>
+    <description>Event logger for the Ubirch Platform</description>
+    <inceptionYear>2018</inceptionYear>
 
-  <!-- basic info -->
-  <artifactId>event-log-core</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <name>${project.artifactId}</name>
-  <description>Event logger for the Ubirch Platform</description>
-  <inceptionYear>2018</inceptionYear>
+    <properties>
 
-  <properties>
+        <!-- versions -->
 
-    <!-- versions -->
+        <guice.version>4.1.0</guice.version>
+        <guice.ext.version>4.1.0</guice.ext.version>
+        <quill.cassandra.version>2.6.0</quill.cassandra.version>
+        <joda-time.version>2.10</joda-time.version>
+        <kafka-clients.version>2.0.0</kafka-clients.version>
+        <json4s-native.version>3.6.0</json4s-native.version>
+        <json4s-jackson.version>3.6.1</json4s-jackson.version>
+        <json4s-ext>3.6.0</json4s-ext>
+        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
+        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
 
-    <guice.version>4.1.0</guice.version>
-    <guice.ext.version>4.1.0</guice.ext.version>
-    <quill.cassandra.version>2.6.0</quill.cassandra.version>
-    <joda-time.version>2.10</joda-time.version>
-    <kafka-clients.version>2.0.0</kafka-clients.version>
-    <json4s-native.version>3.6.0</json4s-native.version>
-    <json4s-jackson.version>3.6.1</json4s-jackson.version>
-    <json4s-ext>3.6.0</json4s-ext>
-    <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
-    <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <!-- plugins -->
+        <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
+        <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
+        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
+        <!-- plugins -->
 
-    <!-- versions -->
+        <!-- versions -->
 
-  </properties>
+    </properties>
 
-  <dependencies>
+    <dependencies>
 
-    <!-- Core -->
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>${guice.version}</version>
-    </dependency>
+        <!-- Core -->
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>${guice.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>com.google.inject.extensions</groupId>
-      <artifactId>guice-assistedinject</artifactId>
-      <version>${guice.ext.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>com.google.inject.extensions</groupId>
+            <artifactId>guice-assistedinject</artifactId>
+            <version>${guice.ext.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>io.getquill</groupId>
-      <artifactId>quill-cassandra_${scala.compat.version}</artifactId>
-      <version>${quill.cassandra.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>io.getquill</groupId>
+            <artifactId>quill-cassandra_${scala.compat.version}</artifactId>
+            <version>${quill.cassandra.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>${joda-time.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>${joda-time.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>${kafka-clients.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka-clients.version}</version>
+        </dependency>
 
-    <!-- Util -->
+        <!-- Util -->
 
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-native_${scala.compat.version}</artifactId>
-      <version>${json4s-native.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.compat.version}</artifactId>
+            <version>${json4s-native.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
-      <version>${json4s-jackson.version}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
+            <version>${json4s-jackson.version}</version>
+        </dependency>
 
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-ext_${scala.compat.version}</artifactId>
-      <version>${json4s-ext}</version>
-    </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-ext_${scala.compat.version}</artifactId>
+            <version>${json4s-ext}</version>
+        </dependency>
 
-    <!-- Test -->
+        <!-- Test -->
 
-    <dependency>
-      <groupId>net.manub</groupId>
-      <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-      <version>${scalatest-embedded-kafka}</version>
-      <scope>test</scope>
-    </dependency>
+        <dependency>
+            <groupId>net.manub</groupId>
+            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${scalatest-embedded-kafka}</version>
+            <scope>test</scope>
+        </dependency>
 
-    <dependency>
-      <groupId>com.github.nosan</groupId>
-      <artifactId>embedded-cassandra-test</artifactId>
-      <version>${embedded-cassandra-test}</version>
-    </dependency>
+        <dependency>
+            <groupId>com.github.nosan</groupId>
+            <artifactId>embedded-cassandra-test</artifactId>
+            <version>${embedded-cassandra-test}</version>
+        </dependency>
 
-  </dependencies>
+    </dependencies>
 
-  <build>
+    <build>
 
-    <plugins>
-      <plugin>
-        <!-- see http://davidb.github.com/scala-maven-plugin -->
-        <groupId>net.alchim31.maven</groupId>
-        <artifactId>scala-maven-plugin</artifactId>
-        <version>3.3.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-            <configuration>
-              <args>
-                <arg>-dependencyfile</arg>
-                <arg>${project.build.directory}/.scala_dependencies</arg>
-              </args>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <!-- disable surefire -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.7</version>
-        <configuration>
-          <skipTests>true</skipTests>
-        </configuration>
-      </plugin>
-      <!-- enable scalatest -->
-      <plugin>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0</version>
-        <configuration>
-          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-          <junitxml>.</junitxml>
-          <filereports>WDF TestSuite.txt</filereports>
-        </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+        <plugins>
 
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.ubirch.App</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <!-- copy all dependencies into the target/lib dir for our docker image -->
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <overWriteReleases>false</overWriteReleases>
-              <includeScope>runtime</includeScope>
-              <outputDirectory>${project.build.directory}/lib</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+            <plugin>
+                <!-- see http://davidb.github.com/scala-maven-plugin -->
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>${scala-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <arg>-dependencyfile</arg>
+                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- disable surefire -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <!-- enable scalatest -->
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>${scalatest-maven-plugin.version}</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-    </plugins>
-  </build>
+        </plugins>
+    </build>
 
 </project>
