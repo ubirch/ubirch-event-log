@@ -162,6 +162,7 @@
     <modules>
         <module>event-log-core</module>
         <module>event-log-service</module>
+        <module>event-log-sdk</module>
     </modules>
 
 </project>
