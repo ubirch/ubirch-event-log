@@ -1,263 +1,187 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.ubirch</groupId>
-  <artifactId>event-log</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <name>${project.artifactId}</name>
-  <description>Event logger for the Ubirch Platform</description>
-  <inceptionYear>2018</inceptionYear>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <licenses>
-    <license>
-        <name>Apache License, Version 2.0</name>
-        <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-        <distribution>repo</distribution>
-    </license>
-  </licenses>
+    <!-- parent pom -->
+    <groupId>com.ubirch</groupId>
+    <artifactId>event-log</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-  <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <encoding>UTF-8</encoding>
-    <scala.version>2.12.6</scala.version>
-    <scala.compat.version>2.12</scala.compat.version>
-    <spec2.version>4.2.0</spec2.version>
-  </properties>
+    <!-- license -->
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
+    <!-- properties -->
 
-    <!-- Core -->
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>4.1.0</version>
-    </dependency>
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <encoding>UTF-8</encoding>
 
-    <dependency>
-      <groupId>com.google.inject.extensions</groupId>
-      <artifactId>guice-assistedinject</artifactId>
-      <version>4.1.0</version>
-    </dependency>
+        <!-- versions -->
 
-    <dependency>
-      <groupId>io.getquill</groupId>
-      <artifactId>quill-cassandra_2.12</artifactId>
-      <version>2.6.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-      <version>2.10</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>2.0.0</version>
-    </dependency>
-
-    <!-- Util -->
-
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>1.7.15</version>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.2.3</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>log4j-over-slf4j</artifactId>
-      <version>1.7.25</version>
-    </dependency>
-
-    <!-- https://mvnrepository.com/artifact/org.slf4j/jcl-over-slf4j -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jcl-over-slf4j</artifactId>
-      <version>1.7.25</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging_2.12</artifactId>
-      <version>3.9.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-native_2.12</artifactId>
-      <version>3.6.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-jackson_2.12</artifactId>
-      <version>3.6.1</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.json4s</groupId>
-      <artifactId>json4s-ext_2.12</artifactId>
-      <version>3.6.0</version>
-    </dependency>
-
-    <!-- Test -->
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_${scala.compat.version}</artifactId>
-      <version>3.0.5</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>net.manub</groupId>
-      <artifactId>scalatest-embedded-kafka_2.12</artifactId>
-      <version>2.0.0</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.github.nosan</groupId>
-      <artifactId>embedded-cassandra-test</artifactId>
-      <version>1.2.9</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>2.23.4</version>
-    </dependency>
+        <scala.version>2.12.6</scala.version>
+        <scala.compat.version>2.12</scala.compat.version>
+        <scalatest.version>3.0.5</scalatest.version>
+        <mockito.version>2.23.4</mockito.version>
+        <scala.logging.version>3.9.0</scala.logging.version>
+        <slf4j.api.version>1.7.15</slf4j.api.version>
+        <logback-classic.version>1.2.3</logback-classic.version>
+        <log4j-over-slf4j.version>1.7.25</log4j-over-slf4j.version>
+        <jcl-over-slf4j.version>1.7.25</jcl-over-slf4j.version>
 
 
-  </dependencies>
+        <!-- plugins -->
+        <scalariform.version>0.2.2</scalariform.version>
+        <maven-dependency-plugin.version>2.8</maven-dependency-plugin.version>
+        <!-- plugins -->
 
-  <build>
 
-    <plugins>
-      <plugin>
-        <!-- see http://davidb.github.com/scala-maven-plugin -->
-        <groupId>net.alchim31.maven</groupId>
-        <artifactId>scala-maven-plugin</artifactId>
-        <version>3.3.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-            <configuration>
-              <args>
-                <arg>-dependencyfile</arg>
-                <arg>${project.build.directory}/.scala_dependencies</arg>
-              </args>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <!-- disable surefire -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.7</version>
-        <configuration>
-          <skipTests>true</skipTests>
-        </configuration>
-      </plugin>
-      <!-- enable scalatest -->
-      <plugin>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0</version>
-        <configuration>
-          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-          <junitxml>.</junitxml>
-          <filereports>WDF TestSuite.txt</filereports>
-        </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+        <!-- versions -->
 
-      <!-- code formatting -->
-      <plugin>
-        <groupId>com.github.tashoyan</groupId>
-        <artifactId>scalariform-maven-plugin</artifactId>
-        <version>0.2.2</version>
-        <executions>
-          <execution>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>format</goal>
-            </goals>
-            <configuration>
-              <firstArgumentOnNewline>Force</firstArgumentOnNewline>
-              <firstParameterOnNewline>Force</firstParameterOnNewline>
-              <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
-              <danglingCloseParenthesis>Force</danglingCloseParenthesis>
-              <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
-              <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
-              <newlineAtEndOfFile>true</newlineAtEndOfFile>
-              <placeScaladocAsterisksBeneathSecondAsterisk>true</placeScaladocAsterisksBeneathSecondAsterisk>
-              <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
-              <spacesAroundMultiImports>true</spacesAroundMultiImports>
-              <rewriteArrowSymbols>false</rewriteArrowSymbols>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+    </properties>
 
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.ubirch.App</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <!-- copy all dependencies into the target/lib dir for our docker image -->
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.8</version>
-        <executions>
-          <execution>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <overWriteReleases>false</overWriteReleases>
-              <includeScope>runtime</includeScope>
-              <outputDirectory>${project.build.directory}/lib</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+    <!-- dependencies -->
 
-    </plugins>
-  </build>
+    <dependencies>
+
+        <!-- Scala -->
+
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <!-- Scala -->
+
+        <!-- Logging -->
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.api.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback-classic.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>${log4j-over-slf4j.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.slf4j/jcl-over-slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${jcl-over-slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_${scala.compat.version}</artifactId>
+            <version>${scala.logging.version}</version>
+        </dependency>
+
+        <!-- Logging -->
+
+
+        <!-- Test -->
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+        </dependency>
+
+        <!-- Test -->
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <!-- code formatting -->
+            <plugin>
+                <groupId>com.github.tashoyan</groupId>
+                <artifactId>scalariform-maven-plugin</artifactId>
+                <version>${scalariform.version}</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                        <configuration>
+                            <firstArgumentOnNewline>Force</firstArgumentOnNewline>
+                            <firstParameterOnNewline>Force</firstParameterOnNewline>
+                            <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
+                            <danglingCloseParenthesis>Force</danglingCloseParenthesis>
+                            <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
+                            <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
+                            <newlineAtEndOfFile>true</newlineAtEndOfFile>
+                            <placeScaladocAsterisksBeneathSecondAsterisk>true
+                            </placeScaladocAsterisksBeneathSecondAsterisk>
+                            <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
+                            <spacesAroundMultiImports>true</spacesAroundMultiImports>
+                            <rewriteArrowSymbols>false</rewriteArrowSymbols>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- code formatting -->
+
+            <!-- copy all dependencies into the target/lib dir for our docker image -->
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>${maven-dependency-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <overWriteReleases>false</overWriteReleases>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+    <!-- sub modules -->
+    <modules>
+        <module>event-log-core</module>
+        <module>event-log-service</module>
+        <module>event-log-sdk</module>
+    </modules>
+
 </project>
