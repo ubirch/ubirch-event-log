@@ -7,7 +7,7 @@ import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.MessageEnvelope
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.FromString
+import com.ubirch.util.{ FromString, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
@@ -101,6 +101,7 @@ case class DefaultExecutorFamily @Inject() (
 class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
 
   import executorFamily._
+  import UUIDHelper._
 
   def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
 
@@ -109,15 +110,17 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
   def executorExceptionHandler(exception: Exception): Unit = {
     import reporter.Types._
 
+    val uuid = timeBasedUUID
+
     exception match {
       case e: EmptyValueException =>
-        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name))
+        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       case e: ParsingIntoEventLogException =>
-        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.name, value = e.value))
+        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.value))
       case e: StoringIntoEventLogException =>
         reporter.report(Error(id = e.eventLog.event.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
       case e: Exception =>
-        reporter.report(Error(id = UUID.randomUUID(), message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
+        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
     }
 
   }

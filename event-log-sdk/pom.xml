@@ -16,21 +16,13 @@
     <name>${project.artifactId}</name>
     <description>Event Logger SDK</description>
     <inceptionYear>2018</inceptionYear>
-
-    <dependencies>
-
-        <!-- Core -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>event-log-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-
-    </dependencies>
+    <packaging>jar</packaging>
 
     <properties>
 
         <!-- versions -->
+
+        <event-log-core.version>1.0-SNAPSHOT</event-log-core.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -42,6 +34,17 @@
         <!-- versions -->
 
     </properties>
+
+    <dependencies>
+
+        <!-- Core -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-core</artifactId>
+            <version>${event-log-core.version}</version>
+        </dependency>
+
+    </dependencies>
 
     <build>
 
@@ -95,20 +98,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!--<plugin>-->
-                <!--<artifactId>maven-jar-plugin</artifactId>-->
-                <!--<version>${maven-jar-plugin.version}</version>-->
-                <!--<configuration>-->
-                    <!--<archive>-->
-                        <!--<manifest>-->
-                            <!--<addClasspath>true</addClasspath>-->
-                            <!--<classpathPrefix>lib/</classpathPrefix>-->
-                            <!--<mainClass>com.ubirch.Service</mainClass>-->
-                        <!--</manifest>-->
-                    <!--</archive>-->
-                <!--</configuration>-->
-            <!--</plugin>-->
 
         </plugins>
     </build>

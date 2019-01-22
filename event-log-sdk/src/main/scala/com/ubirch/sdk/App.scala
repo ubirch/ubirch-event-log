@@ -1,8 +1,3 @@
-# SCALA UBIRCH EVENT LOG SDK
-
-## Example
-
-```scala
 package com.ubirch.sdk
 
 import com.ubirch.util.ToJson
@@ -40,4 +35,3 @@ object App extends EventLogging {
 
 }
 
-```

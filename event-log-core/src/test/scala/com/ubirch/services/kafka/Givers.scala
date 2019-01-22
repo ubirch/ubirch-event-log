@@ -2,6 +2,8 @@ package com.ubirch.services.kafka
 
 import java.util.UUID
 
+import com.ubirch.util.UUIDHelper
+
 object PortGiver {
 
   private var kafkaPort = 9092
@@ -26,10 +28,12 @@ object PortGiver {
 
 object NameGiver {
 
-  def giveMeATopicName = "com.ubirch.eventlog_" + UUID.randomUUID()
+  import UUIDHelper._
 
-  def giveMeAnErrorTopicName = "com.ubirch.eventlog.error_" + UUID.randomUUID()
+  def giveMeATopicName = "com.ubirch.eventlog_" + randomUUID
 
-  def giveMeAThreadName = "my_eventlog_thread" + UUID.randomUUID()
+  def giveMeAnErrorTopicName = "com.ubirch.eventlog.error_" + randomUUID
+
+  def giveMeAThreadName = "my_eventlog_thread" + randomUUID
 
 }

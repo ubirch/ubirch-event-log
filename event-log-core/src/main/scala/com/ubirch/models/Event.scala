@@ -2,57 +2,98 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.services.cluster.ConnectionService
-import io.getquill.{ CassandraAsyncContext, Embedded, SnakeCase }
-import javax.inject._
+import io.getquill.Embedded
 import org.json4s.JValue
-
-import scala.concurrent.{ ExecutionContext, Future }
+import com.ubirch.util.UUIDHelper._
 
 trait EventBase {
   val id: UUID
   val serviceClass: String
   val category: String
   val eventTime: Date
+
+  def withCategory(category: String): EventBase
+  def withServiceClass(serviceClass: String): EventBase
+  def withEventTime(eventTime: Date): EventBase
+  def withNewId(id: UUID): EventBase
+
 }
 
 trait EventMsgBase {
   val event: EventBase
   val signature: String
+
+  def withEvent: EventMsgBase
+  def sign: EventMsgBase
+
 }
 
-case class Event(id: UUID, serviceClass: String, category: String, event: JValue, eventTime: Date, eventTimeInfo: TimeInfo) extends Embedded with EventBase
+case class Event(
+    id: UUID,
+    serviceClass: String,
+    category: String,
+    event: JValue,
+    eventTime: Date,
+    eventTimeInfo: TimeInfo
+) extends Embedded with EventBase {
 
-//TODO check whether we could use org.joda.time.DateTime instead of Date
-case class EventLog(event: Event, signature: String, created: Date, updated: Date) extends EventMsgBase
+  def withNewId(id: UUID): Event = this.copy(id = timeBasedUUID)
+  def withCategory(category: String): Event = this.copy(category = category)
+  def withServiceClass(serviceClass: String): Event = this.copy(serviceClass = serviceClass)
+  def withEventTime(eventTime: Date): Event = this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo(eventTime))
 
-trait EventLogQueries extends TablePointer[EventLog] with CustomEncodings[EventLog] {
+}
 
-  import db._
+object Event {
 
-  //These represent query descriptions only
+  def apply(id: UUID, serviceClass: String, category: String, event: JValue, eventTime: Date): Event = {
+    Event(
+      id,
+      serviceClass,
+      category,
+      event,
+      eventTime,
+      TimeInfo(eventTime)
+    )
+  }
 
-  implicit val eventSchemaMeta: db.SchemaMeta[EventLog] = schemaMeta[EventLog]("events")
+  def apply(serviceClass: String, category: String, event: JValue, eventTime: Date): Event = {
+    Event(
+      timeBasedUUID,
+      serviceClass,
+      category,
+      event,
+      eventTime,
+      TimeInfo(eventTime)
+    )
+  }
 
-  def selectAllQ: db.Quoted[db.EntityQuery[EventLog]] = quote(query[EventLog])
-
-  def insertQ(eventlog: EventLog): db.Quoted[db.Insert[EventLog]] = quote {
-    query[EventLog].insert(lift(eventlog))
+  def apply(serviceClass: String, category: String, event: JValue): Event = {
+    val currentTime = new Date
+    Event(
+      timeBasedUUID,
+      serviceClass,
+      category,
+      event,
+      currentTime,
+      TimeInfo(currentTime)
+    )
   }
 
 }
 
-@Singleton
-class Events @Inject() (val connectionService: ConnectionService)(implicit ec: ExecutionContext) extends EventLogQueries {
+//TODO check whether we could use org.joda.time.DateTime instead of Date
+case class EventLog(event: Event, signature: String, created: Date) extends EventMsgBase {
 
-  val db: CassandraAsyncContext[SnakeCase.type] = connectionService.context
+  override def withEvent: EventLog = copy(event = event)
 
-  import db._
-
-  //These actually run the queries.
-
-  def selectAll: Future[List[EventLog]] = run(selectAllQ)
-
-  def insert(eventLog: EventLog): Future[RunActionResult] = run(insertQ(eventLog))
+  override def sign: EventLog = copy(signature = "THIS IS A SIGNATURE")
 
 }
+
+object EventLog {
+
+  def apply(event: Event): EventLog = new EventLog(event, "", new Date).sign
+
+}
+

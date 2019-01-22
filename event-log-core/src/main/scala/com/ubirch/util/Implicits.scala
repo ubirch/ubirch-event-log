@@ -1,6 +1,6 @@
 package com.ubirch.util
 
-import java.util.Properties
+import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
 import com.ubirch.models.TimeInfo
@@ -10,6 +10,13 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable._
 import scala.collection.mutable
 import scala.language.implicitConversions
+
+case class EnrichedDate(date: Date) {
+
+  def buildDateTime = new DateTime(date)
+
+  def buildTimeInfo = EnrichedDatetime(buildDateTime).buildTimeInfo
+}
 
 case class EnrichedDatetime(dateTime: DateTime) {
   def buildTimeInfo = TimeInfo(
@@ -45,6 +52,8 @@ case class EnrichedConfig(config: Config) {
 }
 
 object Implicits {
+
+  implicit def enrichedDate(date: Date): EnrichedDate = EnrichedDate(date)
 
   implicit def enrichedDatetime(dateTime: DateTime): EnrichedDatetime = EnrichedDatetime(dateTime)
 
