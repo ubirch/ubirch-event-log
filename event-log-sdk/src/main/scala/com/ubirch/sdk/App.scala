@@ -31,6 +31,25 @@ object App extends EventLogging {
     //Let's actually commit it
     log3_4.commit
 
+    //Wanna have list of events and fold it
+
+    val foldedLogs = List(
+      log(Hello("Hello")),
+      log(Hello("Hallo")),
+      log(Hello("Hola"))
+    ).foldLeft(log())((a, b) => a +> b)
+
+    foldedLogs.commit
+
+
+    //By default the service class is the class extending or mixing the EventLogging trait
+    //But you can also change it
+
+    val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
+
+    log5.commit
+
+
   }
 
 }

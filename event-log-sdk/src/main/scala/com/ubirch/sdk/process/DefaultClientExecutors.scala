@@ -17,8 +17,8 @@ class PackIntoEventLog extends Executor[Event, EventLog] {
   override def apply(v1: Event): EventLog = EventLog(v1)
 }
 
-class Logger extends Executor[EventLog, Unit] {
-  override def apply(v1: EventLog): Unit = println(v1)
+class Logger extends Executor[EventLog, EventLog] {
+  override def apply(v1: EventLog): EventLog = { println(v1); v1 }
 }
 
 object DefaultClientExecutors {

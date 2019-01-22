@@ -5,12 +5,18 @@ import org.json4s.JValue
 
 trait EventLogging {
 
+  def log(): EventLogger = EventLogger.empty
+
   def log(message: JValue): EventLogger = EventLogger(getClass.getName, "", message)
 
   def log(message: JValue, category: String): EventLogger = EventLogger(getClass.getName, category, message)
 
+  def log(message: JValue, serviceClass: String, category: String): EventLogger = EventLogger(serviceClass, category, message)
+
   def log[T: Manifest](message: T, category: String): EventLogger = EventLogger(getClass.getName, category, message)
 
   def log[T: Manifest](message: T): EventLogger = EventLogger(getClass.getName, "", message)
+
+  def log[T: Manifest](message: T, serviceClass: String, category: String): EventLogger = EventLogger(serviceClass, category, message)
 
 }
