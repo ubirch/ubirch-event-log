@@ -42,7 +42,7 @@ class DefaultStringProducer @Inject() (
 
   val configs = Configs(bootstrapServers)
 
-  lazy val producer = new StringProducer(configs)
+  private lazy val producer = new StringProducer(configs)
 
   override def get(): StringProducer = producer
 

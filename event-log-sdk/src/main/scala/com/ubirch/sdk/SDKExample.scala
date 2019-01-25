@@ -2,7 +2,7 @@ package com.ubirch.sdk
 
 import com.ubirch.util.ToJson
 
-object App extends EventLogging {
+object SDKExample extends EventLogging {
 
   def main(args: Array[String]): Unit = {
 
