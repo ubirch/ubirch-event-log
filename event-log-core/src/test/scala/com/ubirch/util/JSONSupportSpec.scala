@@ -31,11 +31,11 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val toJson = ToJson[EventLog](entity)
 
-      val fromString = FromJson[EventLog](toJson.get)
+      val entityToBe = FromJson[EventLog](toJson.get)
 
-      assert(entity == fromString.get)
+      assert(entity == entityToBe.get)
 
-      assert(toJson.toString == fromString.toString)
+      assert(toJson.toString == entityToBe.toString)
 
     }
 

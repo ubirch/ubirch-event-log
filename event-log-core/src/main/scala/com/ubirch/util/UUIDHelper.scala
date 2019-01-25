@@ -1,6 +1,7 @@
 package com.ubirch.util
 
 import java.util.UUID
+
 import com.datastax.driver.core.utils.UUIDs
 
 trait UUIDHelper {

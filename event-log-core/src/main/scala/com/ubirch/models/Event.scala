@@ -2,9 +2,10 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
+import com.ubirch.util.ToJson
+import com.ubirch.util.UUIDHelper._
 import io.getquill.Embedded
 import org.json4s.JValue
-import com.ubirch.util.UUIDHelper._
 
 trait EventBase {
   val id: UUID
@@ -41,6 +42,10 @@ case class Event(
   def withCategory(category: String): Event = this.copy(category = category)
   def withServiceClass(serviceClass: String): Event = this.copy(serviceClass = serviceClass)
   def withEventTime(eventTime: Date): Event = this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo(eventTime))
+
+  override def toString: String = {
+    ToJson[this.type](this).toString
+  }
 
 }
 
@@ -89,6 +94,9 @@ case class EventLog(event: Event, signature: String, created: Date) extends Even
 
   override def sign: EventLog = copy(signature = "THIS IS A SIGNATURE")
 
+  override def toString: String = {
+    ToJson[this.type](this).toString
+  }
 }
 
 object EventLog {
