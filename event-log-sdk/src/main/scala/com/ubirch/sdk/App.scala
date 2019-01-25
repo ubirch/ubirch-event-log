@@ -19,7 +19,6 @@ object App extends EventLogging {
     //Let's actually commit it
     log1_2.commit
 
-
     //Another Log From A Case Class
     val log3 = log(Hello("Hola"), "Category")
 
@@ -41,14 +40,12 @@ object App extends EventLogging {
 
     foldedLogs.commit
 
-
     //By default the service class is the class extending or mixing the EventLogging trait
     //But you can also change it
 
     val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
 
     log5.commit
-
 
   }
 

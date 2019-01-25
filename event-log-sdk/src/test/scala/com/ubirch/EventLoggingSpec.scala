@@ -2,7 +2,7 @@ package com.ubirch
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.sdk.EventLogging
-import com.ubirch.services.kafka.producer.{Configs, StringProducer}
+import com.ubirch.services.kafka.producer.{ Configs, StringProducer }
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.ToJson
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -35,7 +35,6 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         val logged2 = logger.log(ToJson("Hola").get).commit
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged2.toString
-
 
         val log1 = log(ToJson(Hello("Hola")).get, "My Category")
 

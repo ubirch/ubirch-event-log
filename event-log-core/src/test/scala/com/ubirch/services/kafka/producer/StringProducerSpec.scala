@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Error
 import com.ubirch.services.kafka._
 import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.ToJson
+import com.ubirch.util.{ ProducerRecordHelper, ToJson }
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.scalatest.mockito.MockitoSugar
@@ -21,12 +21,12 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
+    //TODO Needs to be updated with wrapped error
     "error message successfully pushed" in {
 
       val error = Entities.Errors.errorExample()
 
       val payload = ToJson[Error](error).toString
-      val me = MessageEnvelope(payload)
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -37,7 +37,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         new StringProducer(configs)
           .producer
-          .send(MessageEnvelope.toRecord(topic, error.id.toString, me))
+          .send(ProducerRecordHelper.toRecord(topic, error.id.toString, payload, Map.empty))
           .get()
 
         consumeFirstStringMessageFrom(topic) mustBe payload

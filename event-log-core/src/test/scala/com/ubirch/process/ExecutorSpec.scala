@@ -3,7 +3,6 @@ package com.ubirch.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
-import com.ubirch.services.kafka.MessageEnvelope
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
@@ -49,50 +48,35 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
 
   }
 
-  "Wrapper" must {
-    "wrap consumer record successfully" in {
-
-      val wrapper = new Wrapper
-
-      val consumerRecord = mock[ConsumerRecord[String, String]]
-
-      when(consumerRecord.value()).thenReturn("this is a value")
-
-      val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)
-
-      val headers = new RecordHeaders().add(header)
-
-      when(consumerRecord.headers()).thenReturn(headers)
-
-      val messageEnvelope = wrapper(consumerRecord)
-
-      assert(messageEnvelope.payload == consumerRecord.value())
-
-      assert(messageEnvelope.headers == MessageEnvelope.headersToMap(consumerRecord))
-
-    }
-  }
-
   "FilterEmpty" must {
     "filter successfully" in {
 
-      val messageEnvelope = MessageEnvelope("this is a payload", Map("headerX1" -> "headerX1Data"))
+      val data = Entities.Events.eventExample()
+      val dataAsString = Entities.Events.eventExampleAsString(data)
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(dataAsString)
 
       val filter = new FilterEmpty
 
-      val filtered = filter(messageEnvelope)
+      val filtered = filter(consumerRecord)
 
-      assert(filtered == messageEnvelope)
+      assert(filtered.value() == dataAsString)
 
     }
 
     "throw EmptyValueException when empty value found" in {
 
-      val messageEnvelope = MessageEnvelope("", Map("headerX1" -> "headerX1Data"))
+      val data = ""
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data)
 
       val filter = new FilterEmpty
 
-      assertThrows[EmptyValueException](filter(messageEnvelope))
+      assertThrows[EmptyValueException](filter(consumerRecord))
 
     }
   }
@@ -100,36 +84,45 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
   "EventLogParser" must {
     "parse successfully" in {
 
-      val messageEnvelope = MessageEnvelope(
-        Entities.Events.eventExampleAsString(Entities.Events.eventExample()),
-        Map("headerX1" -> "headerX1Data")
-      )
+      val data = Entities.Events.eventExample()
+      val dataAsString = Entities.Events.eventExampleAsString(data)
 
-      val filter = new FilterEmpty
+      val consumerRecord = mock[ConsumerRecord[String, String]]
 
-      val filtered = filter(messageEnvelope)
+      when(consumerRecord.value()).thenReturn(dataAsString)
+      val eventLogParser = new EventLogParser
 
-      assert(filtered == messageEnvelope)
+      val parsed = eventLogParser(consumerRecord)
+
+      assert(parsed == data)
 
     }
 
     "throw ParsingIntoEventLogException when empty value found" in {
 
-      val messageEnvelope = MessageEnvelope("", Map("headerX1" -> "headerX1Data"))
+      val data = ""
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data)
 
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(messageEnvelope))
+      assertThrows[ParsingIntoEventLogException](eventLogParser(consumerRecord))
 
     }
 
     "throw ParsingIntoEventLogException when wrong json found" in {
 
-      val messageEnvelope = MessageEnvelope("{}", Map("headerX1" -> "headerX1Data"))
+      val data = "{}"
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data)
 
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(messageEnvelope))
+      assertThrows[ParsingIntoEventLogException](eventLogParser(consumerRecord))
 
     }
 
@@ -138,7 +131,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
   "EventsStore" must {
     "store successfully" in {
 
-      val messageEnvelope = MessageEnvelope(Entities.Events.eventExample(), Map("headerX1" -> "headerX1Data"))
+      val data = Entities.Events.eventExample()
 
       val events = mock[Events]
       val promiseTest = Promise[Unit]()
@@ -150,7 +143,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
 
       val eventsStore = new EventsStore(events)
 
-      eventsStore(messageEnvelope)
+      eventsStore(data)
 
       await(promiseTest.future, 10 seconds)
 
@@ -160,7 +153,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
 
     "throw StoringIntoEventLogException" in {
 
-      val messageEnvelope = MessageEnvelope(Entities.Events.eventExample(), Map("headerX1" -> "headerX1Data"))
+      val data = Entities.Events.eventExample()
 
       val events = mock[Events]
       val promiseTest = Promise[Unit]()
@@ -172,7 +165,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
 
       val eventsStore = new EventsStore(events)
 
-      assertThrows[StoringIntoEventLogException](await(eventsStore(messageEnvelope), 10 seconds))
+      assertThrows[StoringIntoEventLogException](await(eventsStore(data), 10 seconds))
 
     }
 
@@ -192,7 +185,6 @@ class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Exec
       }
 
       val family = DefaultExecutorFamily(
-        new Wrapper(),
         new FilterEmpty(),
         new EventLogParser(),
         new EventsStore(events)
