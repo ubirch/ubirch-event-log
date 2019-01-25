@@ -40,7 +40,9 @@ class EventLogging extends InjectorHelper {
 
     def commit = committer(message)
 
-    def ->(otherMessage: EventLog) = List(message, otherMessage)
+    def +>(otherMessage: EventLog) = List(message, otherMessage)
+
+    def <+(otherMessage: EventLog) = this +> otherMessage
 
   }
 
