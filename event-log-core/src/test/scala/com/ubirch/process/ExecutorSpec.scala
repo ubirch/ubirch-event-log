@@ -1,6 +1,5 @@
 package com.ubirch.process
 
-import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.producer.Reporter
@@ -16,7 +15,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
 
-class ExecutorSpec extends TestBase with MockitoSugar with LazyLogging with Execution {
+class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
   "Executor Function" must {
 

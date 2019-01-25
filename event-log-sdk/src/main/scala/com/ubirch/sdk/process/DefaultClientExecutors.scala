@@ -1,6 +1,7 @@
 package com.ubirch.sdk.process
 
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Event, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.sdk.util.Exceptions.{ CommitException, CreateEventFromException }
@@ -53,8 +54,8 @@ class Commit(stringProducer: StringProducer, config: Config) extends Executor[Ev
   }
 }
 
-class Logger extends Executor[EventLog, EventLog] {
+class Logger extends Executor[EventLog, EventLog] with LazyLogging {
   override def apply(v1: EventLog): EventLog = {
-    println(v1); v1
+    logger.debug(v1.toString); v1
   }
 }

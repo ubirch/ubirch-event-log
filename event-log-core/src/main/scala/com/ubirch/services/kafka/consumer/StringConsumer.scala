@@ -55,7 +55,7 @@ class DefaultStringConsumer @Inject() (
     autoOffsetReset = OffsetResetStrategy.EARLIEST
   )
 
-  lazy val consumer = {
+  private lazy val consumer = {
     new StringConsumer(
       threadName,
       executor.executor,
