@@ -3,8 +3,7 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
 import com.ubirch.models.Error
-import com.ubirch.services.kafka.MessageEnvelope
-import com.ubirch.util.ToJson
+import com.ubirch.util.{ ProducerRecordHelper, ToJson }
 import javax.inject._
 
 import scala.language.implicitConversions
@@ -31,8 +30,8 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) {
 
       override def apply(): Result = {
         val payload = ToJson[Error](error).toString
-        val me = MessageEnvelope(payload)
-        producerManager.producer.send(MessageEnvelope.toRecord(topic, error.id.toString, me)).get()
+        // TODO put error in event log structure
+        producerManager.producer.send(ProducerRecordHelper.toRecord(topic, error.id.toString, payload, Map.empty)).get()
       }
 
     }

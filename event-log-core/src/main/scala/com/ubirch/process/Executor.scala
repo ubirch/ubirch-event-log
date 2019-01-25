@@ -2,7 +2,6 @@ package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Error, EventLog, Events }
-import com.ubirch.services.kafka.MessageEnvelope
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ FromString, UUIDHelper }
@@ -21,63 +20,51 @@ trait Executor[-T1, +R] extends (T1 => R) {
 
 }
 
-class Wrapper extends Executor[ConsumerRecord[String, String], MessageEnvelope[String]] {
+class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecord[String, String]] {
 
-  override def apply(v1: ConsumerRecord[String, String]): MessageEnvelope[String] = {
-    MessageEnvelope.fromRecord(v1)
-  }
-
-}
-
-class FilterEmpty extends Executor[MessageEnvelope[String], MessageEnvelope[String]] {
-
-  override def apply(v1: MessageEnvelope[String]): MessageEnvelope[String] = {
-
-    if (v1.payload.nonEmpty) {
+  override def apply(v1: ConsumerRecord[String, String]): ConsumerRecord[String, String] = {
+    if (v1.value().nonEmpty) {
       v1
     } else {
       throw EmptyValueException("Record is empty")
     }
-
   }
 
 }
 
 class EventLogParser
-  extends Executor[MessageEnvelope[String], MessageEnvelope[EventLog]]
+  extends Executor[ConsumerRecord[String, String], EventLog]
   with LazyLogging {
 
-  override def apply(v1: MessageEnvelope[String]): MessageEnvelope[EventLog] = {
-
-    val result: MessageEnvelope[EventLog] = try {
-      v1.copy(payload = FromString[EventLog](v1.payload).get)
+  override def apply(v1: ConsumerRecord[String, String]): EventLog = {
+    val result: EventLog = try {
+      FromString[EventLog](v1.value()).get
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Event: " + e.getMessage)
-        throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1.payload)
+        throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1.value())
     }
 
     result
-
   }
+
 }
 
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-  extends Executor[MessageEnvelope[EventLog], Future[Unit]]
+  extends Executor[EventLog, Future[Unit]]
   with LazyLogging {
 
-  override def apply(v1: MessageEnvelope[EventLog]): Future[Unit] = {
-    events.insert(v1.payload).recover {
+  override def apply(v1: EventLog): Future[Unit] = {
+    events.insert(v1).recover {
       case e: Exception =>
         logger.error("Error storing data: " + e.getMessage)
-        throw StoringIntoEventLogException("Error storing data", v1.payload, e.getMessage)
+        throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
     }
   }
+
 }
 
 trait ExecutorFamily {
-
-  def wrapper: Wrapper
 
   def filterEmpty: FilterEmpty
 
@@ -89,7 +76,6 @@ trait ExecutorFamily {
 
 @Singleton
 case class DefaultExecutorFamily @Inject() (
-    wrapper: Wrapper,
     filterEmpty: FilterEmpty,
     eventLogParser: EventLogParser,
     eventsStore: EventsStore
@@ -101,7 +87,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
   import UUIDHelper._
   import executorFamily._
 
-  def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
+  def composed = filterEmpty andThen eventLogParser andThen eventsStore
 
   def executor = composed
 
