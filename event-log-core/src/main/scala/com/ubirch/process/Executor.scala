@@ -1,7 +1,5 @@
 package com.ubirch.process
 
-import java.util.UUID
-
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.MessageEnvelope
@@ -100,8 +98,8 @@ case class DefaultExecutorFamily @Inject() (
 @Singleton
 class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
 
-  import executorFamily._
   import UUIDHelper._
+  import executorFamily._
 
   def composed = wrapper andThen filterEmpty andThen eventLogParser andThen eventsStore
 

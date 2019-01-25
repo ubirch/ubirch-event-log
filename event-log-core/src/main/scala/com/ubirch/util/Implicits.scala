@@ -32,6 +32,21 @@ case class EnrichedDatetime(dateTime: DateTime) {
 
 case class EnrichedConfig(config: Config) {
 
+  def asOpt[T](key: String)(f: String => T): Option[T] = {
+
+    if (config.hasPathOrNull(key)) {
+      if (config.getIsNull(key)) {
+        None
+      } else {
+        Option(f(key))
+      }
+    } else {
+      None
+    }
+  }
+
+  def getStringAsOption(key: String): Option[String] = asOpt(key)(config.getString)
+
   /**
     * Convert Typesafe config to Java `Properties`.
     */

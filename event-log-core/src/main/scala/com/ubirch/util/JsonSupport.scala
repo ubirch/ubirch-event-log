@@ -4,7 +4,7 @@ import org.json4s._
 import org.json4s.jackson.Serialization
 
 trait WithJsonFormats {
-  implicit lazy val formats = Serialization.formats(NoTypeHints) ++
+  implicit lazy val formats: Formats = Serialization.formats(NoTypeHints) ++
     org.json4s.ext.JavaTypesSerializers.all
 }
 
@@ -28,7 +28,7 @@ case class ToJson[T: Manifest](v1: T) extends JsonHelper {
 
   def get: JValue = to(v1)
 
-  override def toString: String = stringify(get)
+  override def toString: String = stringify(get.underscoreKeys)
 
 }
 
@@ -36,7 +36,7 @@ case class FromJson[T: Manifest](v1: JValue) extends JsonHelper {
 
   def get: T = getCamelized(v1)
 
-  override def toString: String = stringify(v1)
+  override def toString: String = stringify(v1.underscoreKeys)
 
 }
 

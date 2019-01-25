@@ -2,10 +2,10 @@ package com.ubirch
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.models.{ Error, Event, EventLog, TimeInfo }
+import com.ubirch.models.{ Error, Event, EventLog }
+import com.ubirch.util.Implicits.enrichedDate
 import com.ubirch.util.{ ToJson, UUIDHelper }
 import org.json4s.jackson.JsonMethods.parse
-import com.ubirch.util.Implicits.enrichedDate
 
 object Entities extends UUIDHelper {
 

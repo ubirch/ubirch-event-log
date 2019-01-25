@@ -23,6 +23,7 @@
         <!-- versions -->
 
         <event-log-core.version>1.0-SNAPSHOT</event-log-core.version>
+        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -42,6 +43,13 @@
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.manub</groupId>
+            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${scalatest-embedded-kafka}</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

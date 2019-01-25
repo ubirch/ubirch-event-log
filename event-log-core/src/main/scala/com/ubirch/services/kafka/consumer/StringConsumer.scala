@@ -1,7 +1,5 @@
 package com.ubirch.services.kafka.consumer
 
-import java.util.UUID
-
 import com.google.inject.Provider
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
