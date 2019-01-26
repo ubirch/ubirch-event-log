@@ -1,11 +1,9 @@
 package com.ubirch.models
 
 import java.text.SimpleDateFormat
-import java.util.Date
 
-import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.util.{ToJson, UUIDHelper}
-import com.ubirch.{Entities, TestBase}
+import com.ubirch.util.{ ToJson, UUIDHelper }
+import com.ubirch.{ Entities, TestBase }
 import org.scalatest.mockito.MockitoSugar
 
 class EventLogSpec extends TestBase with MockitoSugar {

@@ -6,6 +6,9 @@ import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents the queries linked to the EventLog case class and to the Events Table
+  */
 trait EventLogQueries extends TablePointer[EventLog] with CustomEncodings[EventLog] {
 
   import db._
@@ -22,6 +25,12 @@ trait EventLogQueries extends TablePointer[EventLog] with CustomEncodings[EventL
 
 }
 
+/**
+  * Represent the materialization of the queries. Queries here are actually executed and
+  * a concrete connection context is injected.
+  * @param connectionService Represents the db connection value that is injected.
+  * @param ec Represent the execution context for asynchronous processing.
+  */
 @Singleton
 class Events @Inject() (val connectionService: ConnectionService)(implicit ec: ExecutionContext) extends EventLogQueries {
 
