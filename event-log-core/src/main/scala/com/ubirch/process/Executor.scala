@@ -10,8 +10,15 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents a process to be executed.
+  * It allos for Executor composition with the operator andThen
+  * @tparam T1 the input to the pipe
+  * @tparam R the output of the pipe
+  */
 trait Executor[-T1, +R] extends (T1 => R) {
   self =>
+
   override def apply(v1: T1): R
 
   def andThen[Q](other: Executor[R, Q]): Executor[T1, Q] = {
@@ -19,6 +26,10 @@ trait Executor[-T1, +R] extends (T1 => R) {
   }
 
 }
+
+/**
+  * Executor that filters ConsumerRecords values.
+  */
 
 class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecord[String, String]] {
 
@@ -32,6 +43,9 @@ class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecor
 
 }
 
+/**
+  * Executor that transforms a ConsumerRecord into an EventLog
+  */
 class EventLogParser
   extends Executor[ConsumerRecord[String, String], EventLog]
   with LazyLogging {
@@ -50,6 +64,12 @@ class EventLogParser
 
 }
 
+/**
+  * Executor that stores an EventLog into Cassandra by Using the Events value.
+  * @param events Represents the DAO for the Events type.
+  * @param ec Represent the execution context for asynchronous processing.
+  */
+
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
   extends Executor[EventLog, Future[Unit]]
   with LazyLogging {
@@ -64,6 +84,10 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 }
 
+/**
+  * A convenience type to aggregate executors for later injection
+  */
+
 trait ExecutorFamily {
 
   def filterEmpty: FilterEmpty
@@ -74,6 +98,12 @@ trait ExecutorFamily {
 
 }
 
+/**
+  * Default materialization of the family of executors
+  * @param filterEmpty Executor that filters ConsumerRecords
+  * @param eventLogParser Executor that parses a ConsumerRecord into an Event Log
+  * @param eventsStore Executor that stores an EventLog into Cassandra
+  */
 @Singleton
 case class DefaultExecutorFamily @Inject() (
     filterEmpty: FilterEmpty,
@@ -81,6 +111,12 @@ case class DefaultExecutorFamily @Inject() (
     eventsStore: EventsStore
 ) extends ExecutorFamily
 
+/**
+  * Default Executor Composer Convenience for creating executor compositions and
+  * executor exceptions management.
+  * @param reporter Represents a convenience type that allows to report to a producer.
+  * @param executorFamily Represents a family of executors.
+  */
 @Singleton
 class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
 
