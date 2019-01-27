@@ -10,6 +10,15 @@ import scala.concurrent.{ Await, Future }
 import scala.language.postfixOps
 import scala.util.Try
 
+/**
+  * Represents a definition of the kafka consumer.
+  * It controls the way the messages are consumed and sent to the executors.
+  * It controls the way errors are handled through the executors handlers
+  * @param name It is the name of the thread.
+  * @tparam K Represents the Key value for the ConsumerRecord
+  * @tparam V Represents the Value for the ConsumerRecord
+  * @tparam R Represents the Result type for the execution of the executors pipeline.
+  */
 abstract class AbstractConsumer[K, V, R](val name: String)
   extends ShutdownableThread(name)
   with KafkaConsumerBase[K, V]

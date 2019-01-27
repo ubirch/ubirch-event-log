@@ -12,6 +12,11 @@ import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
+/**
+  * Class that represents a String Producer Factory
+  *
+  * @param props Properties for initiating a Kafka Producer
+  */
 class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[String, String] with LazyLogging {
 
   require(props.nonEmpty, "Can't be empty")
@@ -30,6 +35,11 @@ class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[Strin
 
 }
 
+/**
+  * Class that represents a String Producer Factory with specific values from the config files
+  * @param config Config Component for reading config properties
+  * @param lifecycle LifeCycle Component Instance for adding the producer stop hook
+  */
 @Singleton
 class DefaultStringProducer @Inject() (
     config: Config,

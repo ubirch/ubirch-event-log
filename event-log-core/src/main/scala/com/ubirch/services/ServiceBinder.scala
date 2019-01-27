@@ -12,6 +12,9 @@ import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook
 
 import scala.concurrent.ExecutionContext
 
+/**
+  * Core Service Wiring
+  */
 class ServiceBinder extends AbstractModule {
 
   override def configure() = {

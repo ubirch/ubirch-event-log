@@ -10,6 +10,14 @@ import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util.{ ProducerRecordHelper, ToJson }
 import org.json4s.JValue
 
+/**
+  * Executor for creating an Event from a value T.
+  * @param serviceClass Represents the origin class for the event.
+  * @param category Represents a category for the event.
+  * @param manifest$T Represents the manifest for the type T the Event Type
+  *                   wants to be created from.
+  * @tparam T Represent the type from which an Event is created from.
+  */
 class CreateEventFrom[T: Manifest](serviceClass: String, category: String) extends Executor[T, Event] {
   override def apply(v1: T): Event = {
     try {
@@ -23,13 +31,27 @@ class CreateEventFrom[T: Manifest](serviceClass: String, category: String) exten
   }
 }
 
+/**
+  * Executor for creating an Event from a JValue.
+  * @param serviceClass Represents the origin class for the event.
+  * @param category Represents a category for the event.
+  */
 class CreateEventFromJValue(serviceClass: String, category: String) extends Executor[JValue, Event] {
   override def apply(v1: JValue): Event = Event(serviceClass, category, v1)
 }
 
+/**
+  * Executor to pack an Event into an EventLog
+  */
 class PackIntoEventLog extends Executor[Event, EventLog] {
   override def apply(v1: Event): EventLog = EventLog(v1)
 }
+
+/**
+  * Executor that send an EventLog to a Kafka producer.
+  * @param stringProducer A string producer to send the json string of the EventLog
+  * @param config Config object to read config keys from.
+  */
 
 class Commit(stringProducer: StringProducer, config: Config) extends Executor[EventLog, EventLog] {
   override def apply(v1: EventLog): EventLog = {
@@ -53,6 +75,10 @@ class Commit(stringProducer: StringProducer, config: Config) extends Executor[Ev
     }
   }
 }
+
+/**
+  * Executor that logs EventLogs
+  */
 
 class Logger extends Executor[EventLog, EventLog] with LazyLogging {
   override def apply(v1: EventLog): EventLog = {

@@ -2,6 +2,9 @@ package com.ubirch.services.kafka.consumer
 
 import org.apache.kafka.clients.consumer.ConsumerConfig
 
+/**
+  * A convenience that allows to control
+  */
 trait ConfigBaseHelpers {
 
   private var _props: Map[String, AnyRef] = Map.empty

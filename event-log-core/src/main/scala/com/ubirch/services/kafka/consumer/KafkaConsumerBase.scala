@@ -5,6 +5,11 @@ import org.apache.kafka.common.serialization.Deserializer
 
 import scala.collection.JavaConverters._
 
+/**
+  * Represent a basic definition of a Kafka Consumer
+  * @tparam K Represents the Key value for the ConsumerRecord
+  * @tparam V Represents the Value for the ConsumerRecord
+  */
 trait KafkaConsumerBase[K, V] {
 
   var consumer: Consumer[K, V] = _

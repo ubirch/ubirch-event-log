@@ -7,15 +7,27 @@ import javax.inject._
 
 import scala.collection.JavaConverters._
 
+/**
+  * Component that contains configuration-related values.
+  */
 trait ClusterConfigs {
   val contactPoints: List[String]
   val port: Int
 }
 
+/**
+  * Component that defines a Cassandra Cluster.
+  */
+
 trait ClusterService extends ClusterConfigs {
   val poolingOptions: PoolingOptions
   val cluster: Cluster
 }
+
+/**
+  * Default implementation of the Cluster Service Component.
+  * @param config Represent an injected config object.
+  */
 
 @Singleton
 class DefaultClusterService @Inject() (config: Config) extends ClusterService {

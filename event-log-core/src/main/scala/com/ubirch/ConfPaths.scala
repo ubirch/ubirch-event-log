@@ -1,5 +1,8 @@
 package com.ubirch
 
+/**
+  * Object that contains configuration keys
+  */
 object ConfPaths {
 
   object CassandraCluster {

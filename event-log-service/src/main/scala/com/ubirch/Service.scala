@@ -1,10 +1,14 @@
 package com.ubirch
 
-import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.kafka.consumer.StringConsumer
 import com.ubirch.util.Boot
 
-object Service extends Boot with LazyLogging {
+/**
+  * Represents an Event Log Service.
+  * It starts an String Consumer that in turn starts all the rest of the
+  * needed components, such as all the core components, executors, reporters, etc.
+  */
+object Service extends Boot {
 
   def main(args: Array[String]): Unit = {
 

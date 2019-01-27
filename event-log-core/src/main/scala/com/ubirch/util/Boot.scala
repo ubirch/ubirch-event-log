@@ -6,6 +6,9 @@ import com.ubirch.services.lifeCycle.JVMHook
 
 import scala.reflect._
 
+/**
+  * Helper to manage Guice Injection.
+  */
 trait InjectorHelper {
 
   private val injector: Injector = Guice.createInjector(new ServiceBinder())
@@ -18,8 +21,16 @@ trait InjectorHelper {
 
 }
 
+/**
+  * Helper that allows to use the injection helper itself without
+  * extending it or mixing it.
+  */
+
 object InjectorHelper extends InjectorHelper
 
+/**
+  * Util that integrates an elegant way to add shut down hooks to the JVM.
+  */
 trait Boot extends InjectorHelper {
 
   private def bootJVMHook() = get[JVMHook]

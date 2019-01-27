@@ -3,6 +3,10 @@ package com.ubirch.services.kafka.producer
 import com.ubirch.util.ConfigProperties
 import org.apache.kafka.clients.producer.ProducerConfig
 
+/**
+  * A convenience to manage the configuration keys that are used to
+  * initialize the kafka producer.
+  */
 object Configs {
 
   def apply[K, V](
