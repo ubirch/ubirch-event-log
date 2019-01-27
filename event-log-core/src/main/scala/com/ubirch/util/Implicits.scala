@@ -11,6 +11,10 @@ import scala.collection.immutable._
 import scala.collection.mutable
 import scala.language.implicitConversions
 
+/**
+  * It is an enriched date
+  * @param date Represents the date that gets enriched.
+  */
 case class EnrichedDate(date: Date) {
 
   def buildDateTime = new DateTime(date)
@@ -18,6 +22,10 @@ case class EnrichedDate(date: Date) {
   def buildTimeInfo = EnrichedDatetime(buildDateTime).buildTimeInfo
 }
 
+/**
+  * It is an enriched date time.
+  * @param dateTime Represents the dateTime that gets enriched.
+  */
 case class EnrichedDatetime(dateTime: DateTime) {
   def buildTimeInfo = TimeInfo(
     year = dateTime.year().get(),
@@ -30,6 +38,10 @@ case class EnrichedDatetime(dateTime: DateTime) {
   )
 }
 
+/**
+  * It is an enriched configuration.
+  * @param config Represents the enriched config
+  */
 case class EnrichedConfig(config: Config) {
 
   def asOpt[T](key: String)(f: String => T): Option[T] = {
@@ -66,6 +78,9 @@ case class EnrichedConfig(config: Config) {
   }
 }
 
+/**
+  * Util that contains the implicits to create enriched values.
+  */
 object Implicits {
 
   implicit def enrichedDate(date: Date): EnrichedDate = EnrichedDate(date)

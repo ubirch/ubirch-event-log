@@ -6,6 +6,9 @@ import org.apache.kafka.common.header.internals.RecordHeader
 
 import scala.collection.JavaConverters._
 
+/**
+  * Helper that contains useful functions related to the ProducerRecord type.
+  */
 object ProducerRecordHelper {
 
   def toRecord[T](topic: String, key: String, payload: T, headers: Map[String, String]): ProducerRecord[String, T] = {

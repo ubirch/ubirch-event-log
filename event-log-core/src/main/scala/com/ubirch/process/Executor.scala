@@ -12,7 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Represents a process to be executed.
-  * It allos for Executor composition with the operator andThen
+  * It allows for Executor composition with the operator andThen
   * @tparam T1 the input to the pipe
   * @tparam R the output of the pipe
   */

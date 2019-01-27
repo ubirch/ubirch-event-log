@@ -4,6 +4,10 @@ import com.ubirch.util.ConfigProperties
 import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
 import org.apache.kafka.common.requests.IsolationLevel
 
+/**
+  * A convenience to manage the configuration keys that are used to
+  * initialize the kafka consumer.
+  */
 object Configs {
 
   def apply[K, V](

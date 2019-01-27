@@ -2,13 +2,16 @@ package com.ubirch.sdk
 
 import com.ubirch.util.ToJson
 
+/**
+  * Represents an example of how to use the EventLogging SDK
+  */
 object SDKExample extends EventLogging {
 
   def main(args: Array[String]): Unit = {
 
     case class Hello(name: String)
 
-    //From JSValue
+    //From JValue
     val log1 = log(ToJson(Hello("Hola")).get, "My Category")
 
     val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")

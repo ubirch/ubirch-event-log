@@ -13,7 +13,7 @@ object App extends EventLogging {
 
     case class Hello(name: String)
 
-    //From JSValue
+    //From JValue
     val log1 = log(ToJson(Hello("Hola")).get, "My Category")
 
     val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")

@@ -9,6 +9,10 @@ import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+/**
+  * Basic definition for a Life CyCle Component.
+  * A component that supports StopHooks
+  */
 trait Lifecycle {
 
   def addStopHook(hook: () => Future[_]): Unit
@@ -16,6 +20,11 @@ trait Lifecycle {
   def stop(): Future[_]
 
 }
+
+/**
+  * It represents the default implementation for the LifeCycle Component.
+  * It actually executes or clears StopHooks.
+  */
 
 @Singleton
 class DefaultLifecycle
@@ -44,9 +53,19 @@ class DefaultLifecycle
   }
 }
 
+/**
+  * Definition for JVM ShutDown Hooks.
+  */
+
 trait JVMHook {
   protected def registerShutdownHooks(): Unit
 }
+
+/**
+  * Default Implementation of the JVMHook.
+  * It takes LifeCycle stop hooks and adds a corresponding shut down hook.
+  * @param lifecycle LifeCycle Component that allows for StopDownHooks
+  */
 
 @Singleton
 class DefaultJVMHook @Inject() (lifecycle: Lifecycle) extends JVMHook with LazyLogging {

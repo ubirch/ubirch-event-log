@@ -8,6 +8,9 @@ import javax.inject._
 
 import scala.language.implicitConversions
 
+/**
+  * Magnet to support multiple errors messages on reporting.
+  */
 trait ReporterMagnet {
 
   type Result
@@ -16,6 +19,11 @@ trait ReporterMagnet {
 
 }
 
+/**
+  * Represent the singleton that is able to report stuff to the producer.
+  * @param producerManager A kafka producer instance
+  * @param config Represents the injected configuration component.
+  */
 @Singleton
 class Reporter @Inject() (producerManager: StringProducer, config: Config) {
 
