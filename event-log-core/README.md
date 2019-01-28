@@ -1,6 +1,7 @@
 # UBIRCH EVENT LOG CORE
 
-A service which collects events from other services and stores them into the database.
+A set of core elements that allow for collecting events from other services
+and storing them into the database.
 
 The way this software collects events is consuming them from Kafka. The database used here is Cassandra.
 
@@ -104,32 +105,19 @@ The following structure represents the data that the system expects.
 
 ```json
 {
+   "id":"243f7063-6126-470e-9947-be49a62351c0",
+   "service_class":"this is a service class",
+   "category":"this is a category",
    "event":{
-      "id":"fdfef472-2a70-488f-8cc9-2691ab36dd54",
-      "service_class":"this is a service class",
-      "category":"this is a category",
-      "event":{
-         "numbers":[
-            1,
-            2,
-            3,
-            4
-         ]
-      },
-      "event_time":"2018-12-17T23:20:00.651Z",
-      "event_time_info":{
-         "year":2018,
-         "month":12,
-         "day":12,
-         "hour":12,
-         "minute":12,
-         "second":12,
-         "milli":12
-      }
+      "numbers":[
+         1,
+         2,
+         3,
+         4
+      ]
    },
-   "signature":"this is a signature",
-   "created":"2018-12-17T23:20:00.654Z",
-   "updated":"2018-12-17T23:20:00.654Z"
+   "event_time":"2019-01-28T21:54:59.439Z",
+   "signature":"this is a signature"
 }
 ```
 
