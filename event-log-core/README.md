@@ -89,12 +89,6 @@ To build the application run the following command
     mvn package
 ```
 
-## Run
-
-```
-java -jar target/event-log-1.0-SNAPSHOT.jar
-```
-
 You can now start sending messages of the expected structure to the topic in kafka. The system should start storing them in Cassandra.
 
 ## Considerations

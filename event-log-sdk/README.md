@@ -62,3 +62,18 @@ object SDKExample extends EventLogging {
 }
 
 ```
+
+# Tests
+
+
+```
+mvn package
+```
+
+or
+
+```
+mvn test
+```
+
+

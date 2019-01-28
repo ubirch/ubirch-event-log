@@ -4,3 +4,8 @@ A service which collects events from other services and stores them into the dat
 
 The way this software collects events is consuming them from Kafka. The database used here is Cassandra.
 
+## Run
+
+```
+java -jar target/event-log-1.0-SNAPSHOT.jar
+```
