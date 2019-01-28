@@ -5,7 +5,7 @@ A service which collects events from other services and stores them into the dat
 The way this software collects events is consuming them from Kafka. The database used here is Cassandra.
 An SDK is also provided for easier creation of log from the services.
 
-* [Event Log](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
+* [Event Log Core](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
 
 * [Event Log Service](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-service)
 
