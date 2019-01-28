@@ -12,4 +12,4 @@ An SDK is also provided for easier creation of log from the services.
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
 
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/generalParts.jpg "Event Log Components")
+![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/generalParts.png "Event Log Components")
