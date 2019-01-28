@@ -26,8 +26,6 @@ object Entities extends UUIDHelper {
       )
     }
 
-    def eventExampleAsString(eventLog: EventLog) = ToJson[EventLog](eventLog).toString
-
   }
 
   object Errors {
