@@ -13,3 +13,14 @@ An SDK is also provided for easier creation of log from the services.
 
 
 ![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/generalParts.png "Event Log Components")
+
+## Install
+
+To build the application run the following command
+
+```
+    mvn install
+```
+
+After doing this, you can drill down to working on the
+particular project you may be interested in.
