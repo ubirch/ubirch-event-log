@@ -2,7 +2,7 @@ package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
-import com.ubirch.models.{ Error, Event, EventLog }
+import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.util.{ ProducerRecordHelper, ToJson }
 import javax.inject._
 
@@ -39,7 +39,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) {
 
       override def apply(): Result = {
         val payload = ToJson[Error](error).get
-        val eventLog = EventLog(Event(getClass.getName, topic, payload))
+        val eventLog = EventLog(getClass.getName, topic, payload)
         producerManager.producer.send(
           ProducerRecordHelper.toRecord(
             topic,

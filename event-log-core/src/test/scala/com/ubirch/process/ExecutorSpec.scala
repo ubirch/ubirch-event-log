@@ -51,7 +51,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
     "filter successfully" in {
 
       val data = Entities.Events.eventExample()
-      val dataAsString = Entities.Events.eventExampleAsString(data)
+      val dataAsString = data.toString
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
@@ -84,7 +84,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
     "parse successfully" in {
 
       val data = Entities.Events.eventExample()
-      val dataAsString = Entities.Events.eventExampleAsString(data)
+      val dataAsString = data.toString
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
@@ -194,7 +194,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
       when(consumerRecord.value()).thenReturn(
-        Entities.Events.eventExampleAsString(Entities.Events.eventExample())
+        Entities.Events.eventExample().toString
       )
 
       val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)

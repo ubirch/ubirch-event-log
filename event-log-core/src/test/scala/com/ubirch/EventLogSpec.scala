@@ -1,7 +1,5 @@
 package com.ubirch
 
-import java.util.Date
-
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Events
@@ -36,7 +34,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
-        val entityAsString1 = Entities.Events.eventExampleAsString(entity1)
+        val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -60,7 +58,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Next Message
         val entity2 = Entities.Events.eventExample()
-        val entityAsString2 = Entities.Events.eventExampleAsString(entity2)
+        val entityAsString2 = entity2.toString
 
         publishStringMessageToKafka(topic, entityAsString2)
 
@@ -96,7 +94,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val entities = (0 to 500).map(_ => Entities.Events.eventExample()).toList
 
-        val entitiesAsString = entities.map(x => Entities.Events.eventExampleAsString(x))
+        val entitiesAsString = entities.map(_.toString)
 
         entitiesAsString.foreach { entityAsString =>
           publishStringMessageToKafka(topic, entityAsString)
@@ -143,7 +141,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
-        val entityAsString1 = Entities.Events.eventExampleAsString(entity1)
+        val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -181,8 +179,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Next Message with same id but different stuff inside
 
-        val entity1Modified = entity1.copy(event = entity1.event.copy(category = "This is a brand new cat"), signature = "This is another signature", created = new Date)
-        val entityAsString1Modified = Entities.Events.eventExampleAsString(entity1Modified)
+        val entity1Modified = entity1.copy(category = "This is a brand new cat", signature = "This is another signature")
+        val entityAsString1Modified = entity1Modified.toString
 
         publishStringMessageToKafka(topic, entityAsString1Modified)
 
@@ -218,7 +216,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val entities = (0 to 10).map(_ => Entities.Events.eventExample()).toList
 
-        val entitiesAsStringWithErrors = entities.map(x => Entities.Events.eventExampleAsString(x)) ++ //Malformed data
+        val entitiesAsStringWithErrors = entities.map(_.toString) ++ //Malformed data
           List("{}")
 
         entitiesAsStringWithErrors.foreach { entityAsString =>
@@ -280,8 +278,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    second int,
           |    milli int,
           |    event_time timestamp,
-          |    created timestamp,
-          |    updated timestamp,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
         """.stripMargin

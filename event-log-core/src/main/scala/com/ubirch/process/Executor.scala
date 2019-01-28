@@ -69,7 +69,6 @@ class EventLogParser
   * @param events Represents the DAO for the Events type.
   * @param ec Represent the execution context for asynchronous processing.
   */
-
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
   extends Executor[EventLog, Future[Unit]]
   with LazyLogging {
@@ -138,7 +137,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
       case e: ParsingIntoEventLogException =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.value))
       case e: StoringIntoEventLogException =>
-        reporter.report(Error(id = e.eventLog.event.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
+        reporter.report(Error(id = e.eventLog.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
       case e: Exception =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
     }

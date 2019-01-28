@@ -1,7 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ Error, Event, EventLog }
+import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.services.kafka._
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.{ ProducerRecordHelper, ToJson }
@@ -30,7 +30,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
       val topic = NameGiver.giveMeAnErrorTopicName
 
       val error = Entities.Errors.errorExample()
-      val message = EventLog(Event(topic, topic, ToJson[Error](error).get))
+      val message = EventLog(topic, topic, ToJson[Error](error).get)
 
       withRunningKafka {
 
@@ -39,7 +39,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
         stringProducer.producer
           .send(ProducerRecordHelper.toRecord(
             topic,
-            message.event.id.toString,
+            message.id.toString,
             message.toString,
             Map.empty
           ))

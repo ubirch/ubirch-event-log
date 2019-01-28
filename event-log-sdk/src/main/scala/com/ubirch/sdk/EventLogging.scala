@@ -69,13 +69,11 @@ class EventLogging extends InjectorHelper {
   @BeanProperty var config: Config = get[Config]
 
   private val jValueBuilder = {
-    new CreateEventFromJValue(_: String, _: String) andThen
-      new PackIntoEventLog
+    new CreateEventFromJValue(_: String, _: String)
   }
 
   private def tBuilder[T: Manifest](serviceClass: String, category: String) = {
-    new CreateEventFrom[T](serviceClass, category) andThen
-      new PackIntoEventLog
+    new CreateEventFrom[T](serviceClass, category)
   }
 
   private def committer =
