@@ -1,5 +1,6 @@
 package com.ubirch.util
 
+import com.ubirch.models.CustomSerializers
 import org.json4s._
 import org.json4s.jackson.Serialization
 
@@ -8,8 +9,13 @@ import org.json4s.jackson.Serialization
   */
 trait WithJsonFormats {
   implicit lazy val formats: Formats = Serialization.formats(NoTypeHints) ++
-    org.json4s.ext.JavaTypesSerializers.all
+    org.json4s.ext.JavaTypesSerializers.all ++ CustomSerializers.all
 }
+
+/**
+  * Object to use format directly.
+  */
+object Formats extends WithJsonFormats
 
 /**
   * Util that provide core functions to go back and forth from values T to
