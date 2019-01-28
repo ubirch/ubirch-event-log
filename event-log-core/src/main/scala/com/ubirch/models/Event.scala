@@ -6,6 +6,10 @@ import com.ubirch.util.ToJson
 import com.ubirch.util.UUIDHelper._
 import org.json4s.JValue
 
+/**
+  * EventLogBase that conforms a packet for the event T.
+  * @tparam T Represents the Type of the Event.
+  */
 trait EventLogBase[T] {
 
   val id: UUID
@@ -27,8 +31,26 @@ trait EventLogBase[T] {
 
 }
 
+/**
+  * An EventLog whose Type T is JValue
+  */
 trait JValueEventLog extends EventLogBase[JValue]
 
+/**
+  * Concrete type for the EventLogBase whose type T is JValue
+  * @param id UUID that identifies the EventLog
+  * @param serviceClass Represents the name from where the log comes.
+  *                     E.G: The name of the class.
+  * @param category Represents the category for the event. This is useful for
+  *                 adding layers of description to the event.
+  * @param event Represents the event that is to be recorded.
+  * @param eventTime Represents the time when the event log was created.
+  * @param eventTimeInfo Represents the time of the event in an unfolded manner.
+  *                      This is useful and needed for making cluster keys with
+  *                      the time of the event possible. Helpers are provided
+  *                      to support its creation from the eventTime.
+  * @param signature Represents the signature for the event log.
+  */
 case class EventLog(
     id: UUID,
     serviceClass: String,
@@ -58,6 +80,9 @@ case class EventLog(
   }
 }
 
+/**
+  * Companion object that holds useful for things for the management of the EventLog
+  */
 object EventLog {
 
   def apply(serviceClass: String, category: String, event: JValue): EventLog = {
