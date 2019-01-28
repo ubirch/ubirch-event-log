@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.text.SimpleDateFormat
 
-import com.ubirch.util.{ ToJson, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import com.ubirch.{ Entities, TestBase }
 import org.scalatest.mockito.MockitoSugar
 
@@ -51,6 +51,8 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
       assert(TimeInfo(newDate) == newEventLog.eventTimeInfo)
 
+      Thread.sleep(1000)
+
       assert(eventLog.eventTime.getTime < newEventLog.withCurrentEventTime.eventTime.getTime)
 
     }
@@ -58,23 +60,9 @@ class EventLogSpec extends TestBase with MockitoSugar {
     "have toString to Json" in {
       val eventLog = Entities.Events.eventExample()
 
-      val eventLogAsString = Entities.Events.eventExampleAsString(eventLog)
-
-      assert(eventLog.event.toString == ToJson(eventLog.event).toString)
+      val eventLogAsString = eventLog.toString
 
       assert(eventLog.toString == eventLogAsString)
-    }
-
-    "getters" in {
-
-      val eventLog = Entities.Events.eventExample()
-
-      assert(eventLog.id === eventLog.event.id)
-      assert(eventLog.category === eventLog.event.category)
-      assert(eventLog.serviceClass === eventLog.event.serviceClass)
-      assert(eventLog.eventTime === eventLog.event.eventTime)
-      assert(eventLog.eventTimeInfo === eventLog.event.eventTimeInfo)
-
     }
 
   }

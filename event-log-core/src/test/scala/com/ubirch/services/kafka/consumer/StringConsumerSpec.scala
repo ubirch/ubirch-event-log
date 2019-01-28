@@ -35,7 +35,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = Entities.Events.eventExampleAsString(entity)
+        val entityAsString = entity.toString
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
@@ -85,7 +85,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val topic = NameGiver.giveMeATopicName
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = Entities.Events.eventExampleAsString(entity)
+        val entityAsString = entity.toString
 
         publishStringMessageToKafka(topic, entityAsString)
 
@@ -202,7 +202,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val entities = (0 to maxEntities).map(_ => Entities.Events.eventExample()).toList
 
-        val entitiesAsString = entities.map(x => Entities.Events.eventExampleAsString(x))
+        val entitiesAsString = entities.map(_.toString)
 
         entitiesAsString.foreach { entityAsString =>
           publishStringMessageToKafka(topic, entityAsString)
@@ -315,7 +315,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = Entities.Events.eventExampleAsString(entity)
+        val entityAsString = entity.toString
 
         publishStringMessageToKafka(topic, entityAsString)
 
