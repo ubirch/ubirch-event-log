@@ -7,5 +7,5 @@ The way this software collects events is consuming them from Kafka. The database
 ## Run
 
 ```
-java -jar target/event-log-1.0-SNAPSHOT.jar
+java -jar target/event-log-service-1.0-SNAPSHOT.jar
 ```
