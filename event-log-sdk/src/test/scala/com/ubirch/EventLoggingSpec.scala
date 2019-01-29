@@ -46,6 +46,20 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         //Let's actually commit it
         log1_2.commit
 
+        val log3 = log(ToJson(Hello("Como estas")).get, "my service class", "My another Category")
+
+        assert(log3.event == ToJson(Hello("Como estas")).get)
+        assert(log3.serviceClass == "my service class")
+        assert(log3.category == "My another Category")
+
+        assert(log1.event == ToJson(Hello("Hola")).get)
+        assert(log1.category == "My Category")
+
+        assert(log2.event == ToJson(Hello("Como estas")).get)
+        assert(log2.category == "My another Category")
+
+        println(log1.toString)
+
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toString
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toString

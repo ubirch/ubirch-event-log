@@ -1,8 +1,9 @@
 package com.ubirch.models
 
 import java.text.SimpleDateFormat
+import java.util.Date
 
-import com.ubirch.util.{ FromString, UUIDHelper }
+import com.ubirch.util.{ FromString, JsonHelper, UUIDHelper }
 import com.ubirch.{ Entities, TestBase }
 import org.json4s.MappingException
 import org.scalatest.mockito.MockitoSugar
@@ -72,6 +73,22 @@ class EventLogSpec extends TestBase with MockitoSugar {
       val fromJson = new FromString[EventLog](event)
 
       assertThrows[MappingException](event == fromJson.get.toString)
+    }
+
+    "get same fields" in {
+      val event = """{"id":"61002dd0-23e7-11e9-8be0-61a26140e9b5","service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
+
+      val fromJson = new FromString[EventLog](event).get
+
+      object JsonHelper extends JsonHelper
+
+      assert(fromJson.id.toString == "61002dd0-23e7-11e9-8be0-61a26140e9b5")
+      assert(fromJson.serviceClass.toString == "com.ubirch.sdk.EventLogging")
+      assert(fromJson.category.toString == "My Category")
+      assert(fromJson.event == JsonHelper.getJValue("""{"name":"Hola"}"""))
+      assert(fromJson.eventTime == JsonHelper.formats.dateFormat.parse("2019-01-29T17:00:28.333Z").getOrElse(new Date))
+      assert(fromJson.signature == "THIS IS A SIGNATURE")
+
     }
 
   }
