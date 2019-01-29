@@ -79,14 +79,6 @@ class EventLogging extends InjectorHelper {
   private def committer =
     new Commit(getStringProducer, getConfig) andThen new Logger
 
-  def log(message: JValue) = {
-    jValueBuilder(getClass.getName, "")(message)
-  }
-
-  def log[T: Manifest](message: T) = {
-    tBuilder(getClass.getName, "").apply(message)
-  }
-
   case class EnrichedEventLog(message: EventLog) {
 
     def commit = committer(message)
@@ -107,21 +99,32 @@ class EventLogging extends InjectorHelper {
 
   implicit def enrichedEventLogs(eventLog: List[EventLog]): EnrichedEventLogs = EnrichedEventLogs(eventLog)
 
-  /*
-  def log(message: JValue, category: String): EventLogger[EventLog] =
-    LoggerFromJValue(getClass.getName, category)(producer, config).map(x => x(message))
+  //Loggers
 
-  def log(message: JValue, category: String) =
-    LoggerFromJValue(getClass.getName, category).commit
+  def log(message: JValue): EventLog = {
+    jValueBuilder(getClass.getName, "")(message)
+  }
 
-  def log(message: JValue, serviceClass: String, category: String) =
-    LoggerFromJValue(serviceClass, category).commit(message)
+  def log(message: JValue, category: String): EventLog = {
+    jValueBuilder(getClass.getName, category)(message)
+  }
 
-  def log[T: Manifest](message: T, category: String) =
-    LoggerFrom[T](getClass.getName, category)
+  def log(message: JValue, serviceClass: String, category: String): EventLog = {
+    jValueBuilder(serviceClass, category)(message)
+  }
 
-  def log[T: Manifest](message: T) = Logger(getClass.getName, "").commit(message)
+  def log[T: Manifest](message: T): EventLog = {
+    tBuilder(getClass.getName, "").apply(message)
+  }
 
-  def log[T: Manifest](message: T, serviceClass: String, category: String) = Logger(serviceClass, category, message)*/
+  def log[T: Manifest](message: T, category: String): EventLog = {
+    tBuilder(getClass.getName, category).apply(message)
+  }
+
+  def log[T: Manifest](message: T, serviceClass: String, category: String): EventLog = {
+    tBuilder(serviceClass, category).apply(message)
+  }
+
+  //Loggers
 
 }
