@@ -27,6 +27,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <encoding>UTF-8</encoding>
 
+        <timestamp>${maven.build.timestamp}</timestamp>
+        <maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format>
+
         <!-- versions -->
 
         <scala.version>2.12.6</scala.version>

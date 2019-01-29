@@ -14,7 +14,7 @@
     <artifactId>event-log-service</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
-    <description>Event logger for the Ubirch Platform</description>
+    <description>Event logger service for the Ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
 
     <dependencies>
@@ -32,11 +32,15 @@
 
         <!-- versions -->
 
+        <build.number>${timestamp}-dev</build.number>
+
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
         <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <dockerfile-maven-plugin.version>1.4.4</dockerfile-maven-plugin.version>
+        <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
         <!-- plugins -->
 
         <!-- versions -->
@@ -107,6 +111,43 @@
                             <mainClass>com.ubirch.Service</mainClass>
                         </manifest>
                     </archive>
+                </configuration>
+            </plugin>
+            <!-- create and/or push the created docker image -->
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <buildDirectory>${project.build.outputDirectory}</buildDirectory>
+                    <repository>ubirch/${project.artifactId}</repository>
+
+                    <tag>${build.number}</tag>
+                    <buildArgs>
+                        <VERSION>${project.version}</VERSION>
+                        <BUILD>${build.number}</BUILD>
+                        <SERVICE_NAME>${project.name}</SERVICE_NAME>
+                        <JAR_LIBS>target/lib</JAR_LIBS>
+                        <JAR_FILE>target/${project.build.finalName}.${project.packaging}</JAR_FILE>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <!-- for mvn deploy to work, disable the default deploy plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
 

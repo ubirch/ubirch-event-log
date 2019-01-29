@@ -9,3 +9,8 @@ The way this software collects events is consuming them from Kafka. The database
 ```
 java -jar target/event-log-service-1.0-SNAPSHOT.jar
 ```
+
+## Create Docker Image
+```
+mvn dockerfile:build
+```
