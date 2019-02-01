@@ -18,6 +18,12 @@ Get your hands dirty now...
 minikube start
 ```
 
+also in case you minikube gets messed up you can always delete it
+
+```bash
+minikube delete
+```
+
 2. Connect your docker to the minikube
 
 ```bash
@@ -58,6 +64,16 @@ mvn install
 It might take a while for it to install, if it's the first time you run it.
 
 5. Install Chart
+
+Add repos
+
+```bash
+helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+```
+
+```bash
+helm dep up event-log-service/
+```
 
 You easily do
 

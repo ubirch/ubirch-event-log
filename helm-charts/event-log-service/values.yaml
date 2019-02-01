@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: ubirch/event-log-service
-  tag: 20190131-dev
+  tag: 20190201-dev
   pullPolicy: IfNotPresent
 
 nameOverride: ""
