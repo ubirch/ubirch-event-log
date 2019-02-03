@@ -9,12 +9,43 @@ import com.ubirch.models.EventLog
 object Exceptions {
 
   /**
+    * Represents Generic Top Level Exception for the Event Log System
+    * @param message Represents the error message.
+    */
+  abstract class EventLogException(message: String) extends Exception(message) {
+    val name = this.getClass.getCanonicalName
+  }
+
+  //INJECTION EXCEPTIONS
+
+  /**
+    * Represents an Exception When Injecting a Dependency
+    * @param message Represents the error message.
+    */
+  case class InjectionException(message: String) extends EventLogException(message)
+
+  /**
+    * Represents an Exception When the Injector is being created
+    * @param message Represents the error message.
+    */
+  case class InjectorCreationException(message: String) extends EventLogException(message)
+
+  /**
+    * Represents an Exception that is thrown when the cluster service has not contacts points
+    * configured in the configuration file.
+    * @param message Represents the error message.
+    */
+  case class NoContactPointsException(message: String) extends EventLogException(message)
+
+  //INJECTION EXCEPTIONS
+
+  //EXECUTION EXCEPTIONS
+
+  /**
     * Abstract class that represent a core Exception
     * @param message Represents the error message.
     */
-  abstract class ExecutionException(message: String) extends Exception(message) {
-    val name = this.getClass.getCanonicalName
-  }
+  abstract class ExecutionException(message: String) extends EventLogException(message)
 
   /**
     * Represents an exception thrown when the value of the consumer record is empty.
@@ -37,5 +68,7 @@ object Exceptions {
     * @param reason Represent the reason why it couldn't be stored.
     */
   case class StoringIntoEventLogException(message: String, eventLog: EventLog, reason: String) extends ExecutionException(message)
+
+  //EXECUTION EXCEPTIONS
 
 }
