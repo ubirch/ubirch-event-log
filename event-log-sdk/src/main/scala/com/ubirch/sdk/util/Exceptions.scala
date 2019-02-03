@@ -1,7 +1,7 @@
 package com.ubirch.sdk.util
 
 import com.ubirch.models.EventLog
-import com.ubirch.util.Exceptions.ExecutionException
+import com.ubirch.util.Exceptions.EventLogException
 
 /**
   * Namespace that contains the exceptions of the SDK.
@@ -16,7 +16,7 @@ object Exceptions {
     * @tparam T Represents the type T an Event will be created from.
     */
 
-  case class CreateEventFromException[T](v: T, message: String) extends ExecutionException(message)
+  case class CreateEventFromException[T](v: T, message: String) extends EventLogException(message)
 
   /**
     * Represents an exception that is thrown when trying to commit and EventLog
@@ -24,6 +24,6 @@ object Exceptions {
     * @param eventLog Represent the outer message that is sent to Kafka.
     * @param message Represents the error message.
     */
-  case class CommitException(eventLog: EventLog, message: String) extends ExecutionException(message)
+  case class CommitException(eventLog: EventLog, message: String) extends EventLogException(message)
 
 }
