@@ -3,6 +3,7 @@ package com.ubirch.services.cluster
 import com.datastax.driver.core.{ Cluster, PoolingOptions }
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
+import com.ubirch.util.Exceptions.NoContactPointsException
 import javax.inject._
 
 import scala.collection.JavaConverters._
@@ -38,6 +39,10 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService {
   val port: Int = config.getInt(PORT)
   val username: String = config.getString(USERNAME)
   val password: String = config.getString(PASSWORD)
+
+  if (contactPoints.isEmpty) {
+    throw NoContactPointsException("The list of contact points can't be empty")
+  }
 
   val poolingOptions = new PoolingOptions
 
