@@ -1,18 +1,24 @@
 package com.ubirch.services.cluster
 
+import java.net.InetSocketAddress
+
 import com.datastax.driver.core.{ Cluster, PoolingOptions }
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
+import com.ubirch.util.Exceptions.NoContactPointsException
+import com.ubirch.util.URLsHelper
 import javax.inject._
-
-import scala.collection.JavaConverters._
 
 /**
   * Component that contains configuration-related values.
   */
 trait ClusterConfigs {
-  val contactPoints: List[String]
-  val port: Int
+
+  val contactPoints: List[InetSocketAddress]
+
+  def buildContactPointsFromString(contactPoints: String): List[InetSocketAddress] =
+    URLsHelper.inetSocketAddressesString(contactPoints)
+
 }
 
 /**
@@ -34,16 +40,14 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService {
 
   import ConfPaths.CassandraCluster._
 
-  val contactPoints: List[String] = config.getStringList(CONTACT_POINTS).asScala.toList
-  val port: Int = config.getInt(PORT)
+  val contactPoints: List[InetSocketAddress] = buildContactPointsFromString(config.getString(CONTACT_POINTS))
   val username: String = config.getString(USERNAME)
   val password: String = config.getString(PASSWORD)
 
   val poolingOptions = new PoolingOptions
 
   override val cluster = Cluster.builder
-    .addContactPoints(contactPoints: _*)
-    .withPort(port)
+    .addContactPointsWithPorts(contactPoints: _*)
     .withPoolingOptions(poolingOptions)
     .withCredentials(username, password)
     .build

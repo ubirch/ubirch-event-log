@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
+import com.ubirch.util.URLsHelper
 import javax.inject._
 import org.apache.kafka.clients.producer.{ Producer, KafkaProducer => JKafkaProducer }
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
@@ -48,7 +49,7 @@ class DefaultStringProducer @Inject() (
 
   import ConfPaths.Producer._
 
-  val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
+  val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
   val configs = Configs(bootstrapServers)
 
