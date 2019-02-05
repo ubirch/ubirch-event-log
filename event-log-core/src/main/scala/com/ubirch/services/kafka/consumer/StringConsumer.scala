@@ -12,7 +12,6 @@ import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
