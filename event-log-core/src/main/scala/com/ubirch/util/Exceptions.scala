@@ -37,6 +37,14 @@ object Exceptions {
     */
   case class NoContactPointsException(message: String) extends EventLogException(message)
 
+  /**
+    * Represents an Exception that is thrown when the parsing of the contact points from a
+    * string fail.
+    * A correct string would look like: 127.0.0.1:9042, 127.0.0.2:9042
+    * @param message Represents the error message.
+    */
+  case class InvalidContactPointsException(message: String) extends EventLogException(message)
+
   //INJECTION EXCEPTIONS
 
   //EXECUTION EXCEPTIONS
