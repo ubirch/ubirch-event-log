@@ -30,12 +30,23 @@ object Exceptions {
     */
   case class InjectorCreationException(message: String) extends EventLogException(message)
 
+  //INJECTION EXCEPTIONS
+
+  //CLUSTER EXCEPTIONS
+
   /**
     * Represents an Exception that is thrown when the cluster service has not contacts points
-    * configured in the configuration file.
+    * configured in the configuration file or in the env.
     * @param message Represents the error message.
     */
   case class NoContactPointsException(message: String) extends EventLogException(message)
+
+  /**
+    * Represents an Exception that is thrown when the connection service receives an empty keyspace
+    * configured in the configuration file or set in the env.
+    * @param message Represents the error message.
+    */
+  case class NoKeyspaceException(message: String) extends EventLogException(message)
 
   /**
     * Represents an Exception that is thrown when the parsing of the contact points from a
@@ -45,7 +56,7 @@ object Exceptions {
     */
   case class InvalidContactPointsException(message: String) extends EventLogException(message)
 
-  //INJECTION EXCEPTIONS
+  //CLUSTER EXCEPTIONS
 
   //EXECUTION EXCEPTIONS
 
