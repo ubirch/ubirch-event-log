@@ -24,17 +24,18 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: 80
-              protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
+          - containerPort: 9042
+          - containerPort: 9010
           readinessProbe:
-            httpGet:
-              path: /
-              port: http
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 20
+            periodSeconds: 60
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

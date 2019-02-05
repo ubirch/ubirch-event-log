@@ -11,9 +11,11 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
       protocol: TCP
       name: http
+    - name: java-debug
+      port: 9010
+      protocol: TCP
   selector:
     app.kubernetes.io/name: {{ include "event-log-service.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
