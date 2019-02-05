@@ -7,7 +7,7 @@ import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.UUIDHelper
+import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
@@ -57,11 +57,11 @@ class DefaultStringConsumer @Inject() (
   import ConfPaths.Consumer._
   import UUIDHelper._
 
-  val bootstrapServers: String = config.getStringList(BOOTSTRAP_SERVERS).asScala.mkString("")
+  val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
   val topic: String = config.getString(TOPIC_PATH)
   val groupId: String = {
     val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "event_log_" + randomUUID
+    if (gid.isEmpty) "event_log_group_" + randomUUID
     else gid
   }
   val gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
