@@ -1,9 +1,26 @@
-# Default values for event-log-service.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Most of these values represent the application.conf of the service
+eventLog:
+  replicaCount: 1
+  cassandra:
+    cluster:
+      keyspace: "event_log"
+      preparedStatementCacheSize: 1000
+      contactPoints: "127.0.0.1:9042"
+      username: ""
+      password: ""
+  kafkaConsumer:
+    bootstrapServers: "localhost:9092"
+    topic: "com.ubirch.eventlog"
+    groupId: "event_log_group"
+  kafkaProducer:
+    bootstrapServers: "localhost:9092"
+    errorTopic: "com.ubirch.eventlog.error"
 
-replicaCount: 1
-
+# The image tag might change depending
+# on the day of the build as the pom defines the
+# image tag.
+# Check the <tag>${build.number}</tag> in the pom.xml of
+# this service.
 image:
   repository: ubirch/event-log-service
   tag: 20190201-dev
