@@ -7,6 +7,7 @@
 export EVTL_CS_KEYSPACE=event_log
 export EVTL_CS_PREPSTM_CACHE=1000
 export EVTL_CS_NODES=192.168.1.108:9042
+export EVTL_CS_WITH_SSL=false
 export EVTL_CS_USERNAME=
 export EVTL_CS_PASSWORD=
 export EVTL_KFC_NODES=localhost:9092
