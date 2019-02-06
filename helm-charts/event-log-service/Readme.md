@@ -1,18 +1,6 @@
-0.
+# Event Log Service Helm Chart
 
-Interesting Links to learn Kubernetes and Helm
-
-https://github.com/janakiramm/Kubernetes-dev-env
-https://thenewstack.io/tutorial-configuring-ultimate-development-environment-kubernetes/
-https://github.com/helm/helm/tree/master/docs/examples
-https://docs.helm.sh/chart_template_guide/
-https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/
-https://docs.helm.sh/using_helm/#installing-helm
-https://github.com/helm/helm/tree/master/docs/examples
-
-Get your hands dirty now...
-
-1. Start you minikube
+### Start you minikube
 
 ```bash
 minikube start
@@ -24,13 +12,13 @@ also in case you minikube gets messed up you can always delete it
 minikube delete
 ```
 
-2. Connect your docker to the minikube
+### Connect your docker to the minikube
 
 ```bash
 eval $(minikube docker-env)
 ```
 
-3. Synchronize your docker version with the minikube's docker version
+### Synchronize your docker version with the minikube's docker version (OPTIONAL)
 
 It is recommended to install [dvm](https://howtowhale.github.io/dvm/install.html),
 so that you can control your docker versions easily.
@@ -52,7 +40,7 @@ dvm use MINIKUBE VERSION
 
 You're done.
 
-4. Build the project:
+### Build the project:
 
 Running this command will build all the project and install
 the event-log-service docker image in the minikube's docker registry.
@@ -63,19 +51,15 @@ mvn install
 
 It might take a while for it to install, if it's the first time you run it.
 
-5. Install Chart
-
-Add repos
+Sometimes it is useful not run tests
 
 ```bash
-helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+mvn install -DskipTests
 ```
 
-```bash
-helm dep up event-log-service/
-```
+### Install Chart
 
-You easily do
+You easily do from the ubirch-event-log/helm-charts folder
 
 ```bash
 helm install event-log-service/
@@ -87,23 +71,49 @@ or with additional configurations or overrides
 helm install --namespace ubirch --name event-log -f event-log-service/values.yaml --debug event-log-service/
 ```
 
-6. Inspect your deployed infrastructure:
+if you would like to simply parse the files into the final template
+
+```bash
+helm install --namespace ubirch --name event-log -f event-log-service/values.yaml --debug --dry-run event-log-service/
+```
+
+### Inspect your deployed infrastructure:
 
 You can do
 
 ```bash
-helm status event-log-service/
+helm status event-log
 ```
 
 ```bash
 kubectl -n ubirch get pods
 ```
 
-7. Delete your install
+or even friendlier
+
+```bash
+minikube dashboard
+```
+
+on the dashboard, you can inspect the namespace "ubirch" or the one you installed your helm with and
+inspect deployments, pods, services, etc.
+
+
+### Delete your install
 
 ```bash
 helm del --purge event-log;
 ```
+
+### References
+
+https://github.com/janakiramm/Kubernetes-dev-env
+https://thenewstack.io/tutorial-configuring-ultimate-development-environment-kubernetes/
+https://github.com/helm/helm/tree/master/docs/examples
+https://docs.helm.sh/chart_template_guide/
+https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/
+https://docs.helm.sh/using_helm/#installing-helm
+https://github.com/helm/helm/tree/master/docs/examples
 
 
 
