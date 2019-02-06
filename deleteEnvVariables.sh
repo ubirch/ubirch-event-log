@@ -7,6 +7,7 @@
 export -n  EVTL_CS_KEYSPACE
 export -n  EVTL_CS_PREPSTM_CACHE
 export -n  EVTL_CS_NODES
+export -n  EVTL_CS_WITH_SSL
 export -n  EVTL_CS_USERNAME
 export -n  EVTL_CS_PASSWORD
 export -n  EVTL_KFC_NODES

@@ -7,6 +7,7 @@ object ConfPaths {
 
   object CassandraCluster {
     final val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
+    final val WITH_SSL = "eventLog.cassandra.cluster.withSSL"
     final val USERNAME = "eventLog.cassandra.cluster.username"
     final val PASSWORD = "eventLog.cassandra.cluster.password"
     final val KEYSPACE = "eventLog.cassandra.cluster.keyspace"
