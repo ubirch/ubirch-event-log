@@ -1,5 +1,8 @@
 # Event Log Service Helm Chart
 
+These steps will help in testing the helm chart of the event-log service.
+It assumes a running instance of cassandra and kafka
+
 ### Start you minikube
 
 ```bash
@@ -104,6 +107,11 @@ inspect deployments, pods, services, etc.
 ```bash
 helm del --purge event-log;
 ```
+
+### Notes
+
+The values.yaml has been connected to the build process so that when it is compiled or packaged
+the image version gets updated automatically.
 
 ### References
 
