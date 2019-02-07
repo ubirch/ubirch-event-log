@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "event-log-service.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+    helm.sh/chart: {{ include "event-log-service.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          - containerPort: 9042
+          - containerPort: 9010
+          readinessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 20
+            periodSeconds: 60
+          env:
+          - name: EVTL_CS_KEYSPACE
+            value: "{{ .Values.eventLog.cassandra.cluster.keyspace}}"
+          - name: EVTL_CS_PREPSTM_CACHE
+            value: "{{ .Values.eventLog.cassandra.cluster.preparedStatementCacheSize}}"
+          - name: EVTL_CS_NODES
+            value: "{{ .Values.eventLog.cassandra.cluster.contactPoints}}"
+          - name: EVTL_CS_USERNAME
+            value: "{{ .Values.eventLog.cassandra.cluster.username}}"
+          - name: EVTL_CS_PASSWORD
+            value: "{{ .Values.eventLog.cassandra.cluster.password}}"
+          - name: EVTL_KFC_NODES
+            value: "{{ .Values.eventLog.kafkaConsumer.bootstrapServers}}"
+          - name: EVTL_KFC_TOPIC
+            value: "{{ .Values.eventLog.kafkaConsumer.topic}}"
+          - name: EVTL_KFC_GROUP
+            value: "{{ .Values.eventLog.kafkaConsumer.groupId}}"
+          - name: EVTL_KFP_NODES
+            value: "{{ .Values.eventLog.kafkaProducer.bootstrapServers}}"
+          - name: EVTL_KFC_ERROR_TOPIC
+            value: "{{ .Values.eventLog.kafkaProducer.errorTopic}}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

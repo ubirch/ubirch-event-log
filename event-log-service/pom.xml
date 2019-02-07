@@ -41,6 +41,7 @@
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
         <dockerfile-maven-plugin.version>1.4.4</dockerfile-maven-plugin.version>
         <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
         <!-- plugins -->
 
         <!-- versions -->
@@ -130,7 +131,6 @@
                 <configuration>
                     <buildDirectory>${project.build.outputDirectory}</buildDirectory>
                     <repository>ubirch/${project.artifactId}</repository>
-
                     <tag>${build.number}</tag>
                     <buildArgs>
                         <VERSION>${project.version}</VERSION>
@@ -149,6 +149,31 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+            </plugin>
+
+            <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
+            <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/helm-charts</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../helm-charts</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
