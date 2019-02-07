@@ -115,13 +115,13 @@ the image version gets updated automatically.
 
 ### References
 
-https://github.com/janakiramm/Kubernetes-dev-env
-https://thenewstack.io/tutorial-configuring-ultimate-development-environment-kubernetes/
-https://github.com/helm/helm/tree/master/docs/examples
-https://docs.helm.sh/chart_template_guide/
-https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/
-https://docs.helm.sh/using_helm/#installing-helm
-https://github.com/helm/helm/tree/master/docs/examples
+* https://github.com/janakiramm/Kubernetes-dev-env
+* https://thenewstack.io/tutorial-configuring-ultimate-development-environment-kubernetes/
+* https://github.com/helm/helm/tree/master/docs/examples
+* https://docs.helm.sh/chart_template_guide/
+* https://docs.bitnami.com/kubernetes/how-to/create-your-first-helm-chart/
+* https://docs.helm.sh/using_helm/#installing-helm
+* https://github.com/helm/helm/tree/master/docs/examples
 
 
 
