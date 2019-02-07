@@ -31,7 +31,7 @@ class StringConsumer(
     val reporter: Reporter,
     val executorExceptionHandler: Exception => Unit
 )
-  extends AbstractConsumer[String, String, Unit](name) {
+  extends AbstractConsumer[String, String, Unit, Unit](name) {
 
   val keyDeserializer: Deserializer[String] = new StringDeserializer()
   val valueDeserializer: Deserializer[String] = new StringDeserializer()
