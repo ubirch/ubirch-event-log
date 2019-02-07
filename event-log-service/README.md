@@ -14,3 +14,7 @@ java -jar target/event-log-service-1.0-SNAPSHOT.jar
 ```
 mvn dockerfile:build
 ```
+
+## Helm Charts
+
+[Event Log Service Chart](https://github.com/ubirch/ubirch-event-log/blob/master/helm-charts)
