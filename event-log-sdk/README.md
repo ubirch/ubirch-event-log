@@ -14,9 +14,14 @@ import com.ubirch.util.ToJson
   */
 object SDKExample extends EventLogging {
 
+  case class Hello(name: String)
+
   def main(args: Array[String]): Unit = {
 
-    case class Hello(name: String)
+    //One Event From Case Class
+    val log0 = log(Hello("Que más"))
+
+    log0.commit
 
     //From JValue
     val log1 = log(ToJson(Hello("Hola")).get, "My Category")
@@ -57,14 +62,42 @@ object SDKExample extends EventLogging {
 
     log5.commit
 
+    //There are three types of commits supported
+    // .commit
+    // .commitAsync
+    // .commitStealthAsync
+    // Every one of these kinds of commits have different advantages.
+    // With .commit we wait on the response from the producer.
+    // With .commitAsync we create a Future that is returned instead.
+    // With .commitStealthAsync we commit asynchronously but we don't care about the response.
+    // It is like fire a forget.
+
+    val log6 = log(Hello("Hallo"))
+    log6.commitAsync
+
+    val log7 = log(Hello("Hi"))
+    log7.commitStealthAsync
+
   }
 
 }
 
 ```
 
-# Tests
+# Commit Types
 
+There are three types of commits supported
+
+     .commit
+     .commitAsync
+     .commitStealthAsync
+
+ Every one of these kinds of commits have different advantages.
+ With .commit we wait on the response from the producer.
+ With .commitAsync we create a Future that is returned instead.
+ With .commitStealthAsync we commit asynchronously but we don't care about the response.It is like fire a forget.
+
+# Tests
 
 ```
 mvn package
