@@ -52,7 +52,7 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService {
       .withPoolingOptions(poolingOptions)
       .withCredentials(username, password)
 
-    if(withSSL){
+    if (withSSL) {
       builder.withSSL()
     }
 
