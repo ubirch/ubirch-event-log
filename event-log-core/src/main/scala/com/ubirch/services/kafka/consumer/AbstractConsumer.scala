@@ -18,25 +18,32 @@ import scala.util.Try
   * @tparam K Represents the Key value for the ConsumerRecord
   * @tparam V Represents the Value for the ConsumerRecord
   * @tparam R Represents the Result type for the execution of the executors pipeline.
+  * @tparam ER Represents the Exception Result type that is returned back
+  *            when having handled the exceptions.
   */
-abstract class AbstractConsumer[K, V, R](val name: String)
+abstract class AbstractConsumer[K, V, R, ER](val name: String)
   extends ShutdownableThread(name)
   with KafkaConsumerBase[K, V]
-  with WithConsumerRecordsExecutor[K, V, Future[R]]
+  with WithConsumerRecordsExecutor[K, V, Future[R], ER]
   with ConfigBaseHelpers
   with LazyLogging {
 
   def isValueEmpty(v: V): Boolean
 
   def startPolling(): Unit = {
+    logger.debug("Polling started")
     new Thread(this).start()
   }
 
   override def execute(): Unit = {
     if (props.nonEmpty) {
+
       createConsumer(props)
+
       if (isConsumerDefined && isTopicDefined) {
+
         subscribe()
+
         while (getRunning) {
 
           val polledResults = consumer.poll(java.time.Duration.ofSeconds(1))
@@ -48,8 +55,10 @@ abstract class AbstractConsumer[K, V, R](val name: String)
             .filterNot(cr => isValueEmpty(cr.value()))
             .map(cr => (cr, executor))
 
+          def continue = mappedIterator.hasNext
+
           //This is the actual traversal of the iterator
-          while (mappedIterator.hasNext) {
+          while (continue) {
 
             val (cr, processedRecord) = mappedIterator.next()
 
@@ -64,11 +73,14 @@ abstract class AbstractConsumer[K, V, R](val name: String)
 
           }
 
-          if (isAutoCommit)
-            consumer.commitSync()
+          if (isAutoCommit) {
+            commitSync()
+          }
 
         }
-        consumer.close()
+
+        close()
+
       } else {
         logger.error("consumer: {} and topic: {} ", isConsumerDefined, isTopicDefined)
         startGracefulShutdown()
@@ -77,6 +89,7 @@ abstract class AbstractConsumer[K, V, R](val name: String)
       logger.error("props: {} ", props.toString())
       startGracefulShutdown()
     }
+
   }
 
 }

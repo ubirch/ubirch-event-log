@@ -10,12 +10,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
   * @tparam K Represents the Key value for the ConsumerRecord
   * @tparam V Represents the Value for the ConsumerRecord
   * @tparam R Represents the Result type for the execution of the executors pipeline.
+  * @tparam ER Represents the Exception Result type that is returned back
+  *            when having handled the exceptions.
   */
-trait WithConsumerRecordsExecutor[K, V, R] {
+trait WithConsumerRecordsExecutor[K, V, R, ER] {
 
   val executor: Executor[ConsumerRecord[K, V], R]
 
-  val executorExceptionHandler: Exception => Unit
+  val executorExceptionHandler: Exception => ER
 
   val reporter: Reporter
 

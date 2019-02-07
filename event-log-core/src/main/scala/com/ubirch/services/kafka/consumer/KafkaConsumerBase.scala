@@ -1,5 +1,6 @@
 package com.ubirch.services.kafka.consumer
 
+import com.typesafe.scalalogging.LazyLogging
 import org.apache.kafka.clients.consumer.{ Consumer, KafkaConsumer => JKafkaConsumer }
 import org.apache.kafka.common.serialization.Deserializer
 
@@ -10,7 +11,7 @@ import scala.collection.JavaConverters._
   * @tparam K Represents the Key value for the ConsumerRecord
   * @tparam V Represents the Value for the ConsumerRecord
   */
-trait KafkaConsumerBase[K, V] {
+trait KafkaConsumerBase[K, V] extends LazyLogging {
 
   var consumer: Consumer[K, V] = _
 
@@ -24,6 +25,7 @@ trait KafkaConsumerBase[K, V] {
     keyDeserializer.configure(props.asJava, true)
     valueDeserializer.configure(props.asJava, false)
     consumer = new JKafkaConsumer[K, V](props.asJava, keyDeserializer, valueDeserializer)
+    logger.info("Consumer created")
     this
   }
 
@@ -31,6 +33,10 @@ trait KafkaConsumerBase[K, V] {
     consumer.subscribe(List(topic).asJavaCollection)
     this
   }
+
+  def close(): Unit = consumer.close()
+
+  def commitSync(): Unit = consumer.commitSync()
 
   def isConsumerDefined: Boolean = Option(consumer).isDefined
 
