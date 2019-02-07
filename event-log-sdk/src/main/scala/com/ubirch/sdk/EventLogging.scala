@@ -2,13 +2,83 @@ package com.ubirch.sdk
 
 import com.typesafe.config.Config
 import com.ubirch.models.EventLog
+import com.ubirch.process.Executor
 import com.ubirch.sdk.process._
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.InjectorHelper
 import org.json4s.JValue
 
 import scala.beans.BeanProperty
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
+
+/**
+  * Component for implicit conversions
+  */
+
+trait WithConversions {
+  _: WithCommitters =>
+
+  implicit def ec: ExecutionContext
+
+  case class EnrichedEventLog(message: EventLog) {
+
+    def commit: EventLog = syncCommitter(message)
+
+    def commitAsync: Future[EventLog] = asyncCommitter(message)
+
+    def commitStealthAsync: EventLog = stealthAsyncCommitter(message)
+
+    //Joiners
+
+    def +>(otherMessage: EventLog) = List(message, otherMessage)
+
+    def <+(otherMessage: EventLog): List[EventLog] = this +> otherMessage
+
+    //Joiners
+
+  }
+
+  case class EnrichedEventLogs(messages: List[EventLog]) {
+
+    def commit: List[EventLog] = messages.map(syncCommitter)
+
+    def commitAsync: List[Future[EventLog]] = messages.map(asyncCommitter)
+
+    def commitStealthAsync: List[EventLog] = messages.map(stealthAsyncCommitter)
+
+  }
+
+  implicit def enrichedEventLog(eventLog: EventLog): EnrichedEventLog = EnrichedEventLog(eventLog)
+
+  implicit def enrichedEventLogs(eventLog: List[EventLog]): EnrichedEventLogs = EnrichedEventLogs(eventLog)
+
+}
+
+/**
+  * Provides committer types
+  */
+
+trait WithCommitters {
+  _: EventLogging =>
+
+  private def committer = {
+    new CreateProducerRecord(getConfig) andThen new Commit(stringProducer)
+  }
+
+  def stealthAsyncCommitter: Executor[EventLog, EventLog] = {
+    committer andThen new CommitHandlerStealthAsync andThen new Logger
+  }
+
+  def syncCommitter: Executor[EventLog, EventLog] = {
+    committer andThen new CommitHandlerSync andThen new Logger
+  }
+
+  def asyncCommitter: Executor[EventLog, Future[EventLog]] = {
+    committer andThen new CommitHandlerAsync andThen new FutureLogger()
+  }
+
+}
 
 /**
   * Represents the convenience that is used to log messages into Kafka.
@@ -63,11 +133,14 @@ import scala.language.implicitConversions
   * }
   * </pre>
   */
-class EventLogging extends InjectorHelper {
+class EventLogging extends InjectorHelper with WithCommitters with WithConversions {
 
   @BeanProperty var stringProducer: StringProducer = get[StringProducer]
   @BeanProperty var config: Config = get[Config]
 
+  implicit val ec: ExecutionContext = get[ExecutionContext]
+
+  //Helpers to build an Event Log
   private val jValueBuilder = {
     new CreateEventFromJValue(_: String, _: String)
   }
@@ -76,28 +149,7 @@ class EventLogging extends InjectorHelper {
     new CreateEventFrom[T](serviceClass, category)
   }
 
-  private def committer =
-    new Commit(getStringProducer, getConfig) andThen new Logger
-
-  case class EnrichedEventLog(message: EventLog) {
-
-    def commit = committer(message)
-
-    def +>(otherMessage: EventLog) = List(message, otherMessage)
-
-    def <+(otherMessage: EventLog) = this +> otherMessage
-
-  }
-
-  case class EnrichedEventLogs(messages: List[EventLog]) {
-
-    def commit = messages.map(committer)
-
-  }
-
-  implicit def enrichedEventLog(eventLog: EventLog): EnrichedEventLog = EnrichedEventLog(eventLog)
-
-  implicit def enrichedEventLogs(eventLog: List[EventLog]): EnrichedEventLogs = EnrichedEventLogs(eventLog)
+  //Helpers to build an Event Log
 
   //Loggers
 
