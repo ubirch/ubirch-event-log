@@ -21,11 +21,14 @@ eventLog:
 # image tag.
 # Check the <tag>${build.number}</tag> in the pom.xml of
 # this service.
+# The image tag is automatically replaced by the current docker image tag that is
+# generated in the build process.
+# Check out the <artifactId>maven-resources-plugin</artifactId> usage in pom.xml of this
+# service.
 image:
   repository: ubirch/event-log-service
-  tag: 20190201-dev
+  tag: ${build.number}
   pullPolicy: IfNotPresent
-
 nameOverride: ""
 fullnameOverride: ""
 
