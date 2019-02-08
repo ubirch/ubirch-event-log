@@ -11,66 +11,69 @@ object SDKExample extends EventLogging {
 
   def main(args: Array[String]): Unit = {
 
-    //One Event From Case Class
-    val log0 = log(Hello("Que más"))
+    (1 to 1000000).foreach { i =>
 
-    log0.commit
+      //One Event From Case Class
+      val log0 = log(Hello("Que más"))
 
-    //From JValue
-    val log1 = log(ToJson(Hello("Hola")).get, "My Category")
+      log0.commit
 
-    val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
+      //From JValue
+      val log1 = log(ToJson(Hello("Hola")).get, "My Category")
 
-    //Let's unite them in order first in first out
-    val log1_2 = log1 +> log2
+      val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
 
-    //Let's actually commit it
-    log1_2.commit
+      //Let's unite them in order first in first out
+      val log1_2 = log1 +> log2
 
-    //Another Log From A Case Class
-    val log3 = log(Hello("Hola"), "Category")
+      //Let's actually commit it
+      log1_2.commit
 
-    val log4 = log(Hello("Como estas"))
+      //Another Log From A Case Class
+      val log3 = log(Hello("Hola"), "Category")
 
-    //Let's unite them in order first in last out
-    val log3_4 = log3 <+ log4
+      val log4 = log(Hello("Como estas"))
 
-    //Let's actually commit it
-    log3_4.commit
+      //Let's unite them in order first in last out
+      val log3_4 = log3 <+ log4
 
-    //Wanna have list of events and fold it
+      //Let's actually commit it
+      log3_4.commit
 
-    val foldedLogs = List(
-      log(Hello("Hello")),
-      log(Hello("Hallo")),
-      log(Hello("Hola"))
-    )
+      //Wanna have list of events and fold it
 
-    foldedLogs.commit
+      val foldedLogs = List(
+        log(Hello("Hello")),
+        log(Hello("Hallo")),
+        log(Hello("Hola"))
+      )
 
-    //By default the service class is the class extending or mixing the EventLogging trait
-    //But you can also change it
+      foldedLogs.commit
 
-    val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
+      //By default the service class is the class extending or mixing the EventLogging trait
+      //But you can also change it
 
-    log5.commit
+      val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
 
-    //There are three types of commits supported
-    // .commit
-    // .commitAsync
-    // .commitStealthAsync
-    // Every one of these kinds of commits have different advantages.
-    // With .commit we wait on the response from the producer.
-    // With .commitAsync we create a Future that is returned instead.
-    // With .commitStealthAsync we commit asynchronously but we don't care about the response.
-    // It is like fire a forget.
+      log5.commit
 
-    val log6 = log(Hello("Hallo"))
-    log6.commitAsync
+      //There are three types of commits supported
+      // .commit
+      // .commitAsync
+      // .commitStealthAsync
+      // Every one of these kinds of commits have different advantages.
+      // With .commit we wait on the response from the producer.
+      // With .commitAsync we create a Future that is returned instead.
+      // With .commitStealthAsync we commit asynchronously but we don't care about the response.
+      // It is like fire a forget.
 
-    val log7 = log(Hello("Hi"))
-    log7.commitStealthAsync
+      val log6 = log(Hello("Hallo"))
+      log6.commitAsync
 
+      val log7 = log(Hello("Hi"))
+      log7.commitStealthAsync
+
+    }
   }
 
 }
