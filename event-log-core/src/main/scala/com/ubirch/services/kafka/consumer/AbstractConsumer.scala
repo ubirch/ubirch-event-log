@@ -8,7 +8,6 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
-import scala.util.Try
 
 /**
   * Represents a definition of the kafka consumer.
@@ -35,6 +34,8 @@ abstract class AbstractConsumer[K, V, R, ER](val name: String)(implicit ec: Exec
     logger.debug("Polling started")
     new Thread(this).start()
   }
+
+  def async = true
 
   override def execute(): Unit = {
     if (props.nonEmpty) {
@@ -64,26 +65,28 @@ abstract class AbstractConsumer[K, V, R, ER](val name: String)(implicit ec: Exec
 
             val (cr, processedRecord) = next()
 
-            val fRes: Future[Either[Option[ER], Option[R]]] = processedRecord(cr)
+            lazy val fRes: Future[Either[Option[ER], Option[R]]] = processedRecord(cr)
               .map(x => Right(Some(x)))
               .recoverWith {
-                case e: Exception => executorExceptionHandler(e).map(x => Left(Some(x)))
+                case e: Exception =>
+                  executorExceptionHandler(e).map(x => Left(Some(x)))
                 case e =>
                   logger.error(e.getMessage)
                   Future.successful(Left(None))
               }
 
-            Await.result(
+            lazy val _fRes = fRes.map { res =>
+              res.fold({
+                case Some(_) =>
+                case None =>
+                  startGracefulShutdown()
+              }, _ => {})
+            }
 
-              fRes.map { res =>
-                res.fold({
-                  case Some(_) =>
-                  case None =>
-                    startGracefulShutdown()
-                }, _ => {})
-              }, 2 seconds
-
-            )
+            if (async)
+              Await.result(_fRes, 2 seconds)
+            else
+              _fRes
 
           } //End While
 
