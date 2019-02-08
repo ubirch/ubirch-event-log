@@ -12,7 +12,7 @@ import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.{ Deserializer, StringDeserializer }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 /**
@@ -29,8 +29,8 @@ class StringConsumer(
     name: String,
     val executor: Executor[ConsumerRecord[String, String], Future[Unit]],
     val reporter: Reporter,
-    val executorExceptionHandler: Exception => Unit
-)
+    val executorExceptionHandler: Exception => Future[Unit]
+)(implicit ec: ExecutionContext)
   extends AbstractConsumer[String, String, Unit, Unit](name) {
 
   val keyDeserializer: Deserializer[String] = new StringDeserializer()
@@ -51,7 +51,7 @@ class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     executor: DefaultExecutor
-) extends Provider[StringConsumer] {
+)(implicit ec: ExecutionContext) extends Provider[StringConsumer] {
 
   import ConfPaths.Consumer._
   import UUIDHelper._

@@ -140,7 +140,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val executorExceptionHandler = mock[Exception => Unit]
+        val executorExceptionHandler = mock[Exception => Future[Unit]]
 
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
@@ -170,7 +170,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val reporter = mock[Reporter]
 
-        val executorExceptionHandler = mock[Exception => Unit]
+        val executorExceptionHandler = mock[Exception => Future[Unit]]
 
         val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
 
@@ -191,8 +191,8 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val maxEntities = 500
-      var listfWithSuccess = List.empty[String]
-      var listf = List.empty[Future[Unit]]
+      val listfWithSuccess = scala.collection.mutable.ListBuffer.empty[String]
+      val listf = scala.collection.mutable.ListBuffer.empty[Future[Unit]]
       val max = new AtomicReference[Int](maxEntities)
       val releasePromise = Promise[Boolean]()
 
@@ -200,7 +200,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val topic = NameGiver.giveMeATopicName
 
-        val entities = (0 to maxEntities).map(_ => Entities.Events.eventExample()).toList
+        val entities = (1 to maxEntities).map(_ => Entities.Events.eventExample()).toList
 
         val entitiesAsString = entities.map(_.toString)
 
@@ -220,10 +220,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
               lazy val somethingStored = promiseTest.completeWith(Future.successful(()))
 
-              listfWithSuccess = listfWithSuccess ++ Seq(v1.value())
               somethingStored
 
-              listf = promiseTest.future :: listf
+              listfWithSuccess += v1.value()
+              listf += promiseTest.future
 
               max.set(max.get() - 1)
               val pending = max.get()
@@ -262,8 +262,13 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(rlist.nonEmpty)
         assert(rlist.contains(()))
 
-        listfWithSuccess must contain theSameElementsAs entitiesAsString
-        listfWithSuccess.size must be(entitiesAsString.size)
+        val list = listfWithSuccess.toList
+
+        val entitiesAsStringSize = entitiesAsString.size
+        val listSize = list.size
+
+        entitiesAsStringSize must be(listSize)
+        entitiesAsString must contain theSameElementsAs list
 
       }
 

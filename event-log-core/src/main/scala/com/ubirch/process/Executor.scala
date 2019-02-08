@@ -126,7 +126,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
   def executor = composed
 
-  def executorExceptionHandler(exception: Exception): Unit = {
+  def executorExceptionHandler(exception: Exception): Future[Unit] = {
     import reporter.Types._
 
     val uuid = timeBasedUUID
@@ -141,6 +141,8 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
       case e: Exception =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
     }
+
+    Future.successful(Unit)
 
   }
 
