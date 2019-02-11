@@ -135,7 +135,9 @@ class DefaultExecutor @Inject()(val reporter: Reporter, executorFamily: Executor
   def executor: Executor[ConsumerRecord[String, String], Future[Unit]] = composed
 
   final val eventErrorCounter: Counter = Counter.build()
-    .name("event_error_total").help("Total event errors.").register()
+    .name("event_error_total")
+    .help("Total event errors.")
+    .register()
 
   def executorExceptionHandler(exception: Exception): Unit = {
     import reporter.Types._

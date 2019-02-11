@@ -11,7 +11,7 @@ object SDKExample extends EventLogging {
 
   def main(args: Array[String]): Unit = {
 
-    (1 to 1000000).foreach { i =>
+    (1 to 100000000).foreach { i =>
 
       //One Event From Case Class
       val log0 = log(Hello("Que más"))

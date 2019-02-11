@@ -47,8 +47,8 @@
         <appender-ref ref="STDERR"/>
     </root>
 
-    <root level="INFO">
-        <appender-ref ref="METRICS" />
-    </root>
+    <!--<root level="INFO">-->
+        <!--<appender-ref ref="METRICS" />-->
+    <!--</root>-->
 
 </configuration>
