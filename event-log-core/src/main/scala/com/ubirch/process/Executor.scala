@@ -117,7 +117,7 @@ case class DefaultExecutorFamily @Inject() (
   * @param executorFamily Represents a family of executors.
   */
 @Singleton
-qclass DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
+class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
 
   import UUIDHelper._
   import executorFamily._

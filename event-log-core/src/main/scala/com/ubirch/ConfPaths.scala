@@ -17,7 +17,6 @@ object ConfPaths {
   object Consumer {
     final val BOOTSTRAP_SERVERS = "eventLog.kafkaConsumer.bootstrapServers"
     final val TOPIC_PATH = "eventLog.kafkaConsumer.topic"
-    final val ERROR_TOPIC_PATH = "eventLog.kafkaConsumer.errorTopic"
     final val GROUP_ID_PATH = "eventLog.kafkaConsumer.groupId"
     final val GRACEFUL_TIMEOUT_PATH = "eventLog.kafkaConsumer.gracefulTimeout"
   }

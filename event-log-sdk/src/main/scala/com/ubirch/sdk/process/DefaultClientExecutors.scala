@@ -6,6 +6,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
+import com.ubirch.sdk.ConfPaths
 import com.ubirch.sdk.util.Exceptions._
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
@@ -57,7 +58,7 @@ class CreateProducerRecord(config: Config)
 
     try {
 
-      val topic = config.getStringAsOption("kafkaClient.topic").getOrElse("com.ubirch.eventlog")
+      val topic = config.getStringAsOption(ConfPaths.Producer.TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
       val json = ToJson[EventLog](v1)
 
