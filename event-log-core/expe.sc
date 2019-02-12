@@ -1,9 +1,6 @@
 
 import java.util.concurrent.atomic.AtomicBoolean
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 var running = new AtomicBoolean(true)
 
 var max = 1000

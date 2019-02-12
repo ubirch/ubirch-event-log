@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
@@ -15,6 +15,8 @@ import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
+import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
@@ -61,7 +63,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor
+          new ConsumerRecordsControllerImp(executor)
         )
 
         consumer.get().startPolling()
@@ -114,13 +116,15 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor
+          new ConsumerRecordsControllerImp(executor)
+
         )
 
-        consumer.get()
-          .withTopic(topic)
-          .withProps(configs)
-          .startPolling()
+        val cons = consumer.get()
+
+        cons.setTopics(Set(topic))
+        cons.setProps(configs)
+        cons.startPolling()
 
         await(promiseTest.future, 10 seconds)
 
@@ -136,12 +140,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       withRunningKafka {
 
-        val executor = mock[DefaultExecutor]
-
-        val reporter = mock[Reporter]
-
-        val executorExceptionHandler = mock[Exception => Future[Unit]]
-
         val configs = Configs(
           bootstrapServers = "localhost:" + config.kafkaPort,
           groupId = "My_Group_ID",
@@ -149,9 +147,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
             OffsetResetStrategy.EARLIEST
         )
 
-        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
+        val consumer = new StringConsumer()
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
 
-        consumer.withProps(configs).startPolling()
+        consumer.setProps(configs)
+        consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated
 
@@ -160,21 +161,35 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       }
     }
 
+    "fail if no serializers have been set" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val consumer = new StringConsumer()
+
+        consumer.setProps(Map.empty)
+        consumer.startPolling()
+
+        Thread.sleep(5000) // We wait here so the change is propagated
+
+        assert(!consumer.getRunning)
+
+      }
+
+    }
+
     "fail if props are empty" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
-        val executor = mock[DefaultExecutor]
+        val consumer = new StringConsumer()
 
-        val reporter = mock[Reporter]
-
-        val executorExceptionHandler = mock[Exception => Future[Unit]]
-
-        val consumer = new StringConsumer(NameGiver.giveMeAThreadName, executor.executor, reporter, executorExceptionHandler)
-
-        consumer.withProps(Map.empty).startPolling()
+        consumer.setProps(Map.empty)
+        consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated
 
@@ -246,13 +261,13 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          executor
+          new ConsumerRecordsControllerImp(executor)
         )
 
-        consumer.get()
-          .withTopic(topic)
-          .withProps(configs)
-          .startPolling()
+        val cons = consumer.get()
+        cons.setTopics(Set(topic))
+        cons.setProps(configs)
+        cons.startPolling()
 
         await(releasePromise.future, 30 seconds)
 
@@ -293,6 +308,18 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         }
       }
 
+      val reporter = mock[Reporter]
+
+      when(reporter.Types).thenCallRealMethod()
+      import reporter.Types._
+
+      when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
+        promiseTest.completeWith(Future("Received message"))
+        mock[Future[RecordMetadata]]
+      }
+
+      when(executor.reporter).thenReturn(reporter)
+
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
         groupId = "My_Group_ID",
@@ -300,22 +327,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           OffsetResetStrategy.EARLIEST
       )
 
-      val reporter = mock[Reporter]
-
-      import reporter.Types._
-
-      when(reporter.Types).thenCallRealMethod()
-
-      //TODO FIX
-      // when(reporter.report(any[Error]())).thenReturn {
-      //   promiseTest.completeWith(Future("Received message"))
-      //  ()
-      //}
-
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),
         lifeCycle,
-        executor
+        new ConsumerRecordsControllerImp(executor)
       )
 
       withRunningKafka {
@@ -325,10 +340,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString)
 
-        consumer.get()
-          .withTopic(topic)
-          .withProps(configs)
-          .startPolling()
+        val cons = consumer.get()
+        cons.setTopics(Set(topic))
+        cons.setProps(configs)
+        cons.startPolling()
 
         val result = await(promiseTest.future, 10 seconds)
 

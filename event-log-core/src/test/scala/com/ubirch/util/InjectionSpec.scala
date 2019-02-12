@@ -1,14 +1,13 @@
 package com.ubirch.util
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.TestBase
 import com.ubirch.process.EventLogParser
 import com.ubirch.services.ServiceBinder
 import com.ubirch.util.Exceptions.{ InjectionException, InjectorCreationException }
-import com.ubirch.{ Entities, TestBase }
 import org.scalatest.mockito.MockitoSugar
 
-import scala.util.{ Failure, Success }
+import scala.util.Failure
 
 class InjectionSpec extends TestBase with MockitoSugar with LazyLogging {
 

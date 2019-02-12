@@ -3,7 +3,7 @@ package com.ubirch.services.kafka.consumer
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ FailureFuture, ShutdownableThread }
-import org.apache.kafka.clients.consumer.{ Consumer, ConsumerRebalanceListener, ConsumerRecords, KafkaConsumer }
+import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
@@ -11,9 +11,7 @@ import scala.collection.JavaConverters._
 
 abstract class ConsumerRecordsController[K, V] extends FailureFuture {
 
-  def isValueEmpty(v: V): Boolean
-
-  def process(consumerRecords: ConsumerRecords[K, V]): Unit
+  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Unit
 
 }
 
@@ -36,7 +34,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
-  def process(consumerRecords: ConsumerRecords[K, V]): Unit
+  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Unit
+
+  def isValueEmpty(v: V): Boolean
 
   override def execute(): Unit = {
     logger.info("Yey, Starting to Consume ...")
@@ -46,7 +46,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
       while (getRunning) {
         val consumerRecords = consumer.poll(pollTimeout)
-        process(consumerRecords)
+        val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
+        process(consumerRecords, iterator)
       }
 
     } catch {
@@ -58,14 +59,16 @@ abstract class ConsumerRunner[K, V](name: String)
         consumer.resume(partitions)
       case _: NeedForShutDownException =>
         startGracefulShutdown()
-      case _: ConsumerCreationException =>
+      case e: ConsumerCreationException =>
+        logger.error(e.getMessage)
         startGracefulShutdown()
-      case _: EmptyTopicException =>
+      case e: EmptyTopicException =>
+        logger.error(e.getMessage)
         startGracefulShutdown()
       case _: Exception =>
         startGracefulShutdown()
     } finally {
-      consumer.close()
+      if (consumer != null) consumer.close()
     }
   }
 
