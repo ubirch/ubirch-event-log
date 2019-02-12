@@ -12,9 +12,9 @@ import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
-import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
+import scala.collection.JavaConverters._
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
@@ -30,9 +30,10 @@ class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thr
 }
 
 @Singleton
-class ConsumerRecordsControllerImp @Inject() (val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
+class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
   extends ConsumerRecordsController[String, String]
-  with WithConsumerRecordsExecutor[String, String, Future[Unit], Future[Unit]] {
+  with WithConsumerRecordsExecutor[String, String, Future[Unit], Future[Unit]]
+  with LazyLogging {
 
   override val executor: Executor[ConsumerRecord[String, String], Future[Unit]] = defaultExecutor.executor
   override val executorExceptionHandler: Exception => Future[Unit] = defaultExecutor.executorExceptionHandler
@@ -68,17 +69,29 @@ class ConsumerRecordsControllerImp @Inject() (val defaultExecutor: DefaultExecut
 
 }
 
-class ConsumerImpRebalanceListener() extends ConsumerRebalanceListener {
+class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener {
 
-  override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = ???
+  override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    iterator.foreach(x => println(x.partition() + " " + x.topic()))
+  }
 
-  override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = ???
+  override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    iterator.foreach(x => println(x.partition() + " " + x.topic()))
+  }
+
+}
+
+object DefaultConsumerRebalanceListener {
+  def apply[K, V](consumer: Consumer[K, V]): DefaultConsumerRebalanceListener[K, V] =
+    new DefaultConsumerRebalanceListener(consumer)
 }
 
 class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    controller: ConsumerRecordsControllerImp
+    controller: DefaultConsumerRecordsController
 )(implicit ec: ExecutionContext) extends Provider[StringConsumer] with LazyLogging {
 
   import UUIDHelper._
@@ -105,7 +118,7 @@ class DefaultStringConsumer @Inject() (
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new StringDeserializer()))
-    consumerImp.setConsumerRebalanceListener(Some(new NoOpConsumerRebalanceListener))
+    consumerImp.setConsumerRebalanceListenerBuilder(Some(DefaultConsumerRebalanceListener.apply))
     consumerImp.setConsumerRecordsController(Some(controller))
     consumerImp
   }

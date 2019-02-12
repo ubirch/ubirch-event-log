@@ -30,7 +30,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var valueDeserializer: Option[Deserializer[V]] = None
 
-  @BeanProperty var consumerRebalanceListener: Option[ConsumerRebalanceListener] = None
+  @BeanProperty var consumerRebalanceListenerBuilder: Option[Consumer[K, V] => ConsumerRebalanceListener] = None
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
@@ -42,7 +42,7 @@ abstract class ConsumerRunner[K, V](name: String)
     logger.info("Yey, Starting to Consume ...")
     try {
       createConsumer(getProps)
-      subscribe(getTopics.toList, getConsumerRebalanceListener)
+      subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
       while (getRunning) {
         val consumerRecords = consumer.poll(pollTimeout)
@@ -51,13 +51,16 @@ abstract class ConsumerRunner[K, V](name: String)
       }
 
     } catch {
-      case _: NeedForPauseException =>
+      case e: NeedForPauseException =>
+        logger.warn(e.getMessage)
         val partitions = consumer.assignment()
         consumer.pause(partitions)
-      case _: NeedForResumeException =>
+      case e: NeedForResumeException =>
+        logger.info(e.getMessage)
         val partitions = consumer.assignment()
         consumer.resume(partitions)
-      case _: NeedForShutDownException =>
+      case e: NeedForShutDownException =>
+        logger.error("What")
         startGracefulShutdown()
       case e: ConsumerCreationException =>
         logger.error(e.getMessage)
@@ -65,7 +68,8 @@ abstract class ConsumerRunner[K, V](name: String)
       case e: EmptyTopicException =>
         logger.error(e.getMessage)
         startGracefulShutdown()
-      case _: Exception =>
+      case e: Exception =>
+        logger.error("Seems like this exception is not handled, shutting down... {}", e.getMessage)
         startGracefulShutdown()
     } finally {
       if (consumer != null) consumer.close()
@@ -98,11 +102,11 @@ abstract class ConsumerRunner[K, V](name: String)
   }
 
   @throws(classOf[EmptyTopicException])
-  def subscribe(topics: List[String], consumerRebalanceListener: Option[ConsumerRebalanceListener]): Unit = {
+  def subscribe(topics: List[String], consumerRebalanceListenerBuilder: Option[Consumer[K, V] => ConsumerRebalanceListener]): Unit = {
     if (topics.nonEmpty) {
       val topicsAsJava = topics.asJavaCollection
-      consumerRebalanceListener match {
-        case Some(crl) => consumer.subscribe(topicsAsJava, crl)
+      consumerRebalanceListenerBuilder match {
+        case Some(crl) => consumer.subscribe(topicsAsJava, crl(consumer))
         case None => consumer.subscribe(topicsAsJava)
       }
 

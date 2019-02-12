@@ -9,7 +9,7 @@ import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.Exceptions.ParsingIntoEventLogException
+import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
@@ -63,7 +63,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          new ConsumerRecordsControllerImp(executor)
+          new DefaultConsumerRecordsController(executor)
         )
 
         consumer.get().startPolling()
@@ -116,7 +116,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          new ConsumerRecordsControllerImp(executor)
+          new DefaultConsumerRecordsController(executor)
 
         )
 
@@ -261,7 +261,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val consumer = new DefaultStringConsumer(
           ConfigFactory.load(),
           lifeCycle,
-          new ConsumerRecordsControllerImp(executor)
+          new DefaultConsumerRecordsController(executor)
         )
 
         val cons = consumer.get()
@@ -330,7 +330,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),
         lifeCycle,
-        new ConsumerRecordsControllerImp(executor)
+        new DefaultConsumerRecordsController(executor)
       )
 
       withRunningKafka {

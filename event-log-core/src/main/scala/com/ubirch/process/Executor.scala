@@ -140,7 +140,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
         val futureReport = reporter.report(Error(id = e.eventLog.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
 
         futureReport.transform(
-          _ => throw ShouldPauseException("Requesting Pause", e.eventLog, e.getMessage)
+          _ => throw NeedForPauseException("Requesting Pause", e.eventLog, e.getMessage)
         )
 
       case e: Exception =>
