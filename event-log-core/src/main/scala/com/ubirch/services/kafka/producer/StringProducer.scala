@@ -1,5 +1,7 @@
 package com.ubirch.services.kafka.producer
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
@@ -22,16 +24,20 @@ class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[Strin
 
   require(props.nonEmpty, "Can't be empty")
 
+  val isProducerCreated = new AtomicBoolean(false)
+
   val keySerializer: Serializer[String] = new StringSerializer()
   val valueSerializer: Serializer[String] = new StringSerializer()
 
   lazy val producer: Producer[String, String] = createConsumer(props)
 
   private def createConsumer(props: Map[String, AnyRef]): Producer[String, String] = {
-    logger.debug("Creating Consumer ...")
+    logger.debug("Creating Producer ...")
     keySerializer.configure(props.asJava, true)
     valueSerializer.configure(props.asJava, false)
-    new JKafkaProducer[String, String](props.asJava, keySerializer, valueSerializer)
+    val producer = new JKafkaProducer[String, String](props.asJava, keySerializer, valueSerializer)
+    isProducerCreated.set(true)
+    producer
   }
 
 }
@@ -58,8 +64,12 @@ class DefaultStringProducer @Inject() (
   override def get(): StringProducer = producer
 
   lifecycle.addStopHook { () =>
-    logger.info("Shutting down producer...")
-    Future.successful(producer.producer.close())
+    logger.info("Shutting down Producer...")
+
+    if (get().isProducerCreated.get())
+      Future.successful(get().producer.close())
+
+    Future.unit
   }
 
 }

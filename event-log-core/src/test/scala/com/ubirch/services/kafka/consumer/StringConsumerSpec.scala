@@ -306,10 +306,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       when(reporter.Types).thenCallRealMethod()
 
-      when(reporter.report(any[Error]())).thenReturn {
-        promiseTest.completeWith(Future("Received message"))
-        ()
-      }
+      //TODO FIX
+      // when(reporter.report(any[Error]())).thenReturn {
+      //   promiseTest.completeWith(Future("Received message"))
+      //  ()
+      //}
 
       val consumer = new DefaultStringConsumer(
         ConfigFactory.load(),

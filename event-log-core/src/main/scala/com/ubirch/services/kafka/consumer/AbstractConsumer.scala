@@ -1,8 +1,9 @@
 package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.process.WithConsumerRecordsExecutor
+import com.ubirch.process.{ Executor, WithConsumerRecordsExecutor }
 import com.ubirch.util.ShutdownableThread
+import org.apache.kafka.clients.consumer._
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -37,74 +38,74 @@ abstract class AbstractConsumer[K, V, R, ER](val name: String)(implicit ec: Exec
 
   def async = true
 
+  private def getIterator(consumerRecords: ConsumerRecords[K, V]) = {
+    consumerRecords
+      .iterator()
+      .asScala
+      .filterNot(cr => isValueEmpty(cr.value()))
+      .map(cr => (cr, executor))
+  }
+
+  private def process(consumerRecord: ConsumerRecord[K, V], executor: Executor[ConsumerRecord[K, V], Future[R]]) = {
+
+    val fRes: Future[Either[Option[ER], Option[R]]] = executor(consumerRecord)
+      .map(x => Right(Some(x)))
+      .recoverWith {
+        case e: Exception =>
+          executorExceptionHandler(e).map(x => Left(Some(x)))
+        case e =>
+          logger.error(e.getMessage)
+          Future.successful(Left(None))
+      }
+
+    fRes.map { res =>
+      res.fold({
+        case Some(_) =>
+        case None =>
+          startGracefulShutdown()
+      }, _ => {})
+    }
+
+  }
+
+  //TODO: ADD CHECKS FOR WHEN THE CONSUMER AND TOPIC ARE USED.
   override def execute(): Unit = {
-    if (props.nonEmpty) {
+
+    try {
 
       createConsumer(props)
+      //TODO: Add rebalancing
+      subscribe()
 
-      if (isConsumerDefined && isTopicDefined) {
+      while (getRunning) {
 
-        subscribe()
+        val polledResults = consumer.poll(java.time.Duration.ofSeconds(1))
+        val mappedIterator = getIterator(polledResults)
 
-        while (getRunning) {
+        def continue = mappedIterator.hasNext && getRunning
+        def next() = mappedIterator.next()
 
-          val polledResults = consumer.poll(java.time.Duration.ofSeconds(1))
+        //This is the actual traversal of the iterator
+        while (continue) {
 
-          val records = polledResults.iterator().asScala
+          val (consumerRecord, executor) = next()
+          val _fRes = process(consumerRecord, executor)
 
-          //This is only a description of the iterator
-          val mappedIterator = records
-            .filterNot(cr => isValueEmpty(cr.value()))
-            .map(cr => (cr, executor))
+          if (async)
+            Await.result(_fRes, 2 seconds)
+          else
+            _fRes
 
-          def continue = mappedIterator.hasNext
-          def next() = mappedIterator.next()
+        } //End While
 
-          //This is the actual traversal of the iterator
-          while (continue) {
-
-            val (cr, processedRecord) = next()
-
-            lazy val fRes: Future[Either[Option[ER], Option[R]]] = processedRecord(cr)
-              .map(x => Right(Some(x)))
-              .recoverWith {
-                case e: Exception =>
-                  executorExceptionHandler(e).map(x => Left(Some(x)))
-                case e =>
-                  logger.error(e.getMessage)
-                  Future.successful(Left(None))
-              }
-
-            lazy val _fRes = fRes.map { res =>
-              res.fold({
-                case Some(_) =>
-                case None =>
-                  startGracefulShutdown()
-              }, _ => {})
-            }
-
-            if (async)
-              Await.result(_fRes, 2 seconds)
-            else
-              _fRes
-
-          } //End While
-
-          if (isAutoCommit) {
-            commitSync()
-          }
-
+        if (isAutoCommit) {
+          commitSync()
         }
 
-        close()
-
-      } else {
-        logger.error("consumer: {} and topic: {} ", isConsumerDefined, isTopicDefined)
-        startGracefulShutdown()
       }
-    } else {
-      logger.error("props: {} ", props.toString())
-      startGracefulShutdown()
+
+    } finally {
+      close()
     }
 
   }

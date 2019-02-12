@@ -72,6 +72,7 @@ class DefaultConnectionService @Inject() (clusterService: ClusterService, config
   }
 
   lifecycle.addStopHook { () =>
+    logger.info("Shutting down Connection Service")
     Future.successful(context.close())
   }
 
