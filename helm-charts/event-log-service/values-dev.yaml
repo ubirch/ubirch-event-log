@@ -10,11 +10,11 @@ eventLog:
       password: "KnFR0jYBQaj8pZNEhFNU6SuvvBblucx0AyzlQMpYVdnRMfZvCI8xVJDa6EPTOEa9yI0gsq08yIb7ZPoUswzXNw=="
       withSsl: true
   kafkaConsumer:
-    bootstrapServers: "localhost:9092"
+    bootstrapServers: "10.244.1.56:9092,10.244.3.20:9092,10.244.5.37:9092"
     topic: "com.ubirch.eventlog"
     groupId: "event_log_group"
   kafkaProducer:
-    bootstrapServers: "localhost:9092"
+    bootstrapServers: "10.244.1.56:9092,10.244.3.20:9092,10.244.5.37:9092"
     errorTopic: "com.ubirch.eventlog.error"
 
 # The image tag might change depending
@@ -28,7 +28,7 @@ eventLog:
 # service.
 image:
   repository: ubirch/event-log-service
-  tag: ${build.number}
+  tag: {{ . Values.build.number }}
   pullPolicy: IfNotPresent
 nameOverride: ""
 fullnameOverride: ""
