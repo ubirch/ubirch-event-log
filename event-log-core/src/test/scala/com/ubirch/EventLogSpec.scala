@@ -39,7 +39,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishStringMessageToKafka(topic, entityAsString1)
 
         //Consumer
-        val consumer = get[StringConsumer].withProps(configs)
+        val consumer = get[StringConsumer]
+
+        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -101,7 +103,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         }
 
         //Consumer
-        val consumer = get[StringConsumer].withProps(configs)
+        val consumer = get[StringConsumer]
+        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -146,7 +149,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishStringMessageToKafka(topic, entityAsString1)
 
         //Consumer
-        val consumer = get[StringConsumer].withProps(configs)
+        val consumer = get[StringConsumer]
+        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -224,7 +228,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         }
 
         //Consumer
-        val consumer = get[StringConsumer].withProps(configs)
+        val consumer = get[StringConsumer]
+        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer

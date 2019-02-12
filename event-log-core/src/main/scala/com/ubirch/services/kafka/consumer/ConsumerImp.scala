@@ -16,18 +16,21 @@ import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 
-import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-class ConsumerImp extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
-  override def process(consumerRecords: ConsumerRecords[String, String]): Unit = {
-    consumerRecordsController.foreach(_.process(consumerRecords))
+class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
+
+  override def process(consumerRecords: ConsumerRecords[String, String], iterator: Iterator[ConsumerRecord[String, String]]): Unit = {
+    consumerRecordsController.foreach(_.process(consumerRecords, iterator))
   }
+
+  override def isValueEmpty(v: String): Boolean = v.isEmpty
+
 }
 
 @Singleton
-class ConsumerRecordsControllerImp(val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
+class ConsumerRecordsControllerImp @Inject() (val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
   extends ConsumerRecordsController[String, String]
   with WithConsumerRecordsExecutor[String, String, Future[Unit], Future[Unit]] {
 
@@ -35,11 +38,9 @@ class ConsumerRecordsControllerImp(val defaultExecutor: DefaultExecutor)(implici
   override val executorExceptionHandler: Exception => Future[Unit] = defaultExecutor.executorExceptionHandler
   override val reporter: Reporter = defaultExecutor.reporter
 
-  override def isValueEmpty(v: String): Boolean = v.isEmpty
+  override def process(consumerRecords: ConsumerRecords[String, String], iterator: Iterator[ConsumerRecord[String, String]]): Unit = {
 
-  override def process(consumerRecords: ConsumerRecords[String, String]): Unit = {
-
-    val mappedIterator = getIterator(consumerRecords)
+    val mappedIterator = iterator.map(cr => (cr, executor))
 
     def continue = mappedIterator.hasNext
 
@@ -65,14 +66,6 @@ class ConsumerRecordsControllerImp(val defaultExecutor: DefaultExecutor)(implici
 
   }
 
-  private def getIterator(consumerRecords: ConsumerRecords[String, String]) = {
-    consumerRecords
-      .iterator()
-      .asScala
-      .filterNot(cr => isValueEmpty(cr.value()))
-      .map(cr => (cr, executor))
-  }
-
 }
 
 class ConsumerImpRebalanceListener() extends ConsumerRebalanceListener {
@@ -82,11 +75,11 @@ class ConsumerImpRebalanceListener() extends ConsumerRebalanceListener {
   override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = ???
 }
 
-class DefaultConsumerImpBinder @Inject() (
+class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    executor: DefaultExecutor
-)(implicit ec: ExecutionContext) extends Provider[ConsumerImp] with LazyLogging {
+    controller: ConsumerRecordsControllerImp
+)(implicit ec: ExecutionContext) extends Provider[StringConsumer] with LazyLogging {
 
   import UUIDHelper._
   import com.ubirch.ConfPaths.Consumer._
@@ -105,19 +98,19 @@ class DefaultConsumerImpBinder @Inject() (
     autoOffsetReset = OffsetResetStrategy.EARLIEST
   )
 
-  val consumerImp = new ConsumerImp
+  val consumerImp = new StringConsumer
 
-  val consumerConfigured = {
+  private val consumerConfigured = {
     consumerImp.setTopics(Set(topic))
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new StringDeserializer()))
     consumerImp.setConsumerRebalanceListener(Some(new NoOpConsumerRebalanceListener))
-    consumerImp.setConsumerRecordsController(None)
+    consumerImp.setConsumerRecordsController(Some(controller))
     consumerImp
   }
 
-  override def get(): ConsumerImp = {
+  override def get(): StringConsumer = {
     consumerConfigured
   }
 
