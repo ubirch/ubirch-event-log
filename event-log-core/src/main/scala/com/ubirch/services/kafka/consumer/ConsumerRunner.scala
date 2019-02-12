@@ -45,27 +45,36 @@ abstract class ConsumerRunner[K, V](name: String)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
       while (getRunning) {
-        val consumerRecords = consumer.poll(pollTimeout)
-        val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
-        process(consumerRecords, iterator)
+
+        try {
+          val consumerRecords = consumer.poll(pollTimeout)
+          val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
+          process(consumerRecords, iterator)
+
+        } catch {
+          case e: NeedForPauseException =>
+            logger.warn(e.getMessage)
+            val partitions = consumer.assignment()
+            consumer.pause(partitions)
+          case e: NeedForResumeException =>
+            logger.info(e.getMessage)
+            val partitions = consumer.assignment()
+            consumer.resume(partitions)
+          case e =>
+            throw e
+
+        }
+
       }
 
     } catch {
-      case e: NeedForPauseException =>
-        logger.warn(e.getMessage)
-        val partitions = consumer.assignment()
-        consumer.pause(partitions)
-      case e: NeedForResumeException =>
-        logger.info(e.getMessage)
-        val partitions = consumer.assignment()
-        consumer.resume(partitions)
-      case e: NeedForShutDownException =>
-        logger.error("What")
-        startGracefulShutdown()
       case e: ConsumerCreationException =>
         logger.error(e.getMessage)
         startGracefulShutdown()
       case e: EmptyTopicException =>
+        logger.error(e.getMessage)
+        startGracefulShutdown()
+      case e: NeedForShutDownException =>
         logger.error(e.getMessage)
         startGracefulShutdown()
       case e: Exception =>
