@@ -1,0 +1,46 @@
+# Most of these values represent the application.conf of the service
+eventLog:
+  replicaCount: 1
+  cassandra:
+    cluster:
+      keyspace: "event_log"
+      preparedStatementCacheSize: 1000
+      contactPoints: "dev-cosmos-cassandra.cassandra.cosmos.azure.com:10350"
+      username: "dev-cosmos-cassandra"
+      password: "KnFR0jYBQaj8pZNEhFNU6SuvvBblucx0AyzlQMpYVdnRMfZvCI8xVJDa6EPTOEa9yI0gsq08yIb7ZPoUswzXNw=="
+      withSsl: true
+  kafkaConsumer:
+    bootstrapServers: "localhost:9092"
+    topic: "com.ubirch.eventlog"
+    groupId: "event_log_group"
+  kafkaProducer:
+    bootstrapServers: "localhost:9092"
+    errorTopic: "com.ubirch.eventlog.error"
+
+# The image tag might change depending
+# on the day of the build as the pom defines the
+# image tag.
+# Check the <tag>${build.number}</tag> in the pom.xml of
+# this service.
+# The image tag is automatically replaced by the current docker image tag that is
+# generated in the build process.
+# Check out the <artifactId>maven-resources-plugin</artifactId> usage in pom.xml of this
+# service.
+image:
+  repository: ubirch/event-log-service
+  tag: ${build.number}
+  pullPolicy: IfNotPresent
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 9042
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
