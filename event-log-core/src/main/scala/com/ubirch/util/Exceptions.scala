@@ -90,4 +90,19 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
+  //CONSUMER EXCEPTIONS
+  case class ShouldPauseException(message: String, eventLog: EventLog, reason: String) extends ExecutionException(message)
+
+  case class ConsumerCreationException(message: String, reason: String) extends ExecutionException(message)
+
+  case class EmptyTopicException(message: String) extends ExecutionException(message)
+
+  case class NeedForShutDownException(message: String, reason: String) extends ExecutionException(message)
+
+  case class NeedForPauseException(message: String) extends ExecutionException(message)
+
+  case class NeedForResumeException(message: String) extends ExecutionException(message)
+
+  //CONSUMER EXCEPTIONS
+
 }

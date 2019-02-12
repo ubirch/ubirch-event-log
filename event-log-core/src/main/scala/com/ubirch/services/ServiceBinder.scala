@@ -6,7 +6,7 @@ import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumer }
+import com.ubirch.services.kafka.consumer.{ ConsumerImp, DefaultConsumerImpBinder, DefaultStringConsumer, StringConsumer }
 import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 
@@ -29,6 +29,7 @@ class ServiceBinder extends AbstractModule {
     bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
     bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
     bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
+    bind(classOf[ConsumerImp]).toProvider(classOf[DefaultConsumerImpBinder])
 
   }
 

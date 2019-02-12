@@ -117,7 +117,7 @@ case class DefaultExecutorFamily @Inject() (
   * @param executorFamily Represents a family of executors.
   */
 @Singleton
-class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
+class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily)(implicit ec: ExecutionContext) {
 
   import UUIDHelper._
   import executorFamily._
@@ -131,18 +131,23 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
     val uuid = timeBasedUUID
 
-    exception match {
+    val fRes = exception match {
       case e: EmptyValueException =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       case e: ParsingIntoEventLogException =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.value))
       case e: StoringIntoEventLogException =>
-        reporter.report(Error(id = e.eventLog.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
+        val futureReport = reporter.report(Error(id = e.eventLog.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
+
+        futureReport.transform(
+          _ => throw ShouldPauseException("Requesting Pause", e.eventLog, e.getMessage)
+        )
+
       case e: Exception =>
         reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
     }
 
-    Future.successful(Unit)
+    fRes.flatMap(_ => Future.unit)
 
   }
 

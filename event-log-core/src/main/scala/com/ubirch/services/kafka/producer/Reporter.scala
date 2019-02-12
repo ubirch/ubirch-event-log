@@ -3,9 +3,11 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.{ ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ JavaFutureHelper, ProducerRecordHelper, ToJson }
 import javax.inject._
+import org.apache.kafka.clients.producer.RecordMetadata
 
+import scala.concurrent.Future
 import scala.language.implicitConversions
 
 /**
@@ -35,19 +37,23 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) {
 
     implicit def fromError(error: Error) = new ReporterMagnet {
 
-      override type Result = Unit
+      override type Result = Future[RecordMetadata]
 
       override def apply(): Result = {
         val payload = ToJson[Error](error).get
         val eventLog = EventLog(getClass.getName, topic, payload)
-        producerManager.producer.send(
-          ProducerRecordHelper.toRecord(
-            topic,
-            error.id.toString,
-            eventLog.toString,
-            Map.empty
-          )
-        ).get()
+
+        val record = ProducerRecordHelper.toRecord(
+          topic,
+          error.id.toString,
+          eventLog.toString,
+          Map.empty
+        )
+
+        val javaFutureSend = producerManager.producer.send(record)
+
+        JavaFutureHelper.toScalaFuture(javaFutureSend)
+
       }
 
     }

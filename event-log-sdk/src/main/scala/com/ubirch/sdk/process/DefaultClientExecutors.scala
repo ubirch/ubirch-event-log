@@ -9,7 +9,7 @@ import com.ubirch.process.Executor
 import com.ubirch.sdk.util.Exceptions._
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
-import com.ubirch.util.{ ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ JavaFutureHelper, ProducerRecordHelper, ToJson }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.json4s.JValue
 
@@ -131,7 +131,7 @@ class CommitHandlerSync extends Executor[(JavaFuture[RecordMetadata], EventLog),
 class CommitHandlerAsync(implicit ec: ExecutionContext) extends Executor[(JavaFuture[RecordMetadata], EventLog), Future[EventLog]] {
 
   def get(javaFutureRecordMetadata: JavaFuture[RecordMetadata], eventLog: EventLog): Future[EventLog] = {
-    Future(javaFutureRecordMetadata.get()).map { _ =>
+    JavaFutureHelper.toScalaFuture(javaFutureRecordMetadata).map { _ =>
       eventLog
     }.recover {
       case e: Exception =>
