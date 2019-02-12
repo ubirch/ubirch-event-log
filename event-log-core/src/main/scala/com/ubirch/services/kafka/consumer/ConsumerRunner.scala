@@ -60,7 +60,7 @@ abstract class ConsumerRunner[K, V](name: String)
             logger.info(e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
-          case e =>
+          case e: Throwable =>
             throw e
 
         }

@@ -9,7 +9,7 @@ import com.ubirch.process.{ DefaultExecutor, Executor }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions.ParsingIntoEventLogException
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
