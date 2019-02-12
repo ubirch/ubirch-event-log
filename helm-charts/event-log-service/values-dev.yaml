@@ -1,6 +1,6 @@
 # Most of these values represent the application.conf of the service
 eventLog:
-  replicaCount: 1
+  replicaCount: 2
   cassandra:
     cluster:
       keyspace: "event_log"
@@ -28,7 +28,7 @@ eventLog:
 # service.
 image:
   repository: ubirch/event-log-service
-  tag: {{ . Values.build.number }}
+  tag: latest
   pullPolicy: IfNotPresent
 nameOverride: ""
 fullnameOverride: ""

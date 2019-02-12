@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.eventLog.replicaCount }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "event-log-service.name" . }}
@@ -24,8 +24,7 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-          - containerPort: 9042
-          - containerPort: 9010
+            - containerPort: 9010
           readinessProbe:
             tcpSocket:
               port: 9010
@@ -37,26 +36,28 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 60
           env:
-          - name: EVTL_CS_KEYSPACE
-            value: "{{ .Values.eventLog.cassandra.cluster.keyspace}}"
-          - name: EVTL_CS_PREPSTM_CACHE
-            value: "{{ .Values.eventLog.cassandra.cluster.preparedStatementCacheSize}}"
-          - name: EVTL_CS_NODES
-            value: "{{ .Values.eventLog.cassandra.cluster.contactPoints}}"
-          - name: EVTL_CS_USERNAME
-            value: "{{ .Values.eventLog.cassandra.cluster.username}}"
-          - name: EVTL_CS_PASSWORD
-            value: "{{ .Values.eventLog.cassandra.cluster.password}}"
-          - name: EVTL_KFC_NODES
-            value: "{{ .Values.eventLog.kafkaConsumer.bootstrapServers}}"
-          - name: EVTL_KFC_TOPIC
-            value: "{{ .Values.eventLog.kafkaConsumer.topic}}"
-          - name: EVTL_KFC_GROUP
-            value: "{{ .Values.eventLog.kafkaConsumer.groupId}}"
-          - name: EVTL_KFP_NODES
-            value: "{{ .Values.eventLog.kafkaProducer.bootstrapServers}}"
-          - name: EVTL_KFC_ERROR_TOPIC
-            value: "{{ .Values.eventLog.kafkaProducer.errorTopic}}"
+            - name: EVTL_CS_KEYSPACE
+              value: "{{ .Values.eventLog.cassandra.cluster.keyspace}}"
+            - name: EVTL_CS_PREPSTM_CACHE
+              value: "{{ .Values.eventLog.cassandra.cluster.preparedStatementCacheSize}}"
+            - name: EVTL_CS_NODES
+              value: "{{ .Values.eventLog.cassandra.cluster.contactPoints}}"
+            - name: EVTL_CS_USERNAME
+              value: "{{ .Values.eventLog.cassandra.cluster.username}}"
+            - name: EVTL_CS_PASSWORD
+              value: "{{ .Values.eventLog.cassandra.cluster.password}}"
+            - name: EVTL_CS_WITH_SSL
+              value: "{{ .Values.eventLog.cassandra.cluster.withSsl}}"
+            - name: EVTL_KFC_NODES
+              value: "{{ .Values.eventLog.kafkaConsumer.bootstrapServers}}"
+            - name: EVTL_KFC_TOPIC
+              value: "{{ .Values.eventLog.kafkaConsumer.topic}}"
+            - name: EVTL_KFC_GROUP
+              value: "{{ .Values.eventLog.kafkaConsumer.groupId}}"
+            - name: EVTL_KFP_NODES
+              value: "{{ .Values.eventLog.kafkaProducer.bootstrapServers}}"
+            - name: EVTL_KFC_ERROR_TOPIC
+              value: "{{ .Values.eventLog.kafkaProducer.errorTopic}}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
@@ -64,10 +65,10 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
+    affinity:
+      {{- toYaml . | nindent 8 }}
     {{- end }}
     {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
+    tolerations:
+      {{- toYaml . | nindent 8 }}
     {{- end }}
