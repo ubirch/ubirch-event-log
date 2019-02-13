@@ -1,21 +1,23 @@
 package com.ubirch.services.kafka.consumer
 
+import java.util.Date
 import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EventLog
-import com.ubirch.process.{ DefaultExecutor, Executor }
+import com.ubirch.process.{ DefaultExecutor, Executor, ExecutorFamily }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.Exceptions.ParsingIntoEventLogException
+import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.FromString
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
@@ -350,6 +352,76 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(promiseTest.isCompleted)
 
         assert(result == "Received message")
+
+      }
+
+    }
+
+    "run an exception" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+
+      withRunningKafka {
+
+        val entity = Entities.Events.eventExample()
+        val entityAsString = entity.toString
+
+        publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
+
+        val promiseTestSuccess = Promise[Unit]()
+
+        val lifeCycle = mock[DefaultLifecycle]
+
+        val reporter = mock[Reporter]
+
+        when(reporter.Types).thenCallRealMethod()
+        import reporter.Types._
+
+        when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
+          Future.successful(
+            new RecordMetadata(
+              new TopicPartition("topic", 1),
+              1,
+              1,
+              new Date().getTime,
+              1L,
+              1,
+              1
+            )
+          )
+        }
+
+        val executionFamily = mock[ExecutorFamily]
+
+        val executor = new DefaultExecutor(reporter, executionFamily) {
+          override def composed: Executor[ConsumerRecord[String, String], Future[Unit]] = {
+            new Executor[ConsumerRecord[String, String], Future[Unit]] {
+              override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+
+                val promiseTest = Promise[Unit]()
+
+                val exception = StoringIntoEventLogException("OH OH", entity, "OOPS")
+
+                promiseTestSuccess.completeWith(Future.unit)
+
+                promiseTest.completeWith(Future.failed(exception))
+                promiseTest.future
+
+              }
+            }
+          }
+        }
+
+        val consumer = new DefaultStringConsumer(
+          ConfigFactory.load(),
+          lifeCycle,
+          new DefaultConsumerRecordsController(executor)
+        )
+
+        consumer.get().startPolling()
+
+        Thread.sleep(5000)
+
 
       }
 

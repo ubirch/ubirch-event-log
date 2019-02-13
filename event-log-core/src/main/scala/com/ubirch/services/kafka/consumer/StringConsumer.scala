@@ -4,20 +4,22 @@ import java.util
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
+import com.ubirch.process.{DefaultExecutor, Executor, WithConsumerRecordsExecutor}
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Exceptions.NeedForShutDownException
 import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
+import com.ubirch.util.{URLsHelper, UUIDHelper}
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
-import scala.collection.JavaConverters._
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.collection.JavaConverters._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.util.{Failure, Success}
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
 
@@ -56,12 +58,7 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
             Future.failed(NeedForShutDownException("Exception not handled.", e.getMessage))
         }
 
-      res.onComplete {
-        case Success(_) =>
-        case Failure(exception) => somethingWentWrong(exception)
-      }
-
-      checkIfSomethingWentWrong()
+      Await.result(res, 2 seconds)
 
     }
 
