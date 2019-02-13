@@ -23,8 +23,8 @@ import scala.language.postfixOps
 
 class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
 
-  override def process(consumerRecords: ConsumerRecords[String, String], iterator: Iterator[ConsumerRecord[String, String]]): Unit = {
-    consumerRecordsController.foreach(_.process(consumerRecords, iterator))
+  override def process(consumerRecords: ConsumerRecords[String, String], iterator: Iterator[ConsumerRecord[String, String]]): Future[Unit] = {
+    consumerRecordsController.map(_.process(consumerRecords, iterator)).getOrElse(Future.failed(new Exception("Hey, I dont what what this is")))
   }
 
   override def isValueEmpty(v: String): Boolean = v.isEmpty
@@ -41,14 +41,14 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
   override val executorExceptionHandler: Exception => Future[Unit] = defaultExecutor.executorExceptionHandler
   override val reporter: Reporter = defaultExecutor.reporter
 
-  override def process(consumerRecords: ConsumerRecords[String, String], iterator: Iterator[ConsumerRecord[String, String]]): Unit = {
+  override def process(consumerRecords: ConsumerRecords[String, String],
+                       iterator: Iterator[ConsumerRecord[String, String]]): Future[Unit] = {
 
     val mappedIterator = iterator.map(cr => (cr, executor))
 
-    def continue = mappedIterator.hasNext
+    val t = mappedIterator.map { x =>
 
-    while (continue) {
-      val (consumerRecord, executor) = mappedIterator.next()
+      val (consumerRecord, executor) = x
       val res = executor(consumerRecord)
         .map(x => Right(Some(x)))
         .recoverWith {
@@ -58,9 +58,14 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
             Future.failed(NeedForShutDownException("Exception not handled.", e.getMessage))
         }
 
-      Await.result(res, 2 seconds)
+      res
 
-    }
+    }.toList
+
+
+    Future.sequence(t).flatMap(_ => Future.unit)
+
+
 
   }
 
