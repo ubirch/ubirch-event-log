@@ -11,7 +11,7 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: java-debug
+    - name: jmx
       port: 9010
 
   selector:

@@ -2,7 +2,6 @@ package com.ubirch
 
 import com.ubirch.services.kafka.consumer.StringConsumer
 import com.ubirch.util.Boot
-
 import io.prometheus.client.hotspot.DefaultExports
 
 /**
@@ -21,14 +20,12 @@ object Service extends Boot {
     import io.prometheus.client.exporter.HTTPServer
     val server = new HTTPServer(4321)
 
-    import io.prometheus.client.CollectorRegistry
-    import io.prometheus.client.bridge.Graphite
-    val g = new Graphite("localhost", 2003)
-    // Push the default registry once.
-    g.push(CollectorRegistry.defaultRegistry)
+    //    val g = new Graphite("localhost", 2003)
+    //     Push the default registry once.
+    //    g.push(CollectorRegistry.defaultRegistry)
 
     // Push the default registry every 60 seconds.
-    val thread = g.start(CollectorRegistry.defaultRegistry, 5)
+    //    val thread = g.start(CollectorRegistry.defaultRegistry, 5)
 
     consumer.startPolling()
 
