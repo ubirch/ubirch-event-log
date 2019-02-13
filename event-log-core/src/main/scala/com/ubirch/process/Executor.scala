@@ -1,20 +1,22 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ Error, EventLog, Events }
+import com.ubirch.models.{Error, EventLog, Events}
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ FromString, UUIDHelper }
+import com.ubirch.util.{FromString, UUIDHelper}
+import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * Represents a process to be executed.
   * It allows for Executor composition with the operator andThen
+  *
   * @tparam T1 the input to the pipe
-  * @tparam R the output of the pipe
+  * @tparam R  the output of the pipe
   */
 trait Executor[-T1, +R] extends (T1 => R) {
   self =>
@@ -48,7 +50,7 @@ class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecor
   */
 class EventLogParser
   extends Executor[ConsumerRecord[String, String], EventLog]
-  with LazyLogging {
+    with LazyLogging {
 
   override def apply(v1: ConsumerRecord[String, String]): EventLog = {
     val result: EventLog = try {
@@ -66,15 +68,19 @@ class EventLogParser
 
 /**
   * Executor that stores an EventLog into Cassandra by Using the Events value.
+  *
   * @param events Represents the DAO for the Events type.
-  * @param ec Represent the execution context for asynchronous processing.
+  * @param ec     Represent the execution context for asynchronous processing.
   */
-class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
+class EventsStore @Inject()(events: Events)(implicit ec: ExecutionContext)
   extends Executor[EventLog, Future[Unit]]
-  with LazyLogging {
+    with LazyLogging {
+
+  final val eventsCounter = Counter.build()
+    .name("events_total").help("Total events.").register()
 
   override def apply(v1: EventLog): Future[Unit] = {
-    events.insert(v1).recover {
+    events.insert(v1).map(_ => eventsCounter.inc()) recover {
       case e: Exception =>
         logger.error("Error storing data: " + e.getMessage)
         throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
@@ -99,37 +105,46 @@ trait ExecutorFamily {
 
 /**
   * Default materialization of the family of executors
-  * @param filterEmpty Executor that filters ConsumerRecords
+  *
+  * @param filterEmpty    Executor that filters ConsumerRecords
   * @param eventLogParser Executor that parses a ConsumerRecord into an Event Log
-  * @param eventsStore Executor that stores an EventLog into Cassandra
+  * @param eventsStore    Executor that stores an EventLog into Cassandra
   */
 @Singleton
-case class DefaultExecutorFamily @Inject() (
-    filterEmpty: FilterEmpty,
-    eventLogParser: EventLogParser,
-    eventsStore: EventsStore
-) extends ExecutorFamily
+case class DefaultExecutorFamily @Inject()(
+                                            filterEmpty: FilterEmpty,
+                                            eventLogParser: EventLogParser,
+                                            eventsStore: EventsStore
+                                          ) extends ExecutorFamily
 
 /**
   * Default Executor Composer Convenience for creating executor compositions and
   * executor exceptions management.
-  * @param reporter Represents a convenience type that allows to report to a producer.
+  *
+  * @param reporter       Represents a convenience type that allows to report to a producer.
   * @param executorFamily Represents a family of executors.
   */
 @Singleton
-class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily) {
+class DefaultExecutor @Inject()(val reporter: Reporter, executorFamily: ExecutorFamily) {
 
   import UUIDHelper._
   import executorFamily._
 
-  def composed = filterEmpty andThen eventLogParser andThen eventsStore
+  def composed: Executor[ConsumerRecord[String, String], Future[Unit]] = filterEmpty andThen eventLogParser andThen eventsStore
 
-  def executor = composed
+  def executor: Executor[ConsumerRecord[String, String], Future[Unit]] = composed
+
+  final val eventErrorCounter: Counter = Counter.build()
+    .name("event_error_total")
+    .help("Total event errors.")
+    .register()
 
   def executorExceptionHandler(exception: Exception): Unit = {
     import reporter.Types._
 
     val uuid = timeBasedUUID
+
+    eventErrorCounter.inc()
 
     exception match {
       case e: EmptyValueException =>
