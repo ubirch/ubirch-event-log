@@ -2,14 +2,14 @@ package com.ubirch.services.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ FailureFuture, ShutdownableThread }
+import com.ubirch.util.ShutdownableThread
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
 
-abstract class ConsumerRecordsController[K, V] extends FailureFuture {
+abstract class ConsumerRecordsController[K, V]  {
 
   def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Unit
 
@@ -47,20 +47,22 @@ abstract class ConsumerRunner[K, V](name: String)
       while (getRunning) {
 
         try {
+
           val consumerRecords = consumer.poll(pollTimeout)
           val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
           process(consumerRecords, iterator)
 
         } catch {
-          case e: NeedForPauseException =>
-            logger.warn(e.getMessage)
+          case _: NeedForPauseException =>
             val partitions = consumer.assignment()
+            logger.warn("NeedForPauseException Requested on {}", partitions.toString)
             consumer.pause(partitions)
           case e: NeedForResumeException =>
-            logger.info(e.getMessage)
+            logger.warn("NeedForResumeException Requested on {}", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
           case e: Throwable =>
+            logger.warn("Escalating  {}", e.getMessage)
             throw e
 
         }
