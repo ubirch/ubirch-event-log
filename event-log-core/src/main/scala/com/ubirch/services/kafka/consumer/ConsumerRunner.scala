@@ -1,5 +1,7 @@
 package com.ubirch.services.kafka.consumer
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.ShutdownableThread
@@ -8,10 +10,11 @@ import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
+import scala.concurrent.{Future, Promise}
 
 abstract class ConsumerRecordsController[K, V]  {
 
-  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Unit
+  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Future[Unit]
 
 }
 
@@ -34,9 +37,27 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
-  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Unit
+  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Future[Unit]
 
   def isValueEmpty(v: V): Boolean
+
+  def isPaused: AtomicBoolean = new AtomicBoolean(false)
+
+  private val maybeFutureErrors = scala.collection.mutable.ListBuffer.empty[Future[Unit]]
+
+  private def checkErrors() = synchronized {
+    maybeFutureErrors
+      .filter(x => x.isCompleted)
+      .map(_.value)
+      .filter(_.isDefined)
+      .map(_.get)
+      .find(_.isFailure)
+  }
+
+  private def prePoll(): Unit = synchronized {
+    checkErrors().foreach(_.get)
+  }
+
 
   override def execute(): Unit = {
     logger.info("Yey, Starting to Consume ...")
@@ -48,15 +69,25 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
+          logger.debug("Polling..")
+
+          prePoll()
+
           val consumerRecords = consumer.poll(pollTimeout)
-          val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
-          process(consumerRecords, iterator)
+
+          if(!isPaused.get()) {
+            val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
+            maybeFutureErrors += process(consumerRecords, iterator)
+          }
 
         } catch {
           case _: NeedForPauseException =>
+            maybeFutureErrors.clear()
             val partitions = consumer.assignment()
             logger.warn("NeedForPauseException Requested on {}", partitions.toString)
             consumer.pause(partitions)
+            isPaused.set(true)
+
           case e: NeedForResumeException =>
             logger.warn("NeedForResumeException Requested on {}", e.getMessage)
             val partitions = consumer.assignment()
