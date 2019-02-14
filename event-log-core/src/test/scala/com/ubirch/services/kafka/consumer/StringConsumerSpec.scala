@@ -422,6 +422,8 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           new DefaultConsumerRecordsController(executor)
         ).get()
 
+        consumer.setUseSelfAsRebalanceListener(false)
+
         consumer.startPolling()
 
         Thread.sleep(5000)
