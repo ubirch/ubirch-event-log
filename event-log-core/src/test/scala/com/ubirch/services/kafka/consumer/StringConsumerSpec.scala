@@ -432,7 +432,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         assert(!consumer.isPaused.get())
 
-
       }
 
     }
