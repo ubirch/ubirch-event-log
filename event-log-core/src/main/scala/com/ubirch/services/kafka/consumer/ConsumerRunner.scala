@@ -64,9 +64,9 @@ abstract class ConsumerRunner[K, V](name: String)
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
-      while (getRunning) {
+      var failed = scala.collection.immutable.Vector.empty[Throwable]
 
-        var failed = scala.collection.immutable.Vector.empty[Throwable]
+      while (getRunning) {
 
         try {
 
@@ -121,6 +121,7 @@ abstract class ConsumerRunner[K, V](name: String)
             logger.warn("NeedForResumeException: {}", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
+            isPaused.set(false)
           case e: Throwable =>
             logger.warn("Escalating  {}", e.getMessage)
             throw e
