@@ -2,19 +2,19 @@ package com.ubirch.services.kafka.consumer
 
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ShutdownableThread, UUIDHelper}
+import com.ubirch.util.{ ShutdownableThread, UUIDHelper }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.concurrent.{ Future, blocking }
+import scala.util.{ Failure, Success }
 
 trait ProcessResult[K, V] {
 
@@ -41,6 +41,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var pollTimeout: java.time.Duration = java.time.Duration.ofMillis(1000)
 
+  @BeanProperty var pauseDuration: Int = 1000
+
   @BeanProperty var keyDeserializer: Option[Deserializer[K]] = None
 
   @BeanProperty var valueDeserializer: Option[Deserializer[V]] = None
@@ -49,21 +51,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
-  @BeanProperty var bufferSize: Int = 200
-
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
   def isValueEmpty(v: V): Boolean
 
+  //This one is made public for testing purposes
   val isPaused: AtomicBoolean = new AtomicBoolean(false)
-
-  @volatile private var failed = scala.collection.immutable.Vector.empty[Throwable]
-
-  private def prePoll(): Unit = synchronized {
-    val errors = failed
-    failed = Vector()
-    errors.foreach(x => throw x)
-  }
 
   override def execute(): Unit = {
     logger.info("Yey, Starting to Consume ...")
@@ -73,28 +66,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
       while (getRunning) {
 
+        var failed = scala.collection.immutable.Vector.empty[Throwable]
+
         try {
-
-          /**
-            * We check if the any of the elements in the buffer of running processes has finished.
-            * -If it finished with a failure. The exception is thrown and it is removed.
-            * --If it is a NeedForPauseException, the consumer is paused.
-            * -If it finished with a success. The ProcessResult is moved to the successful buffer.
-            * --We add this to the commit buffer.
-            * --We should also check if the commit buffer size is ready for commit.
-            * We start polling.
-            * We check if not paused
-            * The records are converted to a nice iterator
-            * The records and the iterator are sent to the process
-            * The process future is put in a in-mem queue
-            *
-            */
-
-          prePoll()
 
           logger.debug("Polling..")
           val consumerRecords = consumer.poll(pollTimeout)
-
           val count = consumerRecords.count()
 
           if (!isPaused.get() && count > 0) {
@@ -114,18 +91,34 @@ abstract class ConsumerRunner[K, V](name: String)
 
             }
 
+            //TODO: probably we should add a timeout
             batchCountDown.await()
 
+          }
+
+          val errors = failed
+          if (errors.isEmpty) {
+            //TODO: probably we should add a timeout
+            consumer.commitSync()
+          } else {
+            failed = Vector()
+            errors.foreach(x => throw x)
           }
 
         } catch {
           case _: NeedForPauseException =>
             val partitions = consumer.assignment()
-            logger.warn("NeedForPauseException Requested on {}", partitions.toString)
+            logger.warn("NeedForPauseException: {}", partitions.toString)
             consumer.pause(partitions)
             isPaused.set(true)
+            Future {
+              blocking {
+                Thread.sleep(getPauseDuration)
+                failed = failed :+ NeedForResumeException(s"Restarting after a $getPauseDuration millis Sleep...")
+              }
+            }
           case e: NeedForResumeException =>
-            logger.warn("NeedForResumeException Requested on {}", e.getMessage)
+            logger.warn("NeedForResumeException: {}", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
           case e: Throwable =>
