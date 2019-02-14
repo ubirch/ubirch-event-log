@@ -2,6 +2,7 @@ package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ Error, EventLog, Events }
+import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ FromString, UUIDHelper }
@@ -31,13 +32,14 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * Executor that filters ConsumerRecords values.
   */
 
-class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecord[String, String]] {
+class FilterEmpty extends Executor[ConsumerRecord[String, String], PipeData] {
 
-  override def apply(v1: ConsumerRecord[String, String]): ConsumerRecord[String, String] = {
+  override def apply(v1: ConsumerRecord[String, String]): PipeData = {
+    val pd = PipeData(v1, None)
     if (v1.value().nonEmpty) {
-      v1
+      pd
     } else {
-      throw EmptyValueException("Record is empty")
+      throw EmptyValueException("Record is empty", pd)
     }
   }
 
@@ -47,16 +49,17 @@ class FilterEmpty extends Executor[ConsumerRecord[String, String], ConsumerRecor
   * Executor that transforms a ConsumerRecord into an EventLog
   */
 class EventLogParser
-  extends Executor[ConsumerRecord[String, String], EventLog]
+  extends Executor[PipeData, PipeData]
   with LazyLogging {
 
-  override def apply(v1: ConsumerRecord[String, String]): EventLog = {
-    val result: EventLog = try {
-      FromString[EventLog](v1.value()).get
+  override def apply(v1: PipeData): PipeData = {
+    val result: PipeData = try {
+      val eventLog = FromString[EventLog](v1.consumerRecord.value()).get
+      v1.copy(eventLog = Some(eventLog))
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Event: " + e.getMessage)
-        throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1.value())
+        throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
 
     result
@@ -70,15 +73,23 @@ class EventLogParser
   * @param ec Represent the execution context for asynchronous processing.
   */
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-  extends Executor[EventLog, Future[Unit]]
+  extends Executor[PipeData, Future[PipeData]]
   with LazyLogging {
 
-  override def apply(v1: EventLog): Future[Unit] = {
-    events.insert(v1).recover {
-      case e: Exception =>
-        logger.error("Error storing data: " + e.getMessage)
-        throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
+  override def apply(v1: PipeData): Future[PipeData] = {
+    v1.eventLog.map { el =>
+
+      events.insert(el).map(_ => v1).recover {
+        case e: Exception =>
+          logger.error("Error storing data: " + e.getMessage)
+          throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
+      }
+
+    }.getOrElse {
+      logger.error("Error storing data: EventLog Data Not Defined")
+      Future.successful(throw StoringIntoEventLogException("Error storing data", v1, "EventLog Data Not Defined"))
     }
+
   }
 
 }
@@ -122,32 +133,40 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
   import UUIDHelper._
   import executorFamily._
 
-  def composed = filterEmpty andThen eventLogParser andThen eventsStore
+  def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = filterEmpty andThen eventLogParser andThen eventsStore
 
-  def executor = composed
+  def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = composed
 
-  def executorExceptionHandler(exception: Exception): Future[Unit] = {
-    import reporter.Types._
+  private def uuid = timeBasedUUID
 
-    val uuid = timeBasedUUID
+  import reporter.Types._
 
-    val fRes = exception match {
-      case e: EmptyValueException =>
-        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
-      case e: ParsingIntoEventLogException =>
-        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.value))
-      case e: StoringIntoEventLogException =>
-        val futureReport = reporter.report(Error(id = e.eventLog.id, message = e.getMessage, exceptionName = e.name, value = e.eventLog.toString))
+  //TODO We are not waiting for the error to be sent. We need to see if that maybe a problem
+  val executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
+    case e: EmptyValueException =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
+      Future.successful(e.pipeData)
+    case e: ParsingIntoEventLogException =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
+      Future.successful(e.pipeData)
+    case e: StoringIntoEventLogException =>
 
-        futureReport.transform(
-          _ => throw NeedForPauseException("Requesting Pause", e.eventLog, e.getMessage)
+      reporter.report(
+        Error(
+          id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),
+          message = e.getMessage,
+          exceptionName = e.name,
+          value = e.pipeData.eventLog.toString
         )
+      )
 
-      case e: Exception =>
-        reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.getClass.getCanonicalName))
-    }
-
-    fRes.flatMap(_ => Future.unit)
+      e.pipeData.eventLog.map { el =>
+        Future.successful(
+          throw NeedForPauseException("Requesting Pause", el, e.getMessage)
+        )
+      }.getOrElse {
+        Future.successful(e.pipeData)
+      }
 
   }
 

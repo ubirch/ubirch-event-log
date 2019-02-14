@@ -1,6 +1,7 @@
 package com.ubirch.util
 
 import com.ubirch.models.EventLog
+import com.ubirch.services.kafka.consumer.PipeData
 
 /**
   * Namespace that contains the exceptions of the system and a abstract
@@ -70,23 +71,23 @@ object Exceptions {
     * Represents an exception thrown when the value of the consumer record is empty.
     * @param message Represents the error message.
     */
-  case class EmptyValueException(message: String) extends ExecutionException(message)
+  case class EmptyValueException(message: String, pipeData: PipeData) extends ExecutionException(message)
 
   /**
     * Represents an exception thrown when parsing the string value of the consumer record
     * to an EventLog.
     * @param message Represents the error message.
-    * @param value Represent the input value that caused the error.
+    * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
     */
-  case class ParsingIntoEventLogException(message: String, value: String) extends ExecutionException(message)
+  case class ParsingIntoEventLogException(message: String, pipeData: PipeData) extends ExecutionException(message)
 
   /**
     * Exception thrown when storing an EventLog to the database.
     * @param message Represents the error message.
-    * @param eventLog Represent the EventLog message.
+    * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
     * @param reason Represent the reason why it couldn't be stored.
     */
-  case class StoringIntoEventLogException(message: String, eventLog: EventLog, reason: String) extends ExecutionException(message)
+  case class StoringIntoEventLogException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
 

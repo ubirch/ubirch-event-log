@@ -10,7 +10,10 @@ import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.Future
+import scala.util.{ Failure, Success }
+
+trait ProcessResult[K, V] {
 
 abstract class ConsumerRecordsController[K, V]  {
 
@@ -51,7 +54,13 @@ abstract class ConsumerRunner[K, V](name: String)
       .map(_.value)
       .filter(_.isDefined)
       .map(_.get)
-      .find(_.isFailure)
+      .foreach {
+        case Success(value) => finishedProcs = finishedProcs :+ value
+        case Failure(e) => errors :+ e
+      }
+
+    errors
+
   }
 
   private def prePoll(): Unit = synchronized {

@@ -2,6 +2,7 @@ package com.ubirch.process
 
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
+import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
@@ -61,7 +62,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val filtered = filter(consumerRecord)
 
-      assert(filtered.value() == dataAsString)
+      assert(filtered.consumerRecord.value() == dataAsString)
 
     }
 
@@ -87,13 +88,15 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val dataAsString = data.toString
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
-
       when(consumerRecord.value()).thenReturn(dataAsString)
+
+      val pipeData = PipeData(consumerRecord, None)
+
       val eventLogParser = new EventLogParser
 
-      val parsed = eventLogParser(consumerRecord)
+      val parsed = eventLogParser(pipeData)
 
-      assert(parsed == data)
+      assert(parsed == pipeData.copy(eventLog = Some(data)))
 
     }
 
@@ -105,9 +108,11 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       when(consumerRecord.value()).thenReturn(data)
 
+      val pipeData = PipeData(consumerRecord, None)
+
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(consumerRecord))
+      assertThrows[ParsingIntoEventLogException](eventLogParser(pipeData))
 
     }
 
@@ -119,9 +124,11 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       when(consumerRecord.value()).thenReturn(data)
 
+      val pipeData = PipeData(consumerRecord, None)
+
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(consumerRecord))
+      assertThrows[ParsingIntoEventLogException](eventLogParser(pipeData))
 
     }
 
@@ -140,9 +147,15 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
         promiseTest.future
       }
 
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data.toString)
+
+      val pipeData = PipeData(consumerRecord, Some(data))
+
       val eventsStore = new EventsStore(events)
 
-      eventsStore(data)
+      eventsStore(pipeData)
 
       await(promiseTest.future, 10 seconds)
 
@@ -150,7 +163,31 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
     }
 
-    "throw StoringIntoEventLogException" in {
+    "throw StoringIntoEventLogException 1" in {
+
+      val data = Entities.Events.eventExample()
+
+      val events = mock[Events]
+      val promiseTest = Promise[Unit]()
+
+      when(events.insert(any[EventLog]())).thenReturn {
+        promiseTest.completeWith(Future(()))
+        promiseTest.future
+      }
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data.toString)
+
+      val pipeData = PipeData(consumerRecord, None)
+
+      val eventsStore = new EventsStore(events)
+
+      assertThrows[StoringIntoEventLogException](await(eventsStore(pipeData), 10 seconds))
+
+    }
+
+    "throw StoringIntoEventLogException 2" in {
 
       val data = Entities.Events.eventExample()
 
@@ -162,9 +199,15 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
         promiseTest.future
       }
 
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      when(consumerRecord.value()).thenReturn(data.toString)
+
+      val pipeData = PipeData(consumerRecord, None)
+
       val eventsStore = new EventsStore(events)
 
-      assertThrows[StoringIntoEventLogException](await(eventsStore(data), 10 seconds))
+      assertThrows[StoringIntoEventLogException](await(eventsStore(pipeData), 10 seconds))
 
     }
 
