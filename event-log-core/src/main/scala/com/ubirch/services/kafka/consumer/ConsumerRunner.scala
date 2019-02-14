@@ -59,7 +59,6 @@ abstract class ConsumerRunner[K, V](name: String)
   val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
   override def execute(): Unit = {
-    logger.info("Yey, Starting to Consume ...")
     try {
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
@@ -70,7 +69,6 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
-          logger.debug("Polling..")
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
 
