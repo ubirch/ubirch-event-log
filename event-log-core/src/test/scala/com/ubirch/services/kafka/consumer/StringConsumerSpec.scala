@@ -422,11 +422,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           new DefaultConsumerRecordsController(executor)
         ).get()
 
-
         consumer.startPolling()
 
         Thread.sleep(5000)
-
 
         assert(consumer.isPaused.get())
 

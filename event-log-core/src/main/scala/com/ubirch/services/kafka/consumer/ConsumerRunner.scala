@@ -1,9 +1,11 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ShutdownableThread, UUIDHelper}
 import org.apache.kafka.clients.consumer._
@@ -29,7 +31,7 @@ trait ConsumerRecordsController[K, V] {
 }
 
 abstract class ConsumerRunner[K, V](name: String)
-  extends ShutdownableThread(name) with LazyLogging {
+  extends ShutdownableThread(name) with Execution with LazyLogging {
 
   private var consumer: Consumer[K, V] = _
 
@@ -55,34 +57,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
   val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
-  @volatile private var successfullFinishedProcs = scala.collection.immutable.Vector.empty[ProcessResult[K, V]]
-
-  @volatile private var runningProcs = scala.collection.immutable.Vector.empty[(UUID, Future[ProcessResult[K, V]])]
-
+  @volatile private var failed = scala.collection.immutable.Vector.empty[Throwable]
 
   private def prePoll(): Unit = synchronized {
-
-    val errors = scala.collection.mutable.ListBuffer.empty[Throwable]
-
-    val rp = runningProcs
-    rp.toIterator
-      .filter(x => x._2.isCompleted)
-      .map(x => (x._1, x._2.value))
-      .filter(_._2.isDefined)
-      .map(x => (x._1, x._2.get))
-      .foreach {
-          case (uuid, Success(value)) =>
-            successfullFinishedProcs = successfullFinishedProcs :+ value
-            runningProcs = runningProcs.filterNot(p => p._1 == uuid)
-          case (uuid, Failure(e)) =>
-            runningProcs = runningProcs.filterNot(p => p._1 == uuid)
-
-            errors += e
-
-      }
-
+    val errors = failed
+    failed = Vector()
     errors.foreach(x => throw x)
-
   }
 
   override def execute(): Unit = {
@@ -94,8 +74,6 @@ abstract class ConsumerRunner[K, V](name: String)
       while (getRunning) {
 
         try {
-
-          logger.debug("Polling..")
 
           /**
             * We check if the any of the elements in the buffer of running processes has finished.
@@ -114,14 +92,29 @@ abstract class ConsumerRunner[K, V](name: String)
 
           prePoll()
 
+          logger.debug("Polling..")
           val consumerRecords = consumer.poll(pollTimeout)
 
-          if (!isPaused.get()) {
+          val count = consumerRecords.count()
+
+          if (!isPaused.get() && count > 0) {
+
+            val batchCountDown = new CountDownLatch(count)
+
             val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
             iterator.foreach { cr =>
               val processing = process(cr)
-              runningProcs = runningProcs :+ (UUIDHelper.randomUUID, processing)
+              processing.onComplete {
+                case Success(_) =>
+                  batchCountDown.countDown()
+                case Failure(e) =>
+                  failed = failed :+ e
+                  batchCountDown.countDown()
+              }
+
             }
+
+            batchCountDown.await()
 
           }
 
