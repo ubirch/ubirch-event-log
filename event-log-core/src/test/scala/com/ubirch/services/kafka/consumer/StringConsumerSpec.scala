@@ -361,7 +361,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "run an exception" in {
+    "run an NeedForPauseException and pause" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
 
@@ -420,11 +420,15 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           ConfigFactory.load(),
           lifeCycle,
           new DefaultConsumerRecordsController(executor)
-        )
+        ).get()
 
-        consumer.get().startPolling()
+
+        consumer.startPolling()
 
         Thread.sleep(5000)
+
+
+        assert(consumer.isPaused.get())
 
       }
 
