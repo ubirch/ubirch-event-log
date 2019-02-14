@@ -45,12 +45,7 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
   override val reporter: Reporter = defaultExecutor.reporter
 
   override def process[A >: ProcessResult[String, String]](consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
-    executor(consumerRecord)
-      .recoverWith(executorExceptionHandler)
-      .recoverWith {
-        case e =>
-          Future.failed(NeedForShutDownException("Exception not handled.", e.getMessage))
-      }
+    executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
 
 }

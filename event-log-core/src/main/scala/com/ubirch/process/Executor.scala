@@ -160,13 +160,13 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
         )
       )
 
-      e.pipeData.eventLog.map { el =>
-        Future.successful(
-          throw NeedForPauseException("Requesting Pause", el, e.getMessage)
-        )
+      val t = e.pipeData.eventLog.map { el =>
+        Future.failed(NeedForPauseException("Requesting Pause", el, e.getMessage))
       }.getOrElse {
         Future.successful(e.pipeData)
       }
+
+      t
 
   }
 
