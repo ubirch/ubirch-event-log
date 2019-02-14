@@ -50,12 +50,13 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executor = mock[DefaultExecutor]
 
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecord[String, String], Future[Unit]] {
-            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+          new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
 
-              val promiseTest = Promise[Unit]()
+              val promiseTest = Promise[PipeData]()
               promiseTestSuccess.completeWith(Future.successful(v1.value()))
-              promiseTest.completeWith(Future.successful(()))
+
+              promiseTest.completeWith(Future.successful(PipeData(v1, Some(entity))))
               promiseTest.future
 
             }
@@ -97,12 +98,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val executor = mock[DefaultExecutor]
 
-        val promiseTest = Promise[Unit]()
+        val promiseTest = Promise[PipeData]()
 
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecord[String, String], Future[Unit]] {
-            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
-              promiseTest.completeWith(Future.successful(()))
+          new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+              promiseTest.completeWith(Future.successful(PipeData(v1, Some(entity))))
               promiseTest.future
             }
           }
@@ -209,7 +210,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val maxEntities = 500
       val listfWithSuccess = scala.collection.mutable.ListBuffer.empty[String]
-      val listf = scala.collection.mutable.ListBuffer.empty[Future[Unit]]
+      val listf = scala.collection.mutable.ListBuffer.empty[Future[PipeData]]
       val max = new AtomicReference[Int](maxEntities)
       val releasePromise = Promise[Boolean]()
 
@@ -230,12 +231,14 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executor = mock[DefaultExecutor]
 
         when(executor.executor).thenReturn {
-          new Executor[ConsumerRecord[String, String], Future[Unit]] {
-            override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+          new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+            override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
 
-              val promiseTest = Promise[Unit]()
+              val promiseTest = Promise[PipeData]()
 
-              lazy val somethingStored = promiseTest.completeWith(Future.successful(()))
+              val el = Option(FromString[EventLog](v1.value()).get)
+
+              lazy val somethingStored = promiseTest.completeWith(Future.successful(PipeData(v1, el)))
 
               somethingStored
 
@@ -249,6 +252,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
               }
 
               promiseTest.future
+
             }
           }
         }
@@ -277,7 +281,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val rlist = await(flist, 30 seconds)
 
         assert(rlist.nonEmpty)
-        assert(rlist.contains(()))
+        assert(rlist.count(p => p.eventLog.isDefined) == maxEntities)
 
         val list = listfWithSuccess.toList
 
@@ -303,9 +307,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val promiseTest = Promise[String]()
 
       when(executor.executor).thenReturn {
-        new Executor[ConsumerRecord[String, String], Future[Unit]] {
-          override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
-            throw ParsingIntoEventLogException("OH_MY_GOD", v1.value())
+        new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+          override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+            throw ParsingIntoEventLogException("OH_MY_GOD", PipeData(v1, None))
           }
         }
       }
@@ -394,13 +398,13 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val executor = new DefaultExecutor(reporter, executionFamily) {
-          override def composed: Executor[ConsumerRecord[String, String], Future[Unit]] = {
-            new Executor[ConsumerRecord[String, String], Future[Unit]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[Unit] = {
+          override def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
 
-                val promiseTest = Promise[Unit]()
+                val promiseTest = Promise[PipeData]()
 
-                val exception = StoringIntoEventLogException("OH OH", entity, "OOPS")
+                val exception = StoringIntoEventLogException("OH OH", PipeData(v1, Some(entity)), "OOPS")
 
                 promiseTestSuccess.completeWith(Future.unit)
 
