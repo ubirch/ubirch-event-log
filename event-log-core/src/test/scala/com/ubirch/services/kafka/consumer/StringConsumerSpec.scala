@@ -426,7 +426,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         Thread.sleep(5000)
 
-
       }
 
     }

@@ -15,9 +15,13 @@ import scala.util.{ Failure, Success }
 
 trait ProcessResult[K, V] {
 
-abstract class ConsumerRecordsController[K, V]  {
+  val consumerRecord: ConsumerRecord[K, V]
 
-  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Future[Unit]
+}
+
+trait ConsumerRecordsController[K, V] {
+
+  def process[A >: ProcessResult[K, V]](consumerRecord: ConsumerRecord[K, V]): Future[A]
 
 }
 
@@ -40,16 +44,23 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
-  def process(consumerRecords: ConsumerRecords[K, V], iterator: Iterator[ConsumerRecord[K, V]]): Future[Unit]
+  @BeanProperty var bufferSize: Int = 200
+
+  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
   def isValueEmpty(v: V): Boolean
 
   def isPaused: AtomicBoolean = new AtomicBoolean(false)
 
-  private val maybeFutureErrors = scala.collection.mutable.ListBuffer.empty[Future[Unit]]
+  @volatile private var finishedProcs = scala.collection.immutable.Vector.empty[ProcessResult[K, V]]
+
+  @volatile private var runningProcs = scala.collection.immutable.Vector.empty[Future[ProcessResult[K, V]]]
 
   private def checkErrors() = synchronized {
-    maybeFutureErrors
+
+    val errors = scala.collection.mutable.ListBuffer.empty[Throwable]
+
+    runningProcs
       .filter(x => x.isCompleted)
       .map(_.value)
       .filter(_.isDefined)
@@ -64,9 +75,8 @@ abstract class ConsumerRunner[K, V](name: String)
   }
 
   private def prePoll(): Unit = synchronized {
-    checkErrors().foreach(_.get)
+    checkErrors().foreach(x => throw x)
   }
-
 
   override def execute(): Unit = {
     logger.info("Yey, Starting to Consume ...")
@@ -80,18 +90,36 @@ abstract class ConsumerRunner[K, V](name: String)
 
           logger.debug("Polling..")
 
+          /**
+            * We check if the head has finished.
+            * -If it finished successfully. It is simply removed.
+            * --We add this to the commit buffer.
+            * --We should also check if the commit buffer size is ready for commit.
+            * -If it finished with a failure. The exception is thrown and it is removed.
+            * We start polling.
+            * We check if not paused
+            * The records are converted to a nice iterator
+            * The records and the iterator are sent to the process
+            * The process future is put in a in-mem queue
+            *
+            */
+
           prePoll()
 
           val consumerRecords = consumer.poll(pollTimeout)
 
-          if(!isPaused.get()) {
+          if (!isPaused.get()) {
             val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
-            maybeFutureErrors += process(consumerRecords, iterator)
+            iterator.foreach { cr =>
+              val processing = process(cr)
+              runningProcs = runningProcs :+ processing
+            }
+
           }
 
         } catch {
           case _: NeedForPauseException =>
-            maybeFutureErrors.clear()
+
             val partitions = consumer.assignment()
             logger.warn("NeedForPauseException Requested on {}", partitions.toString)
             consumer.pause(partitions)

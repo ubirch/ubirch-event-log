@@ -94,6 +94,7 @@ class DefaultStringConsumer @Inject() (
   val configs = Configs(
     bootstrapServers = bootstrapServers,
     groupId = groupId,
+    enableAutoCommit = false,
     autoOffsetReset = OffsetResetStrategy.EARLIEST
   )
 
