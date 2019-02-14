@@ -50,16 +50,16 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
 
 }
 
-class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener {
+class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener with LazyLogging {
 
   override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
     val iterator = partitions.iterator().asScala
-    iterator.foreach(x => println(x.partition() + " " + x.topic()))
+    iterator.foreach(x => logger.debug(s"onPartitionsRevoked: [${x.topic()}-${x.partition()}]"))
   }
 
   override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = {
     val iterator = partitions.iterator().asScala
-    iterator.foreach(x => println(x.partition() + " " + x.topic()))
+    iterator.foreach(x => logger.debug(s"OnPartitionsAssigned: [${x.topic()}-${x.partition()}]"))
   }
 
 }

@@ -1,5 +1,6 @@
 package com.ubirch.services.kafka.consumer
 
+import java.util
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
@@ -9,6 +10,7 @@ import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper }
 import org.apache.kafka.clients.consumer._
+import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
@@ -31,7 +33,17 @@ trait ConsumerRecordsController[K, V] {
 }
 
 abstract class ConsumerRunner[K, V](name: String)
-  extends ShutdownableThread(name) with Execution with LazyLogging {
+  extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with LazyLogging {
+
+  override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    iterator.foreach(x => logger.debug(s"onPartitionsRevoked: [${x.topic()}-${x.partition()}]"))
+  }
+
+  override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    iterator.foreach(x => logger.debug(s"OnPartitionsAssigned: [${x.topic()}-${x.partition()}]"))
+  }
 
   private var consumer: Consumer[K, V] = _
 
@@ -49,14 +61,17 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRebalanceListenerBuilder: Option[Consumer[K, V] => ConsumerRebalanceListener] = None
 
+  @BeanProperty var useSelfAsRebalanceListener: Boolean = true
+
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
+
+  @BeanProperty var useAutoCommit: Boolean = false
+  //This one is made public for testing purposes
+  @BeanProperty val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
   def isValueEmpty(v: V): Boolean
-
-  //This one is made public for testing purposes
-  val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
   override def execute(): Unit = {
     try {
@@ -72,7 +87,7 @@ abstract class ConsumerRunner[K, V](name: String)
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
 
-          if (!isPaused.get() && count > 0) {
+          if (!getIsPaused.get() && count > 0) {
 
             val batchCountDown = new CountDownLatch(count)
 
@@ -95,7 +110,7 @@ abstract class ConsumerRunner[K, V](name: String)
           }
 
           val errors = failed
-          if (errors.isEmpty) {
+          if (!getUseAutoCommit && errors.isEmpty) {
             //TODO: probably we should add a timeout
             consumer.commitSync()
           } else {
@@ -108,7 +123,7 @@ abstract class ConsumerRunner[K, V](name: String)
             val partitions = consumer.assignment()
             logger.warn("NeedForPauseException: {}", partitions.toString)
             consumer.pause(partitions)
-            isPaused.set(true)
+            getIsPaused.set(true)
             Future {
               blocking {
                 Thread.sleep(getPauseDuration)
@@ -119,7 +134,7 @@ abstract class ConsumerRunner[K, V](name: String)
             logger.warn("NeedForResumeException: {}", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
-            isPaused.set(false)
+            getIsPaused.set(false)
           case e: Throwable =>
             logger.warn("Escalating  {}", e.getMessage)
             throw e
@@ -176,8 +191,16 @@ abstract class ConsumerRunner[K, V](name: String)
     if (topics.nonEmpty) {
       val topicsAsJava = topics.asJavaCollection
       consumerRebalanceListenerBuilder match {
-        case Some(crl) => consumer.subscribe(topicsAsJava, crl(consumer))
-        case None => consumer.subscribe(topicsAsJava)
+        case Some(crl) if !getUseSelfAsRebalanceListener =>
+          val rebalancer = crl(consumer)
+          logger.debug("Subscribing to [{}] with external rebalance strategy [{}]", topics.mkString(" "), rebalancer.getClass.getCanonicalName)
+          consumer.subscribe(topicsAsJava, rebalancer)
+        case _ if getUseSelfAsRebalanceListener =>
+          logger.debug("Subscribing to {} with self rebalance strategy", topics.mkString(" "))
+          consumer.subscribe(topicsAsJava, this)
+        case _ =>
+          logger.debug("Subscribing to {} with no rebalance strategy", topics.mkString(" "))
+          consumer.subscribe(topicsAsJava)
       }
 
     } else {
