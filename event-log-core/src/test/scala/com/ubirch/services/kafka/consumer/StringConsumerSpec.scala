@@ -363,62 +363,69 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val topic = NameGiver.giveMeATopicName
-
-      val lifeCycle = mock[DefaultLifecycle]
-      val executor = mock[DefaultExecutor]
-
-      val promiseTest = Promise[String]()
-
-      when(executor.executor).thenReturn {
-        new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-          override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
-            throw ParsingIntoEventLogException("OH_MY_GOD", PipeData(v1, None))
-          }
-        }
-      }
-
-      val reporter = mock[Reporter]
-
-      when(reporter.Types).thenCallRealMethod()
-      import reporter.Types._
-
-      when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
-        promiseTest.completeWith(Future("Received message"))
-        mock[Future[RecordMetadata]]
-      }
-
-      when(executor.reporter).thenReturn(reporter)
-
-      val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset = OffsetResetStrategy.EARLIEST
-      )
-
-      val consumer = new DefaultStringConsumer(
-        ConfigFactory.load(),
-        lifeCycle,
-        new DefaultConsumerRecordsController(executor)
-      )
-
       withRunningKafka {
 
-        val entity = Entities.Events.eventExample()
-        val entityAsString = entity.toString
+        val entityAsString = "{}"
 
-        publishStringMessageToKafka(topic, entityAsString)
+        val recordData = new RecordMetadata(
+          new TopicPartition("topic", 1),
+          1,
+          1,
+          new Date().getTime,
+          1L,
+          1,
+          1
+        )
 
-        val cons = consumer.get()
-        cons.setTopics(Set(topic))
-        cons.setProps(configs)
-        cons.startPolling()
+        publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
-        val result = await(promiseTest.future, 10 seconds)
+        val promiseTestSuccess = Promise[RecordMetadata]()
 
-        assert(promiseTest.isCompleted)
+        val lifeCycle = mock[DefaultLifecycle]
 
-        assert(result == "Received message")
+        val reporter = mock[Reporter]
+
+        when(reporter.Types).thenCallRealMethod()
+        import reporter.Types._
+
+        when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
+          promiseTestSuccess.completeWith(Future.successful(recordData))
+          promiseTestSuccess.future
+        }
+
+        val executionFamily = mock[ExecutorFamily]
+
+        val executor = new DefaultExecutor(reporter, executionFamily) {
+          override def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+                Future.failed(ParsingIntoEventLogException("OH OH", PipeData(v1, None)))
+              }
+            }
+          }
+        }
+
+        val consumer = new DefaultStringConsumer(
+          ConfigFactory.load(),
+          lifeCycle,
+          new DefaultConsumerRecordsController(executor)
+        ) {
+          override def configs: ConfigProperties = {
+            Configs(
+              bootstrapServers = "localhost:" + config.kafkaPort,
+              groupId = "My_Group_ID",
+              enableAutoCommit = false,
+              autoOffsetReset = OffsetResetStrategy.EARLIEST
+            )
+          }
+
+        }.get()
+
+        consumer.setUseSelfAsRebalanceListener(false)
+
+        consumer.startPolling()
+
+        assert(await(promiseTestSuccess.future, 2 seconds) == recordData)
 
       }
 
@@ -600,7 +607,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-/*    "X" in {
+    /*    "X" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
