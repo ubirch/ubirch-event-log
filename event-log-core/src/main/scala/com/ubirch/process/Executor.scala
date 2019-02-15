@@ -132,17 +132,16 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
   import UUIDHelper._
   import executorFamily._
+  import reporter.Types._
+
+  private def uuid = timeBasedUUID
 
   def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = filterEmpty andThen eventLogParser andThen eventsStore
 
   def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = composed
 
-  private def uuid = timeBasedUUID
-
-  import reporter.Types._
-
   //TODO We are not waiting for the error to be sent. We need to see if that maybe a problem
-  val executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
+  def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)

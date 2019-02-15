@@ -42,7 +42,7 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
 
   override def executorExceptionHandler[A >: ProcessResult[String, String]]: PartialFunction[Throwable, Future[PipeData]] = defaultExecutor.executorExceptionHandler
 
-  override val reporter: Reporter = defaultExecutor.reporter
+  override def reporter: Reporter = defaultExecutor.reporter
 
   override def process[A >: ProcessResult[String, String]](consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
     executor(consumerRecord).recoverWith(executorExceptionHandler)

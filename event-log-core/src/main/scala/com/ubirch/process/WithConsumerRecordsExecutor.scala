@@ -20,7 +20,7 @@ trait WithConsumerRecordsExecutorBase[K, V, +R] {
 
   def executorExceptionHandler[A >: R]: Exception => Future[A]
 
-  val reporter: Reporter
+  def reporter: Reporter
 
 }
 

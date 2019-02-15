@@ -58,8 +58,6 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(log2.event == ToJson(Hello("Como estas")).get)
         assert(log2.category == "My another Category")
 
-        println(log1.toString)
-
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toString
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toString
