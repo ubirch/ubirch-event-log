@@ -10,6 +10,7 @@ import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
@@ -60,6 +61,8 @@ abstract class ConsumerRunner[K, V](name: String)
   //This one is made public for testing purposes
   @BeanProperty val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
+  @BeanProperty var maxCommitAttempts = 3
+
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
   def isValueEmpty(v: V): Boolean
@@ -70,6 +73,10 @@ abstract class ConsumerRunner[K, V](name: String)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
       var failed = scala.collection.immutable.Vector.empty[Throwable]
+
+      val commitAttempts = new AtomicInteger(maxCommitAttempts)
+
+      def commit() = consumer.commitSync()
 
       while (getRunning) {
 
@@ -104,8 +111,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
           val errors = failed
           if (!getUseAutoCommit && errors.isEmpty && count > 0) {
-            //TODO: probably we should add a timeout
-            consumer.commitSync()
+            commit()
           } else {
             failed = Vector()
             errors.foreach(x => throw x)
@@ -128,6 +134,15 @@ abstract class ConsumerRunner[K, V](name: String)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
+          case e: TimeoutException =>
+            logger.error("Commit timed out {}", e.getMessage)
+            logger.error("Trying one more time")
+            val currentAttempts = commitAttempts.decrementAndGet()
+            if (currentAttempts == 0) {
+              throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", e)
+            } else {
+              commit()
+            }
           case e: Throwable =>
             logger.warn("Escalating  {}", e.getMessage)
             throw e
@@ -137,6 +152,9 @@ abstract class ConsumerRunner[K, V](name: String)
       }
 
     } catch {
+      case e: MaxNumberOfCommitAttemptsException =>
+        logger.error("MaxNumberOfCommitAttemptsException: {}", e.getMessage)
+        startGracefulShutdown()
       case e: ConsumerCreationException =>
         logger.error("ConsumerCreationException: {}", e.getMessage)
         startGracefulShutdown()
