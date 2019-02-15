@@ -30,6 +30,22 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
+  def spawn = {
+    val lifeCycle = mock[DefaultLifecycle]
+
+    val executor = mock[DefaultExecutor]
+    val consumer = new DefaultStringConsumer(
+      ConfigFactory.load(),
+      lifeCycle,
+      new DefaultConsumerRecordsController(executor)
+    ).get()
+
+    consumer.setUseSelfAsRebalanceListener(true)
+    consumer.startPolling()
+
+    consumer
+  }
+
   "StringConsumerSpec" must {
 
     "run Executors successfully and complete expected promise" in {
@@ -433,6 +449,95 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         Thread.sleep(5000)
 
         assert(!consumer.isPaused.get())
+
+      }
+
+    }
+
+    "spawning 2 consumers to test rebalancing of 1 partition" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+
+      withRunningKafka {
+
+        val partitions = 1
+        createCustomTopic("com.ubirch.eventlog", partitions = partitions)
+
+        val consumer_0 = spawn
+
+        Thread.sleep(5000)
+
+        val consumer_1 = spawn
+
+        Thread.sleep(5000)
+
+        assert(consumer_0.partitionsRevoked.get().size == partitions)
+        assert(consumer_0.partitionsAssigned.get().size == partitions)
+        assert(consumer_1.partitionsRevoked.get().isEmpty)
+        assert(consumer_1.partitionsAssigned.get().isEmpty)
+
+      }
+
+    }
+
+    "spawning 2 consumers to test rebalancing of 10 partitions" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+
+      withRunningKafka {
+
+        val partitions = 10
+        createCustomTopic("com.ubirch.eventlog", partitions = partitions)
+
+        val consumer_0 = spawn
+
+        Thread.sleep(5000)
+
+        val consumer_1 = spawn
+
+        Thread.sleep(7000)
+
+        assert(consumer_0.partitionsRevoked.get().size == partitions)
+        assert(consumer_0.partitionsAssigned.get().size == partitions / 2)
+        assert(consumer_1.partitionsRevoked.get().isEmpty)
+        assert(consumer_1.partitionsAssigned.get().size == partitions / 2)
+
+      }
+
+    }
+
+    "spawning 3 consumers to test rebalancing of 10 partitions" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+
+      withRunningKafka {
+
+        val partitions = 10
+        createCustomTopic("com.ubirch.eventlog", partitions = partitions)
+
+        val consumer_0 = spawn
+
+        Thread.sleep(5000)
+
+        val consumer_1 = spawn
+
+        Thread.sleep(7000)
+
+        assert(consumer_0.partitionsRevoked.get().size == partitions)
+        assert(consumer_0.partitionsAssigned.get().size == partitions / 2)
+        assert(consumer_1.partitionsRevoked.get().isEmpty)
+        assert(consumer_1.partitionsAssigned.get().size == partitions / 2)
+
+        val consumer_2 = spawn
+
+        Thread.sleep(7000)
+
+        assert(consumer_0.partitionsRevoked.get().size == partitions / 2)
+        assert(consumer_0.partitionsAssigned.get().size == partitions - 6)
+        assert(consumer_1.partitionsRevoked.get().size == partitions / 2)
+        assert(consumer_1.partitionsAssigned.get().size == partitions - 7)
+        assert(consumer_2.partitionsRevoked.get().isEmpty)
+        assert(consumer_2.partitionsAssigned.get().size == partitions - 7)
 
       }
 
