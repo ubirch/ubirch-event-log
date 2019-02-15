@@ -2,6 +2,7 @@ package com.ubirch.util
 
 import com.ubirch.models.EventLog
 import com.ubirch.services.kafka.consumer.PipeData
+import org.apache.kafka.common.errors.TimeoutException
 
 /**
   * Namespace that contains the exceptions of the system and a abstract
@@ -92,6 +93,8 @@ object Exceptions {
   //EXECUTION EXCEPTIONS
 
   //CONSUMER EXCEPTIONS
+
+  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: TimeoutException) extends ExecutionException(message)
 
   case class ConsumerCreationException(message: String, reason: String) extends ExecutionException(message)
 
