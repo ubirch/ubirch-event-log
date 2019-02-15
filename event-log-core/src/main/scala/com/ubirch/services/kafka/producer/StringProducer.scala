@@ -57,7 +57,7 @@ class DefaultStringProducer @Inject() (
 
   val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
-  val configs = Configs(bootstrapServers)
+  def configs = Configs(bootstrapServers)
 
   private lazy val producer = new StringProducer(configs)
 

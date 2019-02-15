@@ -103,7 +103,7 @@ abstract class ConsumerRunner[K, V](name: String)
           }
 
           val errors = failed
-          if (!getUseAutoCommit && errors.isEmpty) {
+          if (!getUseAutoCommit && errors.isEmpty && count > 0) {
             //TODO: probably we should add a timeout
             consumer.commitSync()
           } else {

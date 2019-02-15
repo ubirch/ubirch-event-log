@@ -93,7 +93,7 @@ class DefaultStringConsumer @Inject() (
     else gid
   }
 
-  val configs = Configs(
+  def configs = Configs(
     bootstrapServers = bootstrapServers,
     groupId = groupId,
     enableAutoCommit = false,
