@@ -11,7 +11,7 @@ import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.FromString
+import com.ubirch.util.{ ConfigProperties, FromString }
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -30,17 +30,65 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
-  def spawn = {
+  def spawn(kafkaPort: Int) = {
     val lifeCycle = mock[DefaultLifecycle]
 
     val executor = mock[DefaultExecutor]
+
+    val consumerBuilder = new DefaultStringConsumer(
+      ConfigFactory.load(),
+      lifeCycle,
+      new DefaultConsumerRecordsController(executor)
+    ) {
+      override def configs: ConfigProperties = {
+        Configs(
+          bootstrapServers = "localhost:" + kafkaPort,
+          groupId = "My_Group_ID",
+          enableAutoCommit = false,
+          autoOffsetReset = OffsetResetStrategy.EARLIEST
+        )
+      }
+    }
+
+    val consumer = consumerBuilder.get()
+
+    consumer.setUseSelfAsRebalanceListener(true)
+    consumer.startPolling()
+
+    consumer
+  }
+
+  def spawn2 = {
+
+    val lifeCycle = mock[DefaultLifecycle]
+
+    val reporter = mock[Reporter]
+
+    val executionFamily = mock[ExecutorFamily]
+
+    val executor = new DefaultExecutor(reporter, executionFamily) {
+      override def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+        new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+          override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+            val promiseTest = Promise[PipeData]()
+            val el = Option(FromString[EventLog](v1.value()).get)
+
+            promiseTest.completeWith(Future.successful(PipeData(v1, el)))
+            promiseTest.future
+
+          }
+        }
+      }
+    }
+
     val consumer = new DefaultStringConsumer(
       ConfigFactory.load(),
       lifeCycle,
       new DefaultConsumerRecordsController(executor)
     ).get()
 
-    consumer.setUseSelfAsRebalanceListener(true)
+    consumer.setUseSelfAsRebalanceListener(false)
+
     consumer.startPolling()
 
     consumer
@@ -345,8 +393,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
         groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
+        autoOffsetReset = OffsetResetStrategy.EARLIEST
       )
 
       val consumer = new DefaultStringConsumer(
@@ -379,7 +426,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run an NeedForPauseException and pause and then unpause" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -436,7 +483,17 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
           ConfigFactory.load(),
           lifeCycle,
           new DefaultConsumerRecordsController(executor)
-        ).get()
+        ) {
+          override def configs: ConfigProperties = {
+            Configs(
+              bootstrapServers = "localhost:" + config.kafkaPort,
+              groupId = "My_Group_ID",
+              enableAutoCommit = false,
+              autoOffsetReset = OffsetResetStrategy.EARLIEST
+            )
+          }
+
+        }.get()
 
         consumer.setUseSelfAsRebalanceListener(false)
 
@@ -456,18 +513,18 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 2 consumers to test rebalancing of 1 partition" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
         val partitions = 1
         createCustomTopic("com.ubirch.eventlog", partitions = partitions)
 
-        val consumer_0 = spawn
+        val consumer_0 = spawn(config.kafkaPort)
 
         Thread.sleep(5000)
 
-        val consumer_1 = spawn
+        val consumer_1 = spawn(config.kafkaPort)
 
         Thread.sleep(5000)
 
@@ -482,18 +539,18 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 2 consumers to test rebalancing of 10 partitions" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
         val partitions = 10
         createCustomTopic("com.ubirch.eventlog", partitions = partitions)
 
-        val consumer_0 = spawn
+        val consumer_0 = spawn(config.kafkaPort)
 
         Thread.sleep(5000)
 
-        val consumer_1 = spawn
+        val consumer_1 = spawn(config.kafkaPort)
 
         Thread.sleep(7000)
 
@@ -508,18 +565,18 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 3 consumers to test rebalancing of 10 partitions" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
         val partitions = 10
         createCustomTopic("com.ubirch.eventlog", partitions = partitions)
 
-        val consumer_0 = spawn
+        val consumer_0 = spawn(config.kafkaPort)
 
         Thread.sleep(5000)
 
-        val consumer_1 = spawn
+        val consumer_1 = spawn(config.kafkaPort)
 
         Thread.sleep(7000)
 
@@ -528,7 +585,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(consumer_1.partitionsRevoked.get().isEmpty)
         assert(consumer_1.partitionsAssigned.get().size == partitions / 2)
 
-        val consumer_2 = spawn
+        val consumer_2 = spawn(config.kafkaPort)
 
         Thread.sleep(7000)
 
@@ -542,6 +599,28 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
     }
+
+/*    "X" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val entity = Entities.Events.eventExample()
+        val entityAsString = entity.toString
+
+        createCustomTopic("com.ubirch.eventlog", partitions = 2)
+
+        (1 to 2000).foreach(_ => publishStringMessageToKafka("com.ubirch.eventlog", entityAsString))
+
+        spawn2
+        spawn2
+
+        Thread.sleep(10000)
+
+      }
+
+    }*/
 
   }
 
