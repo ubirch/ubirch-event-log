@@ -3,12 +3,11 @@ package com.ubirch.services.kafka.consumer
 import java.util
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
 
-import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ ShutdownableThread, UUIDHelper }
+import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.Deserializer
@@ -33,17 +32,9 @@ trait ConsumerRecordsController[K, V] {
 }
 
 abstract class ConsumerRunner[K, V](name: String)
-  extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with LazyLogging {
+  extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with VersionedLazyLogging {
 
-  override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
-    val iterator = partitions.iterator().asScala
-    iterator.foreach(x => logger.debug(s"onPartitionsRevoked: [${x.topic()}-${x.partition()}]"))
-  }
-
-  override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = {
-    val iterator = partitions.iterator().asScala
-    iterator.foreach(x => logger.debug(s"OnPartitionsAssigned: [${x.topic()}-${x.partition()}]"))
-  }
+  override val version: AtomicInteger = ConsumerRunner.version
 
   private var consumer: Consumer[K, V] = _
 
@@ -88,6 +79,8 @@ abstract class ConsumerRunner[K, V](name: String)
           val count = consumerRecords.count()
 
           if (!getIsPaused.get() && count > 0) {
+
+            logger.debug("Polling...[{}]", count)
 
             val batchCountDown = new CountDownLatch(count)
 
@@ -196,10 +189,10 @@ abstract class ConsumerRunner[K, V](name: String)
           logger.debug("Subscribing to [{}] with external rebalance strategy [{}]", topics.mkString(" "), rebalancer.getClass.getCanonicalName)
           consumer.subscribe(topicsAsJava, rebalancer)
         case _ if getUseSelfAsRebalanceListener =>
-          logger.debug("Subscribing to {} with self rebalance strategy", topics.mkString(" "))
+          logger.debug("Subscribing to [{}] with self rebalance strategy", topics.mkString(" "))
           consumer.subscribe(topicsAsJava, this)
         case _ =>
-          logger.debug("Subscribing to {} with no rebalance strategy", topics.mkString(" "))
+          logger.debug("Subscribing to [{}] with no rebalance strategy", topics.mkString(" "))
           consumer.subscribe(topicsAsJava)
       }
 
@@ -208,6 +201,34 @@ abstract class ConsumerRunner[K, V](name: String)
     }
   }
 
+  override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    partitionsRevoked.set(Set.empty)
+    iterator.foreach { x =>
+      partitionsRevoked.set(partitionsRevoked.get ++ Set(x))
+      logger.debug(s"onPartitionsRevoked: [${x.topic()}-${x.partition()}]")
+    }
+
+  }
+
+  override def onPartitionsAssigned(partitions: util.Collection[TopicPartition]): Unit = {
+    val iterator = partitions.iterator().asScala
+    partitionsAssigned.set(Set.empty)
+    iterator.foreach { x =>
+      partitionsAssigned.set(partitionsAssigned.get ++ Set(x))
+      logger.debug(s"OnPartitionsAssigned: [${x.topic()}-${x.partition()}]")
+    }
+  }
+
+  //This is here just for testing rebalancing and it is only visible when
+  //The rebalancing strategy is self mananaged
+  val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
+  val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
+
   def startPolling(): Unit = start()
 
+}
+
+object ConsumerRunner {
+  val version: AtomicInteger = new AtomicInteger(0)
 }

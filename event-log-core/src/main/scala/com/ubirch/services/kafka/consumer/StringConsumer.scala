@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -8,9 +9,8 @@ import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.Exceptions.NeedForShutDownException
 import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
+import com.ubirch.util.{ URLsHelper, UUIDHelper, VersionedLazyLogging }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
@@ -50,7 +50,9 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
 
 }
 
-class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener with LazyLogging {
+class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener with VersionedLazyLogging {
+
+  override val version: AtomicInteger = DefaultConsumerRebalanceListener.version
 
   override def onPartitionsRevoked(partitions: util.Collection[TopicPartition]): Unit = {
     val iterator = partitions.iterator().asScala
@@ -65,8 +67,13 @@ class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends C
 }
 
 object DefaultConsumerRebalanceListener {
-  def apply[K, V](consumer: Consumer[K, V]): DefaultConsumerRebalanceListener[K, V] =
+
+  val version: AtomicInteger = new AtomicInteger(0)
+
+  def apply[K, V](consumer: Consumer[K, V]): DefaultConsumerRebalanceListener[K, V] = {
     new DefaultConsumerRebalanceListener(consumer)
+  }
+
 }
 
 class DefaultStringConsumer @Inject() (
