@@ -62,7 +62,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val filtered = filter(consumerRecord)
 
-      assert(filtered.consumerRecord.value() == dataAsString)
+      assert(await(filtered, 2 seconds).consumerRecord.value() == dataAsString)
 
     }
 
@@ -76,12 +76,13 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val filter = new FilterEmpty
 
-      assertThrows[EmptyValueException](filter(consumerRecord))
+      assertThrows[EmptyValueException](await(filter(consumerRecord), 2 seconds))
 
     }
   }
 
   "EventLogParser" must {
+
     "parse successfully" in {
 
       val data = Entities.Events.eventExample()
@@ -94,7 +95,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val eventLogParser = new EventLogParser
 
-      val parsed = eventLogParser(pipeData)
+      val parsed = await(eventLogParser(Future.successful(pipeData)), 2 seconds)
 
       assert(parsed == pipeData.copy(eventLog = Some(data)))
 
@@ -112,7 +113,8 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(pipeData))
+      val parsed = eventLogParser(Future.successful(pipeData))
+      assertThrows[ParsingIntoEventLogException](await(parsed, 2 seconds))
 
     }
 
@@ -128,13 +130,16 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val eventLogParser = new EventLogParser
 
-      assertThrows[ParsingIntoEventLogException](eventLogParser(pipeData))
+      val parsed = eventLogParser(Future.successful(pipeData))
+
+      assertThrows[ParsingIntoEventLogException](await(parsed, 2 seconds))
 
     }
 
   }
 
   "EventsStore" must {
+
     "store successfully" in {
 
       val data = Entities.Events.eventExample()
@@ -155,7 +160,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val eventsStore = new EventsStore(events)
 
-      eventsStore(pipeData)
+      await(eventsStore(Future.successful(pipeData)), 2 seconds)
 
       await(promiseTest.future, 10 seconds)
 
@@ -179,7 +184,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       when(consumerRecord.value()).thenReturn(data.toString)
 
-      val pipeData = PipeData(consumerRecord, None)
+      val pipeData = Future.successful(PipeData(consumerRecord, None))
 
       val eventsStore = new EventsStore(events)
 
@@ -203,7 +208,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       when(consumerRecord.value()).thenReturn(data.toString)
 
-      val pipeData = PipeData(consumerRecord, None)
+      val pipeData = Future.successful(PipeData(consumerRecord, None))
 
       val eventsStore = new EventsStore(events)
 

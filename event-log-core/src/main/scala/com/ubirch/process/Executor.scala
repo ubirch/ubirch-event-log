@@ -32,9 +32,9 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * Executor that filters ConsumerRecords values.
   */
 
-class FilterEmpty extends Executor[ConsumerRecord[String, String], PipeData] {
+class FilterEmpty @Inject() (implicit ec: ExecutionContext) extends Executor[ConsumerRecord[String, String], Future[PipeData]] {
 
-  override def apply(v1: ConsumerRecord[String, String]): PipeData = {
+  override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = Future {
     val pd = PipeData(v1, None)
     if (v1.value().nonEmpty) {
       pd
@@ -48,11 +48,11 @@ class FilterEmpty extends Executor[ConsumerRecord[String, String], PipeData] {
 /**
   * Executor that transforms a ConsumerRecord into an EventLog
   */
-class EventLogParser
-  extends Executor[PipeData, PipeData]
+class EventLogParser @Inject() (implicit ec: ExecutionContext)
+  extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
 
-  override def apply(v1: PipeData): PipeData = {
+  override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
       val eventLog = FromString[EventLog](v1.consumerRecord.value()).get
       v1.copy(eventLog = Some(eventLog))
@@ -73,10 +73,10 @@ class EventLogParser
   * @param ec Represent the execution context for asynchronous processing.
   */
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
-  extends Executor[PipeData, Future[PipeData]]
+  extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
 
-  override def apply(v1: PipeData): Future[PipeData] = {
+  override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
 
       events.insert(el).map(_ => v1).recover {

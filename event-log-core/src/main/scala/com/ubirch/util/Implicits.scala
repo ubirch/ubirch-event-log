@@ -4,7 +4,7 @@ import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
 import com.ubirch.models.TimeInfo
-import org.joda.time.DateTime
+import org.joda.time.{ DateTime, Seconds }
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
@@ -17,9 +17,16 @@ import scala.language.implicitConversions
   */
 case class EnrichedDate(date: Date) {
 
-  def buildDateTime = new DateTime(date)
+  protected def buildDateTime(date: Date): DateTime = new DateTime(date)
 
-  def buildTimeInfo = EnrichedDatetime(buildDateTime).buildTimeInfo
+  def buildDateTime: DateTime = buildDateTime(date)
+
+  val enrichedDatetime = EnrichedDatetime(buildDateTime)
+
+  def buildTimeInfo: TimeInfo = enrichedDatetime.buildTimeInfo
+
+  def secondsBetween(otherTime: Date): Int = enrichedDatetime.secondsBetween(buildDateTime(otherTime))
+
 }
 
 /**
@@ -27,7 +34,10 @@ case class EnrichedDate(date: Date) {
   * @param dateTime Represents the dateTime that gets enriched.
   */
 case class EnrichedDatetime(dateTime: DateTime) {
-  def buildTimeInfo = TimeInfo(
+
+  def secondsBetween(otherTime: DateTime): Int = Seconds.secondsBetween(dateTime, otherTime).getSeconds
+
+  def buildTimeInfo: TimeInfo = TimeInfo(
     year = dateTime.year().get(),
     month = dateTime.monthOfYear().get(),
     day = dateTime.dayOfMonth().get(),
