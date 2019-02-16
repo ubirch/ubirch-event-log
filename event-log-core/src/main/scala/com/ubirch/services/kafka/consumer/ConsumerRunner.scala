@@ -72,11 +72,19 @@ abstract class ConsumerRunner[K, V](name: String)
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
-      var failed = scala.collection.immutable.Vector.empty[Throwable]
-
+      @volatile var failed = scala.collection.immutable.Vector.empty[Throwable]
       val commitAttempts = new AtomicInteger(maxCommitAttempts)
 
-      def commit() = consumer.commitSync()
+      def scheduleResume(): Future[Unit] = {
+        Future {
+          blocking {
+            Thread.sleep(getPauseDuration)
+            failed = failed :+ NeedForResumeException(s"Restarting after a $getPauseDuration millis Sleep...")
+          }
+        }
+      }
+
+      def commit(): Unit = consumer.commitSync()
 
       while (getRunning) {
 
@@ -86,8 +94,6 @@ abstract class ConsumerRunner[K, V](name: String)
           val count = consumerRecords.count()
 
           if (!getIsPaused.get() && count > 0) {
-
-            logger.debug("Polling...[{}]", count)
 
             val batchCountDown = new CountDownLatch(count)
 
@@ -109,28 +115,27 @@ abstract class ConsumerRunner[K, V](name: String)
 
           }
 
-          val errors = failed
-          if (!getUseAutoCommit && errors.isEmpty && count > 0) {
-            commit()
-          } else {
-            failed = Vector()
+          if (failed.nonEmpty) {
+            logger.debug("Exceptions Registered... {}", failed.size)
+            val errors = failed
+            failed = Vector.empty
             errors.foreach(x => throw x)
+          }
+
+          if (!getUseAutoCommit && count > 0) {
+            commit()
+            logger.debug("Polling...[{}] ... Committed", count)
           }
 
         } catch {
           case _: NeedForPauseException =>
             val partitions = consumer.assignment()
-            logger.warn("NeedForPauseException: {}", partitions.toString)
+            logger.debug("NeedForPauseException: {}", partitions.toString)
             consumer.pause(partitions)
             getIsPaused.set(true)
-            Future {
-              blocking {
-                Thread.sleep(getPauseDuration)
-                failed = failed :+ NeedForResumeException(s"Restarting after a $getPauseDuration millis Sleep...")
-              }
-            }
+            scheduleResume()
           case e: NeedForResumeException =>
-            logger.warn("NeedForResumeException: {}", e.getMessage)
+            logger.debug("NeedForResumeException: {}", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
@@ -144,7 +149,7 @@ abstract class ConsumerRunner[K, V](name: String)
               commit()
             }
           case e: Throwable =>
-            logger.warn("Escalating  {}", e.getMessage)
+            logger.warn("Exception floor (1) ...  [{}]", e.getMessage)
             throw e
 
         }
@@ -165,7 +170,7 @@ abstract class ConsumerRunner[K, V](name: String)
         logger.error("NeedForShutDownException: {}", e.getMessage)
         startGracefulShutdown()
       case e: Exception =>
-        logger.error("Exception... {}", e.getMessage)
+        logger.error("Exception floor (0) ... [{}]", e.getMessage)
         startGracefulShutdown()
     } finally {
       if (consumer != null) consumer.close()

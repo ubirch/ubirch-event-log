@@ -1,22 +1,44 @@
 package com.ubirch.sdk
 
-import com.ubirch.util.ToJson
-import org.apache.kafka.common.config.provider.ConfigProvider
+import java.util.Date
+import java.util.concurrent.CountDownLatch
 
+import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.util.ToJson
+
+import scala.concurrent.Future
+import com.ubirch.util.Implicits.enrichedDate
 /**
   * Represents an example of how to use the EventLogging SDK
   */
-object SDKExample extends EventLogging {
+object SDKExample extends EventLogging with LazyLogging {
+
+  val loop = 10000
 
   case class Hello(name: String)
 
   def main(args: Array[String]): Unit = {
 
-    (1 to 100000).foreach { i =>
+    val startTime = new Date
+    logger.info("Current time: " + startTime)
+    logger.info("Sending data ... ")
+
+    val pingEvery = loop / 2
+    var current = 1
+
+    val sent = (1 to loop).map { _ =>
+
+      if (pingEvery == current) {
+        current = 1
+        logger.info("Sending {} more records", pingEvery)
+      }
+
+      current = current + 1
+
       //One Event From Case Class
       val log0 = log(Hello("Que más"))
 
-      log0.commit
+      val rLog0 = log0.commitAsync
 
       //From JValue
       val log1 = log(ToJson(Hello("Hola")).get, "My Category")
@@ -27,7 +49,7 @@ object SDKExample extends EventLogging {
       val log1_2 = log1 +> log2
 
       //Let's actually commit it
-      log1_2.commit
+      val rLog1_2 = log1_2.commitAsync
 
       //Another Log From A Case Class
       val log3 = log(Hello("Hola"), "Category")
@@ -38,7 +60,7 @@ object SDKExample extends EventLogging {
       val log3_4 = log3 <+ log4
 
       //Let's actually commit it
-      log3_4.commit
+      val rLog3_4 = log3_4.commitAsync
 
       //Wanna have list of events and fold it
 
@@ -48,14 +70,14 @@ object SDKExample extends EventLogging {
         log(Hello("Hola"))
       )
 
-      foldedLogs.commit
+      val rFoldedLogs = foldedLogs.commitAsync
 
       //By default the service class is the class extending or mixing the EventLogging trait
       //But you can also change it
 
       val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
 
-      log5.commit
+      val rLog5 = log5.commitAsync
 
       //There are three types of commits supported
       // .commit
@@ -68,11 +90,38 @@ object SDKExample extends EventLogging {
       // It is like fire a forget.
 
       val log6 = log(Hello("Hallo"))
-      log6.commitAsync
+      val rLog6 = log6.commitAsync
 
       val log7 = log(Hello("Hi"))
-      log7.commitStealthAsync
-    }
+      val rLog7 = Future.successful(log7.commitStealthAsync)
+
+      val results = Vector(rLog0, rLog5, rLog6, rLog7) ++ rLog1_2 ++ rLog3_4 ++ rFoldedLogs
+
+      results
+
+    }.toVector.flatten
+
+    val countDown = new CountDownLatch(1)
+
+    Future.sequence(sent)
+      .map(_ => countDown.countDown())
+      .recover {
+        case e: Exception =>
+          countDown.countDown()
+          logger.error("Something happened: {}", e.getMessage)
+      }
+
+    logger.info("Data Sent, waiting on acknowledgement")
+
+    countDown.await()
+
+    val finishTime = new Date
+    val seconds = startTime.secondsBetween(finishTime)
+    logger.info("Finish date: " + finishTime)
+    logger.info("Total Records Sent:" + sent.size)
+    logger.info("Rate: " + sent.size / seconds + " records/seconds")
+    logger.info("Time Consumed:" + seconds + " seconds")
+
   }
 
 }
