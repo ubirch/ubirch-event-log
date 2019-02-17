@@ -75,13 +75,19 @@ abstract class ConsumerRunner[K, V](name: String)
       @volatile var failed = scala.collection.immutable.Vector.empty[Throwable]
       val commitAttempts = new AtomicInteger(maxCommitAttempts)
 
-      def scheduleResume(): Future[Unit] = {
+      def scheduleResume(pauseDuration: Int): Future[Unit] = {
         Future {
           blocking {
-            Thread.sleep(getPauseDuration)
-            failed = failed :+ NeedForResumeException(s"Restarting after a $getPauseDuration millis Sleep...")
+            Thread.sleep(pauseDuration)
+            failed = failed :+ NeedForResumeException(s"Restarting after a $pauseDuration millis sleep...")
           }
         }
+      }
+
+      def handleException(): Unit = {
+        val errors = failed
+        failed = Vector.empty
+        errors.foreach(x => throw x)
       }
 
       def commit(): Unit = consumer.commitSync()
@@ -117,9 +123,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
           if (failed.nonEmpty) {
             logger.debug("Exceptions Registered... {}", failed.size)
-            val errors = failed
-            failed = Vector.empty
-            errors.foreach(x => throw x)
+            handleException()
           }
 
           if (!getUseAutoCommit && count > 0) {
@@ -133,7 +137,7 @@ abstract class ConsumerRunner[K, V](name: String)
             logger.debug("NeedForPauseException: {}", partitions.toString)
             consumer.pause(partitions)
             getIsPaused.set(true)
-            scheduleResume()
+            scheduleResume(getPauseDuration)
           case e: NeedForResumeException =>
             logger.debug("NeedForResumeException: {}", e.getMessage)
             val partitions = consumer.assignment()
