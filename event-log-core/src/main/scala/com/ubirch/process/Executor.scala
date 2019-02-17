@@ -32,13 +32,16 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * Executor that filters ConsumerRecords values.
   */
 
-class FilterEmpty @Inject() (implicit ec: ExecutionContext) extends Executor[ConsumerRecord[String, String], Future[PipeData]] {
+class FilterEmpty @Inject() (implicit ec: ExecutionContext)
+  extends Executor[ConsumerRecord[String, String], Future[PipeData]]
+  with LazyLogging {
 
   override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = Future {
     val pd = PipeData(v1, None)
     if (v1.value().nonEmpty) {
       pd
     } else {
+      logger.error("Record is empty")
       throw EmptyValueException("Record is empty", pd)
     }
   }
@@ -149,7 +152,6 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
-
       reporter.report(
         Error(
           id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),

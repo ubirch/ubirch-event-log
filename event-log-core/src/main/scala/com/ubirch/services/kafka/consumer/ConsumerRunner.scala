@@ -107,7 +107,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
             val batchCountDown = new CountDownLatch(count)
 
-            val iterator = consumerRecords.iterator().asScala.filterNot(cr => isValueEmpty(cr.value()))
+            val iterator = consumerRecords.iterator().asScala
             iterator.foreach { cr =>
               val processing = process(cr)
               processing.onComplete {
@@ -121,12 +121,14 @@ abstract class ConsumerRunner[K, V](name: String)
             }
 
             //TODO: probably we should add a timeout
+            logger.debug("Waiting on Aggregation [{}]", count)
             batchCountDown.await()
+            logger.debug("Aggregation Finished")
 
           }
 
           if (failed.nonEmpty) {
-            logger.debug("Exceptions Registered... {}", failed.size)
+            logger.debug("Exceptions Registered... [{}]", failed.mkString(", "))
             handleException()
           }
 
@@ -134,7 +136,7 @@ abstract class ConsumerRunner[K, V](name: String)
             val finishTime = new Instant()
             val seconds = startInstant.millisBetween(finishTime)
             commit()
-            logger.debug("Polling ...[{} records] ... Committed ... [{} millis]", count, seconds)
+            logger.debug("Polled ... [{} records] ... Committed ... [{} millis]", count, seconds)
           }
 
         } catch {
@@ -159,7 +161,7 @@ abstract class ConsumerRunner[K, V](name: String)
               commit()
             }
           case e: Throwable =>
-            logger.warn("Exception floor (1) ...  [{}]", e.getMessage)
+            logger.error("Exception floor (1) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, e.getMessage)
             throw e
 
         }
@@ -180,7 +182,7 @@ abstract class ConsumerRunner[K, V](name: String)
         logger.error("NeedForShutDownException: {}", e.getMessage)
         startGracefulShutdown()
       case e: Exception =>
-        logger.error("Exception floor (0) ... [{}]", e.getMessage)
+        logger.warn("Exception floor (0) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, e.getMessage)
         startGracefulShutdown()
     } finally {
       if (consumer != null) consumer.close()
