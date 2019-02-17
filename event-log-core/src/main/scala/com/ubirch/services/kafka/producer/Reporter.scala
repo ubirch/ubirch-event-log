@@ -1,6 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.util.{ JavaFutureHelper, ProducerRecordHelper, ToJson }
@@ -27,7 +28,7 @@ trait ReporterMagnet {
   * @param config Represents the injected configuration component.
   */
 @Singleton
-class Reporter @Inject() (producerManager: StringProducer, config: Config) {
+class Reporter @Inject() (producerManager: StringProducer, config: Config) extends LazyLogging {
 
   import ConfPaths.Producer._
 
@@ -40,6 +41,8 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) {
       override type Result = Future[RecordMetadata]
 
       override def apply(): Result = {
+        logger.debug("Reporting error [{}]", error.toString)
+
         val payload = ToJson[Error](error).get
         val eventLog = EventLog(getClass.getName, topic, payload)
 

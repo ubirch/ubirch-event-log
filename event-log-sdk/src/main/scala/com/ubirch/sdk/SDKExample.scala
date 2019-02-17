@@ -1,13 +1,13 @@
 package com.ubirch.sdk
 
-import java.util.Date
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.ToJson
 
 import scala.concurrent.Future
-import com.ubirch.util.Implicits.enrichedDate
+import com.ubirch.util.Implicits.enrichedInstant
+import org.joda.time.Instant
 
 import scala.util.Try
 /**
@@ -21,7 +21,7 @@ object SDKExample extends EventLogging with LazyLogging {
 
     val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(10000)
 
-    val startTime = new Date
+    val startTime = new Instant()
     logger.info("Current time: " + startTime)
     logger.info("Sending data ... ")
 
@@ -117,12 +117,12 @@ object SDKExample extends EventLogging with LazyLogging {
 
     countDown.await()
 
-    val finishTime = new Date
-    val seconds = startTime.secondsBetween(finishTime)
+    val finishTime = new Instant()
+    val millis = startTime.millisBetween(finishTime)
     logger.info("Finish date: " + finishTime)
     logger.info("Total Records Sent:" + sent.size)
-    logger.info("Rate: " + sent.size / seconds + " records/seconds")
-    logger.info("Time Consumed:" + seconds + " seconds")
+    logger.info("Rate: " + BigDecimal(sent.size) / BigDecimal(millis) + " records/millis")
+    logger.info("Time Consumed:" + millis + " millis")
 
   }
 
@@ -136,7 +136,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
 
     val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(500)
 
-    val startTime = new Date
+    val startTime = new Instant()
     logger.info("Current time: " + startTime)
     logger.info("Sending data ... ")
 
@@ -159,12 +159,12 @@ object SDKExample2 extends EventLogging with LazyLogging {
 
     countDown.await()
 
-    val finishTime = new Date
-    val seconds = startTime.secondsBetween(finishTime)
+    val finishTime = new Instant()
+    val millis = startTime.millisBetween(finishTime)
     logger.info("Finish date: " + finishTime)
     logger.info("Total Records Sent:" + loop)
-    logger.info("Rate: " + loop / seconds + " records/seconds")
-    logger.info("Time Consumed:" + seconds + " seconds")
+    logger.info("Rate: " + BigDecimal(loop) / BigDecimal(millis) + " records/millis")
+    logger.info("Time Consumed:" + millis + " seconds")
 
   }
 
