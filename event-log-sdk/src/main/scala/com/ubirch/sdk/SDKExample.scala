@@ -8,16 +8,18 @@ import com.ubirch.util.ToJson
 
 import scala.concurrent.Future
 import com.ubirch.util.Implicits.enrichedDate
+
+import scala.util.Try
 /**
   * Represents an example of how to use the EventLogging SDK
   */
 object SDKExample extends EventLogging with LazyLogging {
 
-  val loop = 10000
-
   case class Hello(name: String)
 
   def main(args: Array[String]): Unit = {
+
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(10000)
 
     val startTime = new Date
     logger.info("Current time: " + startTime)
@@ -120,6 +122,48 @@ object SDKExample extends EventLogging with LazyLogging {
     logger.info("Finish date: " + finishTime)
     logger.info("Total Records Sent:" + sent.size)
     logger.info("Rate: " + sent.size / seconds + " records/seconds")
+    logger.info("Time Consumed:" + seconds + " seconds")
+
+  }
+
+}
+
+object SDKExample2 extends EventLogging with LazyLogging {
+
+  case class Hello(name: String)
+
+  def main(args: Array[String]): Unit = {
+
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(500)
+
+    val startTime = new Date
+    logger.info("Current time: " + startTime)
+    logger.info("Sending data ... ")
+
+    val sent = (1 to loop).map { _ =>
+      val log0 = log(Hello("Que más"))
+      log0.commitAsync
+    }
+
+    val countDown = new CountDownLatch(1)
+
+    Future.sequence(sent)
+      .map(_ => countDown.countDown())
+      .recover {
+        case e: Exception =>
+          countDown.countDown()
+          logger.error("Something happened: {}", e.getMessage)
+      }
+
+    logger.info("Data Sent, waiting on acknowledgement")
+
+    countDown.await()
+
+    val finishTime = new Date
+    val seconds = startTime.secondsBetween(finishTime)
+    logger.info("Finish date: " + finishTime)
+    logger.info("Total Records Sent:" + loop)
+    logger.info("Rate: " + loop / seconds + " records/seconds")
     logger.info("Time Consumed:" + seconds + " seconds")
 
   }

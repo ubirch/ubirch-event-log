@@ -7,11 +7,13 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReferen
 
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
+import com.ubirch.util.Implicits.enrichedInstant
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.Deserializer
+import org.joda.time.Instant
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
@@ -96,6 +98,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
+          val startInstant = new Instant()
+
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
 
@@ -127,8 +131,10 @@ abstract class ConsumerRunner[K, V](name: String)
           }
 
           if (!getUseAutoCommit && count > 0) {
+            val finishTime = new Instant()
+            val seconds = startInstant.millisBetween(finishTime)
             commit()
-            logger.debug("Polling...[{}] ... Committed", count)
+            logger.debug("Polling ...[{} records] ... Committed ... [{} millis]", count, seconds)
           }
 
         } catch {

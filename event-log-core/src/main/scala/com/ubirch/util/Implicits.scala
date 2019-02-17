@@ -4,7 +4,7 @@ import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
 import com.ubirch.models.TimeInfo
-import org.joda.time.{ DateTime, Seconds }
+import org.joda.time._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
@@ -26,6 +26,12 @@ case class EnrichedDate(date: Date) {
   def buildTimeInfo: TimeInfo = enrichedDatetime.buildTimeInfo
 
   def secondsBetween(otherTime: Date): Int = enrichedDatetime.secondsBetween(buildDateTime(otherTime))
+
+}
+
+case class EnrichedInstant(instant: Instant) {
+
+  def millisBetween(other: Instant): Long = new Duration(instant, other).getMillis
 
 }
 
@@ -92,6 +98,8 @@ case class EnrichedConfig(config: Config) {
   * Util that contains the implicits to create enriched values.
   */
 object Implicits {
+
+  implicit def enrichedInstant(instant: Instant): EnrichedInstant = EnrichedInstant(instant)
 
   implicit def enrichedDate(date: Date): EnrichedDate = EnrichedDate(date)
 
