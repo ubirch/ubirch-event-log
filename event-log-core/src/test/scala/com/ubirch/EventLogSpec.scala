@@ -249,6 +249,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         res1 must contain theSameElementsAs entities
         res1.size must be(entities.size)
 
+        Thread.sleep(1000)
+
+        assert(!consumer.getIsPaused.get())
+
       }
 
     }
