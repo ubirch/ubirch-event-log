@@ -20,8 +20,16 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
+/**
+  * Represents the ProcessResult implementation for a the string consumer.
+  * @param consumerRecord Represents the data received in the poll from Kafka
+  * @param eventLog Represents the event log type. It is here for informative purposes.
+  */
 case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String]
 
+/**
+  * Represents a concrete data type for a consumer runner of type Consumer[String, String]
+  */
 class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
 
   override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
@@ -30,6 +38,13 @@ class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thr
 
 }
 
+/**
+  * Represents a concrete records controller for the string consumer.
+  * This class can be thought of as a the glue for the consumer and the executor.
+  * It defines the executor and the error exception handler and the error reporter.
+  * @param defaultExecutor Represents the execution pipeline that processes the consumer records.
+  * @param ec Represent the execution context for asynchronous processing.
+  */
 @Singleton
 class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
   extends ConsumerRecordsController[String, String]
@@ -48,6 +63,12 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
 
 }
 
+/**
+  * Represents a simple rebalance listener that can be plugged into the consumer.
+  * @param consumer Represents an instance a consumer.
+  * @tparam K Represents the type of the Key for the consumer.
+  * @tparam V Represents the type of the Value for the consumer.
+  */
 class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener with VersionedLazyLogging {
 
   override val version: AtomicInteger = DefaultConsumerRebalanceListener.version
@@ -64,6 +85,9 @@ class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends C
 
 }
 
+/**
+  * Represents the companion object for the Rebalance Listener
+  */
 object DefaultConsumerRebalanceListener {
 
   val version: AtomicInteger = new AtomicInteger(0)
@@ -74,6 +98,14 @@ object DefaultConsumerRebalanceListener {
 
 }
 
+/**
+  * Represents a string consumer provider. Basically, it plugs in
+  * configurations and shutdown hooks.
+  * @param config Represents a config instance.
+  * @param lifecycle Represents a lifecycle service instance to register shutdown hooks.
+  * @param controller Represents a the records controllers for the consumer.
+  * @param ec Represent the execution context for asynchronous processing.
+  */
 class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,

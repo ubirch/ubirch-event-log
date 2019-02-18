@@ -30,6 +30,7 @@ trait Executor[-T1, +R] extends (T1 => R) {
 
 /**
   * Executor that filters ConsumerRecords values.
+  * @param ec Represent the execution context for asynchronous processing.
   */
 
 class FilterEmpty @Inject() (implicit ec: ExecutionContext)
@@ -50,6 +51,7 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
 
 /**
   * Executor that transforms a ConsumerRecord into an EventLog
+  * @param ec Represent the execution context for asynchronous processing.
   */
 class EventLogParser @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
@@ -161,13 +163,13 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
         )
       )
 
-      val t = e.pipeData.eventLog.map { el =>
+      val res = e.pipeData.eventLog.map { el =>
         Future.failed(NeedForPauseException("Requesting Pause", el, e.getMessage))
       }.getOrElse {
         Future.successful(e.pipeData)
       }
 
-      t
+      res
 
   }
 
