@@ -28,8 +28,6 @@ class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thr
     getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("Hey, I don't what what this is")))
   }
 
-  override def isValueEmpty(v: String): Boolean = v.isEmpty
-
 }
 
 @Singleton
