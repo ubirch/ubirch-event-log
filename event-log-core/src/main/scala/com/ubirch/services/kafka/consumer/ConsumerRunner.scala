@@ -67,7 +67,23 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
-  def isValueEmpty(v: V): Boolean
+  private val pauses = new AtomicInteger(0)
+
+  private val isPauseUpwards = new AtomicBoolean(true)
+
+  private def amortizePauseDuration(): Int = {
+    // 10 => 512 => about 8.5 min
+    if (pauses.get() == 9) {
+      isPauseUpwards.set(false)
+    } else if (pauses.get() == 0) {
+      isPauseUpwards.set(true)
+    }
+    if (isPauseUpwards.get()) {
+      scala.math.pow(2, pauses.getAndIncrement()).toInt * getPauseDuration
+    } else {
+      scala.math.pow(2, pauses.getAndDecrement()).toInt * getPauseDuration
+    }
+  }
 
   override def execute(): Unit = {
     try {
@@ -142,12 +158,13 @@ abstract class ConsumerRunner[K, V](name: String)
         } catch {
           case _: NeedForPauseException =>
             val partitions = consumer.assignment()
-            logger.debug("NeedForPauseException: {}", partitions.toString)
             consumer.pause(partitions)
             getIsPaused.set(true)
-            scheduleResume(getPauseDuration)
+            val pause = amortizePauseDuration()
+            scheduleResume(pause)
+            logger.debug(s"NeedForPauseException: duration[{}] partitions[{}]", pause, partitions.toString)
           case e: NeedForResumeException =>
-            logger.debug("NeedForResumeException: {}", e.getMessage)
+            logger.debug("NeedForResumeException: [{}]", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
