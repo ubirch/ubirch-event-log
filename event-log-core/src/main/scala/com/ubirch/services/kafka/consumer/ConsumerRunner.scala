@@ -20,6 +20,13 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ Future, blocking }
 import scala.util.{ Failure, Success }
 
+/**
+  * Represents the result that is expected result for the consumption.
+  * This is helpful to return the consumer record and an identifiable record.
+  * This type is usually extended to support customized data.
+  * @tparam K Represents the type of the Key for the consumer.
+  * @tparam V Represents the type of the Value for the consumer.
+  */
 trait ProcessResult[K, V] {
 
   val id: UUID = UUIDHelper.randomUUID
@@ -28,12 +35,30 @@ trait ProcessResult[K, V] {
 
 }
 
+/**
+  * Represents the the type that is actually processes the consumer records.
+  * The consumer doesn't care about how it is processed, it can be with
+  * Futures, Actors, as long as the result type matches.
+  * @tparam K Represents the type of the Key for the consumer.
+  * @tparam V Represents the type of the Value for the consumer.
+  */
 trait ConsumerRecordsController[K, V] {
 
   def process[A >: ProcessResult[K, V]](consumerRecord: ConsumerRecord[K, V]): Future[A]
 
 }
 
+/**
+  * Represents a Consumer Runner for a Kafka Consumer.
+  * It supports back-pressure using the pause/unpause. The pause duration is amortized.
+  * It supports plugging rebalance strategies.
+  * It supports autocommit and not autocommit.
+  * It supports commit attempts.
+  * It supports to "floors" for exception management. This is allows to escalate exceptions.
+  * @param name Represents the Thread name
+  * @tparam K Represents the type of the Key for the consumer.
+  * @tparam V Represents the type of the Value for the consumer.
+  */
 abstract class ConsumerRunner[K, V](name: String)
   extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with VersionedLazyLogging {
 
@@ -73,16 +98,20 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private def amortizePauseDuration(): Int = {
     // 10 => 512 => about 8.5 min
-    if (pauses.get() == 9) {
+    if (pauses.get() == 10) {
       isPauseUpwards.set(false)
     } else if (pauses.get() == 0) {
       isPauseUpwards.set(true)
     }
-    if (isPauseUpwards.get()) {
-      scala.math.pow(2, pauses.getAndIncrement()).toInt * getPauseDuration
+
+    val ps = if (isPauseUpwards.get()) {
+      pauses.getAndIncrement()
     } else {
-      scala.math.pow(2, pauses.getAndDecrement()).toInt * getPauseDuration
+      pauses.getAndDecrement()
     }
+
+    scala.math.pow(2, ps).toInt * getPauseDuration
+
   }
 
   override def execute(): Unit = {
@@ -223,6 +252,19 @@ abstract class ConsumerRunner[K, V](name: String)
       kd.configure(props.asJava, true)
       vd.configure(props.asJava, false)
 
+      val isAutoCommit: Boolean = props
+        .filterKeys(x => ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG == x)
+        .exists {
+          case (_, b) =>
+            b.toString.toBoolean
+        }
+
+      if (isAutoCommit) {
+        setUseAutoCommit(true)
+      } else {
+        setUseAutoCommit(false)
+      }
+
       consumer = new KafkaConsumer[K, V](props.asJava, kd, vd)
 
     } catch {
@@ -281,6 +323,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
 }
 
+/**
+  * Simple Companion Object for the Consumer Runner
+  */
 object ConsumerRunner {
   val version: AtomicInteger = new AtomicInteger(0)
 }

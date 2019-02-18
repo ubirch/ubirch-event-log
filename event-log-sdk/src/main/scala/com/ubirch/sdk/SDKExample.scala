@@ -128,6 +128,10 @@ object SDKExample extends EventLogging with LazyLogging {
 
 }
 
+/**
+  * Represents an example of how to use the EventLogging SDK
+  * It sends only one type of message.
+  */
 object SDKExample2 extends EventLogging with LazyLogging {
 
   case class Hello(name: String)
@@ -164,7 +168,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
     logger.info("Finish date: " + finishTime)
     logger.info("Total Records Sent:" + loop)
     logger.info("Rate: " + BigDecimal(loop) / BigDecimal(millis) + " records/millis")
-    logger.info("Time Consumed:" + millis + " seconds")
+    logger.info("Time Consumed:" + millis + " millis")
 
   }
 
