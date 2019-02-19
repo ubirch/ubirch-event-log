@@ -6,6 +6,7 @@ import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
+import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
 import org.mockito.ArgumentMatchers.any
@@ -234,7 +235,8 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val family = DefaultExecutorFamily(
         new FilterEmpty(),
         new EventLogParser(),
-        new EventsStore(events)
+        new EventsStore(events),
+        new MetricsLogger()
       )
 
       val defaultExecutor = new DefaultExecutor(reporter, family)
@@ -260,6 +262,10 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
     }
 
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }

@@ -43,7 +43,12 @@
         <logback-classic.version>1.2.3</logback-classic.version>
         <log4j-over-slf4j.version>1.7.25</log4j-over-slf4j.version>
         <jcl-over-slf4j.version>1.7.25</jcl-over-slf4j.version>
-
+        <logstash-logback-encoder.version>5.3</logstash-logback-encoder.version>
+        <io.prometheus.simpleclient.version>0.6.0</io.prometheus.simpleclient.version>
+        <io.prometheus.simpleclient_hotspot.version>0.6.0</io.prometheus.simpleclient_hotspot.version>
+        <io.prometheus.simpleclient_httpserver.version>0.6.0</io.prometheus.simpleclient_httpserver.version>
+        <io.prometheus.simpleclient_logback.version>0.6.0</io.prometheus.simpleclient_logback.version>
+        <io.prometheus.simpleclient_graphite_bridge.version>0.6.0</io.prometheus.simpleclient_graphite_bridge.version>
 
         <!-- plugins -->
         <scalariform.version>0.2.2</scalariform.version>
@@ -108,7 +113,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>5.3</version>
+            <version>${logstash-logback-encoder.version}</version>
         </dependency>
 
         <!-- Logging -->
@@ -118,32 +123,32 @@
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient</artifactId>
-            <version>0.6.0</version>
+            <version>${io.prometheus.simpleclient.version}</version>
         </dependency>
         <!-- Hotspot JVM metrics-->
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_hotspot</artifactId>
-            <version>0.6.0</version>
+            <version>${io.prometheus.simpleclient_hotspot.version}</version>
         </dependency>
         <!-- Exposition HTTPServer-->
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_httpserver</artifactId>
-            <version>0.6.0</version>
+            <version>${io.prometheus.simpleclient_httpserver.version}</version>
         </dependency>
         <!-- SimpleClient_Logback -->
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_logback</artifactId>
-            <version>0.6.0</version>
+            <version>${io.prometheus.simpleclient_logback.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/io.prometheus/simpleclient_graphite_bridge -->
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_graphite_bridge</artifactId>
-            <version>0.6.0</version>
+            <version>${io.prometheus.simpleclient_graphite_bridge.version}</version>
         </dependency>
 
 

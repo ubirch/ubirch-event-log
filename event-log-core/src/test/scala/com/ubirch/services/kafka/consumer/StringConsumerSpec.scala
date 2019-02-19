@@ -14,6 +14,7 @@ import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEve
 import com.ubirch.util.{ ConfigProperties, FromString }
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.{ Entities, TestBase }
+import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -629,6 +630,10 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }*/
 
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }

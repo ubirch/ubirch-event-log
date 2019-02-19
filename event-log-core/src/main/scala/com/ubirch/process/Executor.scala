@@ -6,10 +6,12 @@ import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.{ FromString, UUIDHelper }
+import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 /**
   * Represents a process to be executed.
@@ -99,6 +101,25 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 }
 
+class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
+
+  final val counter = Counter.build()
+    .name("events_total").help("Total events.")
+    .labelNames("result")
+    .register()
+
+  override def apply(v1: Future[PipeData]): Future[PipeData] = {
+    v1.onComplete {
+      case Success(_) =>
+        counter.labels("success").inc()
+      case Failure(_) =>
+        counter.labels("failure").inc()
+    }
+
+    v1
+  }
+}
+
 /**
   * A convenience type to aggregate executors for later injection
   */
@@ -110,6 +131,8 @@ trait ExecutorFamily {
   def eventsStore: EventsStore
 
   def eventLogParser: EventLogParser
+
+  def metricsLogger: MetricsLogger
 
 }
 
@@ -123,7 +146,8 @@ trait ExecutorFamily {
 case class DefaultExecutorFamily @Inject() (
     filterEmpty: FilterEmpty,
     eventLogParser: EventLogParser,
-    eventsStore: EventsStore
+    eventsStore: EventsStore,
+    metricsLogger: MetricsLogger
 ) extends ExecutorFamily
 
 /**
@@ -141,19 +165,29 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
   private def uuid = timeBasedUUID
 
-  def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = filterEmpty andThen eventLogParser andThen eventsStore
+  final val counter: Counter = Counter.build()
+    .name("event_error_total")
+    .help("Total event errors.")
+    .labelNames("result")
+    .register()
+
+  def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] =
+    filterEmpty andThen eventLogParser andThen eventsStore andThen metricsLogger
 
   def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = composed
 
   //TODO We are not waiting for the error to be sent. We need to see if that maybe a problem
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
+      counter.labels("EmptyValueException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
+      counter.labels("ParsingIntoEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
+      counter.labels("StoringIntoEventLogException").inc()
       reporter.report(
         Error(
           id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),
