@@ -4,6 +4,7 @@ import com.google.inject.{ Guice, Injector }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.lifeCycle.JVMHook
+import com.ubirch.services.metrics.PrometheusMetrics
 import com.ubirch.util.Exceptions.{ InjectionException, InjectorCreationException }
 
 import scala.reflect._
@@ -54,10 +55,28 @@ object InjectorHelper extends InjectorHelper
 /**
   * Util that integrates an elegant way to add shut down hooks to the JVM.
   */
-trait Boot extends InjectorHelper {
+trait WithJVMHooks {
 
-  private def bootJVMHook() = get[JVMHook]
+  _: InjectorHelper =>
+
+  private def bootJVMHook(): JVMHook = get[JVMHook]
 
   bootJVMHook()
 
 }
+
+/**
+  * Util that integrates an elegant way to add shut down hooks to the JVM.
+  */
+trait WithPrometheusMetrics {
+
+  _: InjectorHelper =>
+
+  get[PrometheusMetrics]
+
+}
+
+/**
+  * Util that is used when starting the main service.
+  */
+trait Boot extends InjectorHelper with WithJVMHooks with WithPrometheusMetrics

@@ -26,4 +26,8 @@ object ConfPaths {
     final val ERROR_TOPIC_PATH = "eventLog.kafkaProducer.errorTopic"
   }
 
+  object Prometheus {
+    final val PORT = "eventLog.metrics.prometheus.port"
+  }
+
 }
