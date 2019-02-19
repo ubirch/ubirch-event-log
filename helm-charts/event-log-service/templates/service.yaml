@@ -10,7 +10,10 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
-    - name: java-debug
+    - name: prometheus-metrics
+      port: 4321
+      protocol: TCP
+    - name: jmx
       port: 9010
       protocol: TCP
   selector:

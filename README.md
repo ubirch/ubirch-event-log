@@ -32,3 +32,7 @@ particular project you may be interested in.
 **deleteEnvVariables.sh**: Removes the environment var. Very useful to use defaults again and run tests.
 
 **migrateDb.sh** Helps in the migration of the db evolution scripts.
+
+## Prometheus Metrics
+
+  http://localhost:4321/
