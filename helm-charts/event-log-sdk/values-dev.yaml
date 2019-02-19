@@ -2,7 +2,7 @@
 eventLog:
   replicaCount: 1
   kafkaProducer:
-    bootstrapServers: "10.244.1.56:9092,10.244.3.20:9092,10.244.5.37:9092"
+    bootstrapServers: "kafka.core-dev:9092"
     topic: "com.ubirch.eventlog"
 
 # The image tag might change depending

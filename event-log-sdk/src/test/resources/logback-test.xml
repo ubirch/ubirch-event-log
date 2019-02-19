@@ -16,6 +16,10 @@
 
 <configuration debug="false">
 
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+    <appender name="METRICS" class="io.prometheus.client.logback.InstrumentedAppender" />
+
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
         <encoder>
@@ -40,5 +44,9 @@
     <root level="INFO">
         <appender-ref ref="STDERR"/>
     </root>
+
+    <!--<root level="INFO">-->
+        <!--<appender-ref ref="METRICS" />-->
+    <!--</root>-->
 
 </configuration>
