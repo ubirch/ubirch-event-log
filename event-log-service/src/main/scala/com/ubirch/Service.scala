@@ -22,7 +22,7 @@ object Service extends Boot {
     //setDelaySingleRecord adds a pause to the single record processing.
     //setDelayRecords adds a pause to the whole polled records processing.
     //
-    //if both are 0, no delay is applied.
+    //if both are 0 millis, no delay is applied.
 
     //consumer.setDelaySingleRecord(1 micros)
     consumer.setDelayRecords(100 millis)
