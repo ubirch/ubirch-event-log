@@ -9,6 +9,7 @@ import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.Implicits.enrichedInstant
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
+import monix.reactive.Observable
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -17,8 +18,11 @@ import org.joda.time.Instant
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ Future, blocking }
 import scala.util.{ Failure, Success }
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 /**
   * Represents the result that is expected result for the consumption.
@@ -90,6 +94,10 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var maxCommitAttempts = 3
 
+  @BeanProperty var delaySingleRecord: FiniteDuration = 0 millis
+
+  @BeanProperty var delayRecords: FiniteDuration = 0 millis
+
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
   private val pauses = new AtomicInteger(0)
@@ -111,6 +119,19 @@ abstract class ConsumerRunner[K, V](name: String)
     }
 
     scala.math.pow(2, ps).toInt * getPauseDuration
+
+  }
+
+  def foldRecords(iterator: Iterator[ConsumerRecord[K, V]], delayOnNext: FiniteDuration, delaySubscription: FiniteDuration)(processRecord: ConsumerRecord[K, V] => Future[ProcessResult[K, V]]): Unit = {
+    if (delayOnNext == 0.millis && delaySubscription == 0.millis) {
+      iterator.foreach(processRecord)
+    } else {
+      Observable.fromIterator(iterator)
+        .delayOnNext(delayOnNext)
+        .delaySubscription(delaySubscription)
+        .mapFuture(processRecord)
+        .subscribe()(monix.execution.Scheduler.global)
+    }
 
   }
 
@@ -151,10 +172,8 @@ abstract class ConsumerRunner[K, V](name: String)
           if (!getIsPaused.get() && count > 0) {
 
             val batchCountDown = new CountDownLatch(count)
-
-            val iterator = consumerRecords.iterator().asScala
-            iterator.foreach { cr =>
-              val processing = process(cr)
+            def processRecord(consumerRecord: ConsumerRecord[K, V]) = {
+              val processing = process(consumerRecord)
               processing.onComplete {
                 case Success(_) =>
                   batchCountDown.countDown()
@@ -162,8 +181,11 @@ abstract class ConsumerRunner[K, V](name: String)
                   failed = failed :+ e
                   batchCountDown.countDown()
               }
-
+              processing
             }
+
+            val iterator = consumerRecords.iterator().asScala
+            foldRecords(iterator, getDelaySingleRecord, getDelayRecords)(processRecord)
 
             //TODO: probably we should add a timeout
             logger.debug("Waiting on Aggregation [{}]", count)
