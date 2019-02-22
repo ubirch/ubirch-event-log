@@ -3,8 +3,8 @@ package com.ubirch.services.metrics
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.lifeCycle.Lifecycle
-import io.prometheus.client.hotspot.DefaultExports
 import io.prometheus.client.exporter.HTTPServer
+import io.prometheus.client.hotspot.DefaultExports
 import javax.inject._
 
 import scala.concurrent.Future
