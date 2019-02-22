@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.{ JavaFutureHelper, ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ FutureHelper, ProducerRecordHelper, ToJson }
 import javax.inject._
 import org.apache.kafka.clients.producer.RecordMetadata
 
@@ -41,7 +41,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
       override type Result = Future[RecordMetadata]
 
       override def apply(): Result = {
-        logger.debug("Reporting error [{}]", error.toString)
+        //logger.debug("Reporting error [{}]", error.toString)
 
         val payload = ToJson[Error](error).get
         val eventLog = EventLog(getClass.getName, topic, payload)
@@ -55,7 +55,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
 
         val javaFutureSend = producerManager.producer.send(record)
 
-        JavaFutureHelper.toScalaFuture(javaFutureSend)
+        FutureHelper.fromJavaFuture(javaFutureSend)
 
       }
 

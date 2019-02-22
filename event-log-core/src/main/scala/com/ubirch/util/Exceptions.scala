@@ -2,6 +2,7 @@ package com.ubirch.util
 
 import com.ubirch.models.EventLog
 import com.ubirch.services.kafka.consumer.PipeData
+import org.apache.kafka.clients.consumer.CommitFailedException
 import org.apache.kafka.common.errors.TimeoutException
 
 /**
@@ -94,7 +95,7 @@ object Exceptions {
 
   //CONSUMER EXCEPTIONS
 
-  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: TimeoutException) extends ExecutionException(message)
+  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: Either[TimeoutException, CommitFailedException]) extends ExecutionException(message)
 
   case class ConsumerCreationException(message: String, reason: String) extends ExecutionException(message)
 
