@@ -44,7 +44,7 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
     if (v1.value().nonEmpty) {
       pd
     } else {
-      logger.error("Record is empty")
+      //logger.error("Record is empty")
       throw EmptyValueException("Record is empty", pd)
     }
   }
@@ -65,7 +65,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       v1.copy(eventLog = Some(eventLog))
     } catch {
       case e: Exception =>
-        logger.error("Error Parsing Event: " + e.getMessage)
+        //logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
 
@@ -88,12 +88,12 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
       events.insert(el).map(_ => v1).recover {
         case e: Exception =>
-          logger.error("Error storing data: " + e.getMessage)
+          //logger.error("Error storing data: " + e.getMessage)
           throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
       }
 
     }.getOrElse {
-      logger.error("Error storing data: EventLog Data Not Defined")
+      //logger.error("Error storing data: EventLog Data Not Defined")
       Future.successful(throw StoringIntoEventLogException("Error storing data", v1, "EventLog Data Not Defined"))
     }
 

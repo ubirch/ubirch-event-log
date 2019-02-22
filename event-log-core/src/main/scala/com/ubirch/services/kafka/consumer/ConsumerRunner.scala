@@ -7,9 +7,8 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReferen
 
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.Implicits.enrichedInstant
-import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
-import monix.reactive.Observable
+import com.ubirch.util.Implicits.{ enrichedInstant, enrichedIterator }
+import com.ubirch.util.{ FutureHelper, ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -18,11 +17,10 @@ import org.joda.time.Instant
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.concurrent.{ Future, blocking }
-import scala.util.{ Failure, Success }
-import scala.concurrent.duration._
 import scala.language.postfixOps
+import scala.util.{ Failure, Success }
 
 /**
   * Represents the result that is expected result for the consumption.
@@ -76,7 +74,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var pollTimeout: java.time.Duration = java.time.Duration.ofMillis(1000)
 
-  @BeanProperty var pauseDuration: Int = 1000
+  @BeanProperty var pauseDuration: FiniteDuration = 1000 millis
 
   @BeanProperty var keyDeserializer: Option[Deserializer[K]] = None
 
@@ -104,7 +102,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private val isPauseUpwards = new AtomicBoolean(true)
 
-  private def amortizePauseDuration(): Int = {
+  private def amortizePauseDuration(): FiniteDuration = {
     // 10 => 512 => about 8.5 min
     if (pauses.get() == 10) {
       isPauseUpwards.set(false)
@@ -118,20 +116,11 @@ abstract class ConsumerRunner[K, V](name: String)
       pauses.getAndDecrement()
     }
 
-    scala.math.pow(2, ps).toInt * getPauseDuration
+    val pauseDuration = getPauseDuration.toMillis
 
-  }
+    val amortized = scala.math.pow(2, ps).toInt * pauseDuration
 
-  def foldRecords(iterator: Iterator[ConsumerRecord[K, V]], delayOnNext: FiniteDuration, delaySubscription: FiniteDuration)(processRecord: ConsumerRecord[K, V] => Future[ProcessResult[K, V]]): Unit = {
-    if (delayOnNext == 0.millis && delaySubscription == 0.millis) {
-      iterator.foreach(processRecord)
-    } else {
-      Observable.fromIterator(iterator)
-        .delayOnNext(delayOnNext)
-        .delaySubscription(delaySubscription)
-        .mapFuture(processRecord)
-        .subscribe()(monix.execution.Scheduler.global)
-    }
+    FiniteDuration(amortized, MILLISECONDS)
 
   }
 
@@ -140,23 +129,8 @@ abstract class ConsumerRunner[K, V](name: String)
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
-      @volatile var failed = scala.collection.immutable.Vector.empty[Throwable]
-      val commitAttempts = new AtomicInteger(maxCommitAttempts)
-
-      def scheduleResume(pauseDuration: Int): Future[Unit] = {
-        Future {
-          blocking {
-            Thread.sleep(pauseDuration)
-            failed = failed :+ NeedForResumeException(s"Restarting after a $pauseDuration millis sleep...")
-          }
-        }
-      }
-
-      def handleException(): Unit = {
-        val errors = failed
-        failed = Vector.empty
-        errors.foreach(x => throw x)
-      }
+      val failed = new AtomicReference[Option[Throwable]](None)
+      val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
       def commit(): Unit = consumer.commitSync()
 
@@ -174,46 +148,51 @@ abstract class ConsumerRunner[K, V](name: String)
             val batchCountDown = new CountDownLatch(count)
             def processRecord(consumerRecord: ConsumerRecord[K, V]) = {
               val processing = process(consumerRecord)
+
               processing.onComplete {
                 case Success(_) =>
                   batchCountDown.countDown()
                 case Failure(e) =>
-                  failed = failed :+ e
+                  failed.set(Some(e))
                   batchCountDown.countDown()
               }
+
               processing
             }
 
-            val iterator = consumerRecords.iterator().asScala
-            foldRecords(iterator, getDelaySingleRecord, getDelayRecords)(processRecord)
+            lazy val iterator = consumerRecords.iterator().asScala
+
+            if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
+              iterator.foreach(processRecord)
+            } else {
+              iterator.delayOnNext(getDelaySingleRecord).consumeWithFinalDelay(processRecord)(getDelayRecords)
+            }
 
             //TODO: probably we should add a timeout
-            logger.debug("Waiting on Aggregation [{}]", count)
             batchCountDown.await()
-            logger.debug("Aggregation Finished")
 
           }
 
-          if (failed.nonEmpty) {
-            logger.debug("Exceptions Registered... [{}]", failed.mkString(", "))
-            handleException()
-          }
+          failed.getAndSet(None).foreach { f => throw f }
 
           if (!getUseAutoCommit && count > 0) {
             val finishTime = new Instant()
             val seconds = startInstant.millisBetween(finishTime)
             commit()
-            logger.debug("Polled ... [{} records] ... Committed ... [{} millis]", count, seconds)
+            logger.debug("Polled and Committed ... [{} records] ... [{} millis]", count, seconds)
           }
 
         } catch {
           case _: NeedForPauseException =>
+            import monix.execution.Scheduler.{ global => scheduler }
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
             val pause = amortizePauseDuration()
-            scheduleResume(pause)
-            logger.debug(s"NeedForPauseException: duration[{}] partitions[{}]", pause, partitions.toString)
+            scheduler.scheduleOnce(pause) {
+              failed.set(Some(NeedForResumeException(s"Restarting after a $pause millis sleep...")))
+            }
+            logger.debug(s"NeedForPauseException: duration[{}] pause cycle[{}] partitions[{}]", pause, pauses.get(), partitions.toString)
           case e: NeedForResumeException =>
             logger.debug("NeedForResumeException: [{}]", e.getMessage)
             val partitions = consumer.assignment()
@@ -224,9 +203,15 @@ abstract class ConsumerRunner[K, V](name: String)
             logger.error("Trying one more time")
             val currentAttempts = commitAttempts.decrementAndGet()
             if (currentAttempts == 0) {
-              throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", e)
+              throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
             } else {
               commit()
+            }
+          case e: CommitFailedException =>
+            logger.error("Commit failed {}", e.getMessage)
+            val currentAttempts = commitAttempts.decrementAndGet()
+            if (currentAttempts == 0) {
+              throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Right(e))
             }
           case e: Throwable =>
             logger.error("Exception floor (1) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, e.getMessage)
