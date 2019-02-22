@@ -11,8 +11,8 @@ import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.{ ConfigProperties, FromString }
 import com.ubirch.util.Implicits.configsToProps
+import com.ubirch.util.{ ConfigProperties, FromString }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -509,11 +509,103 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         Thread.sleep(5000)
 
+        assert(consumer.getPausedHistory.get() == 1)
+
+        Thread.sleep(5000)
+
+        assert(consumer.getUnPausedHistory.get() == 1)
+
+      }
+
+    }
+
+    "run an NeedForPauseException and pause and then unpause when throttling" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val entity = Entities.Events.eventExample()
+        val entityAsString = entity.toString
+
+        publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
+
+        val promiseTestSuccess = Promise[Unit]()
+
+        val lifeCycle = mock[DefaultLifecycle]
+
+        val reporter = mock[Reporter]
+
+        when(reporter.Types).thenCallRealMethod()
+        import reporter.Types._
+
+        when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
+          Future.successful(
+            new RecordMetadata(
+              new TopicPartition("topic", 1),
+              1,
+              1,
+              new Date().getTime,
+              1L,
+              1,
+              1
+            )
+          )
+        }
+
+        val executionFamily = mock[ExecutorFamily]
+
+        val executor = new DefaultExecutor(reporter, executionFamily) {
+          override def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
+              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+
+                val promiseTest = Promise[PipeData]()
+
+                val exception = StoringIntoEventLogException("OH OH", PipeData(v1, Some(entity)), "OOPS")
+
+                promiseTestSuccess.completeWith(Future.unit)
+
+                promiseTest.completeWith(Future.failed(exception))
+                promiseTest.future
+
+              }
+            }
+          }
+        }
+
+        val consumer = new DefaultStringConsumer(
+          ConfigFactory.load(),
+          lifeCycle,
+          new DefaultConsumerRecordsController(executor)
+        ) {
+          override def configs: ConfigProperties = {
+            Configs(
+              bootstrapServers = "localhost:" + config.kafkaPort,
+              groupId = "My_Group_ID",
+              enableAutoCommit = false,
+              autoOffsetReset = OffsetResetStrategy.EARLIEST
+            )
+          }
+
+        }.get()
+
+        consumer.setUseSelfAsRebalanceListener(false)
+
+        consumer.setDelaySingleRecord(10 millis)
+        consumer.setDelayRecords(1000 millis)
+
+        consumer.startPolling()
+
+        Thread.sleep(5000)
+
+        assert(consumer.getPausedHistory.get() == 1)
         assert(consumer.isPaused.get())
 
         Thread.sleep(5000)
 
         assert(!consumer.isPaused.get())
+        assert(consumer.getUnPausedHistory.get() == 1)
 
       }
 

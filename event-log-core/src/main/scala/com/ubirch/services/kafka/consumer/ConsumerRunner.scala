@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReferen
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.Implicits.{ enrichedInstant, enrichedIterator }
-import com.ubirch.util.{ FutureHelper, ShutdownableThread, UUIDHelper, VersionedLazyLogging }
+import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -17,8 +17,8 @@ import org.joda.time.Instant
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.concurrent.{ Future, blocking }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
@@ -188,6 +188,7 @@ abstract class ConsumerRunner[K, V](name: String)
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
+            getPausedHistory.set(getPausedHistory.get() + 1)
             val pause = amortizePauseDuration()
             scheduler.scheduleOnce(pause) {
               failed.set(Some(NeedForResumeException(s"Restarting after a $pause millis sleep...")))
@@ -198,6 +199,7 @@ abstract class ConsumerRunner[K, V](name: String)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
+            getUnPausedHistory.set(getUnPausedHistory.get() + 1)
           case e: TimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
             logger.error("Trying one more time")
@@ -325,6 +327,8 @@ abstract class ConsumerRunner[K, V](name: String)
   //The rebalancing strategy is self mananaged
   val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
   val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
+  @BeanProperty val pausedHistory = new AtomicReference[Int](0)
+  @BeanProperty val unPausedHistory = new AtomicReference[Int](0)
 
   def startPolling(): Unit = start()
 
