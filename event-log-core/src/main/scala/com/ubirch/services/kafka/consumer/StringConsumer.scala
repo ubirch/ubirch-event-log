@@ -124,6 +124,7 @@ class DefaultStringConsumer @Inject() (
   }
 
   def configs = Configs(
+    maxPollRecords = 1,
     bootstrapServers = bootstrapServers,
     groupId = groupId,
     enableAutoCommit = false,
@@ -133,6 +134,7 @@ class DefaultStringConsumer @Inject() (
   val consumerImp = new StringConsumer
 
   private val consumerConfigured = {
+    consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(Set(topic))
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))

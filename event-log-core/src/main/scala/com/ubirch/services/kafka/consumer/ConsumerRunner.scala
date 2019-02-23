@@ -22,6 +22,39 @@ import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
 /**
+  * Represents a simple callback data type that takes no parameters
+  * @tparam B Represents the output of the callback
+  */
+trait Callback0[B] {
+
+  var callbacks = Vector.empty[() => B]
+
+  def addCallback(f: () => B): Unit = {
+    callbacks = callbacks ++ Vector(f)
+  }
+
+  def run: Unit = callbacks.foreach(x => x())
+
+}
+
+/**
+  * Represents a simple callback data type that takes one parameter of the A
+  * @tparam A Represents the input of the callback
+  * @tparam B Represents the output of the callback
+  */
+trait Callback[A, B] extends {
+
+  var callbacks = Vector.empty[A => B]
+
+  def addCallback(f: A => B): Unit = {
+    callbacks = callbacks ++ Vector(f)
+  }
+
+  def run(a: A): Vector[B] = callbacks.map(x => x(a))
+
+}
+
+/**
   * Represents the result that is expected result for the consumption.
   * This is helpful to return the consumer record and an identifiable record.
   * This type is usually extended to support customized data.
@@ -66,10 +99,6 @@ abstract class ConsumerRunner[K, V](name: String)
   override val version: AtomicInteger = ConsumerRunner.version
 
   private var consumer: Consumer[K, V] = _
-
-  private var prePoll: Vector[() => Unit] = Vector.empty
-
-  private var postCommit: Vector[Int => Unit] = Vector.empty
 
   private val pauses = new AtomicInteger(0)
 
@@ -135,13 +164,15 @@ abstract class ConsumerRunner[K, V](name: String)
 
   }
 
-  def onPrePoll(f: () => Unit): Unit = {
-    prePoll = prePoll ++ Vector(f)
-  }
+  private val prePollCallback = new Callback0[Unit] {}
+  private val postCommitCallback = new Callback[Int, Unit] {}
+  private val needForPauseCallback = new Callback[(FiniteDuration, Int), Unit] {}
+  private val needForResumeCallback = new Callback0[Unit] {}
 
-  def onPostCommit(f: Int => Unit): Unit = {
-    postCommit = postCommit ++ Vector(f)
-  }
+  def onPrePoll(f: () => Unit): Unit = prePollCallback.addCallback(f)
+  def onPostCommit(f: Int => Unit): Unit = postCommitCallback.addCallback(f)
+  def onNeedForPauseCallback(f: ((FiniteDuration, Int)) => Unit): Unit = needForPauseCallback.addCallback(f)
+  def onNeedForResumeCallback(f: () => Unit): Unit = needForResumeCallback.addCallback(f)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
@@ -159,7 +190,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
-          prePoll.foreach(_())
+          prePollCallback.run
 
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
@@ -198,7 +229,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
           if (!getUseAutoCommit && count > 0) {
             commit()
-            postCommit.foreach(x => x(count))
+            postCommitCallback.run(count)
           }
 
         } catch {
@@ -208,17 +239,20 @@ abstract class ConsumerRunner[K, V](name: String)
             consumer.pause(partitions)
             getIsPaused.set(true)
             getPausedHistory.set(getPausedHistory.get() + 1)
+            val currentPauses = pauses.get()
             val pause = amortizePauseDuration()
             scheduler.scheduleOnce(pause) {
               failed.set(Some(NeedForResumeException(s"Restarting after a $pause millis sleep...")))
             }
-            logger.debug(s"NeedForPauseException: duration[{}] pause cycle[{}] partitions[{}]", pause, pauses.get(), partitions.toString)
+            needForPauseCallback.run((pause, currentPauses))
+            logger.debug(s"NeedForPauseException: duration[{}] pause cycle[{}] partitions[{}]", pause, currentPauses, partitions.toString)
           case e: NeedForResumeException =>
             logger.debug("NeedForResumeException: [{}]", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
             getUnPausedHistory.set(getUnPausedHistory.get() + 1)
+            needForResumeCallback.run
           case e: TimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
             logger.error("Trying one more time")
