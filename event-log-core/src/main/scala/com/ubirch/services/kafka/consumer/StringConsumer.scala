@@ -30,7 +30,7 @@ case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Op
 /**
   * Represents a concrete data type for a consumer runner of type Consumer[String, String]
   */
-class StringConsumer extends ConsumerRunner[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
+class StringConsumer extends ConsumerRunnerWithMetrics[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
 
   override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
     getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("Hey, I don't what what this is")))

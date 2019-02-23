@@ -7,13 +7,12 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReferen
 
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.Implicits.{ enrichedInstant, enrichedIterator }
+import com.ubirch.util.Implicits.enrichedIterator
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.Deserializer
-import org.joda.time.Instant
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
@@ -68,6 +67,14 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private var consumer: Consumer[K, V] = _
 
+  private var prePoll: Vector[() => Unit] = Vector.empty
+
+  private var postCommit: Vector[Int => Unit] = Vector.empty
+
+  private val pauses = new AtomicInteger(0)
+
+  private val isPauseUpwards = new AtomicBoolean(true)
+
   @BeanProperty var props: Map[String, AnyRef] = Map.empty
 
   @BeanProperty var topics: Set[String] = Set.empty
@@ -96,11 +103,15 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
 
-  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
+  ////Testing
+  val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
 
-  private val pauses = new AtomicInteger(0)
+  val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
 
-  private val isPauseUpwards = new AtomicBoolean(true)
+  @BeanProperty val pausedHistory = new AtomicReference[Int](0)
+
+  @BeanProperty val unPausedHistory = new AtomicReference[Int](0)
+  //Testing
 
   private def amortizePauseDuration(): FiniteDuration = {
     // 10 => 512 => about 8.5 min
@@ -124,6 +135,16 @@ abstract class ConsumerRunner[K, V](name: String)
 
   }
 
+  def onPrePoll(f: () => Unit): Unit = {
+    prePoll = prePoll ++ Vector(f)
+  }
+
+  def onPostCommit(f: Int => Unit): Unit = {
+    postCommit = postCommit ++ Vector(f)
+  }
+
+  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
+
   override def execute(): Unit = {
     try {
       createConsumer(getProps)
@@ -138,7 +159,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
-          val startInstant = new Instant()
+          prePoll.foreach(_())
 
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
@@ -176,10 +197,8 @@ abstract class ConsumerRunner[K, V](name: String)
           failed.getAndSet(None).foreach { f => throw f }
 
           if (!getUseAutoCommit && count > 0) {
-            val finishTime = new Instant()
-            val seconds = startInstant.millisBetween(finishTime)
             commit()
-            logger.debug("Polled and Committed ... [{} records] ... [{} millis]", count, seconds)
+            postCommit.foreach(x => x(count))
           }
 
         } catch {
@@ -322,13 +341,6 @@ abstract class ConsumerRunner[K, V](name: String)
       logger.debug(s"OnPartitionsAssigned: [${x.topic()}-${x.partition()}]")
     }
   }
-
-  //This is here just for testing rebalancing and it is only visible when
-  //The rebalancing strategy is self mananaged
-  val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
-  val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
-  @BeanProperty val pausedHistory = new AtomicReference[Int](0)
-  @BeanProperty val unPausedHistory = new AtomicReference[Int](0)
 
   def startPolling(): Unit = start()
 
