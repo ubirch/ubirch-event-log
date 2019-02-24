@@ -193,8 +193,6 @@ abstract class ConsumerRunner[K, V](name: String)
       val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
       def commit(): Unit = consumer.commitSync()
-      //TODO: WATCH THE PAUSE!
-      //TODO: CHECK AUTOCOMMIT
 
       while (getRunning) {
 
@@ -203,7 +201,6 @@ abstract class ConsumerRunner[K, V](name: String)
           prePollCallback.run()
 
           val consumerRecords = consumer.poll(pollTimeout)
-          val count = consumerRecords.count()
 
           val partitions = consumerRecords.partitions()
 
@@ -246,9 +243,13 @@ abstract class ConsumerRunner[K, V](name: String)
             val error = failed.get()
             if (error.isDefined) {
 
-              initialOffsets.drop(i).foreach {
-                case (p, Some(of)) => consumer.seek(p, of)
-                case (_, None) =>
+              if (!getUseAutoCommit) {
+
+                initialOffsets.drop(i).foreach {
+                  case (p, Some(of)) => consumer.seek(p, of)
+                  case (_, None) =>
+                }
+
               }
 
               failed.set(None)
@@ -257,9 +258,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
             } else {
 
-              val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
-              consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
-              postCommitCallback.run(count)
+              if (!getUseAutoCommit) {
+                val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
+                consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
+              }
+
+              postCommitCallback.run(partitionSize)
 
             }
 
