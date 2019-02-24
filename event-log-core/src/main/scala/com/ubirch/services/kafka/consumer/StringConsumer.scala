@@ -124,7 +124,6 @@ class DefaultStringConsumer @Inject() (
   }
 
   def configs = Configs(
-    maxPollRecords = 1,
     bootstrapServers = bootstrapServers,
     groupId = groupId,
     enableAutoCommit = false,

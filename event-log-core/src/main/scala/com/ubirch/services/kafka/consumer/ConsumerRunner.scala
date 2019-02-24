@@ -1,15 +1,15 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util
-import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
+import java.util.{ Collections, UUID }
 
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.Implicits.enrichedIterator
 import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
-import org.apache.kafka.clients.consumer._
+import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.Deserializer
@@ -23,6 +23,7 @@ import scala.util.{ Failure, Success }
 
 /**
   * Represents a simple callback data type that takes no parameters
+  *
   * @tparam B Represents the output of the callback
   */
 trait Callback0[B] {
@@ -33,12 +34,13 @@ trait Callback0[B] {
     callbacks = callbacks ++ Vector(f)
   }
 
-  def run: Unit = callbacks.foreach(x => x())
+  def run(): Unit = callbacks.foreach(x => x())
 
 }
 
 /**
   * Represents a simple callback data type that takes one parameter of the A
+  *
   * @tparam A Represents the input of the callback
   * @tparam B Represents the output of the callback
   */
@@ -58,6 +60,7 @@ trait Callback[A, B] extends {
   * Represents the result that is expected result for the consumption.
   * This is helpful to return the consumer record and an identifiable record.
   * This type is usually extended to support customized data.
+  *
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */
@@ -73,6 +76,7 @@ trait ProcessResult[K, V] {
   * Represents the the type that is actually processes the consumer records.
   * The consumer doesn't care about how it is processed, it can be with
   * Futures, Actors, as long as the result type matches.
+  *
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */
@@ -89,6 +93,7 @@ trait ConsumerRecordsController[K, V] {
   * It supports autocommit and not autocommit.
   * It supports commit attempts.
   * It supports to "floors" for exception management. This is allows to escalate exceptions.
+  *
   * @param name Represents the Thread name
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
@@ -170,8 +175,11 @@ abstract class ConsumerRunner[K, V](name: String)
   private val needForResumeCallback = new Callback0[Unit] {}
 
   def onPrePoll(f: () => Unit): Unit = prePollCallback.addCallback(f)
+
   def onPostCommit(f: Int => Unit): Unit = postCommitCallback.addCallback(f)
+
   def onNeedForPauseCallback(f: ((FiniteDuration, Int)) => Unit): Unit = needForPauseCallback.addCallback(f)
+
   def onNeedForResumeCallback(f: () => Unit): Unit = needForResumeCallback.addCallback(f)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
@@ -185,22 +193,38 @@ abstract class ConsumerRunner[K, V](name: String)
       val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
       def commit(): Unit = consumer.commitSync()
+      //TODO: WATCH THE PAUSE!
+      //TODO: CHECK AUTOCOMMIT
 
       while (getRunning) {
 
         try {
 
-          prePollCallback.run
+          prePollCallback.run()
 
           val consumerRecords = consumer.poll(pollTimeout)
           val count = consumerRecords.count()
 
-          if (!getIsPaused.get() && count > 0) {
+          val partitions = consumerRecords.partitions()
 
-            val batchCountDown = new CountDownLatch(count)
-            def processRecord(consumerRecord: ConsumerRecord[K, V]) = {
+          val scalaPartitions = partitions.asScala
+
+          lazy val initialOffsets = scalaPartitions.map { partition =>
+
+            (partition, consumerRecords.records(partition).asScala.headOption.map(_.offset()))
+
+          }
+
+          for { (partition, i) <- partitions.asScala.zipWithIndex if !getIsPaused.get() } {
+
+            val partitionRecords = consumerRecords.records(partition)
+            val partitionSize = partitionRecords.size()
+            val partitionRecordsIterator = partitionRecords.asScala.toIterator.buffered
+
+            val batchCountDown = new CountDownLatch(partitionSize)
+
+            def processRecord(consumerRecord: ConsumerRecord[K, V]) {
               val processing = process(consumerRecord)
-
               processing.onComplete {
                 case Success(_) =>
                   batchCountDown.countDown()
@@ -208,29 +232,40 @@ abstract class ConsumerRunner[K, V](name: String)
                   failed.set(Some(e))
                   batchCountDown.countDown()
               }
-
-              processing
             }
 
-            lazy val iterator = consumerRecords.iterator().asScala
-
             if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
-              iterator.foreach(processRecord)
+              partitionRecordsIterator.foreach(processRecord)
             } else {
-              iterator.delayOnNext(getDelaySingleRecord).consumeWithFinalDelay(processRecord)(getDelayRecords)
+              partitionRecordsIterator.delayOnNext(getDelaySingleRecord).consumeWithFinalDelay(processRecord)(getDelayRecords)
             }
 
             //TODO: probably we should add a timeout
             batchCountDown.await()
 
+            val error = failed.get()
+            if (error.isDefined) {
+
+              initialOffsets.drop(i).foreach {
+                case (p, Some(of)) => consumer.seek(p, of)
+                case (_, None) =>
+              }
+
+              failed.set(None)
+
+              throw error.get
+
+            } else {
+
+              val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
+              consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
+              postCommitCallback.run(count)
+
+            }
+
           }
 
-          failed.getAndSet(None).foreach { f => throw f }
-
-          if (!getUseAutoCommit && count > 0) {
-            commit()
-            postCommitCallback.run(count)
-          }
+          failed.getAndSet(None).foreach { e => throw e }
 
         } catch {
           case _: NeedForPauseException =>
@@ -252,7 +287,7 @@ abstract class ConsumerRunner[K, V](name: String)
             consumer.resume(partitions)
             getIsPaused.set(false)
             getUnPausedHistory.set(getUnPausedHistory.get() + 1)
-            needForResumeCallback.run
+            needForResumeCallback.run()
           case e: TimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
             logger.error("Trying one more time")
