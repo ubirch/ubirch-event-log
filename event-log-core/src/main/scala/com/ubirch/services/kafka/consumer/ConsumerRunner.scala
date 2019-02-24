@@ -184,6 +184,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
 
+  //TODO: HANDLE AUTOCOMMIT
   override def execute(): Unit = {
     try {
       createConsumer(getProps)
@@ -201,16 +202,9 @@ abstract class ConsumerRunner[K, V](name: String)
           prePollCallback.run()
 
           val consumerRecords = consumer.poll(pollTimeout)
-
           val partitions = consumerRecords.partitions()
 
           val scalaPartitions = partitions.asScala
-
-          lazy val initialOffsets = scalaPartitions.map { partition =>
-
-            (partition, consumerRecords.records(partition).asScala.headOption.map(_.offset()))
-
-          }
 
           for { (partition, i) <- partitions.asScala.zipWithIndex if !getIsPaused.get() } {
 
@@ -243,13 +237,13 @@ abstract class ConsumerRunner[K, V](name: String)
             val error = failed.get()
             if (error.isDefined) {
 
-              if (!getUseAutoCommit) {
+              val initialOffsets = scalaPartitions.map { p =>
+                (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
+              }
 
-                initialOffsets.drop(i).foreach {
-                  case (p, Some(of)) => consumer.seek(p, of)
-                  case (_, None) =>
-                }
-
+              initialOffsets.drop(i).foreach {
+                case (p, Some(of)) => consumer.seek(p, of)
+                case (_, None) =>
               }
 
               failed.set(None)
@@ -258,17 +252,15 @@ abstract class ConsumerRunner[K, V](name: String)
 
             } else {
 
-              if (!getUseAutoCommit) {
-                val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
-                consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
-              }
-
+              val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
+              consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
               postCommitCallback.run(partitionSize)
 
             }
 
           }
 
+          //This is a listener on other exception for when the consumer is not paused.
           failed.getAndSet(None).foreach { e => throw e }
 
         } catch {
