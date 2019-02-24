@@ -102,12 +102,31 @@ abstract class ConsumerRunner[K, V](name: String)
   extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with VersionedLazyLogging {
 
   override val version: AtomicInteger = ConsumerRunner.version
+  //This one is made public for testing purposes
+  @BeanProperty val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
-  private var consumer: Consumer[K, V] = _
+  val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
+
+  val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
+
+  @BeanProperty val pausedHistory = new AtomicReference[Int](0)
+
+  @BeanProperty val unPausedHistory = new AtomicReference[Int](0)
+  ////Testing
 
   private val pauses = new AtomicInteger(0)
 
   private val isPauseUpwards = new AtomicBoolean(true)
+
+  private val preConsumeCallback = new Callback0[Unit] {}
+
+  private val postConsumeCallback = new Callback[Int, Unit] {}
+
+  private val postCommitCallback = new Callback[Int, Unit] {}
+
+  private val needForPauseCallback = new Callback[(FiniteDuration, Int), Unit] {}
+
+  private val needForResumeCallback = new Callback0[Unit] {}
 
   @BeanProperty var props: Map[String, AnyRef] = Map.empty
 
@@ -128,8 +147,6 @@ abstract class ConsumerRunner[K, V](name: String)
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
   @BeanProperty var useAutoCommit: Boolean = false
-  //This one is made public for testing purposes
-  @BeanProperty val isPaused: AtomicBoolean = new AtomicBoolean(false)
 
   @BeanProperty var maxCommitAttempts = 3
 
@@ -137,44 +154,11 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
 
-  ////Testing
-  val partitionsRevoked = new AtomicReference[Set[TopicPartition]](Set.empty)
+  private var consumer: Consumer[K, V] = _
 
-  val partitionsAssigned = new AtomicReference[Set[TopicPartition]](Set.empty)
+  def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
 
-  @BeanProperty val pausedHistory = new AtomicReference[Int](0)
-
-  @BeanProperty val unPausedHistory = new AtomicReference[Int](0)
-  //Testing
-
-  private def amortizePauseDuration(): FiniteDuration = {
-    // 10 => 512 => about 8.5 min
-    if (pauses.get() == 10) {
-      isPauseUpwards.set(false)
-    } else if (pauses.get() == 0) {
-      isPauseUpwards.set(true)
-    }
-
-    val ps = if (isPauseUpwards.get()) {
-      pauses.getAndIncrement()
-    } else {
-      pauses.getAndDecrement()
-    }
-
-    val pauseDuration = getPauseDuration.toMillis
-
-    val amortized = scala.math.pow(2, ps).toInt * pauseDuration
-
-    FiniteDuration(amortized, MILLISECONDS)
-
-  }
-
-  private val prePollCallback = new Callback0[Unit] {}
-  private val postCommitCallback = new Callback[Int, Unit] {}
-  private val needForPauseCallback = new Callback[(FiniteDuration, Int), Unit] {}
-  private val needForResumeCallback = new Callback0[Unit] {}
-
-  def onPrePoll(f: () => Unit): Unit = prePollCallback.addCallback(f)
+  def onPostConsume(f: Int => Unit): Unit = postConsumeCallback.addCallback(f)
 
   def onPostCommit(f: Int => Unit): Unit = postCommitCallback.addCallback(f)
 
@@ -199,64 +183,19 @@ abstract class ConsumerRunner[K, V](name: String)
 
         try {
 
-          prePollCallback.run()
+          preConsumeCallback.run()
 
           val consumerRecords = consumer.poll(pollTimeout)
-          val partitions = consumerRecords.partitions().asScala
+          val totalPolledCount = consumerRecords.count()
+          val partitions = consumerRecords.partitions().asScala.toSet
 
-          for { (partition, i) <- partitions.zipWithIndex if !getIsPaused.get() } {
-
-            val partitionRecords = consumerRecords.records(partition).asScala.toVector
-            val partitionRecordsSize = partitionRecords.size
-
-            val batchCountDown = new CountDownLatch(partitionRecordsSize)
-
-            def processRecord(consumerRecord: ConsumerRecord[K, V]) {
-              val processing = process(consumerRecord)
-              processing.onComplete {
-                case Success(_) =>
-                  batchCountDown.countDown()
-                case Failure(e) =>
-                  failed.set(Some(e))
-                  batchCountDown.countDown()
-              }
+          try {
+            for {(partition, i) <- partitions.zipWithIndex if !getIsPaused.get()} {
+              ProcessRecords(i, partition, partitions, consumerRecords).run()
             }
-
-            if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
-              partitionRecords.foreach(processRecord)
-            } else {
-              partitionRecords.toIterator
-                .delayOnNext(getDelaySingleRecord)
-                .consumeWithFinalDelay(processRecord)(getDelayRecords)
-            }
-
-            //TODO: probably we should add a timeout
-            batchCountDown.await()
-
-            val error = failed.get()
-            if (error.isDefined) {
-
-              val initialOffsets = partitions.map { p =>
-                (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
-              }
-
-              initialOffsets.drop(i).foreach {
-                case (p, Some(of)) => consumer.seek(p, of)
-                case (_, None) =>
-              }
-
-              failed.set(None)
-
-              throw error.get
-
-            } else {
-
-              val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
-              consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
-              postCommitCallback.run(partitionRecordsSize)
-
-            }
-
+          } finally {
+            //this is in a try to guaranty its execution.
+            postConsumeCallback.run(totalPolledCount)
           }
 
           //This is a listener on other exception for when the consumer is not paused.
@@ -325,6 +264,28 @@ abstract class ConsumerRunner[K, V](name: String)
     } finally {
       if (consumer != null) consumer.close()
     }
+  }
+
+  private def amortizePauseDuration(): FiniteDuration = {
+    // 10 => 512 => about 8.5 min
+    if (pauses.get() == 10) {
+      isPauseUpwards.set(false)
+    } else if (pauses.get() == 0) {
+      isPauseUpwards.set(true)
+    }
+
+    val ps = if (isPauseUpwards.get()) {
+      pauses.getAndIncrement()
+    } else {
+      pauses.getAndDecrement()
+    }
+
+    val pauseDuration = getPauseDuration.toMillis
+
+    val amortized = scala.math.pow(2, ps).toInt * pauseDuration
+
+    FiniteDuration(amortized, MILLISECONDS)
+
   }
 
   @throws(classOf[ConsumerCreationException])
@@ -407,6 +368,75 @@ abstract class ConsumerRunner[K, V](name: String)
   }
 
   def startPolling(): Unit = start()
+
+  private case class ProcessRecords(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[K, V]) {
+
+    //TODO: probably we should add a timeout
+    private val failed = new AtomicReference[Option[Throwable]](None)
+
+    private val partitionRecords = consumerRecords.records(currentPartition).asScala.toVector
+
+    private val partitionRecordsSize = partitionRecords.size
+
+    private val batchCountDown = new CountDownLatch(partitionRecordsSize)
+
+    def run() = {
+      start()
+      aggregate()
+      finish()
+    }
+
+    private def start() {
+      if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
+        partitionRecords.foreach(processRecord)
+      } else {
+        partitionRecords.toIterator
+          .delayOnNext(getDelaySingleRecord)
+          .consumeWithFinalDelay(processRecord)(getDelayRecords)
+      }
+    }
+
+    private def processRecord(consumerRecord: ConsumerRecord[K, V]) {
+      val processing = process(consumerRecord)
+      processing.onComplete {
+        case Success(_) =>
+          batchCountDown.countDown()
+        case Failure(e) =>
+          failed.set(Some(e))
+          batchCountDown.countDown()
+      }
+    }
+
+    private def aggregate() = batchCountDown.await()
+
+    private def finish() = {
+      val error = failed.get()
+      if (error.isDefined) {
+
+        val initialOffsets = allPartitions.map { p =>
+          (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
+        }
+
+        initialOffsets.drop(currentPartitionIndex).foreach {
+          case (p, Some(of)) => consumer.seek(p, of)
+          case (_, None) =>
+        }
+
+        failed.set(None)
+
+        throw error.get
+
+      } else {
+
+        val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
+        consumer.commitSync(Collections.singletonMap(currentPartition, new OffsetAndMetadata(lastOffset + 1)))
+        postCommitCallback.run(partitionRecordsSize)
+
+      }
+
+    }
+
+  }
 
 }
 

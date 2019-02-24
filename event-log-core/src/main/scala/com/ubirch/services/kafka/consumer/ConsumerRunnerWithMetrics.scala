@@ -14,45 +14,50 @@ import io.prometheus.client.{ Counter, Summary }
   */
 abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRunner[K, V](name) {
 
+  //Metrics Def Start
+  val startInstant = new AtomicReference[Option[Instant]](None)
+
+  onPreConsume(() => startInstant.set(Some(new Instant())))
+  onPostConsume { count =>
+    if(count > 0){
+      val finishTime = new Instant()
+      val seconds = startInstant.get().map(x => x.millisBetween(finishTime))
+      logger.debug("Processed [{} records] in [{} millis]", count, seconds.map(_.toString).getOrElse("UNKNOWN"))
+    }
+  }
+  //Metrics Def End
+
+  //Metrics Def Start
   final val pollSizeSummary: Summary = Summary.build
     .namespace("event_log")
-    .name(s"consumer_${version.get()}_poll_size")
-    .help("Poll size.")
+    .name(s"consumer_${version.get()}_poll_consume_size")
+    .help("Poll consume size.")
     .register
 
-  final val pollProcessLatencySummary: Summary = Summary.build
+  final val pollConsumeLatencySummary: Summary = Summary.build
     .namespace("event_log")
-    .name(s"consumer_${version.get()}_poll_process_seconds")
-    .help("Poll process latency in seconds.")
+    .name(s"consumer_${version.get()}_poll_consume_seconds")
+    .help("Poll consume latency in seconds.")
     .register
 
+  val pollConsumeTimer = new AtomicReference[Option[Summary.Timer]](None)
+
+  onPreConsume(() => pollConsumeTimer.set(Some(pollConsumeLatencySummary.startTimer)))
+  onPostConsume { count =>
+    pollSizeSummary.observe(count)
+    pollConsumeTimer.get().map(x => x.observeDuration())
+  }
+  //Metrics Def End
+
+  //Metrics Def Start
   final val pausesCounter: Counter = Counter.build()
     .namespace("event_log")
     .name(s"consumer_${version.get()}_event_error_total")
     .help("Total event errors.")
     .labelNames("result")
     .register()
-
-  val startInstant = new AtomicReference[Option[Instant]](None)
-  val pollProcessTimer = new AtomicReference[Option[Summary.Timer]](None)
-
-  onPrePoll(() => startInstant.set(Some(new Instant())))
-
-  onPrePoll(() => pollProcessTimer.set(Some(pollProcessLatencySummary.startTimer)))
-
-  onPostCommit { count =>
-    val finishTime = new Instant()
-    val seconds = startInstant.get().map(x => x.millisBetween(finishTime))
-    logger.debug("Processed [{} records] in [{} millis]", count, seconds.map(_.toString).getOrElse("UNKNOWN"))
-  }
-
-  onPostCommit { count =>
-    pollSizeSummary.observe(count)
-    pollProcessTimer.get().map(x => x.observeDuration())
-  }
-
   onNeedForPauseCallback(_ => pausesCounter.labels("NeedForPauseException").inc())
-
   onNeedForResumeCallback(() => pausesCounter.labels("NeedForResumeException").inc())
+  //Metrics Def End
 
 }
