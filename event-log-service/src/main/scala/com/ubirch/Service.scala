@@ -25,7 +25,7 @@ object Service extends Boot {
     //if both are 0 millis, no delay is applied.
 
     //consumer.setDelaySingleRecord(10 millis)
-    consumer.setDelayRecords(1000 millis)
+    consumer.setDelayRecords(1 millis)
 
     consumer.start()
 

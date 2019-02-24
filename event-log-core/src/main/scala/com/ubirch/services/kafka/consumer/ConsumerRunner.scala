@@ -202,17 +202,14 @@ abstract class ConsumerRunner[K, V](name: String)
           prePollCallback.run()
 
           val consumerRecords = consumer.poll(pollTimeout)
-          val partitions = consumerRecords.partitions()
+          val partitions = consumerRecords.partitions().asScala
 
-          val scalaPartitions = partitions.asScala
+          for { (partition, i) <- partitions.zipWithIndex if !getIsPaused.get() } {
 
-          for { (partition, i) <- partitions.asScala.zipWithIndex if !getIsPaused.get() } {
+            val partitionRecords = consumerRecords.records(partition).asScala.toVector
+            val partitionRecordsSize = partitionRecords.size
 
-            val partitionRecords = consumerRecords.records(partition)
-            val partitionSize = partitionRecords.size()
-            val partitionRecordsIterator = partitionRecords.asScala.toIterator.buffered
-
-            val batchCountDown = new CountDownLatch(partitionSize)
+            val batchCountDown = new CountDownLatch(partitionRecordsSize)
 
             def processRecord(consumerRecord: ConsumerRecord[K, V]) {
               val processing = process(consumerRecord)
@@ -226,9 +223,11 @@ abstract class ConsumerRunner[K, V](name: String)
             }
 
             if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
-              partitionRecordsIterator.foreach(processRecord)
+              partitionRecords.foreach(processRecord)
             } else {
-              partitionRecordsIterator.delayOnNext(getDelaySingleRecord).consumeWithFinalDelay(processRecord)(getDelayRecords)
+              partitionRecords.toIterator
+                .delayOnNext(getDelaySingleRecord)
+                .consumeWithFinalDelay(processRecord)(getDelayRecords)
             }
 
             //TODO: probably we should add a timeout
@@ -237,7 +236,7 @@ abstract class ConsumerRunner[K, V](name: String)
             val error = failed.get()
             if (error.isDefined) {
 
-              val initialOffsets = scalaPartitions.map { p =>
+              val initialOffsets = partitions.map { p =>
                 (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
               }
 
@@ -252,9 +251,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
             } else {
 
-              val lastOffset = partitionRecords.get(partitionRecords.size() - 1).offset()
+              val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
               consumer.commitSync(Collections.singletonMap(partition, new OffsetAndMetadata(lastOffset + 1)))
-              postCommitCallback.run(partitionSize)
+              postCommitCallback.run(partitionRecordsSize)
 
             }
 
