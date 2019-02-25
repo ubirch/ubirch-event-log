@@ -177,8 +177,6 @@ abstract class ConsumerRunner[K, V](name: String)
       val failed = new AtomicReference[Option[Throwable]](None)
       val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
-      def commit(): Unit = consumer.commitSync()
-
       while (getRunning) {
 
         try {
@@ -190,7 +188,7 @@ abstract class ConsumerRunner[K, V](name: String)
           val partitions = consumerRecords.partitions().asScala.toSet
 
           try {
-            for {(partition, i) <- partitions.zipWithIndex if !getIsPaused.get()} {
+            for { (partition, i) <- partitions.zipWithIndex if !getIsPaused.get() } {
               ProcessRecords(i, partition, partitions, consumerRecords).run()
             }
           } finally {
@@ -222,14 +220,14 @@ abstract class ConsumerRunner[K, V](name: String)
             getIsPaused.set(false)
             getUnPausedHistory.set(getUnPausedHistory.get() + 1)
             needForResumeCallback.run()
-          case e: TimeoutException =>
+          case e: CommitTimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
             logger.error("Trying one more time")
             val currentAttempts = commitAttempts.decrementAndGet()
             if (currentAttempts == 0) {
               throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
             } else {
-              commit()
+              e.commitFunc()
             }
           case e: CommitFailedException =>
             logger.error("Commit failed {}", e.getMessage)
@@ -409,6 +407,21 @@ abstract class ConsumerRunner[K, V](name: String)
 
     private def aggregate() = batchCountDown.await()
 
+    private def commitFunc(): Vector[Unit] = {
+
+      try {
+        val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
+        consumer.commitSync(Collections.singletonMap(currentPartition, new OffsetAndMetadata(lastOffset + 1)))
+        postCommitCallback.run(partitionRecordsSize)
+      } catch {
+        case e: TimeoutException =>
+          throw CommitTimeoutException("Commit timed out", commitFunc, e)
+        case e: Throwable =>
+          throw e
+      }
+
+    }
+
     private def finish() = {
       val error = failed.get()
       if (error.isDefined) {
@@ -428,9 +441,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
       } else {
 
-        val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
-        consumer.commitSync(Collections.singletonMap(currentPartition, new OffsetAndMetadata(lastOffset + 1)))
-        postCommitCallback.run(partitionRecordsSize)
+        commitFunc()
 
       }
 

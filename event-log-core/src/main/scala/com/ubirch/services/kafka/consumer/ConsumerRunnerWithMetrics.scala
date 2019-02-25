@@ -19,7 +19,7 @@ abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRun
 
   onPreConsume(() => startInstant.set(Some(new Instant())))
   onPostConsume { count =>
-    if(count > 0){
+    if (count > 0) {
       val finishTime = new Instant()
       val seconds = startInstant.get().map(x => x.millisBetween(finishTime))
       logger.debug("Processed [{} records] in [{} millis]", count, seconds.map(_.toString).getOrElse("UNKNOWN"))
