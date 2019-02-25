@@ -64,7 +64,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       val eventLog = FromString[EventLog](v1.consumerRecord.value()).get
       v1.copy(eventLog = Some(eventLog))
     } catch {
-      case e: Exception =>
+      case _: Exception =>
         //logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
@@ -103,8 +103,12 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
 
+  val metricsNamespace: String = "ubirch_event_log"
+
   final val counter = Counter.build()
-    .name("events_total").help("Total events.")
+    .namespace(metricsNamespace)
+    .name("events_total")
+    .help("Total events.")
     .labelNames("result")
     .register()
 
@@ -165,7 +169,10 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
   private def uuid = timeBasedUUID
 
+  val metricsNamespace: String = "ubirch_event_log"
+
   final val counter: Counter = Counter.build()
+    .namespace(metricsNamespace)
     .name("event_error_total")
     .help("Total event errors.")
     .labelNames("result")

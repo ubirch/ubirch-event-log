@@ -1,14 +1,20 @@
 package com.ubirch
 
+import java.util.concurrent.CountDownLatch
+
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Events
 import com.ubirch.services.kafka._
-import com.ubirch.services.kafka.consumer.{ Configs, StringConsumer }
+import com.ubirch.services.kafka.consumer.{ Configs, DefaultConsumerRecordsController, StringConsumer }
+import com.ubirch.util.Exceptions.CommitTimeoutException
 import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.InjectorHelper
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
+import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
+import org.apache.kafka.common.TopicPartition
+import org.apache.kafka.common.errors.TimeoutException
+import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.language.{ implicitConversions, postfixOps }
 
@@ -252,6 +258,205 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(1000)
 
         assert(!consumer.getIsPaused.get())
+
+      }
+
+    }
+
+    "try to commit after TimeoutException" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        enableAutoCommit = false,
+        autoOffsetReset = OffsetResetStrategy.EARLIEST
+      )
+
+      withRunningKafka {
+
+        import InjectorHelper._
+
+        val topic = "com.ubirch.eventlog"
+
+        val entity1 = Entities.Events.eventExample()
+        val entityAsString1 = entity1.toString
+
+        publishStringMessageToKafka(topic, entityAsString1)
+
+        val controller = get[DefaultConsumerRecordsController]
+
+        val attempts = new CountDownLatch(3)
+
+        //Consumer
+        val consumer = new StringConsumer {
+          override def createProcessRecords(
+              currentPartitionIndex: Int,
+              currentPartition: TopicPartition,
+              allPartitions: Set[TopicPartition],
+              consumerRecords: ConsumerRecords[String, String]
+          ): ProcessRecords = {
+
+            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+              override def commitFunc(): Vector[Unit] = {
+                attempts.countDown()
+                throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+              }
+            }
+
+          }
+        }
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setConsumerRecordsController(Some(controller))
+        consumer.setTopics(Set(topic))
+        consumer.setProps(configs)
+
+        consumer.startPolling()
+        //Consumer
+
+        attempts.await()
+        assert(attempts.getCount == 0)
+
+      }
+
+    }
+
+    "try to commit after TimeoutException and another Execption" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        enableAutoCommit = false,
+        autoOffsetReset = OffsetResetStrategy.EARLIEST
+      )
+
+      withRunningKafka {
+
+        import InjectorHelper._
+
+        val topic = "com.ubirch.eventlog"
+
+        val entity1 = Entities.Events.eventExample()
+        val entityAsString1 = entity1.toString
+
+        publishStringMessageToKafka(topic, entityAsString1)
+
+        val controller = get[DefaultConsumerRecordsController]
+
+        val attempts = new CountDownLatch(3)
+
+        //Consumer
+        val consumer = new StringConsumer {
+          override def createProcessRecords(
+              currentPartitionIndex: Int,
+              currentPartition: TopicPartition,
+              allPartitions: Set[TopicPartition],
+              consumerRecords: ConsumerRecords[String, String]
+          ): ProcessRecords = {
+
+            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+              override def commitFunc(): Vector[Unit] = {
+                attempts.countDown()
+                if (attempts.getCount == 2) {
+                  attempts.countDown()
+                  attempts.countDown()
+                  throw new Exception("Another exception")
+                } else {
+                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                }
+              }
+            }
+
+          }
+        }
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setConsumerRecordsController(Some(controller))
+        consumer.setTopics(Set(topic))
+        consumer.setProps(configs)
+
+        consumer.startPolling()
+        //Consumer
+
+        attempts.await()
+        assert(attempts.getCount == 0)
+
+      }
+
+    }
+
+    "try to commit after TimeoutException and OK after" in {
+
+      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val configs = Configs(
+        bootstrapServers = "localhost:" + config.kafkaPort,
+        groupId = "My_Group_ID",
+        enableAutoCommit = false,
+        autoOffsetReset = OffsetResetStrategy.EARLIEST
+      )
+
+      withRunningKafka {
+
+        import InjectorHelper._
+
+        val topic = "com.ubirch.eventlog"
+
+        val entity1 = Entities.Events.eventExample()
+        val entityAsString1 = entity1.toString
+
+        publishStringMessageToKafka(topic, entityAsString1)
+
+        val controller = get[DefaultConsumerRecordsController]
+
+        val committed = new CountDownLatch(1)
+        val failed = new CountDownLatch(2)
+        var committedN = 0
+
+        //Consumer
+        val consumer = new StringConsumer {
+          override def createProcessRecords(
+              currentPartitionIndex: Int,
+              currentPartition: TopicPartition,
+              allPartitions: Set[TopicPartition],
+              consumerRecords: ConsumerRecords[String, String]
+          ): ProcessRecords = {
+
+            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+              override def commitFunc(): Vector[Unit] = {
+                failed.countDown()
+                if (failed.getCount == 1) {
+                  val f = super.commitFunc()
+                  failed.countDown()
+                  committed.countDown()
+                  f
+                } else {
+                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                }
+              }
+            }
+
+          }
+        }
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setConsumerRecordsController(Some(controller))
+        consumer.setTopics(Set(topic))
+        consumer.setProps(configs)
+        consumer.onPostCommit(i => committedN = i)
+
+        consumer.startPolling()
+        //Consumer
+
+        committed.await()
+        failed.await()
+        assert(committedN == 1)
+        assert(committed.getCount == 0)
+        assert(failed.getCount == 0)
 
       }
 

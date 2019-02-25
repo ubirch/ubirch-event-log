@@ -95,7 +95,9 @@ object Exceptions {
 
   //CONSUMER EXCEPTIONS
 
-  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: Either[TimeoutException, CommitFailedException]) extends ExecutionException(message)
+  case class CommitTimeoutException(message: String, commitFunc: () => Unit, timeoutException: TimeoutException) extends ExecutionException(message)
+
+  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: Either[CommitTimeoutException, CommitFailedException]) extends ExecutionException(message)
 
   case class ConsumerCreationException(message: String, reason: String) extends ExecutionException(message)
 
