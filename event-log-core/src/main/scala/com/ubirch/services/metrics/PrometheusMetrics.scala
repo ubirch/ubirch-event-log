@@ -1,5 +1,7 @@
 package com.ubirch.services.metrics
 
+import java.net.BindException
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -20,7 +22,14 @@ class PrometheusMetrics @Inject() (config: Config, lifecycle: Lifecycle) extends
 
   logger.debug("Creating Prometheus Server on Port[{}]", port)
 
-  val server = new HTTPServer(port)
+  val server = try {
+    new HTTPServer(port)
+  } catch {
+    case _: BindException =>
+      val newPort = port + 1
+      logger.debug("Port[{}] is busy, trying Port[{}]", port, newPort)
+      new HTTPServer(newPort)
+  }
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Prometheus")

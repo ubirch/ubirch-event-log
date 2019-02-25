@@ -14,6 +14,10 @@ import io.prometheus.client.{ Counter, Summary }
   */
 abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRunner[K, V](name) {
 
+  val metricsNamespace: String = "ubirch_event_log"
+
+  def metricsName(name: String): String = s"consumer_${version.get()}_$name"
+
   //Metrics Def Start
   val startInstant = new AtomicReference[Option[Instant]](None)
 
@@ -29,14 +33,14 @@ abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRun
 
   //Metrics Def Start
   final val pollSizeSummary: Summary = Summary.build
-    .namespace("event_log")
-    .name(s"consumer_${version.get()}_poll_consume_size")
+    .namespace(metricsNamespace)
+    .name(metricsName("poll_consume_size"))
     .help("Poll consume size.")
     .register
 
   final val pollConsumeLatencySummary: Summary = Summary.build
-    .namespace("event_log")
-    .name(s"consumer_${version.get()}_poll_consume_seconds")
+    .namespace(metricsNamespace)
+    .name(metricsName("poll_consume_seconds"))
     .help("Poll consume latency in seconds.")
     .register
 
@@ -51,11 +55,12 @@ abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRun
 
   //Metrics Def Start
   final val pausesCounter: Counter = Counter.build()
-    .namespace("event_log")
-    .name(s"consumer_${version.get()}_event_error_total")
+    .namespace(metricsNamespace)
+    .name(metricsName("event_error_total"))
     .help("Total event errors.")
     .labelNames("result")
     .register()
+
   onNeedForPauseCallback(_ => pausesCounter.labels("NeedForPauseException").inc())
   onNeedForResumeCallback(() => pausesCounter.labels("NeedForResumeException").inc())
   //Metrics Def End

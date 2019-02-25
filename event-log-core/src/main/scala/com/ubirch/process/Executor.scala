@@ -103,8 +103,10 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
 
+  val metricsNamespace: String = "ubirch_event_log"
+
   final val counter = Counter.build()
-    .namespace("event_log")
+    .namespace(metricsNamespace)
     .name("events_total")
     .help("Total events.")
     .labelNames("result")
@@ -167,8 +169,10 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
 
   private def uuid = timeBasedUUID
 
+  val metricsNamespace: String = "ubirch_event_log"
+
   final val counter: Counter = Counter.build()
-    .namespace("event_log")
+    .namespace(metricsNamespace)
     .name("event_error_total")
     .help("Total event errors.")
     .labelNames("result")
