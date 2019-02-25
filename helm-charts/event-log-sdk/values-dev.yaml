@@ -1,4 +1,5 @@
 # Most of these values represent the application.conf of the service
+
 eventLog:
   replicaCount: 1
   kafkaProducer:

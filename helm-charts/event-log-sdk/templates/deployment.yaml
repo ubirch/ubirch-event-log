@@ -25,6 +25,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 9010
+            - containerPort: 9020
           readinessProbe:
             tcpSocket:
               port: 9010
