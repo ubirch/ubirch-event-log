@@ -8,7 +8,7 @@ import java.util.{ Collections, UUID }
 import com.ubirch.services.execution.Execution
 import com.ubirch.util.Exceptions._
 import com.ubirch.util.Implicits.enrichedIterator
-import com.ubirch.util.{ ShutdownableThread, UUIDHelper, VersionedLazyLogging }
+import com.ubirch.util.{ FutureHelper, ShutdownableThread, UUIDHelper, VersionedLazyLogging }
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -222,13 +222,24 @@ abstract class ConsumerRunner[K, V](name: String)
             needForResumeCallback.run()
           case e: CommitTimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
-            logger.error("Trying one more time")
-            val currentAttempts = commitAttempts.decrementAndGet()
-            if (currentAttempts == 0) {
-              throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
-            } else {
-              e.commitFunc()
+            import scala.util.control.Breaks._
+            breakable {
+              while (true) {
+                val currentAttempts = commitAttempts.getAndDecrement()
+                logger.error("Trying one more time. Attempts [{}]", currentAttempts)
+                if (currentAttempts == 1) {
+                  throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
+                } else {
+                  try {
+                    FutureHelper.delay(1 second)(e.commitFunc())
+                    break()
+                  } catch {
+                    case _: CommitTimeoutException =>
+                  }
+                }
+              }
             }
+
           case e: CommitFailedException =>
             logger.error("Commit failed {}", e.getMessage)
             val currentAttempts = commitAttempts.decrementAndGet()
@@ -449,10 +460,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
   }
 
-  def createProcessRecords(currentPartitionIndex: Int,
-                           currentPartition: TopicPartition,
-                           allPartitions: Set[TopicPartition],
-                           consumerRecords: ConsumerRecords[K, V]): ProcessRecords = {
+  def createProcessRecords(
+      currentPartitionIndex: Int,
+      currentPartition: TopicPartition,
+      allPartitions: Set[TopicPartition],
+      consumerRecords: ConsumerRecords[K, V]
+  ): ProcessRecords = {
     new ProcessRecords(
       currentPartitionIndex,
       currentPartition,
