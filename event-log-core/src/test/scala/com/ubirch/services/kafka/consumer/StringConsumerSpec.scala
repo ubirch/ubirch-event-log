@@ -509,11 +509,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         Thread.sleep(5000)
 
-        assert(consumer.getPausedHistory.get() == 1)
+        assert(consumer.getPausedHistory.get() >= 1)
 
-        Thread.sleep(5000)
+        Thread.sleep(3000)
 
-        assert(consumer.getUnPausedHistory.get() == 1)
+        assert(consumer.getUnPausedHistory.get() >= 1)
 
       }
 
@@ -599,13 +599,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         Thread.sleep(5000)
 
-        assert(consumer.getPausedHistory.get() == 1)
-        assert(consumer.isPaused.get())
+        assert(consumer.getPausedHistory.get() >= 1)
 
-        Thread.sleep(5000)
+        Thread.sleep(3000)
 
-        assert(!consumer.isPaused.get())
-        assert(consumer.getUnPausedHistory.get() == 1)
+        assert(consumer.getUnPausedHistory.get() >= 1)
 
       }
 
