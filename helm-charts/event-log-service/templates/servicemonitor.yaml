@@ -4,13 +4,15 @@ metadata:
   name: event-log-service
   namespace: prometheus
   labels:
-    team: frontend
+    app: event-log-service
+    release: prometheus-operator
 spec:
+  endpoints:
+  - interval: 30s
+    path: /
+    port: prometheus-metrics
   namespaceSelector:
     matchNames:
     - {{ .Release.Namespace }}
   selector:
-    matchLabels:
-      app.kubernetes.io/instance: event-log-service
-  endpoints:
-  - port: prometheus-monitor
+    name: "event-log-service"
