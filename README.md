@@ -35,4 +35,12 @@ particular project you may be interested in.
 
 ## Prometheus Metrics
 
+```
   http://localhost:4321/
+```
+
+  or
+   
+```  
+   watch -d "curl --silent http://localhost:4321 | grep ubirch"
+```
