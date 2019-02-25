@@ -189,7 +189,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
           try {
             for { (partition, i) <- partitions.zipWithIndex if !getIsPaused.get() } {
-              ProcessRecords(i, partition, partitions, consumerRecords).run()
+              createProcessRecords(i, partition, partitions, consumerRecords).run()
             }
           } finally {
             //this is in a try to guaranty its execution.
@@ -367,15 +367,15 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def startPolling(): Unit = start()
 
-  private case class ProcessRecords(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[K, V]) {
+  class ProcessRecords(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[K, V]) {
 
-    //TODO: probably we should add a timeout
     private val failed = new AtomicReference[Option[Throwable]](None)
 
     private val partitionRecords = consumerRecords.records(currentPartition).asScala.toVector
 
     private val partitionRecordsSize = partitionRecords.size
 
+    //TODO: probably we should add a timeout
     private val batchCountDown = new CountDownLatch(partitionRecordsSize)
 
     def run() = {
@@ -407,7 +407,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
     private def aggregate() = batchCountDown.await()
 
-    private def commitFunc(): Vector[Unit] = {
+    def commitFunc(): Vector[Unit] = {
 
       try {
         val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
@@ -447,6 +447,18 @@ abstract class ConsumerRunner[K, V](name: String)
 
     }
 
+  }
+
+  def createProcessRecords(currentPartitionIndex: Int,
+                           currentPartition: TopicPartition,
+                           allPartitions: Set[TopicPartition],
+                           consumerRecords: ConsumerRecords[K, V]): ProcessRecords = {
+    new ProcessRecords(
+      currentPartitionIndex,
+      currentPartition,
+      allPartitions,
+      consumerRecords
+    )
   }
 
 }
