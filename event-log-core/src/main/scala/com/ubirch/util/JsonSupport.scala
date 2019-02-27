@@ -35,7 +35,7 @@ trait JsonHelper extends WithJsonFormats {
     if (compact) jackson.compactJson(v1)
     else jackson.prettyJson(v1)
 
-  def getJValue(v1: String) = jackson.parseJson(v1)
+  def getJValue(v1: String): JValue = jackson.parseJson(v1)
 
 }
 
@@ -52,6 +52,8 @@ case class ToJson[T: Manifest](v1: T) extends JsonHelper {
 
   override def toString: String = stringify(get.underscoreKeys)
 
+  def pretty: String = stringify(get.underscoreKeys, compact = false)
+
 }
 
 /**
@@ -66,6 +68,8 @@ case class FromJson[T: Manifest](v1: JValue) extends JsonHelper {
   def get: T = getCamelized(v1)
 
   override def toString: String = stringify(v1.underscoreKeys)
+
+  def pretty: String = stringify(v1.underscoreKeys, compact = false)
 
 }
 
