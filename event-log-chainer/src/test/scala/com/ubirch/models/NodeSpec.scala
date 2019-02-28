@@ -33,7 +33,6 @@ class NodeSpec extends TestBase {
 
     }
 
-
     "add left and right node with withs helpers" in {
       val value = "value"
       val left = Node.empty("left")
@@ -91,6 +90,64 @@ class NodeSpec extends TestBase {
 
     }
 
+    "balanceRight when odd size" in {
+
+      val balanceWith = Node.empty("foot")
+
+      val n1 = Node.empty("plane")
+      val n2 = Node.empty("car")
+      val n3 = Node.empty("bike")
+
+      val balanced = Node.balanceRight(balanceWith)(List(n1, n2, n3))
+
+      assert(List(n1, n2, n3, balanceWith) == balanced)
+    }
+
+    "not balanceRight when even size" in {
+
+      val balanceWith = Node.empty("foot")
+
+      val n1 = Node.empty("plane")
+      val n2 = Node.empty("car")
+
+      val balanced = Node.balanceRight(balanceWith)(List(n1, n2))
+
+      assert(List(n1, n2) == balanced)
+    }
+
+    "balanceLeft when odd size" in {
+
+      val balanceWith = Node.empty("foot")
+
+      val n1 = Node.empty("plane")
+      val n2 = Node.empty("car")
+      val n3 = Node.empty("bike")
+
+      val balanced = Node.balanceLeft(balanceWith)(List(n1, n2, n3))
+
+      assert(List(balanceWith, n1, n2, n3) == balanced)
+    }
+
+    "not balanceLeft when even size" in {
+
+      val balanceWith = Node.empty("foot")
+
+      val n1 = Node.empty("plane")
+      val n2 = Node.empty("car")
+
+      val balanced = Node.balanceLeft(balanceWith)(List(n1, n2))
+
+      assert(List(n1, n2) == balanced)
+    }
+
+    "create nodes from seeds" in {
+
+      assert(Node.seeds(Nil: _*).isEmpty)
+
+      assert(Node.seeds("a", "b", "c") ==
+        List(Node.empty("a"), Node.empty("b"), Node.empty("c")))
+
+    }
 
   }
 }

@@ -1,11 +1,12 @@
 package com.ubirch
 
-import com.ubirch.models.Node
+import com.ubirch.models.{ Chainable, Chainer, Node }
+import com.ubirch.util.ToJson
 
 object ChainerService extends App {
 
   def getEmptyNodeVal = {
-    val uuid =java.util.UUID.randomUUID().toString
+    val uuid = java.util.UUID.randomUUID().toString
     s"emptyNode_$uuid"
   }
 
@@ -21,5 +22,38 @@ object ChainerService extends App {
     .join((a, b) => a + b)
 
   println(node)
+
+}
+
+object ChainerService2 extends App {
+
+  import scala.language.implicitConversions
+
+  case class SomeDataTypeFromKafka(id: String, data: String)
+
+  object SomeDataTypeFromKafka {
+    implicit def chainable(t: SomeDataTypeFromKafka) = Chainable(t.id, t)
+  }
+
+  val listOfData = List(
+    SomeDataTypeFromKafka("vegetables", "eggplant"),
+    SomeDataTypeFromKafka("vegetables", "artichoke"),
+    SomeDataTypeFromKafka("fruits", "banana")
+  )
+
+  // We pass in the data from kafka that needs to be chainable.
+  // See implicit conversion.
+  // We group the elems
+  // We take the hashes
+  // We then turn the seed hashes into seed nodes.
+  // We then turn the seed nodes into joined node.
+  val nodes = Chainer(listOfData)
+    .createGroups
+    .createSeedHashes
+    .createSeedNodes
+    .createNode
+    .getNode
+
+  println(ToJson(nodes).pretty)
 
 }
