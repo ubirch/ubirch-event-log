@@ -14,20 +14,22 @@ import scala.language.implicitConversions
   */
 case class Node[A](value: A, left: Option[Node[A]], right: Option[Node[A]]) {
 
-  def withLeft(newLeft: Node[A]): Node[A] = this.copy(left = Option(newLeft))
+  def withLeft(newLeft: Node[A]): Node[A] = copy(left = Option(newLeft))
 
-  def withRight(newRight: Node[A]): Node[A] = this.copy(right = Option(newRight))
+  def withRight(newRight: Node[A]): Node[A] = copy(right = Option(newRight))
 
-  def withValue(newValue: A): Node[A] = this.copy(value = newValue)
+  def withValue(newValue: A): Node[A] = copy(value = newValue)
+
+  def clearLeftAndRight: Node[A] = copy(left = None, right = None)
 
   def hasLeft: Boolean = left.isDefined
 
   def hasRight: Boolean = right.isDefined
 
-  def isLast: Boolean = hasRight && hasLeft
+  def isLast: Boolean = !(hasRight && hasLeft)
 
   def map[B](f: A => B): Node[B] = {
-    Node[B](f(value), this.left.map(_.map(f)), this.right.map(_.map(f)))
+    Node[B](f(value), left.map(_.map(f)), right.map(_.map(f)))
   }
 
 }
