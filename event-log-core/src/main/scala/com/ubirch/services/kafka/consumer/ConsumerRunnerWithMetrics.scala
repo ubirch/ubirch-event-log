@@ -14,7 +14,7 @@ import io.prometheus.client.{ Counter, Summary }
   */
 abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRunner[K, V](name) {
 
-  val metricsNamespace: String = "ubirch_event_log"
+  val metricsNamespace: String = "ubirch"
 
   def metricsName(name: String): String = s"consumer_${version.get()}_$name"
 
