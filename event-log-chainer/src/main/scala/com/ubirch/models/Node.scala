@@ -54,6 +54,11 @@ object Node {
     value.map(x => Node.empty(x)).toList
   }
 
+  /**
+    * This operator turns a list of nodes into list of one node.
+    * The nodes are joined/merge into one single node.
+    * This join2 doesn't guaranty the order.
+    */
   @tailrec
   def joinCore[A](nodes: List[Node[A]])(f: (A, A) => A)(g: (Node[A], List[Node[A]]) => List[Node[A]]): List[Node[A]] = {
     nodes match {
@@ -73,6 +78,25 @@ object Node {
     joinCore(nodes)(f)(g)
   }
 
+  /**
+    * This operator turns a list of nodes into list of one node.
+    * The nodes are joined/merge into one single node.
+    * This join2 guaranties the order.
+    */
+  @tailrec
+  def join2[A](acc: List[Node[A]], nodes: List[Node[A]])(f: (A, A) => A): List[Node[A]] = {
+    nodes match {
+      case Nil if acc.isEmpty || acc.size == 1 => acc
+      case Nil => join2(Nil, acc)(f)
+      case n1 :: n2 :: nx =>
+        val newNode = acc ++ List(Node(f(n1.value, n2.value), Some(n1), Some(n2)))
+        join2(newNode, nx)(f)
+      case n :: xs =>
+        val newNode = acc ++ List(n)
+        join2(newNode, xs)(f)
+    }
+  }
+
   case class EnrichedListOfNodes[A](values: List[Node[A]]) {
 
     def balanceRightWithEmpty(balancingValue: => A): List[Node[A]] = Node.balanceRight(Node.empty(balancingValue))(values)
@@ -86,6 +110,8 @@ object Node {
     def joinRight(f: (A, A) => A): List[Node[A]] = Node.joinRight(values)(f)
 
     def join(f: (A, A) => A): List[Node[A]] = Node.join(values)(f)
+
+    def join2(f: (A, A) => A): List[Node[A]] = Node.join2(Nil, values)(f)
 
   }
 
