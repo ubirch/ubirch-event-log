@@ -57,3 +57,21 @@ object ChainerService2 extends App {
   println(ToJson(nodes).pretty)
 
 }
+
+object ChainerService3 extends App {
+
+  // This is an example that shows how we
+  // - Take a list of seeds and turn them into empty nodes -no left or right nodes-
+  // - Balance the list to have an even number of nodes.
+  // - The list of  is balanced -if needed- with a value we pass in
+  // - Join the empty nodes with a function that unites the values and left and right
+  // - nodes to later have a node of these nodes.
+  //
+  val values = ('a' to 'y').toList.map(_.toString)
+  val node = Node.seeds(values: _*).balanceRightWithEmpty("1")
+    .join2((a, b) => a + b)
+
+  println(ToJson(node).pretty)
+
+
+}

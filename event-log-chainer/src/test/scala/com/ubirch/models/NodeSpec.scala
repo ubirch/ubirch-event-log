@@ -149,5 +149,267 @@ class NodeSpec extends TestBase {
 
     }
 
+    "join a single seed" in {
+
+      val nodes = Node.seeds("a").join((a, b) => a + b)
+      assert(nodes == List(Node.empty("a")))
+
+    }
+
+    "join with two seeds" in {
+
+      val nodes = Node.seeds("a", "b").join((a, b) => a + b)
+      assert(nodes == List(Node("ab", Some(Node("a", None, None)), Some(Node("b", None, None)))))
+
+      assert(nodes.map(_.value) == List("ab"))
+
+    }
+
+    "join with three seeds" in {
+
+      val nodes = Node.seeds("a", "b", "c").join((a, b) => a + b)
+      assert(nodes == List(Node("cab", Some(Node("c", None, None)), Some(Node("ab", Some(Node("a", None, None)), Some(Node("b", None, None)))))))
+
+      assert(nodes.map(_.value) == List("cab"))
+    }
+
+    "join with four seeds" in {
+
+      val nodes = Node.seeds("a", "b", "c", "d").join((a, b) => a + b)
+      assert(nodes == List(Node("abcd", Some(Node("ab", Some(Node("a", None, None)), Some(Node("b", None, None)))), Some(Node("cd", Some(Node("c", None, None)), Some(Node("d", None, None)))))))
+
+      assert(nodes.map(_.value) == List("abcd"))
+
+    }
+
+    "join with the alphabet seeds" in {
+
+      val values = ('a' to 'z').toList.map(_.toString)
+
+      val nodes = Node.seeds(values: _*).join((a, b) => a + b)
+
+      val expected = List(
+        Node(
+          "uvwxyzabcdefghijklmnopqrst",
+          Some(Node(
+            "uvwxyzabcd",
+            Some(Node(
+              "uvwx",
+              Some(Node(
+                "uv",
+                Some(Node("u", None, None)),
+                Some(Node("v", None, None))
+              )),
+              Some(Node(
+                "wx",
+                Some(Node("w", None, None)),
+                Some(Node("x", None, None))
+              ))
+            )),
+            Some(Node(
+              "yzabcd",
+              Some(Node(
+                "yz",
+                Some(Node("y", None, None)),
+                Some(Node("z", None, None))
+              )),
+              Some(Node(
+                "abcd",
+                Some(Node(
+                  "ab",
+                  Some(Node("a", None, None)),
+                  Some(Node("b", None, None))
+                )),
+                Some(Node(
+                  "cd",
+                  Some(Node("c", None, None)),
+                  Some(Node("d", None, None))
+                ))
+              ))
+            ))
+          )),
+          Some(Node(
+            "efghijklmnopqrst",
+            Some(Node(
+              "efghijkl",
+              Some(Node(
+                "efgh",
+                Some(Node(
+                  "ef",
+                  Some(Node("e", None, None)),
+                  Some(Node("f", None, None))
+                )),
+                Some(Node(
+                  "gh",
+                  Some(Node("g", None, None)),
+                  Some(Node("h", None, None))
+                ))
+              )),
+              Some(Node(
+                "ijkl",
+                Some(Node(
+                  "ij",
+                  Some(Node("i", None, None)),
+                  Some(Node("j", None, None))
+                )),
+                Some(Node(
+                  "kl",
+                  Some(Node("k", None, None)),
+                  Some(Node("l", None, None))
+                ))
+              ))
+            )),
+            Some(Node(
+              "mnopqrst",
+              Some(Node(
+                "mnop",
+                Some(Node(
+                  "mn",
+                  Some(Node("m", None, None)),
+                  Some(Node("n", None, None))
+                )),
+                Some(Node(
+                  "op",
+                  Some(Node("o", None, None)),
+                  Some(Node("p", None, None))
+                ))
+              )),
+              Some(Node("qrst", Some(Node(
+                "qr",
+                Some(Node("q", None, None)),
+                Some(Node("r", None, None))
+              )),
+                Some(Node(
+                  "st",
+                  Some(Node("s", None, None)),
+                  Some(Node("t", None, None))
+                ))))
+            ))
+          ))
+        )
+      )
+
+      assert(nodes == expected)
+
+      assert(nodes.map(_.value) == List("uvwxyzabcdefghijklmnopqrst"))
+
+
+    }
+
+    "join2 with the alphabet seeds" in {
+
+      val values = ('a' to 'z').toList.map(_.toString)
+      val nodes = Node.seeds(values: _*).join2((a, b) => a + b)
+
+      val expected = List(
+        Node(
+          "abcdefghijklmnopqrstuvwxyz",
+          Some(Node(
+            "abcdefghijklmnop",
+            Some(Node(
+              "abcdefgh",
+              Some(Node(
+                "abcd",
+                Some(Node(
+                  "ab",
+                  Some(Node("a", None, None)),
+                  Some(Node("b", None, None))
+                )),
+                Some(Node(
+                  "cd",
+                  Some(Node("c", None, None)),
+                  Some(Node("d", None, None))
+                ))
+              )),
+              Some(Node(
+                "efgh",
+                Some(Node(
+                  "ef",
+                  Some(Node("e", None, None)),
+                  Some(Node("f", None, None))
+                )),
+                Some(Node(
+                  "gh",
+                  Some(Node("g", None, None)),
+                  Some(Node("h", None, None))
+                ))
+              ))
+            )),
+            Some(Node(
+              "ijklmnop",
+              Some(Node(
+                "ijkl",
+                Some(Node(
+                  "ij",
+                  Some(Node("i", None, None)),
+                  Some(Node("j", None, None))
+                )),
+                Some(Node(
+                  "kl",
+                  Some(Node("k", None, None)),
+                  Some(Node("l", None, None))
+                ))
+              )),
+              Some(Node(
+                "mnop",
+                Some(Node(
+                  "mn",
+                  Some(Node("m", None, None)),
+                  Some(Node("n", None, None))
+                )),
+                Some(Node(
+                  "op",
+                  Some(Node("o", None, None)),
+                  Some(Node("p", None, None))
+                ))
+              ))
+            ))
+          )),
+          Some(Node(
+            "qrstuvwxyz",
+            Some(Node(
+              "qrstuvwx",
+              Some(Node(
+                "qrst",
+                Some(Node(
+                  "qr",
+                  Some(Node("q", None, None)),
+                  Some(Node("r", None, None))
+                )),
+                Some(Node(
+                  "st",
+                  Some(Node("s", None, None)),
+                  Some(Node("t", None, None))
+                ))
+              )),
+              Some(Node(
+                "uvwx",
+                Some(Node(
+                  "uv",
+                  Some(Node("u", None, None)),
+                  Some(Node("v", None, None))
+                )),
+                Some(Node(
+                  "wx",
+                  Some(Node("w", None, None)),
+                  Some(Node("x", None, None))
+                ))
+              ))
+            )),
+            Some(Node(
+              "yz",
+              Some(Node("y", None, None)),
+              Some(Node("z", None, None))
+            ))
+          ))
+        )
+      )
+
+      assert(nodes == expected)
+
+      assert(nodes.map(_.value) == List("abcdefghijklmnopqrstuvwxyz"))
+
+    }
+
   }
 }
