@@ -50,7 +50,7 @@ object ChainerService2 extends App {
   val nodes = Chainer(listOfData)
     .createGroups
     .createSeedHashes
-    .createSeedNodes
+    .createSeedNodes()
     .createNode
     .getNode
 
@@ -72,6 +72,5 @@ object ChainerService3 extends App {
     .join2((a, b) => a + b)
 
   println(ToJson(node).pretty)
-
 
 }

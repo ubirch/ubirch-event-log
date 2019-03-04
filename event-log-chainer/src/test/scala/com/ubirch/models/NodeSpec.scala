@@ -293,7 +293,6 @@ class NodeSpec extends TestBase {
 
       assert(nodes.map(_.value) == List("uvwxyzabcdefghijklmnopqrst"))
 
-
     }
 
     "join2 with the alphabet seeds" in {
