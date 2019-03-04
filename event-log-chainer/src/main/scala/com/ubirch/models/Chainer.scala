@@ -24,8 +24,6 @@ class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
 
   def getNode: Option[Node[String]] = node
 
-  def balancingHash: String = Chainer.getEmptyNodeVal
-
   def createGroups: Chainer[T] = {
     grouped = es.groupBy(x => x.id).values.toList
     this
@@ -36,16 +34,31 @@ class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
     this
   }
 
-  def createSeedNodes: Chainer[T] = {
-    seedNodes = seedHashes.flatMap(x => hashesToNodes0(x))
+  def createSeedNodes(keepOrder: Boolean = false): Chainer[T] = {
+    if (keepOrder) createSeedNodesF(hashesToNodesWithJoin2)
+    else createSeedNodesF(hashesToNodesWithJoin)
+
     this
   }
 
-  private def hashesToNodes0(hes: List[String]): List[Node[String]] = {
+  private def createSeedNodesF(f: List[String] => List[Node[String]]): Chainer[T] = {
+    seedNodes = seedHashes.flatMap(x => f(x))
+    this
+  }
+
+  private def hashesToNodesWithJoin(hes: List[String]): List[Node[String]] = {
     Node.seeds(hes: _*)
       .balanceRightWithEmpty(balancingHash)
       .join((t1, t2) => Hasher.mergeAndHash(t1, t2))
   }
+
+  private def hashesToNodesWithJoin2(hes: List[String]): List[Node[String]] = {
+    Node.seeds(hes: _*)
+      .balanceRightWithEmpty(balancingHash)
+      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+  }
+
+  def balancingHash: String = Chainer.getEmptyNodeVal
 
   def createNode: Chainer[T] = {
     node = seedNodes.join((t1, t2) => Hasher.mergeAndHash(t1, t2)).headOption
