@@ -28,9 +28,9 @@ case class Node[A](value: A, left: Option[Node[A]], right: Option[Node[A]]) {
 
   def isLast: Boolean = !(hasRight && hasLeft)
 
-  def map[B](f: A => B): Node[B] = {
-    Node[B](f(value), left.map(_.map(f)), right.map(_.map(f)))
-  }
+  def map[B](f: A => B): Node[B] = Node.map(this)(f)
+
+  def depth: Int = Node.depth(this)
 
 }
 
@@ -76,6 +76,18 @@ object Node {
   def join[A](nodes: List[Node[A]])(f: (A, A) => A): List[Node[A]] = {
     def g(n: Node[A], nx: List[Node[A]]): List[Node[A]] = nx ++ List(n)
     joinCore(nodes)(f)(g)
+  }
+
+  def depth[A](node: Node[A]): Int = {
+    node match {
+      case Node(_, None, None) => 0
+      case Node(_, l, r) => 1 + l.map(x => depth(x)).getOrElse(0) max r.map(x => depth(x)).getOrElse(0)
+    }
+
+  }
+
+  def map[A, B](node: Node[A])(f: A => B): Node[B] = {
+    Node[B](f(node.value), node.left.map(_.map(f)), node.right.map(_.map(f)))
   }
 
   /**

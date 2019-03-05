@@ -293,6 +293,8 @@ class NodeSpec extends TestBase {
 
       assert(nodes.map(_.value) == List("uvwxyzabcdefghijklmnopqrst"))
 
+      assert(nodes.headOption.map(x => Node.depth(x)).getOrElse(0) == 4)
+
     }
 
     "join2 with the alphabet seeds" in {
@@ -407,6 +409,8 @@ class NodeSpec extends TestBase {
       assert(nodes == expected)
 
       assert(nodes.map(_.value) == List("abcdefghijklmnopqrstuvwxyz"))
+
+      assert(nodes.headOption.map(x => Node.depth(x)).getOrElse(0) == 5)
 
     }
 

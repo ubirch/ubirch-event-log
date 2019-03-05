@@ -99,5 +99,104 @@ class ChainerSpec extends TestBase {
 
     }
 
+    "create nodes of hashes" in {
+
+      val listOfData = List(
+        SomeDataTypeFromKafka("vegetables", "eggplant"),
+        SomeDataTypeFromKafka("vegetables", "artichoke"),
+        SomeDataTypeFromKafka("fruits", "banana"),
+        SomeDataTypeFromKafka("fruits", "apple")
+      )
+
+      val nodes = Chainer(listOfData)
+        .createGroups
+        .createSeedHashes
+        .createSeedNodes(true)
+        .getNodes
+
+      val banana = Hasher.hash(SomeDataTypeFromKafka("fruits", "banana").toString)
+      val apple = Hasher.hash(SomeDataTypeFromKafka("fruits", "apple").toString)
+      val eggplant = Hasher.hash(SomeDataTypeFromKafka("vegetables", "eggplant").toString)
+      val artichoke = Hasher.hash(SomeDataTypeFromKafka("vegetables", "artichoke").toString)
+
+      val expected = List(
+        Node(
+          Hasher.mergeAndHash(banana, apple),
+          Some(Node(banana, None, None)),
+          Some(Node(apple, None, None))
+        ),
+        Node(
+          Hasher.mergeAndHash(eggplant, artichoke),
+          Some(Node(eggplant, None, None)),
+          Some(Node(artichoke, None, None))
+        )
+      )
+
+      assert(nodes == expected)
+
+    }
+
+    "get empty when creating nodes from empty seeds" in {
+
+      val listOfData: List[SomeDataTypeFromKafka] = List()
+
+      val nodes = Chainer(listOfData).createGroups.createSeedNodes(true).getNodes
+
+      assert(nodes.isEmpty)
+
+    }
+
+    "create single node" in {
+      val listOfData = List(
+        SomeDataTypeFromKafka("vegetables", "eggplant"),
+        SomeDataTypeFromKafka("vegetables", "artichoke"),
+        SomeDataTypeFromKafka("fruits", "banana"),
+        SomeDataTypeFromKafka("fruits", "apple")
+      )
+
+      val nodes = Chainer(listOfData)
+        .createGroups
+        .createSeedHashes
+        .createSeedNodes(true)
+        .createNode
+        .getNode
+
+      val banana = Hasher.hash(SomeDataTypeFromKafka("fruits", "banana").toString)
+      val apple = Hasher.hash(SomeDataTypeFromKafka("fruits", "apple").toString)
+      val eggplant = Hasher.hash(SomeDataTypeFromKafka("vegetables", "eggplant").toString)
+      val artichoke = Hasher.hash(SomeDataTypeFromKafka("vegetables", "artichoke").toString)
+
+      val expected = Option(
+        Node(Hasher.mergeAndHash(
+          Hasher.mergeAndHash(banana, apple),
+          Hasher.mergeAndHash(eggplant, artichoke)
+        ), Some(
+          Node(
+            Hasher.mergeAndHash(banana, apple),
+            Some(Node(banana, None, None)),
+            Some(Node(apple, None, None))
+          )
+        ),
+          Some(Node(
+            Hasher.mergeAndHash(eggplant, artichoke),
+            Some(Node(eggplant, None, None)),
+            Some(Node(artichoke, None, None))
+          )))
+      )
+
+      assert(nodes == expected)
+
+    }
+
+    "get empty when creating node from empty seeds" in {
+
+      val listOfData: List[SomeDataTypeFromKafka] = List()
+
+      val node = Chainer(listOfData).createGroups.createSeedNodes(true).createNode.getNode
+
+      assert(node.isEmpty)
+
+    }
+
   }
 }
