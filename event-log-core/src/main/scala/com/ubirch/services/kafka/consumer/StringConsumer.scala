@@ -1,15 +1,16 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.consumer.{ Configs, ConsumerRecordsController, ProcessResult }
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.{ URLsHelper, UUIDHelper, VersionedLazyLogging }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
@@ -25,12 +26,14 @@ import scala.language.postfixOps
   * @param consumerRecord Represents the data received in the poll from Kafka
   * @param eventLog Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String]
+case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String] {
+  override val id: UUID = UUIDHelper.randomUUID
+}
 
 /**
   * Represents a concrete data type for a consumer runner of type Consumer[String, String]
   */
-class StringConsumer extends ConsumerRunnerWithMetrics[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
+class StringConsumer(implicit val ec: ExecutionContext) extends ConsumerRunnerWithMetrics[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
 
   override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
     getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("No Records Controller Found")))

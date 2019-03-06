@@ -1,6 +1,7 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
@@ -205,7 +206,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
       )
 
       val res = e.pipeData.eventLog.map { el =>
-        Future.failed(NeedForPauseException("Requesting Pause", el, e.getMessage))
+        Future.failed(NeedForPauseException("Requesting Pause", e.getMessage))
       }.getOrElse {
         Future.successful(e.pipeData)
       }

@@ -1,9 +1,6 @@
 package com.ubirch.util
 
-import com.ubirch.models.EventLog
 import com.ubirch.services.kafka.consumer.PipeData
-import org.apache.kafka.clients.consumer.CommitFailedException
-import org.apache.kafka.common.errors.TimeoutException
 
 /**
   * Namespace that contains the exceptions of the system and a abstract
@@ -16,7 +13,7 @@ object Exceptions {
     * @param message Represents the error message.
     */
   abstract class EventLogException(message: String) extends Exception(message) {
-    val name = this.getClass.getCanonicalName
+    val name: String = this.getClass.getCanonicalName
   }
 
   //INJECTION EXCEPTIONS
@@ -92,23 +89,5 @@ object Exceptions {
   case class StoringIntoEventLogException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
-
-  //CONSUMER EXCEPTIONS
-
-  case class CommitTimeoutException(message: String, commitFunc: () => Unit, timeoutException: TimeoutException) extends ExecutionException(message)
-
-  case class MaxNumberOfCommitAttemptsException(message: String, reason: String, timeoutException: Either[CommitTimeoutException, CommitFailedException]) extends ExecutionException(message)
-
-  case class ConsumerCreationException(message: String, reason: String) extends ExecutionException(message)
-
-  case class EmptyTopicException(message: String) extends ExecutionException(message)
-
-  case class NeedForShutDownException(message: String, reason: String) extends ExecutionException(message)
-
-  case class NeedForPauseException(message: String, eventLog: EventLog, reason: String) extends ExecutionException(message)
-
-  case class NeedForResumeException(message: String) extends ExecutionException(message)
-
-  //CONSUMER EXCEPTIONS
 
 }
