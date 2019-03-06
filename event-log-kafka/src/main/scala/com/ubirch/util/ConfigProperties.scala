@@ -26,6 +26,9 @@ trait ConfigProperties {
 
 }
 
+/**
+  * Companion object for the ConfigProperties. Useful to have the implicit conversion handy.
+  */
 object ConfigProperties {
   implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
 }
