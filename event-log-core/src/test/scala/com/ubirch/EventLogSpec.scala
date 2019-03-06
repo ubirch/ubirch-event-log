@@ -323,7 +323,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     }
 
-    "try to commit after TimeoutException and another Execption" in {
+    "try to commit after TimeoutException and another Exception" in {
 
       implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -347,7 +347,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val controller = get[DefaultConsumerRecordsController]
 
-        val attempts = new CountDownLatch(3)
+        val attempts = new CountDownLatch(4)
 
         //Consumer
         val consumer = new StringConsumer {
@@ -414,7 +414,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val controller = get[DefaultConsumerRecordsController]
 
         val committed = new CountDownLatch(1)
-        val failed = new CountDownLatch(2)
+        val failed = new CountDownLatch(3)
         var committedN = 0
 
         //Consumer
