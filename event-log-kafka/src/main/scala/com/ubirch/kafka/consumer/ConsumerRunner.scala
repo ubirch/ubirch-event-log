@@ -1,13 +1,15 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import java.util
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
 
-import com.ubirch.util.Exceptions._
-import com.ubirch.util.Implicits.enrichedIterator
-import com.ubirch.util.{ FutureHelper, ShutdownableThread, VersionedLazyLogging }
+import com.ubirch.kafka.util.VersionedLazyLogging
+import com.ubirch.kafka.util.Exceptions._
+import com.ubirch.kafka.util.Implicits._
+import com.ubirch.kafka.util.FutureHelper
+import com.ubirch.util.ShutdownableThread
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException

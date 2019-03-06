@@ -1,4 +1,4 @@
-package com.ubirch.util
+package com.ubirch.kafka.util
 
 import java.util.concurrent.atomic.AtomicInteger
 
