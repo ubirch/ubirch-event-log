@@ -384,7 +384,7 @@ class ConsumerRunnerSpec extends TestBase {
             new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
-                throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
               }
             }
 
@@ -452,7 +452,7 @@ class ConsumerRunnerSpec extends TestBase {
                   attempts.countDown()
                   throw new Exception("Another exception")
                 } else {
-                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                  throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
                 }
               }
             }
@@ -524,7 +524,7 @@ class ConsumerRunnerSpec extends TestBase {
                   committed.countDown()
                   f
                 } else {
-                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                  throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
                 }
               }
             }

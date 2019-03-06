@@ -5,10 +5,9 @@ import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
 
-import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.kafka.util.Exceptions._
 import com.ubirch.kafka.util.Implicits._
-import com.ubirch.kafka.util.FutureHelper
+import com.ubirch.kafka.util.{ FutureHelper, VersionedLazyLogging }
 import com.ubirch.util.ShutdownableThread
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition

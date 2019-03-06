@@ -2,9 +2,10 @@ package com.ubirch.services.kafka.consumer
 
 import java.util.concurrent.atomic.AtomicReference
 
-import org.joda.time.Instant
+import com.ubirch.kafka.consumer.ConsumerRunner
 import com.ubirch.util.Implicits.enrichedInstant
 import io.prometheus.client.{ Counter, Summary }
+import org.joda.time.Instant
 
 /**
   * Represents a Consumer Runner for a Kafka Consumer with metrics added to the prepoll and post commit callbacks
