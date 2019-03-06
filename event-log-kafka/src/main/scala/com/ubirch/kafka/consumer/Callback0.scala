@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 /**
   * Represents a simple callback data type that takes no parameters

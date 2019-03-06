@@ -1,4 +1,4 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
 

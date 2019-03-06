@@ -1,4 +1,4 @@
-package com.ubirch.util
+package com.ubirch.kafka.util
 
 import org.apache.kafka.clients.consumer.CommitFailedException
 import org.apache.kafka.common.errors.TimeoutException

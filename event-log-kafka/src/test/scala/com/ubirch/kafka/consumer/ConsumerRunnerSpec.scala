@@ -1,10 +1,9 @@
-package com.ubirch.services
+package com.ubirch.kafka.consumer
 
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 
-import com.ubirch.services.kafka.consumer.{ Configs, ConsumerRunner, ProcessResult }
-import com.ubirch.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }
+import com.ubirch.kafka.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }
 import com.ubirch.{ NameGiver, PortGiver, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, ConsumerRecords, OffsetResetStrategy }
@@ -115,7 +114,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -167,7 +166,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -183,11 +182,6 @@ class ConsumerRunnerSpec extends TestBase {
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
-
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
 
         val consumer = new ConsumerRunner[String, String]("cr-5") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
@@ -226,7 +220,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -242,11 +236,6 @@ class ConsumerRunnerSpec extends TestBase {
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
-
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
 
         val consumer = new ConsumerRunner[String, String]("cr-6") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
@@ -288,7 +277,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 10
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -356,7 +345,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 1
       val attempts = new CountDownLatch(3)
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -378,7 +367,7 @@ class ConsumerRunnerSpec extends TestBase {
           override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
         }
 
-        val consumer = new ConsumerRunner[String, String]("cr-8") {
+        val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-8") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
           override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
@@ -419,7 +408,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 1
       val attempts = new CountDownLatch(4)
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -441,7 +430,7 @@ class ConsumerRunnerSpec extends TestBase {
           override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
         }
 
-        val consumer = new ConsumerRunner[String, String]("cr-9") {
+        val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
           override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
@@ -490,7 +479,7 @@ class ConsumerRunnerSpec extends TestBase {
       val failed = new CountDownLatch(3)
       var committedN = 0
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -512,7 +501,7 @@ class ConsumerRunnerSpec extends TestBase {
           override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
         }
 
-        val consumer = new ConsumerRunner[String, String]("cr-9") {
+        val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
           override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {

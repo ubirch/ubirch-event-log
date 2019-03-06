@@ -1,8 +1,7 @@
-package com.ubirch.util
+package com.ubirch.kafka.util
 
 import java.util.concurrent.{ CountDownLatch, Future => JavaFuture }
 
-import com.ubirch.services.execution.Execution
 import monix.execution.Scheduler.{ global => scheduler }
 
 import scala.concurrent.duration.FiniteDuration

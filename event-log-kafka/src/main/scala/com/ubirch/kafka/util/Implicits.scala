@@ -1,4 +1,4 @@
-package com.ubirch.util
+package com.ubirch.kafka.util
 
 import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
