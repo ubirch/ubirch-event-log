@@ -343,7 +343,7 @@ class ConsumerRunnerSpec extends TestBase {
         consumer.setProps(configs)
         consumer.startPolling()
 
-        Thread.sleep(5000)
+        Thread.sleep(10000)
 
         assert(futureMessages.toSet == messages.toSet)
         assert(futureMessages.toSet.size == maxEntities)
