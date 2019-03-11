@@ -4,11 +4,11 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.{ FutureHelper, ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import javax.inject._
 import org.apache.kafka.clients.producer.RecordMetadata
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 /**
@@ -28,9 +28,11 @@ trait ReporterMagnet {
   * @param config Represents the injected configuration component.
   */
 @Singleton
-class Reporter @Inject() (producerManager: StringProducer, config: Config) extends LazyLogging {
+class Reporter @Inject() (producerManager: StringProducer, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
   import ConfPaths.Producer._
+
+  val futureHelper = new FutureHelper()
 
   val topic: String = config.getString(ERROR_TOPIC_PATH)
 
@@ -43,7 +45,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
       override def apply(): Result = {
         //logger.debug("Reporting error [{}]", error.toString)
 
-        val payload = ToJson[Error](error).get
+        val payload = EventLogJsonSupport.ToJson[Error](error).get
         val eventLog = EventLog(getClass.getName, topic, payload)
 
         val record = ProducerRecordHelper.toRecord(
@@ -55,7 +57,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
 
         val javaFutureSend = producerManager.getProducerOrCreate.send(record)
 
-        FutureHelper.fromJavaFuture(javaFutureSend)
+        futureHelper.fromJavaFuture(javaFutureSend)
 
       }
 

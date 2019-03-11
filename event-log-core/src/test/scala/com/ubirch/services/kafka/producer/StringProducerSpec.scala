@@ -5,7 +5,7 @@ import com.ubirch.kafka.producer.Configs
 import com.ubirch.kafka.util.Exceptions.ProducerCreationException
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.services.kafka._
-import com.ubirch.util.{ ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ EventLogJsonSupport, ProducerRecordHelper }
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -42,7 +42,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
       val topic = NameGiver.giveMeAnErrorTopicName
 
       val error = Entities.Errors.errorExample()
-      val message = EventLog(topic, topic, ToJson[Error](error).get)
+      val message = EventLog(topic, topic, EventLogJsonSupport.ToJson[Error](error).get)
 
       withRunningKafka {
 

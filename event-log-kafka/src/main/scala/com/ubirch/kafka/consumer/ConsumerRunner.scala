@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReferen
 
 import com.ubirch.kafka.util.Exceptions._
 import com.ubirch.kafka.util.Implicits._
-import com.ubirch.kafka.util.{ Callback, Callback0, FutureHelper, VersionedLazyLogging }
-import com.ubirch.util.ShutdownableThread
+import com.ubirch.kafka.util.{ Callback, Callback0, VersionedLazyLogging }
+import com.ubirch.util.{ FutureHelper, ShutdownableThread }
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -170,7 +170,7 @@ abstract class ConsumerRunner[K, V](name: String)
                   throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
                 } else {
                   try {
-                    FutureHelper.delay(1 second)(e.commitFunc())
+                    new FutureHelper().delay(1 second)(e.commitFunc())
                     break()
                   } catch {
                     case _: CommitTimeoutException =>

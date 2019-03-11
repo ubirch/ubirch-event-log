@@ -29,6 +29,10 @@ case class EnrichedDate(date: Date) {
 
 }
 
+/**
+  * It is an enriched instant
+  * @param instant Represents the instant that gets enriched
+  */
 case class EnrichedInstant(instant: Instant) {
 
   def millisBetween(other: Instant): Long = new Duration(instant, other).getMillis

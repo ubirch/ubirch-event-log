@@ -6,7 +6,7 @@ import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ FromString, UUIDHelper }
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -62,7 +62,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
-      val eventLog = FromString[EventLog](v1.consumerRecord.value()).get
+      val eventLog = EventLogJsonSupport.FromString[EventLog](v1.consumerRecord.value()).get
       v1.copy(eventLog = Some(eventLog))
     } catch {
       case _: Exception =>
