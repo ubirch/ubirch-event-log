@@ -3,7 +3,7 @@ package com.ubirch.kafka.producer
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.ubirch.kafka.util.Exceptions.{ ProducerCreationException, ProducerNotStartedException }
-import com.ubirch.kafka.util.VersionedLazyLogging
+import com.ubirch.kafka.util.{ Callback0, VersionedLazyLogging }
 import org.apache.kafka.clients.producer.{ KafkaProducer, Producer }
 import org.apache.kafka.common.serialization.Serializer
 
@@ -18,6 +18,8 @@ import scala.collection.JavaConverters._
 abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
 
   override val version: AtomicInteger = ProducerRunner.version
+
+  private val onProducerCreation = new Callback0[Unit] {}
 
   @BeanProperty var props: Map[String, AnyRef] = Map.empty
 
@@ -40,6 +42,8 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
 
   @throws(classOf[ProducerCreationException])
   def start: Option[Producer[K, V]] = {
+
+    onProducerCreation.run()
 
     if (keySerializer.isEmpty && valueSerializer.isEmpty) {
       throw ProducerCreationException("No Serializers Found", "Please set the serializers for the key and value.")
