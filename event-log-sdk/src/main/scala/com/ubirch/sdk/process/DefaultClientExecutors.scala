@@ -80,7 +80,9 @@ class CreateProducerRecord(config: Config)
   */
 class Commit(stringProducer: StringProducer) extends Executor[(ProducerRecord[String, String], EventLog), (JavaFuture[RecordMetadata], EventLog)] {
 
-  def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = stringProducer.producer.send(record)
+  def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = {
+    stringProducer.getProducerOrCreate.send(record)
+  }
 
   override def apply(v1: (ProducerRecord[String, String], EventLog)): (JavaFuture[RecordMetadata], EventLog) = {
 

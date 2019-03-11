@@ -1,11 +1,12 @@
 package com.ubirch
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.producer.Configs
 import com.ubirch.sdk.EventLogging
-import com.ubirch.services.kafka.producer.{ Configs, StringProducer }
-import com.ubirch.util.Implicits.configsToProps
+import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.ToJson
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.mockito.MockitoSugar
 
 case class Hello(name: String)
@@ -16,7 +17,7 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "log message" in {
 
-      implicit val kafKaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafKaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -26,7 +27,7 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val configs = Configs(bootstrapServers = "localhost:" + kafKaConfig.kafkaPort)
 
-        setStringProducer(new StringProducer(configs))
+        setStringProducer(StringProducer(configs, new StringSerializer(), new StringSerializer()))
 
         val logged = logger.log(Hello("Hello")).commit
 
@@ -62,7 +63,7 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toString
 
-        getStringProducer.producer.close()
+        getStringProducer.getProducer.close()
       }
 
     }

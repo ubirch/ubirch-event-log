@@ -105,9 +105,8 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
     "commit Event" in {
 
       lazy val producer = mock[StringProducer]
-      when(producer.producer).thenReturn(mock[Producer[String, String]])
-      when(producer.producer.send(any[ProducerRecord[String, String]]()))
-        .thenReturn(mock[JavaFuture[RecordMetadata]])
+      when(producer.getProducerOrCreate).thenReturn(mock[Producer[String, String]])
+      when(producer.getProducerOrCreate.send(any[ProducerRecord[String, String]]())).thenReturn(mock[JavaFuture[RecordMetadata]])
 
       val commit = new Commit(producer)
 
