@@ -36,7 +36,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
 
   object Types {
 
-    implicit def fromError(error: Error): ReporterMagnet = new ReporterMagnet {
+    implicit def fromError(error: Error) = new ReporterMagnet {
 
       override type Result = Future[RecordMetadata]
 

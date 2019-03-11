@@ -3,7 +3,7 @@ package com.ubirch.kafka.producer
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.ubirch.kafka.util.Exceptions.{ ProducerCreationException, ProducerNotStartedException }
-import com.ubirch.kafka.util.{ Callback0, VersionedLazyLogging }
+import com.ubirch.kafka.util.{ Callback, Callback0, VersionedLazyLogging }
 import org.apache.kafka.clients.producer.{ KafkaProducer, Producer }
 import org.apache.kafka.common.serialization.Serializer
 
@@ -12,6 +12,7 @@ import scala.collection.JavaConverters._
 
 /**
   * Represents a simple definition for a kafka producer
+  * It supports callback on the producer creation event
   * @tparam K Represents the Key value
   * @tparam V Represents the Value
   */
@@ -19,7 +20,9 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
 
   override val version: AtomicInteger = ProducerRunner.version
 
-  private val onProducerCreation = new Callback0[Unit] {}
+  private val onPreProducerCreation = new Callback0[Unit] {}
+
+  private val onPostProducerCreation = new Callback[Option[Producer[K, V]], Unit] {}
 
   @BeanProperty var props: Map[String, AnyRef] = Map.empty
 
@@ -29,7 +32,9 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
 
   private var producer: Option[Producer[K, V]] = None
 
-  def getProducerAsOpt: Option[Producer[K, V]] = producer
+  def onPreProducerCreation(f: () => Unit): Unit = onPreProducerCreation.addCallback(f)
+
+  def onPostProducerCreation(f: Option[Producer[K, V]] => Unit): Unit = onPostProducerCreation.addCallback(f)
 
   @throws[ProducerNotStartedException]
   def getProducer: Producer[K, V] = producer.getOrElse(throw ProducerNotStartedException("Producer has not been started."))
@@ -43,7 +48,7 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
   @throws(classOf[ProducerCreationException])
   def start: Option[Producer[K, V]] = {
 
-    onProducerCreation.run()
+    onPreProducerCreation.run()
 
     if (keySerializer.isEmpty && valueSerializer.isEmpty) {
       throw ProducerCreationException("No Serializers Found", "Please set the serializers for the key and value.")
@@ -67,9 +72,13 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
     } catch {
       case e: Exception =>
         throw ProducerCreationException("Error Creating Producer", e.getMessage)
+    } finally {
+      onPostProducerCreation.run(getProducerAsOpt)
     }
 
   }
+
+  def getProducerAsOpt: Option[Producer[K, V]] = producer
 
 }
 
@@ -85,7 +94,6 @@ object ProducerRunner {
     pr.setProps(props)
     pr.setKeySerializer(keySerializer)
     pr.setValueSerializer(valueSerializer)
-    pr.start
     pr
   }
 

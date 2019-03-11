@@ -44,9 +44,9 @@ class DefaultStringProducer @Inject() (
 
   def configs = Configs(bootstrapServers)
 
-  private lazy val producer = StringProducer(configs, new StringSerializer(), new StringSerializer())
+  private lazy val producerConfigured = StringProducer(configs, new StringSerializer(), new StringSerializer())
 
-  override def get(): StringProducer = producer
+  override def get(): StringProducer = producerConfigured
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Producer...")
