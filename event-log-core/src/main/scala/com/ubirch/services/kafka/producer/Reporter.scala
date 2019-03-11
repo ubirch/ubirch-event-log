@@ -36,7 +36,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
 
   object Types {
 
-    implicit def fromError(error: Error) = new ReporterMagnet {
+    implicit def fromError(error: Error): ReporterMagnet = new ReporterMagnet {
 
       override type Result = Future[RecordMetadata]
 
@@ -53,7 +53,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config) exten
           Map.empty
         )
 
-        val javaFutureSend = producerManager.producer.send(record)
+        val javaFutureSend = producerManager.getProducerOrCreate.send(record)
 
         FutureHelper.fromJavaFuture(javaFutureSend)
 

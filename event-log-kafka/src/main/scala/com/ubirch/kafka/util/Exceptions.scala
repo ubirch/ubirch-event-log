@@ -71,4 +71,17 @@ object Exceptions {
     */
   case class NeedForResumeException(message: String) extends ConsumptionException(message)
 
+  /**
+    * Represents an exception for when there's been an error creating the producer
+    * @param message Represents the error message.
+    * @param reason Represents the reason why this exception has been thrown.
+    */
+  case class ProducerCreationException(message: String, reason: String) extends ConsumptionException(message)
+
+  /**
+    * Represents an exception for when the producer hasn't been started and yet it's being tried to be used.
+    * @param message Represents the error message.
+    */
+  case class ProducerNotStartedException(message: String) extends ConsumptionException(message)
+
 }

@@ -128,6 +128,4 @@ object Implicits {
 
   implicit def enrichedConfig(config: Config): EnrichedConfig = EnrichedConfig(config)
 
-  implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
-
 }
