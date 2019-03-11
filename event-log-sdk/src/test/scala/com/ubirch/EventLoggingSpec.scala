@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.sdk.EventLogging
 import com.ubirch.services.kafka.producer.StringProducer
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.mockito.MockitoSugar
@@ -33,13 +33,13 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged.toString
 
-        val logged2 = logger.log(ToJson("Hola").get).commit
+        val logged2 = logger.log(EventLogJsonSupport.ToJson("Hola").get).commit
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged2.toString
 
-        val log1 = log(ToJson(Hello("Hola")).get, "My Category")
+        val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category")
 
-        val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
+        val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category")
 
         //Let's unite them in order first in first out
         val log1_2 = log1 +> log2
@@ -47,16 +47,16 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         //Let's actually commit it
         log1_2.commit
 
-        val log3 = log(ToJson(Hello("Como estas")).get, "my service class", "My another Category")
+        val log3 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "my service class", "My another Category")
 
-        assert(log3.event == ToJson(Hello("Como estas")).get)
+        assert(log3.event == EventLogJsonSupport.ToJson(Hello("Como estas")).get)
         assert(log3.serviceClass == "my service class")
         assert(log3.category == "My another Category")
 
-        assert(log1.event == ToJson(Hello("Hola")).get)
+        assert(log1.event == EventLogJsonSupport.ToJson(Hello("Hola")).get)
         assert(log1.category == "My Category")
 
-        assert(log2.event == ToJson(Hello("Como estas")).get)
+        assert(log2.event == EventLogJsonSupport.ToJson(Hello("Como estas")).get)
         assert(log2.category == "My another Category")
 
         consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toString

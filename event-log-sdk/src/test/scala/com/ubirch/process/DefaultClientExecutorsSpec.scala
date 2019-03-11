@@ -11,7 +11,7 @@ import com.ubirch.sdk.util.Exceptions.{ CommitException, CommitHandlerASyncExcep
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.{ Execution, ExecutionProvider }
 import com.ubirch.services.kafka.producer.StringProducer
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 import org.apache.kafka.clients.producer.{ Producer, ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.TopicPartition
 import org.json4s.JsonAST.JNull
@@ -55,7 +55,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
   "CreateEventFromJValue" must {
     "create Event" in {
-      val data = ToJson[Hello](Hello("Hola")).get
+      val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
       val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
 
@@ -70,7 +70,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
   "CreateProducerRecord" must {
 
-    val data = ToJson[Hello](Hello("Hola")).get
+    val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
     val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
     val eventLog = createEventFrom(data)
@@ -93,7 +93,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
   "Commit" must {
 
-    val data = ToJson[Hello](Hello("Hola")).get
+    val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
     val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
     val eventLog = createEventFrom(data)
@@ -145,7 +145,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
   "CommitHandlerSync" must {
 
-    val data = ToJson[Hello](Hello("Hola")).get
+    val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
     val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
     val eventLog = createEventFrom(data)
@@ -191,7 +191,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
   "CommitHandlerAsync" must {
 
-    val data = ToJson[Hello](Hello("Hola")).get
+    val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
     val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
     val eventLog = createEventFrom(data)
@@ -230,7 +230,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
   "Logger" must {
     "do local log" in {
 
-      val data = ToJson[Hello](Hello("Hola")).get
+      val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
       val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
       val eventLog = createEventFrom(data)
@@ -250,7 +250,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
       implicit val ec: ExecutionContext = new ExecutionProvider().get()
 
-      val data = ToJson[Hello](Hello("Hola")).get
+      val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
       val createEventFrom = new CreateEventFromJValue("my_service_class", "my_category")
       val eventLog = createEventFrom(data)

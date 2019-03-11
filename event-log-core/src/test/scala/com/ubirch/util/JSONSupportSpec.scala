@@ -13,11 +13,11 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val entity = Entities.Events.eventExample()
 
-      val toJson = ToJson[EventLog](entity)
+      val toJson = EventLogJsonSupport.ToJson[EventLog](entity)
 
       val stringEntity = toJson.toString
 
-      val fromString = FromString[EventLog](stringEntity)
+      val fromString = EventLogJsonSupport.FromString[EventLog](stringEntity)
 
       val fromStringEntity = fromString.get
 
@@ -29,9 +29,9 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val entity = Entities.Events.eventExample()
 
-      val toJson = ToJson[EventLog](entity)
+      val toJson = EventLogJsonSupport.ToJson[EventLog](entity)
 
-      val entityToBe = FromJson[EventLog](toJson.get)
+      val entityToBe = EventLogJsonSupport.FromJson[EventLog](toJson.get)
 
       assert(entity == entityToBe.get)
 
@@ -47,11 +47,11 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val entity = Entities.Errors.errorExample()
 
-      val toJson = ToJson[Error](entity)
+      val toJson = EventLogJsonSupport.ToJson[Error](entity)
 
       val stringEntity = toJson.toString
 
-      val fromString = FromString[Error](stringEntity)
+      val fromString = EventLogJsonSupport.FromString[Error](stringEntity)
 
       val fromStringEntity = fromString.get
 
@@ -63,9 +63,9 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val entity = Entities.Errors.errorExample()
 
-      val toJson = ToJson[Error](entity)
+      val toJson = EventLogJsonSupport.ToJson[Error](entity)
 
-      val fromString = FromJson[Error](toJson.get)
+      val fromString = EventLogJsonSupport.FromJson[Error](toJson.get)
 
       assert(entity == fromString.get)
 

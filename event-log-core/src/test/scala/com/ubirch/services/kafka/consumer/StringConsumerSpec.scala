@@ -12,8 +12,8 @@ import com.ubirch.process.{ DefaultExecutor, Executor, ExecutorFamily }
 import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.FromString
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -73,7 +73,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         new Executor[ConsumerRecord[String, String], Future[PipeData]] {
           override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
             val promiseTest = Promise[PipeData]()
-            val el = Option(FromString[EventLog](v1.value()).get)
+            val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
 
             promiseTest.completeWith(Future.successful(PipeData(v1, el)))
             promiseTest.future
@@ -141,7 +141,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         assert(caseOfInterest.nonEmpty)
         assert(caseOfInterest == entityAsString)
-        assert(FromString[EventLog](caseOfInterest).get == entity)
+        assert(EventLogJsonSupport.FromString[EventLog](caseOfInterest).get == entity)
 
       }
 
@@ -302,7 +302,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
               val promiseTest = Promise[PipeData]()
 
-              val el = Option(FromString[EventLog](v1.value()).get)
+              val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
 
               lazy val somethingStored = promiseTest.completeWith(Future.successful(PipeData(v1, el)))
 

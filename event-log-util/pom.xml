@@ -11,10 +11,10 @@
     </parent>
 
     <!-- basic info -->
-    <artifactId>event-log-kafka</artifactId>
+    <artifactId>event-log-util</artifactId>
     <version>1.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
-    <description>Event Logger Core for the Ubirch Platform</description>
+    <description>Event logger util for the Ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
 
     <properties>
@@ -22,17 +22,17 @@
         <!-- versions -->
 
         <io.monix.version>2.3.2</io.monix.version>
-        <kafka-clients.version>2.0.0</kafka-clients.version>
-        <json4s-native.version>3.6.0</json4s-native.version>
-        <json4s-jackson.version>3.6.1</json4s-jackson.version>
-        <json4s-ext>3.6.0</json4s-ext>
-        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
-        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
         <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
+        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+        <json4s-native.version>3.6.0</json4s-native.version>
+        <json4s-jackson.version>3.6.1</json4s-jackson.version>
+        <json4s-ext>3.6.0</json4s-ext>
         <!-- plugins -->
 
         <!-- versions -->
@@ -40,28 +40,12 @@
     </properties>
 
     <dependencies>
-
-        <!-- Core -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>event-log-util</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/io.monix/monix -->
         <dependency>
             <groupId>io.monix</groupId>
             <artifactId>monix_${scala.compat.version}</artifactId>
             <version>${io.monix.version}</version>
             <type>pom</type>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>${kafka-clients.version}</version>
-        </dependency>
-
-        <!-- Util -->
 
         <dependency>
             <groupId>org.json4s</groupId>
@@ -79,21 +63,6 @@
             <groupId>org.json4s</groupId>
             <artifactId>json4s-ext_${scala.compat.version}</artifactId>
             <version>${json4s-ext}</version>
-        </dependency>
-
-        <!-- Test -->
-
-        <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${scalatest-embedded-kafka}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.nosan</groupId>
-            <artifactId>embedded-cassandra-test</artifactId>
-            <version>${embedded-cassandra-test}</version>
         </dependency>
 
     </dependencies>
@@ -147,6 +116,41 @@
                         <goals>
                             <goal>test</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- for mvn deploy to work, disable the default deploy plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
+            <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/helm-charts</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../helm-charts</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
