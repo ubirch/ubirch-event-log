@@ -60,6 +60,8 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
 
     override def toString: String = stringify(get.underscoreKeys)
 
+    def pretty: String = stringify(get.underscoreKeys, compact = false)
+
   }
 
   /**
@@ -74,6 +76,9 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
     def get: T = getCamelized(v1)
 
     override def toString: String = stringify(v1.underscoreKeys)
+
+    def pretty: String = stringify(v1.underscoreKeys, compact = false)
+
 
   }
 
