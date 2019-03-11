@@ -120,41 +120,6 @@
                 </executions>
             </plugin>
 
-            <!-- for mvn deploy to work, disable the default deploy plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>${maven-deploy-plugin.version}</version>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
-
-            <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
-            <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>copy-resources</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/helm-charts</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>../helm-charts</directory>
-                                    <filtering>true</filtering>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
     </build>
 

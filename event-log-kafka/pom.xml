@@ -21,6 +21,7 @@
 
         <!-- versions -->
 
+        <event-log-util.version>1.0-SNAPSHOT</event-log-util.version>
         <io.monix.version>2.3.2</io.monix.version>
         <kafka-clients.version>2.0.0</kafka-clients.version>
         <json4s-native.version>3.6.0</json4s-native.version>
@@ -45,7 +46,7 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-util</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${event-log-util.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/io.monix/monix -->
         <dependency>
