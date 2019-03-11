@@ -9,11 +9,10 @@ import com.ubirch.kafka.consumer.Configs
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, ExecutorFamily }
-import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig

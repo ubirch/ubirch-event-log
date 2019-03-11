@@ -3,8 +3,9 @@ package com.ubirch.kafka.consumer
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 
+import com.ubirch.TestBase
 import com.ubirch.kafka.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }
-import com.ubirch.{ NameGiver, PortGiver, TestBase }
+import com.ubirch.util.{ NameGiver, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.TopicPartition

@@ -1,7 +1,6 @@
-package com.ubirch.kafka.consumer
+package com.ubirch.kafka.producer
 
 import com.ubirch.TestBase
-import com.ubirch.kafka.producer.ProducerRunner
 import com.ubirch.kafka.util.Exceptions.ProducerCreationException
 import org.apache.kafka.common.serialization.StringSerializer
 

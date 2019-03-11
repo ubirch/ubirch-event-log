@@ -4,8 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.kafka.util.Exceptions.ProducerCreationException
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.services.kafka._
-import com.ubirch.util.{ EventLogJsonSupport, ProducerRecordHelper }
+import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver, ProducerRecordHelper }
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
