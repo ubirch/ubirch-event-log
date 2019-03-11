@@ -7,11 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, ConsumerRecordsController, ProcessResult }
+import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ URLsHelper, UUIDHelper, VersionedLazyLogging }
+import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
