@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.sdk.EventLogging
 import com.ubirch.services.kafka.producer.StringProducer
-import com.ubirch.util.EventLogJsonSupport
+import com.ubirch.util.{ EventLogJsonSupport, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import org.scalatest.mockito.MockitoSugar

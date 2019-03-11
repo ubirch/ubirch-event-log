@@ -7,9 +7,8 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.Configs
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.Events
-import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsController, StringConsumer }
-import com.ubirch.util.InjectorHelper
+import com.ubirch.util.{ InjectorHelper, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.TopicPartition
