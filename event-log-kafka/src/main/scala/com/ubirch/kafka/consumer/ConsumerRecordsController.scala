@@ -14,6 +14,8 @@ import scala.concurrent.Future
   */
 trait ConsumerRecordsController[K, V] {
 
-  def process[A >: ProcessResult[K, V]](consumerRecord: ConsumerRecord[K, V]): Future[A]
+  type A <: ProcessResult[K, V]
+
+  def process(consumerRecord: ConsumerRecord[K, V]): Future[A]
 
 }
