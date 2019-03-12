@@ -1,7 +1,7 @@
 package com.ubirch.kafka.consumer
 
 import java.util
-import java.util.Collections
+import java.util.{ Collections, UUID }
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
 
@@ -105,7 +105,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def onNeedForResumeCallback(f: () => Unit): Unit = needForResumeCallback.addCallback(f)
 
-  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]]
+  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]] = {
+    getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("No Records Controller Found")))
+  }
 
   //TODO: HANDLE AUTOCOMMIT
   override def execute(): Unit = {
@@ -420,4 +422,35 @@ abstract class ConsumerRunner[K, V](name: String)
   */
 object ConsumerRunner {
   val version: AtomicInteger = new AtomicInteger(0)
+
+  def fBased[K, V](f: ConsumerRecord[K, V] => Future[ProcessResult[K, V]])(implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+    new ConsumerRunner[K, V](name) {
+
+      private def _ec: ExecutionContext = ec
+
+      override implicit def ec: ExecutionContext = _ec
+
+      override def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]] = {
+        f(consumerRecord)
+      }
+    }
+  }
+
+  def controllerBased[K, V](controller: ConsumerRecordsController[K, V])(implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+    val consumer = empty[K, V]
+    consumer.setConsumerRecordsController(Some(controller))
+    consumer
+  }
+
+  def empty[K, V](implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+    new ConsumerRunner[K, V](name) {
+      private def _ec: ExecutionContext = ec
+
+      override implicit def ec: ExecutionContext = _ec
+    }
+
+  }
+
+  def name: String = "consumer_runner_thread" + "_" + UUID.randomUUID()
+
 }

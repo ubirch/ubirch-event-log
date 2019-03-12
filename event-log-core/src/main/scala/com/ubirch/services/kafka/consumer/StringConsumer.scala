@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.{ Configs, ConsumerRecordsController, ProcessResult }
+import com.ubirch.kafka.consumer.{ Configs, ConsumerRecordsController, ProcessResult, StringConsumer }
 import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
@@ -29,17 +29,6 @@ import scala.language.postfixOps
   */
 case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String] {
   override val id: UUID = UUIDHelper.randomUUID
-}
-
-/**
-  * Represents a concrete data type for a consumer runner of type Consumer[String, String]
-  */
-class StringConsumer(implicit val ec: ExecutionContext) extends ConsumerRunnerWithMetrics[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
-
-  override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-    getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("No Records Controller Found")))
-  }
-
 }
 
 /**
@@ -142,7 +131,7 @@ class DefaultStringConsumer @Inject() (
     autoOffsetReset = OffsetResetStrategy.EARLIEST
   )
 
-  val consumerImp = new StringConsumer
+  val consumerImp = new StringConsumer() with WithMetrics[String, String]
 
   private val consumerConfigured = {
     consumerImp.setUseAutoCommit(false)

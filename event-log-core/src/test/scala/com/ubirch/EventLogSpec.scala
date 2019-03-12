@@ -4,10 +4,10 @@ import java.util.concurrent.CountDownLatch
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.Configs
+import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.Events
-import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsController, StringConsumer }
+import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsController
 import com.ubirch.util.{ InjectorHelper, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
