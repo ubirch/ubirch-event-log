@@ -14,11 +14,13 @@ import scala.concurrent.Future
   * @tparam V Represents the Value for the ConsumerRecord
   * @tparam R Represents the Result type for the execution of the executors pipeline.
   */
-trait WithConsumerRecordsExecutorBase[K, V, +R] {
+trait WithConsumerRecordsExecutorBase[K, V, R] {
 
-  def executor[A >: R]: Executor[ConsumerRecord[K, V], Future[A]]
+  type A <: R
 
-  def executorExceptionHandler[A >: R]: Exception => Future[A]
+  def executor: Executor[ConsumerRecord[K, V], Future[A]]
+
+  def executorExceptionHandler: PartialFunction[Throwable, Future[A]]
 
   def reporter: Reporter
 
