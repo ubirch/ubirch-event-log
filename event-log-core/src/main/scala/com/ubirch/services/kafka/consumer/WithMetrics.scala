@@ -8,12 +8,13 @@ import io.prometheus.client.{ Counter, Summary }
 import org.joda.time.Instant
 
 /**
-  * Represents a Consumer Runner for a Kafka Consumer with metrics added to the prepoll and post commit callbacks
-  * @param name Represents the Thread name
+  * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */
-abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRunner[K, V](name) {
+trait WithMetrics[K, V] {
+
+  cr: ConsumerRunner[K, V] =>
 
   val metricsNamespace: String = "ubirch"
 

@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.Configs
+import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, ExecutorFamily }
@@ -215,7 +215,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
             OffsetResetStrategy.EARLIEST
         )
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
 
@@ -235,7 +235,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       withRunningKafka {
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
         consumer.startPolling()
@@ -254,7 +254,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       withRunningKafka {
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
         consumer.startPolling()
