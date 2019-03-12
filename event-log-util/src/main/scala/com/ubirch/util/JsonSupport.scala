@@ -79,7 +79,6 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
 
     def pretty: String = stringify(v1.underscoreKeys, compact = false)
 
-
   }
 
   /**
