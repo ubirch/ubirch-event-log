@@ -1,14 +1,14 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import java.util
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
-import java.util.{ Collections, UUID }
 
-import com.ubirch.services.execution.Execution
-import com.ubirch.util.Exceptions._
-import com.ubirch.util.Implicits.enrichedIterator
-import com.ubirch.util.{ FutureHelper, ShutdownableThread, UUIDHelper, VersionedLazyLogging }
+import com.ubirch.kafka.util.Exceptions._
+import com.ubirch.kafka.util.Implicits._
+import com.ubirch.kafka.util.{ Callback, Callback0, VersionedLazyLogging }
+import com.ubirch.util.{ FutureHelper, ShutdownableThread }
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -16,75 +16,10 @@ import org.apache.kafka.common.serialization.Deserializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
 import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
-
-/**
-  * Represents a simple callback data type that takes no parameters
-  *
-  * @tparam B Represents the output of the callback
-  */
-trait Callback0[B] {
-
-  var callbacks = Vector.empty[() => B]
-
-  def addCallback(f: () => B): Unit = {
-    callbacks = callbacks ++ Vector(f)
-  }
-
-  def run(): Unit = callbacks.foreach(x => x())
-
-}
-
-/**
-  * Represents a simple callback data type that takes one parameter of the A
-  *
-  * @tparam A Represents the input of the callback
-  * @tparam B Represents the output of the callback
-  */
-trait Callback[A, B] extends {
-
-  var callbacks = Vector.empty[A => B]
-
-  def addCallback(f: A => B): Unit = {
-    callbacks = callbacks ++ Vector(f)
-  }
-
-  def run(a: A): Vector[B] = callbacks.map(x => x(a))
-
-}
-
-/**
-  * Represents the result that is expected result for the consumption.
-  * This is helpful to return the consumer record and an identifiable record.
-  * This type is usually extended to support customized data.
-  *
-  * @tparam K Represents the type of the Key for the consumer.
-  * @tparam V Represents the type of the Value for the consumer.
-  */
-trait ProcessResult[K, V] {
-
-  val id: UUID = UUIDHelper.randomUUID
-
-  val consumerRecord: ConsumerRecord[K, V]
-
-}
-
-/**
-  * Represents the the type that is actually processes the consumer records.
-  * The consumer doesn't care about how it is processed, it can be with
-  * Futures, Actors, as long as the result type matches.
-  *
-  * @tparam K Represents the type of the Key for the consumer.
-  * @tparam V Represents the type of the Value for the consumer.
-  */
-trait ConsumerRecordsController[K, V] {
-
-  def process[A >: ProcessResult[K, V]](consumerRecord: ConsumerRecord[K, V]): Future[A]
-
-}
 
 /**
   * Represents a Consumer Runner for a Kafka Consumer.
@@ -99,7 +34,11 @@ trait ConsumerRecordsController[K, V] {
   * @tparam V Represents the type of the Value for the consumer.
   */
 abstract class ConsumerRunner[K, V](name: String)
-  extends ShutdownableThread(name) with Execution with ConsumerRebalanceListener with VersionedLazyLogging {
+  extends ShutdownableThread(name)
+  with ConsumerRebalanceListener
+  with VersionedLazyLogging {
+
+  implicit def ec: ExecutionContext
 
   override val version: AtomicInteger = ConsumerRunner.version
   //This one is made public for testing purposes
@@ -231,7 +170,7 @@ abstract class ConsumerRunner[K, V](name: String)
                   throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
                 } else {
                   try {
-                    FutureHelper.delay(1 second)(e.commitFunc())
+                    new FutureHelper().delay(1 second)(e.commitFunc())
                     break()
                   } catch {
                     case _: CommitTimeoutException =>
@@ -389,7 +328,7 @@ abstract class ConsumerRunner[K, V](name: String)
     //TODO: probably we should add a timeout
     private val batchCountDown = new CountDownLatch(partitionRecordsSize)
 
-    def run() = {
+    def run(): Vector[Unit] = {
       start()
       aggregate()
       finish()
@@ -416,7 +355,7 @@ abstract class ConsumerRunner[K, V](name: String)
       }
     }
 
-    private def aggregate() = batchCountDown.await()
+    private def aggregate(): Unit = batchCountDown.await()
 
     def commitFunc(): Vector[Unit] = {
 
@@ -426,7 +365,7 @@ abstract class ConsumerRunner[K, V](name: String)
         postCommitCallback.run(partitionRecordsSize)
       } catch {
         case e: TimeoutException =>
-          throw CommitTimeoutException("Commit timed out", commitFunc, e)
+          throw CommitTimeoutException("Commit timed out", () => ProcessRecords.this.commitFunc(), e)
         case e: Throwable =>
           throw e
       }

@@ -1,6 +1,6 @@
-package com.ubirch
+package com.ubirch.util
 
-import com.ubirch.util.UUIDHelper
+import java.util.UUID
 
 object PortGiver {
 
@@ -26,12 +26,12 @@ object PortGiver {
 
 object NameGiver {
 
-  import UUIDHelper._
+  def randomUUID: UUID = UUID.randomUUID()
 
-  def giveMeATopicName = "com.ubirch.eventlog_" + randomUUID
+  def giveMeATopicName: String = "com.ubirch.eventlog_" + randomUUID
 
-  def giveMeAnErrorTopicName = "com.ubirch.eventlog.error_" + randomUUID
+  def giveMeAnErrorTopicName: String = "com.ubirch.eventlog.error_" + randomUUID
 
-  def giveMeAThreadName = "my_eventlog_thread" + randomUUID
+  def giveMeAThreadName: String = "my_eventlog_thread" + randomUUID
 
 }

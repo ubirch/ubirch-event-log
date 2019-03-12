@@ -20,7 +20,7 @@
     <properties>
 
         <!-- versions -->
-
+        <event-log-kafka.version>1.0-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>2.6.0</quill.cassandra.version>
@@ -45,6 +45,13 @@
     <dependencies>
 
         <!-- Core -->
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-kafka</artifactId>
+            <version>${event-log-kafka.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>

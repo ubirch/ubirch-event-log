@@ -4,18 +4,18 @@ import java.util.concurrent.CountDownLatch
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.consumer.Configs
+import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.Events
-import com.ubirch.services.kafka._
-import com.ubirch.services.kafka.consumer.{ Configs, DefaultConsumerRecordsController, StringConsumer }
-import com.ubirch.util.Exceptions.CommitTimeoutException
-import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.InjectorHelper
+import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsController, StringConsumer }
+import com.ubirch.util.{ InjectorHelper, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.StringDeserializer
 
+import scala.concurrent.ExecutionContext
 import scala.language.{ implicitConversions, postfixOps }
 
 class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
@@ -24,7 +24,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume message and store it in cassandra" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -85,7 +85,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume messages and store them in cassandra" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -134,7 +134,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
     }
 
     "not insert message twice with same id unless the primary value parts don't change" in {
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -209,7 +209,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume message and store it in cassandra less the error" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -265,7 +265,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "try to commit after TimeoutException" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -289,8 +289,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val attempts = new CountDownLatch(3)
 
+        implicit val ec: ExecutionContext = get[ExecutionContext]
+
         //Consumer
-        val consumer = new StringConsumer {
+        val consumer: StringConsumer = new StringConsumer {
           override def createProcessRecords(
               currentPartitionIndex: Int,
               currentPartition: TopicPartition,
@@ -301,7 +303,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
-                throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
               }
             }
 
@@ -323,9 +325,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     }
 
-    "try to commit after TimeoutException and another Execption" in {
+    "try to commit after TimeoutException and another Exception" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -347,10 +349,12 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val controller = get[DefaultConsumerRecordsController]
 
-        val attempts = new CountDownLatch(3)
+        val attempts = new CountDownLatch(4)
+
+        implicit val ec: ExecutionContext = get[ExecutionContext]
 
         //Consumer
-        val consumer = new StringConsumer {
+        val consumer: StringConsumer = new StringConsumer {
           override def createProcessRecords(
               currentPartitionIndex: Int,
               currentPartition: TopicPartition,
@@ -366,7 +370,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
                   attempts.countDown()
                   throw new Exception("Another exception")
                 } else {
-                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                  throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
                 }
               }
             }
@@ -391,7 +395,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "try to commit after TimeoutException and OK after" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
         bootstrapServers = "localhost:" + config.kafkaPort,
@@ -414,11 +418,13 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val controller = get[DefaultConsumerRecordsController]
 
         val committed = new CountDownLatch(1)
-        val failed = new CountDownLatch(2)
+        val failed = new CountDownLatch(3)
         var committedN = 0
 
+        implicit val ec: ExecutionContext = get[ExecutionContext]
+
         //Consumer
-        val consumer = new StringConsumer {
+        val consumer: StringConsumer = new StringConsumer {
           override def createProcessRecords(
               currentPartitionIndex: Int,
               currentPartition: TopicPartition,
@@ -435,7 +441,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
                   committed.countDown()
                   f
                 } else {
-                  throw CommitTimeoutException("Commit timed out", commitFunc, new TimeoutException("Timed out"))
+                  throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
                 }
               }
             }

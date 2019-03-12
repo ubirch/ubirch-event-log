@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.UUIDHelper._
 import org.json4s.JValue
 
@@ -76,7 +76,7 @@ case class EventLog(
   }
 
   override def toString: String = {
-    ToJson[this.type](this).toString
+    EventLogJsonSupport.ToJson[this.type](this).toString
   }
 }
 

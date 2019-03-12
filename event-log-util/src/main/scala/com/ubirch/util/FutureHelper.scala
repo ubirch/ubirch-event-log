@@ -2,16 +2,15 @@ package com.ubirch.util
 
 import java.util.concurrent.{ CountDownLatch, Future => JavaFuture }
 
-import com.ubirch.services.execution.Execution
 import monix.execution.Scheduler.{ global => scheduler }
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ Future, blocking }
+import scala.concurrent.{ ExecutionContext, Future, blocking }
 
 /**
-  * A helper object for future-related stuff
+  * A helper class for future-related stuff
   */
-object FutureHelper extends Execution {
+class FutureHelper()(implicit ec: ExecutionContext) {
 
   def withBlock[T](f: () => T): Future[T] = {
     Future {
