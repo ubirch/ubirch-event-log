@@ -9,26 +9,7 @@ import org.joda.time._
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
-
-/**
-  * It is an enriched iterator
-  * @param iterator Represents the iterator that gets enriched
-  * @tparam A Represents the type of the elems found in the iterator
-  */
-case class EnrichedIterator[A](iterator: Iterator[A]) {
-
-  def delayOnNext(duration: FiniteDuration): Iterator[A] = iterator.map { x =>
-    FutureHelper.delay(duration)(x)
-  }
-
-  def consumeWithFinalDelay[U](f: A => U)(duration: FiniteDuration): Unit = {
-    while (iterator.hasNext) f(iterator.next())
-    FutureHelper.delay(duration)(())
-  }
-
-}
 
 /**
   * It is an enriched date
@@ -48,6 +29,10 @@ case class EnrichedDate(date: Date) {
 
 }
 
+/**
+  * It is an enriched instant
+  * @param instant Represents the instant that gets enriched
+  */
 case class EnrichedInstant(instant: Instant) {
 
   def millisBetween(other: Instant): Long = new Duration(instant, other).getMillis
@@ -118,8 +103,6 @@ case class EnrichedConfig(config: Config) {
   */
 object Implicits {
 
-  implicit def enrichedIterator[T](iterator: Iterator[T]): EnrichedIterator[T] = EnrichedIterator[T](iterator)
-
   implicit def enrichedInstant(instant: Instant): EnrichedInstant = EnrichedInstant(instant)
 
   implicit def enrichedDate(date: Date): EnrichedDate = EnrichedDate(date)
@@ -127,7 +110,5 @@ object Implicits {
   implicit def enrichedDatetime(dateTime: DateTime): EnrichedDatetime = EnrichedDatetime(dateTime)
 
   implicit def enrichedConfig(config: Config): EnrichedConfig = EnrichedConfig(config)
-
-  implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
 
 }

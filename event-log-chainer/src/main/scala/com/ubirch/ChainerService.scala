@@ -1,7 +1,7 @@
 package com.ubirch
 
 import com.ubirch.models.{ Chainable, Chainer, Node }
-import com.ubirch.util.ToJson
+import com.ubirch.util.JsonHelper
 
 object ChainerService extends App {
 
@@ -54,7 +54,7 @@ object ChainerService2 extends App {
     .createNode
     .getNode
 
-  println(ToJson(nodes).pretty)
+  println(JsonHelper.ToJson(nodes).pretty)
 
 }
 
@@ -71,6 +71,6 @@ object ChainerService3 extends App {
   val node = Node.seeds(values: _*).balanceRightWithEmpty("1")
     .join2((a, b) => a + b)
 
-  println(ToJson(node).pretty)
+  println(JsonHelper.ToJson(node).pretty)
 
 }

@@ -1,4 +1,7 @@
-package com.ubirch.util
+package com.ubirch.kafka.util
+
+import scala.collection.immutable.Map
+import scala.language.implicitConversions
 
 /**
   * Util to manage properties of type  Map[String, AnyRef].
@@ -21,4 +24,11 @@ trait ConfigProperties {
     }
   }
 
+}
+
+/**
+  * Companion object for the ConfigProperties. Useful to have the implicit conversion handy.
+  */
+object ConfigProperties {
+  implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
 }

@@ -1,6 +1,6 @@
 package com.ubirch.process
 
-import com.ubirch.services.kafka.consumer.ProcessResult
+import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.services.kafka.producer.Reporter
 import org.apache.kafka.clients.consumer.ConsumerRecord
 

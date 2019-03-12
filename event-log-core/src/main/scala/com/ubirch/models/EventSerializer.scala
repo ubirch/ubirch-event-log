@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.util.Formats._
+import com.ubirch.util.EventLogJsonSupport._
 import org.json4s.JsonDSL._
 import org.json4s.{ CustomSerializer, JObject, JValue, MappingException }
 
