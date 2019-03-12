@@ -55,13 +55,21 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
   with WithConsumerRecordsExecutor[String, String]
   with LazyLogging {
 
-  override def executor[A >: ProcessResult[String, String]]: Executor[ConsumerRecord[String, String], Future[PipeData]] = defaultExecutor.executor
+  override type A = PipeData
 
-  override def executorExceptionHandler[A >: ProcessResult[String, String]]: PartialFunction[Throwable, Future[PipeData]] = defaultExecutor.executorExceptionHandler
+  override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+    defaultExecutor.executor
+  }
 
-  override def reporter: Reporter = defaultExecutor.reporter
+  override def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
+    defaultExecutor.executorExceptionHandler
+  }
 
-  override def process[A >: ProcessResult[String, String]](consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
+  override def reporter: Reporter = {
+    defaultExecutor.reporter
+  }
+
+  override def process(consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
     executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
 
