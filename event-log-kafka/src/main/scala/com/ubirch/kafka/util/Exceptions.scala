@@ -48,6 +48,12 @@ object Exceptions {
   case class EmptyTopicException(message: String) extends ConsumptionException(message)
 
   /**
+    * Represents an exception for when a consumer records controller has not been set up.
+    * @param message Represents the error message.
+    */
+  case class ConsumerRecordsControllerException(message: String) extends ConsumptionException(message)
+
+  /**
     * Represents a signal to shutdown the consumer runner.
     * @param message Represents the error message.
     * @param reason Represents the reason why this exception has been thrown.
