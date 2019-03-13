@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.{ Configs, ConsumerRecordsController, ProcessResult, StringConsumer }
+import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }

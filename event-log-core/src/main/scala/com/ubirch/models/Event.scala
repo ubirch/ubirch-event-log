@@ -68,11 +68,11 @@ case class EventLog(
   override def withCategory(category: String): EventLog = this.copy(category = category)
   override def withServiceClass(serviceClass: String): EventLog = this.copy(serviceClass = serviceClass)
   override def withEventTime(eventTime: Date): EventLog = {
-    this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo(eventTime))
+    this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo.fromDate(eventTime))
   }
   override def withCurrentEventTime: EventLog = {
     val currentTime = new Date
-    this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo(currentTime))
+    this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo.fromDate(currentTime))
   }
 
   override def toString: String = {
@@ -93,7 +93,7 @@ object EventLog {
       category,
       event,
       currentTime,
-      TimeInfo(currentTime),
+      TimeInfo.fromDate(currentTime),
       ""
     ).sign
   }

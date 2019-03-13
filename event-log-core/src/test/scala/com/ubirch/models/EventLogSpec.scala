@@ -51,7 +51,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
       assert(newDate == newEventLog.eventTime)
 
-      assert(TimeInfo(newDate) == newEventLog.eventTimeInfo)
+      assert(TimeInfo.fromDate(newDate) == newEventLog.eventTimeInfo)
 
       Thread.sleep(1000)
 
