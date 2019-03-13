@@ -106,7 +106,9 @@ abstract class ConsumerRunner[K, V](name: String)
   def onNeedForResumeCallback(f: () => Unit): Unit = needForResumeCallback.addCallback(f)
 
   def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]] = {
-    getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("No Records Controller Found")))
+    getConsumerRecordsController
+      .map(_.process(consumerRecord))
+      .getOrElse(Future.failed(ConsumerRecordsControllerException("No Records Controller Found")))
   }
 
   //TODO: HANDLE AUTOCOMMIT
