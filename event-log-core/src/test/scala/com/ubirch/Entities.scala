@@ -2,16 +2,16 @@ package com.ubirch
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.Implicits.enrichedDate
+import com.ubirch.models.{ Error, EventLog, TimeInfo }
 import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
+import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
 
 object Entities extends UUIDHelper {
 
   object Events {
 
-    val data = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+    val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
 
     def eventExample(id: UUID = randomUUID): EventLog = {
       val date = new Date()
@@ -21,7 +21,7 @@ object Entities extends UUIDHelper {
         "this is a category",
         data,
         date,
-        date.buildTimeInfo,
+        TimeInfo.fromDate(date),
         "this is a signature"
       )
     }

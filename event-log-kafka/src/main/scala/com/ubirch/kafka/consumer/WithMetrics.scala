@@ -1,14 +1,14 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import java.util.concurrent.atomic.AtomicReference
 
-import com.ubirch.kafka.consumer.ConsumerRunner
 import com.ubirch.util.Implicits.enrichedInstant
 import io.prometheus.client.{ Counter, Summary }
 import org.joda.time.Instant
 
 /**
   * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
+  *
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */

@@ -25,6 +25,8 @@ The consumer doesn't care about how it is processed, it can be with Futures, Act
 4. **ProcessResult:** Represents the result that is expected result for the consumption. This is helpful to return the consumer record and an identifiable record.
 This type is usually extended to support customized data.
 
+5. **WithMetrics:** Adds prometheus support to consumer runners.
+
 ## Producer Runner
 
 The purpose of the producer runner is to provide a simple and straightforward abstraction 

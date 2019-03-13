@@ -3,7 +3,6 @@ package com.ubirch.util
 import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
-import com.ubirch.models.TimeInfo
 import org.joda.time._
 
 import scala.collection.JavaConverters._
@@ -22,8 +21,6 @@ case class EnrichedDate(date: Date) {
   def buildDateTime: DateTime = buildDateTime(date)
 
   val enrichedDatetime = EnrichedDatetime(buildDateTime)
-
-  def buildTimeInfo: TimeInfo = enrichedDatetime.buildTimeInfo
 
   def secondsBetween(otherTime: Date): Int = enrichedDatetime.secondsBetween(buildDateTime(otherTime))
 
@@ -47,15 +44,6 @@ case class EnrichedDatetime(dateTime: DateTime) {
 
   def secondsBetween(otherTime: DateTime): Int = Seconds.secondsBetween(dateTime, otherTime).getSeconds
 
-  def buildTimeInfo: TimeInfo = TimeInfo(
-    year = dateTime.year().get(),
-    month = dateTime.monthOfYear().get(),
-    day = dateTime.dayOfMonth().get(),
-    hour = dateTime.hourOfDay().get(),
-    minute = dateTime.minuteOfHour().get(),
-    second = dateTime.secondOfMinute().get(),
-    milli = dateTime.millisOfSecond().get()
-  )
 }
 
 /**
