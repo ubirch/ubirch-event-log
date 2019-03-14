@@ -1,6 +1,6 @@
 package com.ubirch
 
-import com.ubirch.models.{ Chainable, Chainer, Node }
+import com.ubirch.models.{Chainable, Chainer, Node}
 import com.ubirch.util.JsonHelper
 
 object ChainerService extends App {
@@ -33,7 +33,12 @@ object ChainerService2 extends App {
   val listOfData = List(
     SomeDataTypeFromKafka("vegetables", "eggplant"),
     SomeDataTypeFromKafka("vegetables", "artichoke"),
-    SomeDataTypeFromKafka("fruits", "banana")
+    SomeDataTypeFromKafka("vegetables", "Gurke"),
+    SomeDataTypeFromKafka("vegetables", "Feldsalat"),
+    SomeDataTypeFromKafka("vegetables", "Kohl"),
+    SomeDataTypeFromKafka("fruits", "banana"),
+    SomeDataTypeFromKafka("fruits", "apple"),
+    SomeDataTypeFromKafka("fruits", "cherry")
   )
 
   // We pass in the data from kafka that needs to be chainable.
@@ -42,12 +47,20 @@ object ChainerService2 extends App {
   // We take the hashes
   // We then turn the seed hashes into seed nodes.
   // We then turn the seed nodes into joined node.
+  //  val nodes = Chainer(listOfData)
+  //    .createGroups
+  //    .createSeedHashes
+  //    .createSeedNodes()
+  //    .createNode
+  //    .getNode
+
   val nodes = Chainer(listOfData)
     .createGroups
     .createSeedHashes
     .createSeedNodes()
-    .createNode
-    .getNode
+    .getNodes
+
+
 
   println(JsonHelper.ToJson(nodes).pretty)
 
