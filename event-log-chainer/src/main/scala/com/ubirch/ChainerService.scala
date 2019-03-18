@@ -1,6 +1,6 @@
 package com.ubirch
 
-import com.ubirch.models.{Chainable, Chainer, Node}
+import com.ubirch.models.{ Chainable, Chainer, Node }
 import com.ubirch.util.JsonHelper
 
 object ChainerService extends App {
@@ -59,8 +59,6 @@ object ChainerService2 extends App {
     .createSeedHashes
     .createSeedNodes()
     .getNodes
-
-
 
   println(JsonHelper.ToJson(nodes).pretty)
 

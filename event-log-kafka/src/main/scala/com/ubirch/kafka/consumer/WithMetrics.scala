@@ -8,7 +8,7 @@ import org.joda.time.Instant
 
 /**
   * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
-  *
+  * The corresponding scrapper must be started.
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */

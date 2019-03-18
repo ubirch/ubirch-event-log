@@ -71,7 +71,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var topics: Set[String] = Set.empty
 
-  @BeanProperty var pollTimeout: java.time.Duration = java.time.Duration.ofMillis(1000)
+  @BeanProperty var pollTimeout: FiniteDuration = 1000 millis
 
   @BeanProperty var pauseDuration: FiniteDuration = 1000 millis
 
@@ -126,7 +126,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
           preConsumeCallback.run()
 
-          val consumerRecords = consumer.poll(pollTimeout)
+          val pollTimeDuration = java.time.Duration.ofMillis(getPollTimeout.toMillis)
+          val consumerRecords = consumer.poll(pollTimeDuration)
           val totalPolledCount = consumerRecords.count()
           val partitions = consumerRecords.partitions().asScala.toSet
 
