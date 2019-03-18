@@ -426,7 +426,7 @@ abstract class ConsumerRunner[K, V](name: String)
         postCommitCallback.run(partitionRecordsSize)
       } catch {
         case e: TimeoutException =>
-          throw CommitTimeoutException("Commit timed out", commitFunc, e)
+          throw CommitTimeoutException("Commit timed out", () => commitFunc(), e)
         case e: Throwable =>
           throw e
       }
