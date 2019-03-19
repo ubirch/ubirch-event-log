@@ -84,6 +84,14 @@ object Exceptions {
   case class ParsingIntoEventLogException(message: String, pipeData: PipeData) extends ExecutionException(message)
 
   /**
+    * Represents an exception thrown when signing a EventLog message
+    * @param message Represents the error message.
+    * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
+    */
+  case class SigningEventLogException(message: String, pipeData: PipeData) extends ExecutionException(message)
+
+
+  /**
     * Exception thrown when storing an EventLog to the database.
     * @param message Represents the error message.
     * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler

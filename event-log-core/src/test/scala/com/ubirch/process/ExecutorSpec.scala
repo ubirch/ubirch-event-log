@@ -1,21 +1,23 @@
 package com.ubirch.process
 
-import com.ubirch.models.{ EventLog, Events }
+import com.typesafe.config.Config
+import com.ubirch.models.{EventLog, Events}
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.{ Entities, TestBase }
+import com.ubirch.util.Exceptions.{EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException}
+import com.ubirch.util.SigningHelper
+import com.ubirch.{Entities, TestBase}
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
+import org.apache.kafka.common.header.internals.{RecordHeader, RecordHeaders}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Future, Promise }
-import scala.language.{ implicitConversions, postfixOps }
+import scala.concurrent.{Future, Promise}
+import scala.language.{implicitConversions, postfixOps}
 
 class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
@@ -235,6 +237,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val family = DefaultExecutorFamily(
         new FilterEmpty(),
         new EventLogParser(),
+        new EventLogSigner(mock[SigningHelper]),
         new EventsStore(events),
         new MetricsLogger()
       )

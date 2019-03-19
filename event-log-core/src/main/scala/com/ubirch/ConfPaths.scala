@@ -30,4 +30,8 @@ object ConfPaths {
     final val PORT = "eventLog.metrics.prometheus.port"
   }
 
+  object Crypto {
+    final val SERVICE_PK = "crypto.keys.ed25519.signingPrivateKey"
+  }
+
 }

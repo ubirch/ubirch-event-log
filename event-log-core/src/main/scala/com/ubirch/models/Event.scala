@@ -2,8 +2,8 @@ package com.ubirch.models
 
 import java.util.{Date, UUID}
 
-import com.ubirch.crypto.utils.{Algorithms, Hashs, Utils}
-import com.ubirch.crypto.{GeneratorKeyFactory, PrivKey}
+import com.google.inject.Inject
+import com.ubirch.crypto.utils.Utils
 import com.ubirch.util.ToJson
 import com.ubirch.util.UUIDHelper._
 import org.json4s.JValue
@@ -22,8 +22,6 @@ trait EventLogBase[T] {
   val eventTimeInfo: TimeInfo
   val event: T
   val signature: String
-
-  def sign: EventLogBase[T]
 
   def withCategory(category: String): EventLogBase[T]
 
@@ -60,21 +58,15 @@ trait JValueEventLog extends EventLogBase[JValue]
   *                      to support its creation from the eventTime.
   * @param signature     Represents the signature for the event log.
   */
-case class EventLog(
-                     id: UUID,
-                     serviceClass: String,
-                     category: String,
-                     event: JValue,
-                     eventTime: Date,
-                     eventTimeInfo: TimeInfo,
-                     signature: String
-                   ) extends JValueEventLog {
-
-  override def sign: EventLog = {
-    val pk: PrivKey = GeneratorKeyFactory.getPrivKey("9d445036a5d8be2eb7b965ed4444e8f04c9b7a89445bcc1313a910dac014a9fda2403b92bc9add365b3cd12ff120d020647f84ea6983f98bc4c87e0f4be8cd66".take(64), Algorithms.EDDSA)
-
-    this.copy(signature = Utils.bytesToHex(pk.sign("THIS IS A SIGNATURE".getBytes, Hashs.SHA512)))
-  }
+case class EventLog (
+                               id: UUID,
+                               serviceClass: String,
+                               category: String,
+                               event: JValue,
+                               eventTime: Date,
+                               eventTimeInfo: TimeInfo,
+                               signature: String
+                             ) extends JValueEventLog {
 
   override def withNewId: EventLog = this.copy(id = timeBasedUUID)
 
@@ -113,7 +105,7 @@ object EventLog {
       currentTime,
       TimeInfo(currentTime),
       ""
-    ).sign
+    )
   }
 
 }
