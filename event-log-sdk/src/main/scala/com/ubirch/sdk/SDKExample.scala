@@ -3,12 +3,11 @@ package com.ubirch.sdk
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.util.ToJson
-
-import scala.concurrent.Future
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Implicits.enrichedInstant
 import org.joda.time.Instant
 
+import scala.concurrent.Future
 import scala.util.Try
 /**
   * Represents an example of how to use the EventLogging SDK
@@ -43,9 +42,9 @@ object SDKExample extends EventLogging with LazyLogging {
       val rLog0 = log0.commitAsync
 
       //From JValue
-      val log1 = log(ToJson(Hello("Hola")).get, "My Category")
+      val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category")
 
-      val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
+      val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category")
 
       //Let's unite them in order first in first out
       val log1_2 = log1 +> log2

@@ -2,8 +2,8 @@ package com.ubirch.models
 
 import java.util.Date
 
-import com.ubirch.util.Implicits.enrichedDate
 import io.getquill.Embedded
+import org.joda.time.DateTime
 
 /**
   * This case class represents the the explicit values of the event time on the cassandra db.
@@ -27,6 +27,18 @@ object TimeInfo {
     * @return Returns the TimeInfo helper value of the event time.
     */
 
-  def apply(date: Date): TimeInfo = date.buildTimeInfo
+  def fromDate(date: Date): TimeInfo = fromDateTime(new DateTime(date))
+
+  def fromDateTime(dateTime: DateTime): TimeInfo = {
+    TimeInfo(
+      year = dateTime.year().get(),
+      month = dateTime.monthOfYear().get(),
+      day = dateTime.dayOfMonth().get(),
+      hour = dateTime.hourOfDay().get(),
+      minute = dateTime.minuteOfHour().get(),
+      second = dateTime.secondOfMinute().get(),
+      milli = dateTime.millisOfSecond().get()
+    )
+  }
 
 }

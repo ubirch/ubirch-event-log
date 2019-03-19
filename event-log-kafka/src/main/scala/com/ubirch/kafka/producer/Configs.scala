@@ -1,6 +1,6 @@
-package com.ubirch.services.kafka.producer
+package com.ubirch.kafka.producer
 
-import com.ubirch.util.ConfigProperties
+import com.ubirch.kafka.util.ConfigProperties
 import org.apache.kafka.clients.producer.ProducerConfig
 
 /**
