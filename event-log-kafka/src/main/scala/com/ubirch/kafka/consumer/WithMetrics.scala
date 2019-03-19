@@ -1,18 +1,20 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import java.util.concurrent.atomic.AtomicReference
 
-import org.joda.time.Instant
 import com.ubirch.util.Implicits.enrichedInstant
 import io.prometheus.client.{ Counter, Summary }
+import org.joda.time.Instant
 
 /**
-  * Represents a Consumer Runner for a Kafka Consumer with metrics added to the prepoll and post commit callbacks
-  * @param name Represents the Thread name
+  * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
+  * The corresponding scrapper must be started.
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */
-abstract class ConsumerRunnerWithMetrics[K, V](name: String) extends ConsumerRunner[K, V](name) {
+trait WithMetrics[K, V] {
+
+  cr: ConsumerRunner[K, V] =>
 
   val metricsNamespace: String = "ubirch"
 

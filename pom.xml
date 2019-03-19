@@ -239,6 +239,8 @@
 
     <!-- sub modules -->
     <modules>
+        <module>event-log-util</module>
+        <module>event-log-kafka</module>
         <module>event-log-core</module>
         <module>event-log-service</module>
         <module>event-log-sdk</module>

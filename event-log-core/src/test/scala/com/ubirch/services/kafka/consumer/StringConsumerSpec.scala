@@ -5,14 +5,14 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
+import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, ExecutorFamily }
-import com.ubirch.services.kafka._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.{ ConfigProperties, FromString }
+import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -31,7 +31,7 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
-  def spawn(kafkaPort: Int) = {
+  def spawn(kafkaPort: Int): StringConsumer = {
     val lifeCycle = mock[DefaultLifecycle]
 
     val executor = mock[DefaultExecutor]
@@ -59,7 +59,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
     consumer
   }
 
-  def spawn2 = {
+  def spawn2: StringConsumer = {
 
     val lifeCycle = mock[DefaultLifecycle]
 
@@ -72,7 +72,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         new Executor[ConsumerRecord[String, String], Future[PipeData]] {
           override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
             val promiseTest = Promise[PipeData]()
-            val el = Option(FromString[EventLog](v1.value()).get)
+            val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
 
             promiseTest.completeWith(Future.successful(PipeData(v1, el)))
             promiseTest.future
@@ -99,7 +99,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run Executors successfully and complete expected promise" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = 9092, zooKeeperPort = 6000)
 
       withRunningKafka {
 
@@ -140,7 +140,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         assert(caseOfInterest.nonEmpty)
         assert(caseOfInterest == entityAsString)
-        assert(FromString[EventLog](caseOfInterest).get == entity)
+        assert(EventLogJsonSupport.FromString[EventLog](caseOfInterest).get == entity)
 
       }
 
@@ -148,7 +148,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run Executors successfully and complete expected promises when using a different topic" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -204,7 +204,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if topic is not provided" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -215,7 +215,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
             OffsetResetStrategy.EARLIEST
         )
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
 
@@ -231,11 +231,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if no serializers have been set" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
         consumer.startPolling()
@@ -250,11 +250,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if props are empty" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
-        val consumer = new StringConsumer()
+        val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
         consumer.startPolling()
@@ -271,7 +271,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import scala.concurrent.ExecutionContext.Implicits.global
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val maxEntities = 500
       val listfWithSuccess = scala.collection.mutable.ListBuffer.empty[String]
@@ -301,7 +301,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
               val promiseTest = Promise[PipeData]()
 
-              val el = Option(FromString[EventLog](v1.value()).get)
+              val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
 
               lazy val somethingStored = promiseTest.completeWith(Future.successful(PipeData(v1, el)))
 
@@ -362,7 +362,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "talk to reporter when error occurs" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -434,7 +434,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run an NeedForPauseException and pause and then unpause" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -521,7 +521,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run an NeedForPauseException and pause and then unpause when throttling" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -611,7 +611,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 2 consumers to test rebalancing of 1 partition" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -637,7 +637,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 2 consumers to test rebalancing of 10 partitions" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -663,7 +663,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "spawning 3 consumers to test rebalancing of 10 partitions" in {
 
-      implicit val config = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
