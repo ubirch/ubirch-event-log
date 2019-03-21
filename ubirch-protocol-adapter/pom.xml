@@ -11,10 +11,10 @@
     </parent>
 
     <!-- basic info -->
-    <artifactId>event-log-service</artifactId>
+    <artifactId>ubirch-protocol-adapter</artifactId>
     <version>1.2.0</version>
     <name>${project.artifactId}</name>
-    <description>Event logger service for the Ubirch Platform</description>
+    <description>ubirch protocol adaptor service for the Ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
 
     <dependencies>

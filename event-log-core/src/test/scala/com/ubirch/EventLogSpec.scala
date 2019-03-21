@@ -7,8 +7,9 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.Events
-import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsController
+import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
 import com.ubirch.util.{ InjectorHelper, PortGiver }
+import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.TopicPartition
@@ -35,8 +36,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
@@ -45,7 +44,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishStringMessageToKafka(topic, entityAsString1)
 
         //Consumer
-        val consumer = get[StringConsumer]
+        val consumer = InjectorHelper.get[StringConsumer]
 
         consumer.setProps(configs)
 
@@ -55,7 +54,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         //Read Events
-        val events = get[Events]
+        val events = InjectorHelper.get[Events]
         def res = events.selectAll
         //Read
 
@@ -96,8 +95,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entities = (0 to 500).map(_ => Entities.Events.eventExample()).toList
@@ -109,7 +106,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         }
 
         //Consumer
-        val consumer = get[StringConsumer]
+        val consumer = InjectorHelper.get[StringConsumer]
         consumer.setProps(configs)
 
         consumer.startPolling()
@@ -118,7 +115,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(10000)
 
         //Read Events
-        val events = get[Events]
+        val events = InjectorHelper.get[Events]
         def res = events.selectAll
         //Read
 
@@ -145,8 +142,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
@@ -155,7 +150,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishStringMessageToKafka(topic, entityAsString1)
 
         //Consumer
-        val consumer = get[StringConsumer]
+        val consumer = InjectorHelper.get[StringConsumer]
         consumer.setProps(configs)
 
         consumer.startPolling()
@@ -164,7 +159,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         //Read Events
-        val events = get[Events]
+        val events = InjectorHelper.get[Events]
         def res = events.selectAll
         //Read
 
@@ -220,8 +215,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entities = (0 to 10).map(_ => Entities.Events.eventExample()).toList
@@ -234,7 +227,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         }
 
         //Consumer
-        val consumer = get[StringConsumer]
+        val consumer = InjectorHelper.get[StringConsumer]
         consumer.setProps(configs)
 
         consumer.startPolling()
@@ -243,7 +236,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         //Read Events
-        val events = get[Events]
+        val events = InjectorHelper.get[Events]
 
         def res = events.selectAll
         //Read
@@ -276,8 +269,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
@@ -285,11 +276,11 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString1)
 
-        val controller = get[DefaultConsumerRecordsController]
+        val controller = InjectorHelper.get[DefaultConsumerRecordsManager]
 
         val attempts = new CountDownLatch(3)
 
-        implicit val ec: ExecutionContext = get[ExecutionContext]
+        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -338,8 +329,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
@@ -347,11 +336,11 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString1)
 
-        val controller = get[DefaultConsumerRecordsController]
+        val controller = InjectorHelper.get[DefaultConsumerRecordsManager]
 
         val attempts = new CountDownLatch(4)
 
-        implicit val ec: ExecutionContext = get[ExecutionContext]
+        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -406,8 +395,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        import InjectorHelper._
-
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample()
@@ -415,13 +402,13 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString1)
 
-        val controller = get[DefaultConsumerRecordsController]
+        val controller = InjectorHelper.get[DefaultConsumerRecordsManager]
 
         val committed = new CountDownLatch(1)
         val failed = new CountDownLatch(3)
         var committedN = 0
 
-        implicit val ec: ExecutionContext = get[ExecutionContext]
+        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -471,8 +458,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
   }
 
   override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
     cassandra.executeScripts(CqlScript.statements("TRUNCATE events;"))
-
     Thread.sleep(5000)
   }
 

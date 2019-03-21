@@ -1,6 +1,6 @@
 package com.ubirch.util
 
-import com.google.inject.{ Guice, Injector }
+import com.google.inject.{ Guice, Injector, Module }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.lifeCycle.JVMHook
@@ -13,9 +13,7 @@ import scala.util.Try
 /**
   * Helper to manage Guice Injection.
   */
-trait InjectorHelper extends LazyLogging {
-
-  val modules = List(new ServiceBinder())
+abstract class InjectorHelper(val modules: List[Module]) extends LazyLogging {
 
   private val injector: Injector = {
     try {
@@ -50,7 +48,7 @@ trait InjectorHelper extends LazyLogging {
   * extending it or mixing it.
   */
 
-object InjectorHelper extends InjectorHelper
+object InjectorHelper extends InjectorHelper(ServiceBinder.modules)
 
 /**
   * Util that integrates an elegant way to add shut down hooks to the JVM.
@@ -79,4 +77,4 @@ trait WithPrometheusMetrics {
 /**
   * Util that is used when starting the main service.
   */
-trait Boot extends InjectorHelper with WithJVMHooks with WithPrometheusMetrics
+abstract class Boot(modules: List[Module] = ServiceBinder.modules) extends InjectorHelper(modules) with WithJVMHooks with WithPrometheusMetrics

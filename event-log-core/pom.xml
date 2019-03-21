@@ -7,12 +7,12 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
     </parent>
 
     <!-- basic info -->
     <artifactId>event-log-core</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Core for the Ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
@@ -21,7 +21,7 @@
 
         <!-- versions -->
 
-        <event-log-kafka.version>1.1.0</event-log-kafka.version>
+        <event-log-kafka.version>1.2.0</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>2.6.0</quill.cassandra.version>

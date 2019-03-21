@@ -243,7 +243,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @throws(classOf[ConsumerCreationException])
   def createConsumer(props: Map[String, AnyRef]): Unit = {
-    if (keyDeserializer.isEmpty && valueDeserializer.isEmpty) {
+    if (getKeyDeserializer.isEmpty && getValueDeserializer.isEmpty) {
       throw ConsumerCreationException("No Serializers Found", "Please set the serializers for the key and value.")
     }
 
@@ -252,11 +252,12 @@ abstract class ConsumerRunner[K, V](name: String)
     }
 
     try {
-      val kd = keyDeserializer.get
-      val vd = valueDeserializer.get
+      val kd = getKeyDeserializer.get
+      val vd = getValueDeserializer.get
+      val propsAsJava = props.asJava
 
-      kd.configure(props.asJava, true)
-      vd.configure(props.asJava, false)
+      kd.configure(propsAsJava, true)
+      vd.configure(propsAsJava, false)
 
       val isAutoCommit: Boolean = props
         .filterKeys(x => ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG == x)
@@ -271,7 +272,7 @@ abstract class ConsumerRunner[K, V](name: String)
         setUseAutoCommit(false)
       }
 
-      consumer = new KafkaConsumer[K, V](props.asJava, kd, vd)
+      consumer = new KafkaConsumer[K, V](propsAsJava, kd, vd)
 
     } catch {
       case e: Exception =>

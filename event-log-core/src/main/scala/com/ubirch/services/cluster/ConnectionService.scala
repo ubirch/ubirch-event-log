@@ -2,7 +2,7 @@ package com.ubirch.services.cluster
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths
+import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.Exceptions.NoKeyspaceException
 import io.getquill.{ CassandraAsyncContext, NamingStrategy, SnakeCase }
@@ -47,9 +47,7 @@ trait ConnectionService extends ConnectionServiceBase {
 
 @Singleton
 class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
-  extends ConnectionService with LazyLogging {
-
-  import ConfPaths.CassandraCluster._
+  extends ConnectionService with CassandraClusterConfPaths with LazyLogging {
 
   val keyspace: String = config.getString(KEYSPACE)
   val preparedStatementCacheSize: Int = config.getInt(PREPARED_STATEMENT_CACHE_SIZE)

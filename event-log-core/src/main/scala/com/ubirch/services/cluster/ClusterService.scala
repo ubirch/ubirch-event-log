@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import com.datastax.driver.core.{ Cluster, PoolingOptions }
 import com.typesafe.config.Config
-import com.ubirch.ConfPaths
+import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.util.URLsHelper
 import javax.inject._
 
@@ -35,9 +35,7 @@ trait ClusterService extends ClusterConfigs {
   */
 
 @Singleton
-class DefaultClusterService @Inject() (config: Config) extends ClusterService {
-
-  import ConfPaths.CassandraCluster._
+class DefaultClusterService @Inject() (config: Config) extends ClusterService with CassandraClusterConfPaths {
 
   val contactPoints: List[InetSocketAddress] = buildContactPointsFromString(config.getString(CONTACT_POINTS))
   val withSSL: Boolean = config.getBoolean(WITH_SSL)

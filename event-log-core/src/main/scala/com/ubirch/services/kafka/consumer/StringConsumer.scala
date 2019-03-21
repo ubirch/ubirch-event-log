@@ -6,12 +6,16 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.consumer._
-import com.ubirch.kafka.util.VersionedLazyLogging
-import com.ubirch.models.EventLog
-import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
+import com.ubirch.kafka.util.{ ConfigProperties, VersionedLazyLogging }
+import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
+import com.ubirch.services.metrics.Counter
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
@@ -32,33 +36,70 @@ case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Op
 }
 
 /**
+  * Represents a String Consumer Record Controller with an Executor Pipeline
+  * This class can be thought of as a the glue for the consumer and the executor.
+  */
+trait StringConsumerRecordsManager extends StringConsumerRecordsController with StringConsumerRecordsExecutor {
+  val executorFamily: ExecutorFamily
+}
+
+/**
   * Represents a concrete records controller for the string consumer.
   * This class can be thought of as a the glue for the consumer and the executor.
   * It defines the executor and the error exception handler and the error reporter.
-  * @param defaultExecutor Represents the execution pipeline that processes the consumer records.
   * @param ec Represent the execution context for asynchronous processing.
   */
 @Singleton
-class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultExecutor)(implicit ec: ExecutionContext)
-  extends ConsumerRecordsController[String, String]
-  with WithConsumerRecordsExecutor[String, String]
+class DefaultConsumerRecordsManager @Inject() (
+    val reporter: Reporter,
+    val executorFamily: ExecutorFamily,
+    @Named("DefaultConsumerRecordsManagerCounter") counter: Counter
+)
+  (implicit ec: ExecutionContext)
+  extends StringConsumerRecordsManager
   with LazyLogging {
 
-  override type A = PipeData
+  import executorFamily._
+  import reporter.Types._
 
-  override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-    defaultExecutor.executor
+  private def uuid = UUIDHelper.timeBasedUUID
+
+  type A = PipeData
+
+  def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+    filterEmpty andThen eventLogParser andThen eventsStore andThen metricsLogger
   }
 
   override def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
-    defaultExecutor.executorExceptionHandler
+    case e: EmptyValueException =>
+      counter.counter.labels("EmptyValueException").inc()
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
+      Future.successful(e.pipeData)
+    case e: ParsingIntoEventLogException =>
+      counter.counter.labels("ParsingIntoEventLogException").inc()
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
+      Future.successful(e.pipeData)
+    case e: StoringIntoEventLogException =>
+      counter.counter.labels("StoringIntoEventLogException").inc()
+      reporter.report(
+        Error(
+          id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),
+          message = e.getMessage,
+          exceptionName = e.name,
+          value = e.pipeData.eventLog.toString
+        )
+      )
+
+      val res = e.pipeData.eventLog.map { _ =>
+        Future.failed(NeedForPauseException("Requesting Pause", e.getMessage))
+      }.getOrElse {
+        Future.successful(e.pipeData)
+      }
+
+      res
   }
 
-  override def reporter: Reporter = {
-    defaultExecutor.reporter
-  }
-
-  override def process(consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
+  def process(consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
     executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
 
@@ -110,30 +151,16 @@ object DefaultConsumerRebalanceListener {
 class DefaultStringConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    controller: DefaultConsumerRecordsController
-)(implicit ec: ExecutionContext) extends Provider[StringConsumer] with LazyLogging {
+    controller: StringConsumerRecordsManager
+)(implicit ec: ExecutionContext)
+  extends Provider[StringConsumer]
+  with ConsumerConfPaths
+  with LazyLogging {
 
   import UUIDHelper._
-  import com.ubirch.ConfPaths.Consumer._
 
-  val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
-  val topic: String = config.getString(TOPIC_PATH)
-  val groupId: String = {
-    val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "event_log_group_" + randomUUID
-    else gid
-  }
-
-  def configs = Configs(
-    bootstrapServers = bootstrapServers,
-    groupId = groupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST
-  )
-
-  val consumerImp = new StringConsumer() with WithMetrics[String, String]
-
-  private val consumerConfigured = {
+  lazy val consumerConfigured = {
+    val consumerImp = new StringConsumer() with WithMetrics[String, String]
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(Set(topic))
     consumerImp.setProps(configs)
@@ -144,11 +171,26 @@ class DefaultStringConsumer @Inject() (
     consumerImp
   }
 
-  override def get(): StringConsumer = {
-    consumerConfigured
+  def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
+
+  def topic: String = config.getString(TOPIC_PATH)
+
+  def configs: ConfigProperties = Configs(
+    bootstrapServers = bootstrapServers,
+    groupId = groupId,
+    enableAutoCommit = false,
+    autoOffsetReset = OffsetResetStrategy.EARLIEST
+  )
+
+  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
+
+  def groupId: String = {
+    val gid = config.getString(GROUP_ID_PATH)
+    if (gid.isEmpty) "event_log_group_" + randomUUID
+    else gid
   }
 
-  val gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
+  override def get(): StringConsumer = consumerConfigured
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Consumer: " + consumerConfigured.getName)

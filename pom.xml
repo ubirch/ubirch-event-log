@@ -8,7 +8,7 @@
     <!-- parent pom -->
     <groupId>com.ubirch</groupId>
     <artifactId>event-log</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <packaging>pom</packaging>
 
     <!-- license -->
@@ -244,6 +244,7 @@
         <module>event-log-core</module>
         <module>event-log-service</module>
         <module>event-log-sdk</module>
+        <module>ubirch-protocol-adapter</module>
     </modules>
 
 </project>

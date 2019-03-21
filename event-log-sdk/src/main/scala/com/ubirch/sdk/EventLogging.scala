@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.sdk.process._
+import com.ubirch.services.ServiceBinder
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.InjectorHelper
 import org.json4s.JValue
@@ -63,7 +64,7 @@ trait WithCommitters {
   _: EventLogging =>
 
   private def committer = {
-    new CreateProducerRecord(getConfig) andThen new Commit(stringProducer)
+    new CreateProducerRecord(getConfig) andThen new Commit(getStringProducer)
   }
 
   def stealthAsyncCommitter: Executor[EventLog, EventLog] = {
@@ -133,7 +134,7 @@ trait WithCommitters {
   * }
   * </pre>
   */
-class EventLogging extends InjectorHelper with WithCommitters with WithConversions {
+class EventLogging extends InjectorHelper(ServiceBinder.modules) with WithCommitters with WithConversions {
 
   @BeanProperty var stringProducer: StringProducer = get[StringProducer]
   @BeanProperty var config: Config = get[Config]

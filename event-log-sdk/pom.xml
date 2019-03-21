@@ -7,12 +7,12 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
     </parent>
 
     <!-- basic info -->
     <artifactId>event-log-sdk</artifactId>
-    <version>1.1.0</version>
+    <version>1.2.0</version>
     <name>${project.artifactId}</name>
     <description>Event Logger SDK</description>
     <inceptionYear>2018</inceptionYear>
@@ -24,7 +24,7 @@
 
         <build.number>${timestamp}-dev</build.number>
 
-        <event-log-core.version>1.1.0</event-log-core.version>
+        <event-log-core.version>1.2.0</event-log-core.version>
         <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
 
         <!-- plugins -->

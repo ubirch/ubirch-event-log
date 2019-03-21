@@ -1,6 +1,5 @@
 package com.ubirch.services
 
-import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
@@ -11,14 +10,13 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer._
 import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 
 import scala.concurrent.ExecutionContext
 
 /**
   * Core Service Wiring
   */
-class ServiceBinder extends AbstractModule {
+class AdapterServiceBinder extends AbstractModule {
 
   override def configure(): Unit = {
 
@@ -27,20 +25,17 @@ class ServiceBinder extends AbstractModule {
     bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
     bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
     bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
-    bind(classOf[Counter])
-      .annotatedWith(Names.named("DefaultConsumerRecordsManagerCounter"))
-      .to(classOf[DefaultConsumerRecordsManagerCounter])
-
-    bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultConsumerRecordsManager])
+    bind(classOf[StringConsumerRecordsManager]).to(classOf[UbirchProtocolAdapterConsumerRecordsManager])
 
     bind(classOf[Config]).toProvider(classOf[ConfigProvider])
     bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
     bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
     bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
+
   }
 
 }
 
-object ServiceBinder {
-  val modules: List[Module] = List(new ServiceBinder)
+object AdapterServiceBinder {
+  val modules: List[Module] = List(new AdapterServiceBinder)
 }

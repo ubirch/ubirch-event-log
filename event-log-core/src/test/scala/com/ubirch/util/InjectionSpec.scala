@@ -3,11 +3,12 @@ package com.ubirch.util
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.process.EventLogParser
-import com.ubirch.services.ServiceBinder
 import com.ubirch.util.Exceptions.{ InjectionException, InjectorCreationException }
 import org.scalatest.mockito.MockitoSugar
 
 import scala.util.Failure
+
+trait NotReal
 
 class InjectionSpec extends TestBase with MockitoSugar with LazyLogging {
 
@@ -15,19 +16,13 @@ class InjectionSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "throw InjectorCreatorException" in {
 
-      trait NotReal
-
-      object X extends InjectorHelper {
-        override val modules: List[ServiceBinder] = null
-      }
+      object X extends InjectorHelper(null)
 
       assertThrows[InjectorCreationException](X.get[NotReal])
 
     }
 
     "throw InjectionException" in {
-
-      trait NotReal
 
       def inject = InjectorHelper.get[NotReal]
 
@@ -62,8 +57,6 @@ class InjectionSpec extends TestBase with MockitoSugar with LazyLogging {
     }
 
     "get correct Type As Try 2" in {
-
-      trait NotReal
 
       def inject = InjectorHelper.getAsTry[NotReal]
 
