@@ -1,12 +1,10 @@
 package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.util.Exceptions.NeedForPauseException
-import com.ubirch.models.{ Error, EventLog, Events }
+import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
-import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -154,65 +152,3 @@ case class DefaultExecutorFamily @Inject() (
     eventsStore: EventsStore,
     metricsLogger: MetricsLogger
 ) extends ExecutorFamily
-
-/**
-  * Default Executor Composer Convenience for creating executor compositions and
-  * executor exceptions management.
-  * @param reporter Represents a convenience type that allows to report to a producer.
-  * @param executorFamily Represents a family of executors.
-  */
-@Singleton
-class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily)(implicit ec: ExecutionContext) {
-
-  import UUIDHelper._
-  import executorFamily._
-  import reporter.Types._
-
-  private def uuid = timeBasedUUID
-
-  val metricsNamespace: String = "ubirch"
-
-  final val counter: Counter = Counter.build()
-    .namespace(metricsNamespace)
-    .name("event_error_total")
-    .help("Total event errors.")
-    .labelNames("result")
-    .register()
-
-  def composed: Executor[ConsumerRecord[String, String], Future[PipeData]] =
-    filterEmpty andThen eventLogParser andThen eventsStore andThen metricsLogger
-
-  def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = composed
-
-  //TODO We are not waiting for the error to be sent. We need to see if that maybe a problem
-  def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
-    case e: EmptyValueException =>
-      counter.labels("EmptyValueException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
-      Future.successful(e.pipeData)
-    case e: ParsingIntoEventLogException =>
-      counter.labels("ParsingIntoEventLogException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
-      Future.successful(e.pipeData)
-    case e: StoringIntoEventLogException =>
-      counter.labels("StoringIntoEventLogException").inc()
-      reporter.report(
-        Error(
-          id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),
-          message = e.getMessage,
-          exceptionName = e.name,
-          value = e.pipeData.eventLog.toString
-        )
-      )
-
-      val res = e.pipeData.eventLog.map { el =>
-        Future.failed(NeedForPauseException("Requesting Pause", e.getMessage))
-      }.getOrElse {
-        Future.successful(e.pipeData)
-      }
-
-      res
-
-  }
-
-}

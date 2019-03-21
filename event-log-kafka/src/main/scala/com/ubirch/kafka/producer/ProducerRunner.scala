@@ -50,23 +50,24 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
 
     onPreProducerCreation.run()
 
-    if (keySerializer.isEmpty && valueSerializer.isEmpty) {
+    if (getKeySerializer.isEmpty && getValueSerializer.isEmpty) {
       throw ProducerCreationException("No Serializers Found", "Please set the serializers for the key and value.")
     }
 
-    if (props.isEmpty) {
+    if (getProps.isEmpty) {
       throw ProducerCreationException("No Properties Found", "Please, set the properties for the consumer creation.")
     }
 
     try {
 
-      val ks = keySerializer.get
-      val vs = valueSerializer.get
+      val ks = getKeySerializer.get
+      val vs = getValueSerializer.get
+      val propsAsJava = getProps.asJava
 
-      ks.configure(props.asJava, true)
-      vs.configure(props.asJava, false)
+      ks.configure(propsAsJava, true)
+      vs.configure(propsAsJava, false)
 
-      producer = Option(new KafkaProducer[K, V](props.asJava, ks, vs))
+      producer = Option(new KafkaProducer[K, V](propsAsJava, ks, vs))
       producer
 
     } catch {

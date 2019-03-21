@@ -34,3 +34,5 @@ trait WithConsumerRecordsExecutorBase[K, V, R] {
   * @tparam V Represents the Value for the ConsumerRecord
   */
 trait WithConsumerRecordsExecutor[K, V] extends WithConsumerRecordsExecutorBase[K, V, ProcessResult[K, V]]
+
+trait StringConsumerRecordsExecutor extends WithConsumerRecordsExecutor[String, String]

@@ -4,6 +4,7 @@ import java.net.BindException
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.PrometheusConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
 import io.prometheus.client.exporter.HTTPServer
 import io.prometheus.client.hotspot.DefaultExports
@@ -12,9 +13,7 @@ import javax.inject._
 import scala.concurrent.Future
 
 @Singleton
-class PrometheusMetrics @Inject() (config: Config, lifecycle: Lifecycle) extends LazyLogging {
-
-  import com.ubirch.ConfPaths.Prometheus._
+class PrometheusMetrics @Inject() (config: Config, lifecycle: Lifecycle) extends PrometheusConfPaths with LazyLogging {
 
   DefaultExports.initialize()
 

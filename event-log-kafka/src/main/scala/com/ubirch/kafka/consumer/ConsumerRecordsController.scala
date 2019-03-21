@@ -19,3 +19,5 @@ trait ConsumerRecordsController[K, V] {
   def process(consumerRecord: ConsumerRecord[K, V]): Future[A]
 
 }
+
+trait StringConsumerRecordsController extends ConsumerRecordsController[String, String]

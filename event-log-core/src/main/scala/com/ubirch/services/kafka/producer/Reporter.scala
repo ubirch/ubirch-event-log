@@ -2,7 +2,7 @@ package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths
+import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import javax.inject._
@@ -28,9 +28,7 @@ trait ReporterMagnet {
   * @param config Represents the injected configuration component.
   */
 @Singleton
-class Reporter @Inject() (producerManager: StringProducer, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
-
-  import ConfPaths.Producer._
+class Reporter @Inject() (producerManager: StringProducer, config: Config)(implicit ec: ExecutionContext) extends ProducerConfPaths with LazyLogging {
 
   val futureHelper = new FutureHelper()
 
