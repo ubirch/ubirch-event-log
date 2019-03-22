@@ -19,12 +19,10 @@ import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class MessageEnvelopePipeData(
-    val consumerRecord: ConsumerRecord[String, MessageEnvelope],
-    val eventLog: Option[EventLog]
-) extends ProcessResult[String, MessageEnvelope] {
-  override val id: UUID = UUIDHelper.randomUUID
-}
+case class MessageEnvelopePipeData(
+    override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
+    eventLog: Option[EventLog]
+) extends EventLogPipeData[MessageEnvelope](consumerRecord, eventLog)
 
 class MessageEnvelopeConsumer(implicit val ec: ExecutionContext) extends ConsumerRunner[String, MessageEnvelope](ConsumerRunner.name)
 
@@ -43,11 +41,15 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
 
   override type A = MessageEnvelopePipeData
 
-  override def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = ???
+  override def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
+    executorFamily.eventLoggerExecutor
+  }
 
   override def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = ???
 
-  override def process(consumerRecord: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = ???
+  override def process(consumerRecord: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = {
+    executor(consumerRecord).recoverWith(executorExceptionHandler)
+  }
 }
 
 class DefaultMessageEnvelopeConsumer @Inject() (
@@ -88,7 +90,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
 
   def groupId: String = {
     val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "event_log_group_" + randomUUID
+    if (gid.isEmpty) "adapter_event_log_group_" + randomUUID
     else gid
   }
 

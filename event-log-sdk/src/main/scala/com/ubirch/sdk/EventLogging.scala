@@ -1,5 +1,6 @@
 package com.ubirch.sdk
 
+import com.google.inject.Module
 import com.typesafe.config.Config
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
@@ -61,7 +62,7 @@ trait WithConversions {
   */
 
 trait WithCommitters {
-  _: EventLogging =>
+  _: EventLoggingBase =>
 
   private def committer = {
     new CreateProducerRecord(getConfig) andThen new Commit(getStringProducer)
@@ -134,7 +135,7 @@ trait WithCommitters {
   * }
   * </pre>
   */
-class EventLogging extends InjectorHelper(ServiceBinder.modules) with WithCommitters with WithConversions {
+abstract class EventLoggingBase(modules: List[Module]) extends InjectorHelper(modules) with WithCommitters with WithConversions {
 
   @BeanProperty var stringProducer: StringProducer = get[StringProducer]
   @BeanProperty var config: Config = get[Config]
@@ -181,3 +182,5 @@ class EventLogging extends InjectorHelper(ServiceBinder.modules) with WithCommit
   //Loggers
 
 }
+
+class EventLogging extends EventLoggingBase(ServiceBinder.modules)

@@ -26,14 +26,16 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
+class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], eventLog: Option[EventLog]) extends ProcessResult[String, V] {
+  override val id: UUID = UUIDHelper.randomUUID
+}
+
 /**
   * Represents the ProcessResult implementation for a the string consumer.
   * @param consumerRecord Represents the data received in the poll from Kafka
   * @param eventLog Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String] {
-  override val id: UUID = UUIDHelper.randomUUID
-}
+case class PipeData(override val consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends EventLogPipeData[String](consumerRecord, eventLog)
 
 /**
   * Represents a String Consumer Record Controller with an Executor Pipeline

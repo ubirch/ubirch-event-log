@@ -21,3 +21,17 @@ class DefaultConsumerRecordsManagerCounter extends Counter {
     .register()
 
 }
+
+@Singleton
+class DefaultMetricsLoggerCounter extends Counter {
+
+  val namespace: String = "ubirch"
+
+  final val counter: PrometheusCounter = PrometheusCounter.build()
+    .namespace(namespace)
+    .name("events_total")
+    .help("Total events.")
+    .labelNames("result")
+    .register()
+
+}

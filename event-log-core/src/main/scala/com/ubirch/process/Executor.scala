@@ -3,9 +3,9 @@ package com.ubirch.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
+import com.ubirch.services.metrics.Counter
 import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions._
-import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
@@ -100,23 +100,14 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 }
 
-class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
-
-  val metricsNamespace: String = "ubirch"
-
-  final val counter = Counter.build()
-    .namespace(metricsNamespace)
-    .name("events_total")
-    .help("Total events.")
-    .labelNames("result")
-    .register()
+class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Counter)(implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = {
     v1.onComplete {
       case Success(_) =>
-        counter.labels("success").inc()
+        counter.counter.labels("success").inc()
       case Failure(_) =>
-        counter.labels("failure").inc()
+        counter.counter.labels("failure").inc()
     }
 
     v1
