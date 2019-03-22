@@ -1,15 +1,14 @@
 package com.ubirch.services.kafka.consumer
 
-import java.util.UUID
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.kafka.{ EnvelopeDeserializer, MessageEnvelope }
-import com.ubirch.models.EventLog
-import com.ubirch.process.{ Executor, ExecutorFamily, WithConsumerRecordsExecutor }
+import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.process.{ Executor, ExecutorFamily }
+import com.ubirch.sdk.util.Exceptions._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
@@ -26,11 +25,7 @@ case class MessageEnvelopePipeData(
 
 class MessageEnvelopeConsumer(implicit val ec: ExecutionContext) extends ConsumerRunner[String, MessageEnvelope](ConsumerRunner.name)
 
-trait MessageEnvelopeConsumerRecordsExecutor extends WithConsumerRecordsExecutor[String, MessageEnvelope]
-
-trait MessageEnvelopeConsumerRecordsController extends ConsumerRecordsController[String, MessageEnvelope]
-
-trait MessageEnvelopeConsumerRecordsManager extends MessageEnvelopeConsumerRecordsController with MessageEnvelopeConsumerRecordsExecutor {
+trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[String, MessageEnvelope] {
   val executorFamily: ExecutorFamily
 }
 
@@ -39,17 +34,26 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
   extends MessageEnvelopeConsumerRecordsManager
   with LazyLogging {
 
-  override type A = MessageEnvelopePipeData
+  import reporter.Types._
 
-  override def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
+  type A = MessageEnvelopePipeData
+
+  def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
     executorFamily.eventLoggerExecutor
   }
 
-  override def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = ???
+  def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
+    case e @ CreateEventFromException(_, _) =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
+      Future.failed(e)
+    case e @ CreateProducerRecordException(_, _) => Future.failed(e)
+    case e @ CommitException(_, _) => Future.failed(e)
+    case e @ CommitHandlerSyncException(_, _) => Future.failed(e)
+    case e @ CommitHandlerASyncException(_, _) => Future.failed(e)
+    case e @ CommitHandlerStealthAsyncException(_, _) => Future.failed(e)
 
-  override def process(consumerRecord: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = {
-    executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
+
 }
 
 class DefaultMessageEnvelopeConsumer @Inject() (

@@ -41,7 +41,7 @@ case class PipeData(override val consumerRecord: ConsumerRecord[String, String],
   * Represents a String Consumer Record Controller with an Executor Pipeline
   * This class can be thought of as a the glue for the consumer and the executor.
   */
-trait StringConsumerRecordsManager extends StringConsumerRecordsController with StringConsumerRecordsExecutor {
+trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String] {
   val executorFamily: ExecutorFamily
 }
 
@@ -64,15 +64,13 @@ class DefaultConsumerRecordsManager @Inject() (
   import executorFamily._
   import reporter.Types._
 
-  private def uuid = UUIDHelper.timeBasedUUID
-
   type A = PipeData
 
   def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
     filterEmpty andThen eventLogParser andThen eventsStore andThen metricsLogger
   }
 
-  override def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
+  def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
       counter.counter.labels("EmptyValueException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
@@ -99,10 +97,6 @@ class DefaultConsumerRecordsManager @Inject() (
       }
 
       res
-  }
-
-  def process(consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
-    executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
 
 }

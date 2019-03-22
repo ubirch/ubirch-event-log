@@ -4,7 +4,7 @@ import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
@@ -237,12 +237,10 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
         new FilterEmpty(),
         new EventLogParser(),
         new EventsStore(events),
-        new MetricsLogger()
+        new MetricsLogger(new DefaultMetricsLoggerCounter)
       )
 
-      val counter: Counter = new DefaultConsumerRecordsManagerCounter
-
-      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, counter)
+      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter)
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
