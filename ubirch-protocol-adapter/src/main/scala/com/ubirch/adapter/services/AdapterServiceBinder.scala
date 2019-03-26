@@ -1,11 +1,11 @@
-package com.ubirch.services
+package com.ubirch.adapter.services
 
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
+import com.ubirch.adapter.services.kafka.consumer.{ DefaultMessageEnvelopeConsumer, DefaultMessageEnvelopeManager, MessageEnvelopeConsumer, MessageEnvelopeConsumerRecordsManager }
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.kafka.consumer._
 import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 

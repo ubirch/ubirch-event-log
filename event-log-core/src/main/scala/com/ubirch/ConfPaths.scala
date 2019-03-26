@@ -24,6 +24,7 @@ object ConfPaths {
   trait ProducerConfPaths {
     val BOOTSTRAP_SERVERS = "eventLog.kafkaProducer.bootstrapServers"
     val ERROR_TOPIC_PATH = "eventLog.kafkaProducer.errorTopic"
+    val TOPIC_PATH = "eventLog.kafkaProducer.topic"
   }
 
   trait PrometheusConfPaths {

@@ -1,26 +1,31 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.adapter.services.kafka.consumer
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
+import com.ubirch.adapter.process.ExecutorFamily
+import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.kafka.{ EnvelopeDeserializer, MessageEnvelope }
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.process.{ Executor, ExecutorFamily }
-import com.ubirch.sdk.util.Exceptions._
+import com.ubirch.process.Executor
+import com.ubirch.services.kafka.consumer.{ ConsumerRecordsManager, EventLogPipeData }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
+import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 case class MessageEnvelopePipeData(
     override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
-    eventLog: Option[EventLog]
+    eventLog: Option[EventLog],
+    producerRecord: Option[ProducerRecord[String, String]],
+    recordMetadata: Option[RecordMetadata]
 ) extends EventLogPipeData[MessageEnvelope](consumerRecord, eventLog)
 
 class MessageEnvelopeConsumer(implicit val ec: ExecutionContext) extends ConsumerRunner[String, MessageEnvelope](ConsumerRunner.name)
@@ -39,19 +44,20 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
   type A = MessageEnvelopePipeData
 
   def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
-    executorFamily.eventLoggerExecutor
+    executorFamily.eventLogFromConsumerRecord andThen executorFamily.createProducerRecord andThen executorFamily.commit
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
-    case e @ CreateEventFromException(_, _) =>
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
+    case e @ EventLogFromConsumerRecordException(_, pipeData) =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      Future.successful(pipeData)
+    case e @ CreateProducerRecordException(_, pipeData) =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      Future.successful(pipeData)
+    case e @ CommitException(_, pipeData) =>
       Future.failed(e)
-    case e @ CreateProducerRecordException(_, _) => Future.failed(e)
-    case e @ CommitException(_, _) => Future.failed(e)
-    case e @ CommitHandlerSyncException(_, _) => Future.failed(e)
-    case e @ CommitHandlerASyncException(_, _) => Future.failed(e)
-    case e @ CommitHandlerStealthAsyncException(_, _) => Future.failed(e)
-
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      Future.successful(pipeData)
   }
 
 }

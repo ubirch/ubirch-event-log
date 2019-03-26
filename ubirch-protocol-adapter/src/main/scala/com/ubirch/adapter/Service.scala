@@ -1,7 +1,7 @@
-package com.ubirch
+package com.ubirch.adapter
 
-import com.ubirch.services.AdapterServiceBinder
-import com.ubirch.services.kafka.consumer.MessageEnvelopeConsumer
+import com.ubirch.adapter.services.AdapterServiceBinder
+import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
 import com.ubirch.util.Boot
 
 import scala.concurrent.duration._
