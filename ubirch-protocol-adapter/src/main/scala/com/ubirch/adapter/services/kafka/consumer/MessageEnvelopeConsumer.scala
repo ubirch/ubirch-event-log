@@ -21,6 +21,13 @@ import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents a convenience for handling and keeping data through the pipeline
+  * @param consumerRecord Represents the consumer record read from kafka
+  * @param eventLog Represents the EventLog created from the consumer record.
+  * @param producerRecord Represents the Producer Record that is published back to kafka
+  * @param recordMetadata Represents the response gotten from the publishing of the producer record.
+  */
 case class MessageEnvelopePipeData(
     override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
     eventLog: Option[EventLog],
@@ -28,12 +35,25 @@ case class MessageEnvelopePipeData(
     recordMetadata: Option[RecordMetadata]
 ) extends EventLogPipeData[MessageEnvelope](consumerRecord, eventLog)
 
+/**
+  * Represents an Envelope Consumer.
+  * @param ec Represents an execution context
+  */
 class MessageEnvelopeConsumer(implicit val ec: ExecutionContext) extends ConsumerRunner[String, MessageEnvelope](ConsumerRunner.name)
 
+/**
+  * Represents the Message Envelope Manager Description
+  */
 trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[String, MessageEnvelope] {
   val executorFamily: ExecutorFamily
 }
 
+/***
+  * Represents an Concrete Message Envelope Manager
+  * @param reporter Represents a reporter to send  errors to.
+  * @param executorFamily Represents a group of executors that accomplish the global task
+  * @param ec Represents an execution context
+  */
 @Singleton
 class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val executorFamily: ExecutorFamily)(implicit ec: ExecutionContext)
   extends MessageEnvelopeConsumerRecordsManager
@@ -62,6 +82,13 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
 
 }
 
+/**
+  * Represents a Message Envelope Consumer Configurator
+  * @param config Represents a config object to read config values from
+  * @param lifecycle Represents a lifecycle object to plug in shutdown routines
+  * @param controller Represents a Message Envelope Records Controller
+  * @param ec Represents an execution context
+  */
 class DefaultMessageEnvelopeConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,

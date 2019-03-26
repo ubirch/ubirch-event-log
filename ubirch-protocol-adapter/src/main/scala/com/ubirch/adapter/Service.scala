@@ -7,6 +7,9 @@ import com.ubirch.util.Boot
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+/**
+  * Represents an adapter boot object.
+  */
 object Service extends Boot(AdapterServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
