@@ -12,7 +12,7 @@ import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook
 import scala.concurrent.ExecutionContext
 
 /**
-  * Core Service Wiring
+  * Core Adapter Service Wiring
   */
 class AdapterServiceBinder extends AbstractModule {
 
@@ -32,6 +32,9 @@ class AdapterServiceBinder extends AbstractModule {
 
 }
 
+/**
+  * Represents the companion object for the AdapterServiceBinder
+  */
 object AdapterServiceBinder {
   val modules: List[Module] = List(new AdapterServiceBinder)
 }

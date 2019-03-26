@@ -20,6 +20,11 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents an executor that converts a consumer record of type String, MessageEnvelope into
+  * an EventLog and wraps these values into the pipeline data.
+  * @param ec Represents an execution context
+  */
 class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]]
   with LazyLogging {
@@ -39,6 +44,11 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
 
 }
 
+/**
+  * Represents an executor that creates the producer record object that will be eventually published to Kafka
+  * @param config Represents a config object to read config values from
+  * @param ec Represents an execution context
+  */
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
   with ProducerConfPaths {
@@ -69,6 +79,12 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   }
 }
 
+/**
+  * Represents an executor that commits a producer record
+  * @param stringProducer Represents a producer.
+  * @param config Represents a config object to read config values from
+  * @param ec Represents an execution context
+  */
 class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]] {
 
   def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = {
@@ -100,6 +116,9 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
   }
 }
 
+/**
+  * Represents a description of a family of executors that can be composed.
+  */
 trait ExecutorFamily {
 
   def eventLogFromConsumerRecord: EventLogFromConsumerRecord
@@ -108,6 +127,14 @@ trait ExecutorFamily {
 
 }
 
+/**
+  * Represents a family of executors
+  *
+  * @param eventLogFromConsumerRecord Represents an executor that converts a consumer record of type String, MessageEnvelope into
+  *                                   an EventLog and wraps these values into the pipeline data.
+  * @param createProducerRecord       Represents an executor that creates the producer record object that will be eventually published to Kafka
+  * @param commit                     Represents an executor that commits a producer record
+  */
 @Singleton
 class DefaultExecutorFamily(
     val eventLogFromConsumerRecord: EventLogFromConsumerRecord,
