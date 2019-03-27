@@ -136,7 +136,7 @@ trait ExecutorFamily {
   * @param commit                     Represents an executor that commits a producer record
   */
 @Singleton
-class DefaultExecutorFamily(
+class DefaultExecutorFamily @Inject() (
     val eventLogFromConsumerRecord: EventLogFromConsumerRecord,
     val createProducerRecord: CreateProducerRecord,
     val commit: Commit
