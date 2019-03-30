@@ -5,13 +5,12 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer._
-import com.ubirch.services.kafka.producer.{ DefaultStringProducer, DefaultStringProducerConfigProperties, StringProducer }
+import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 
@@ -45,7 +44,7 @@ trait Consumer {
 
 trait Producer {
   def producer: ScopedBindingBuilder
-  def producerConfigProperties: ScopedBindingBuilder
+  // def producerConfigProperties: ScopedBindingBuilder
 }
 
 trait Kafka extends Consumer with Producer
@@ -90,9 +89,6 @@ class ServiceBinder
   //Kafka
   def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
-  def producerConfigProperties: ScopedBindingBuilder = bind(classOf[ConfigProperties])
-    .annotatedWith(Names.named("DefaultStringProducerConfigProperties"))
-    .toProvider(classOf[DefaultStringProducerConfigProperties])
   //Kafka
 
   def configure(): Unit = {
@@ -121,7 +117,6 @@ class ServiceBinder
     //Kafka
     consumer
     consumerRecordsManager
-    producerConfigProperties
     producer
     //Kafka
   }

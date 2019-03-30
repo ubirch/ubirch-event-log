@@ -3,34 +3,24 @@ package com.ubirch.adapter
 import java.util.UUID
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.google.inject.name.Names
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.adapter.services.AdapterServiceBinder
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.{ Configs => ConsumerConfigs }
-import com.ubirch.kafka.producer.{ Configs => ProducerConfigs }
-import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver, URLsHelper }
-import javax.inject._
+import com.ubirch.services.config.ConfigProvider
+import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.OffsetResetStrategy
 import org.json4s.JsonAST.{ JInt, JObject, JString }
 
-class DefaultStringProducerConfigProperties(bootstrapServers: String) extends Provider[ConfigProperties] with ProducerConfPaths {
-  val bootstrapSvrs: String = URLsHelper.passThruWithCheck(bootstrapServers)
-  override def get(): ConfigProperties = ProducerConfigs(bootstrapSvrs)
-}
-
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
-  override def producerConfigProperties: ScopedBindingBuilder = {
-    bind(classOf[ConfigProperties])
-      .annotatedWith(Names.named("DefaultStringProducerConfigProperties"))
-      .toProvider(new DefaultStringProducerConfigProperties(bootstrapServers))
-  }
+  override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+    override def conf: Config = super.conf.withValue("eventLog.kafkaProducer.bootstrapServers", ConfigValueFactory.fromAnyRef(bootstrapServers))
+  })
 }))
 
 class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
