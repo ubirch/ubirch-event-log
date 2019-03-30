@@ -34,6 +34,22 @@
         </dependency>
 
 
+        <!-- Test -->
+
+        <dependency>
+            <groupId>net.manub</groupId>
+            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${scalatest-embedded-kafka}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.nosan</groupId>
+            <artifactId>embedded-cassandra-test</artifactId>
+            <version>${embedded-cassandra-test}</version>
+        </dependency>
+
+
     </dependencies>
 
     <properties>
@@ -50,6 +66,8 @@
         <dockerfile-maven-plugin.version>1.4.4</dockerfile-maven-plugin.version>
         <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
         <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
+        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
         <!-- plugins -->
 
         <!-- versions -->

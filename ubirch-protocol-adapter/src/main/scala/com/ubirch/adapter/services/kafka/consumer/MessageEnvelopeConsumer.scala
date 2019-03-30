@@ -75,7 +75,6 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
-      Future.failed(e)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
       Future.successful(pipeData)
   }
