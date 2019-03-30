@@ -3,29 +3,12 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
+import com.ubirch.kafka.producer.{ Configs, StringProducer }
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.URLsHelper
 import javax.inject._
-import org.apache.kafka.common.serialization.StringSerializer
 
 import scala.concurrent.Future
-
-/**
-  * Class that represents a String Producer Factory
-  */
-class StringProducer extends ProducerRunner[String, String]
-
-object StringProducer {
-  def apply(props: Map[String, AnyRef], keySerializer: StringSerializer, valueSerializer: StringSerializer): StringProducer = {
-    require(props.nonEmpty, "Can't be empty")
-    val pd = new StringProducer
-    pd.setProps(props)
-    pd.setKeySerializer(Some(new StringSerializer()))
-    pd.setValueSerializer(Some(new StringSerializer()))
-    pd
-  }
-}
 
 /**
   * Class that represents a String Producer Factory with specific values from the config files
@@ -42,7 +25,7 @@ class DefaultStringProducer @Inject() (
 
   def configs = Configs(bootstrapServers)
 
-  private lazy val producerConfigured = StringProducer(configs, new StringSerializer(), new StringSerializer())
+  private lazy val producerConfigured = StringProducer(configs)
 
   override def get(): StringProducer = producerConfigured
 

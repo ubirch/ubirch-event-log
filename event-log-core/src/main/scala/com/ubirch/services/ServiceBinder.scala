@@ -5,12 +5,13 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer._
-import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
+import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 

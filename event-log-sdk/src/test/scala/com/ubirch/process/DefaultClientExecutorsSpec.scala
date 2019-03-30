@@ -10,7 +10,7 @@ import com.ubirch.sdk.process._
 import com.ubirch.sdk.util.Exceptions.{ CommitException, CommitHandlerASyncException, CommitHandlerSyncException }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.{ Execution, ExecutionProvider }
-import com.ubirch.services.kafka.producer.StringProducer
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.util.EventLogJsonSupport
 import org.apache.kafka.clients.producer.{ Producer, ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.TopicPartition

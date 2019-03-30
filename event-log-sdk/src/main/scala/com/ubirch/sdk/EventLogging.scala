@@ -6,7 +6,7 @@ import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.sdk.process._
 import com.ubirch.services.ServiceBinder
-import com.ubirch.services.kafka.producer.StringProducer
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.util.InjectorHelper
 import org.json4s.JValue
 

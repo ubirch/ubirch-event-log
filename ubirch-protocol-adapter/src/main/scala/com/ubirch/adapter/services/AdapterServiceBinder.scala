@@ -5,10 +5,11 @@ import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.adapter.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.adapter.services.kafka.consumer.{ DefaultMessageEnvelopeConsumer, DefaultMessageEnvelopeManager, MessageEnvelopeConsumer, MessageEnvelopeConsumerRecordsManager }
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
+import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 
 import scala.concurrent.ExecutionContext
