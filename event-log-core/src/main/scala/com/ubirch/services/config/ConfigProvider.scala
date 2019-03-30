@@ -9,8 +9,8 @@ import javax.inject._
 @Singleton
 class ConfigProvider extends Provider[Config] {
 
-  val conf = ConfigFactory.load()
+  def conf: Config = ConfigFactory.load()
 
-  override def get() = conf
+  override def get(): Config = conf
 
 }

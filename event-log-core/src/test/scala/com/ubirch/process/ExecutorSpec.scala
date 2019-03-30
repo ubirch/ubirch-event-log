@@ -4,7 +4,7 @@ import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
