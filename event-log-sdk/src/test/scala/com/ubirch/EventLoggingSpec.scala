@@ -3,7 +3,7 @@ package com.ubirch
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.sdk.EventLogging
-import com.ubirch.services.kafka.producer.StringProducer
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.util.{ EventLogJsonSupport, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -27,7 +27,7 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val configs = Configs(bootstrapServers = "localhost:" + kafKaConfig.kafkaPort)
 
-        setStringProducer(StringProducer(configs, new StringSerializer(), new StringSerializer()))
+        setStringProducer(StringProducer(configs))
 
         val logged = logger.log(Hello("Hello")).commit
 

@@ -1,7 +1,7 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.producer.Configs
+import com.ubirch.kafka.producer.{ Configs, StringProducer }
 import com.ubirch.kafka.util.Exceptions.ProducerCreationException
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver, ProducerRecordHelper }
@@ -16,7 +16,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "not be created when props are empty" in {
 
-      lazy val producer = StringProducer(Map.empty, new StringSerializer(), new StringSerializer())
+      lazy val producer = StringProducer(Map.empty)
 
       assertThrows[IllegalArgumentException](producer)
 
@@ -24,7 +24,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "not be created when props are empty 2" in {
 
-      val producer = new StringProducer
+      val producer = new StringProducer {}
       producer.setProps(Map.empty)
       producer.setKeySerializer(Some(new StringSerializer()))
       producer.setValueSerializer(Some(new StringSerializer()))
@@ -45,7 +45,7 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
       withRunningKafka {
 
-        val stringProducer = StringProducer(configs, new StringSerializer(), new StringSerializer())
+        val stringProducer = StringProducer(configs)
         stringProducer.start
 
         stringProducer.getProducer
