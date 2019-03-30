@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
+import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.URLsHelper
 import javax.inject._
@@ -28,16 +29,25 @@ object StringProducer {
 }
 
 /**
-  * Class that represents a String Producer Factory with specific values from the config files
+  * Represents the config properties for the producer. It is helpful for
+  * isolation purposes and tests.
   * @param config Config Component for reading config properties
+  */
+class DefaultStringProducerConfigProperties @Inject() (config: Config) extends Provider[ConfigProperties] with ProducerConfPaths {
+  val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
+  override def get(): ConfigProperties = Configs(bootstrapServers)
+}
+
+/**
+  * Class that represents a String Producer Factory with specific values from the config files
+  * @param configs Represents the properties to start the producer.
   * @param lifecycle LifeCycle Component Instance for adding the producer stop hook
   */
 @Singleton
-class DefaultStringProducer @Inject() (config: Config, lifecycle: Lifecycle) extends Provider[StringProducer] with ProducerConfPaths with LazyLogging {
-
-  val bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
-
-  def configs = Configs(bootstrapServers)
+class DefaultStringProducer @Inject() (
+    @Named("DefaultStringProducerConfigProperties") configs: ConfigProperties,
+    lifecycle: Lifecycle
+) extends Provider[StringProducer] with LazyLogging {
 
   private lazy val producerConfigured = StringProducer(configs, new StringSerializer(), new StringSerializer())
 

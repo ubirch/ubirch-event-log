@@ -12,7 +12,6 @@ import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
-import com.ubirch.util.JsonHelper.ToJson
 import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -29,9 +28,11 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
+  import org.json4s.jackson.JsonMethods._
+
   override def apply(v1: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
-      val payload = ToJson(v1.value().ubirchPacket.getPayload).get
+      val payload = fromJsonNode(v1.value().ubirchPacket.getPayload)
       val eventLog = EventLog("EventLogFromConsumerRecord", "UPA", payload)
       MessageEnvelopePipeData(v1, Some(eventLog), None, None)
     } catch {

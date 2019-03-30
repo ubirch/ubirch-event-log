@@ -1,56 +1,128 @@
 package com.ubirch.services
 
+import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
+import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer._
-import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
+import com.ubirch.services.kafka.producer.{ DefaultStringProducer, DefaultStringProducerConfigProperties, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 
 import scala.concurrent.ExecutionContext
 
+trait BasicServices {
+  def lifecycle: ScopedBindingBuilder
+  def jvmHook: ScopedBindingBuilder
+  def config: ScopedBindingBuilder
+  def executionContext: ScopedBindingBuilder
+}
+
+trait CassandraServices {
+  def clusterService: ScopedBindingBuilder
+  def connectionService: ScopedBindingBuilder
+}
+
+trait CounterServices {
+  def consumerRecordsManagerCounter: ScopedBindingBuilder
+  def metricsLoggerCounter: ScopedBindingBuilder
+}
+
+trait ExecutionServices {
+  def executorFamily: ScopedBindingBuilder
+}
+
+trait Consumer {
+  def consumer: ScopedBindingBuilder
+  def consumerRecordsManager: ScopedBindingBuilder
+}
+
+trait Producer {
+  def producer: ScopedBindingBuilder
+  def producerConfigProperties: ScopedBindingBuilder
+}
+
+trait Kafka extends Consumer with Producer
+
 /**
   * Core Service Wiring
   */
-class ServiceBinder extends AbstractModule {
+class ServiceBinder
+  extends AbstractModule
+  with BasicServices
+  with CassandraServices
+  with CounterServices
+  with ExecutionServices
+  with Kafka {
 
-  override def configure(): Unit = {
+  //Basic Components
+  def lifecycle: ScopedBindingBuilder = bind(classOf[Lifecycle]).to(classOf[DefaultLifecycle])
+  def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
+  def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
+  def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  //Basic Components
+
+  //Cassandra Cluster
+  def clusterService: ScopedBindingBuilder = bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
+  def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
+  //Cassandra Cluster
+
+  //Counters
+  def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named("DefaultConsumerRecordsManagerCounter"))
+    .to(classOf[DefaultConsumerRecordsManagerCounter])
+  def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named("DefaultMetricsLoggerCounter"))
+    .to(classOf[DefaultMetricsLoggerCounter])
+  //Counters
+
+  //Execution
+  def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
+  def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultConsumerRecordsManager])
+  //Execution
+
+  //Kafka
+  def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
+  def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
+  def producerConfigProperties: ScopedBindingBuilder = bind(classOf[ConfigProperties])
+    .annotatedWith(Names.named("DefaultStringProducerConfigProperties"))
+    .toProvider(classOf[DefaultStringProducerConfigProperties])
+  //Kafka
+
+  def configure(): Unit = {
 
     //Basic Components
-    bind(classOf[Lifecycle]).to(classOf[DefaultLifecycle])
-    bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
-    bind(classOf[Config]).toProvider(classOf[ConfigProvider])
-    bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+    lifecycle
+    jvmHook
+    config
+    executionContext
     //Basic Components
 
     //Cassandra Cluster
-    bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
-    bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
+    clusterService
+    connectionService
     //Cassandra Cluster
 
     //Counters
-    bind(classOf[Counter])
-      .annotatedWith(Names.named("DefaultConsumerRecordsManagerCounter"))
-      .to(classOf[DefaultConsumerRecordsManagerCounter])
-    bind(classOf[Counter])
-      .annotatedWith(Names.named("DefaultMetricsLoggerCounter"))
-      .to(classOf[DefaultMetricsLoggerCounter])
+    consumerRecordsManagerCounter
+    metricsLoggerCounter
     //Counters
 
     //Execution
-    bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
-    bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultConsumerRecordsManager])
+    executorFamily
     //Execution
 
     //Kafka
-    bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
-    bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
+    consumer
+    consumerRecordsManager
+    producerConfigProperties
+    producer
     //Kafka
   }
 
