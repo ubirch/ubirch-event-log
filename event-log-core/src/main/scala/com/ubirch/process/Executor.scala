@@ -2,17 +2,17 @@ package com.ubirch.process
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.crypto.utils.Utils
-import com.ubirch.models.{Error, EventLog, Events}
+import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{FromString, SigningHelper, UUIDHelper}
+import com.ubirch.util.{ FromString, SigningHelper, UUIDHelper }
 import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 /**
   * Represents a process to be executed.
@@ -38,9 +38,9 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * @param ec Represent the execution context for asynchronous processing.
   */
 
-class FilterEmpty @Inject()(implicit ec: ExecutionContext)
+class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   extends Executor[ConsumerRecord[String, String], Future[PipeData]]
-    with LazyLogging {
+  with LazyLogging {
 
   override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = Future {
     val pd = PipeData(v1, None)
@@ -59,9 +59,9 @@ class FilterEmpty @Inject()(implicit ec: ExecutionContext)
   *
   * @param ec Represent the execution context for asynchronous processing.
   */
-class EventLogParser @Inject()(implicit ec: ExecutionContext)
+class EventLogParser @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
-    with LazyLogging {
+  with LazyLogging {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
@@ -83,9 +83,9 @@ class EventLogParser @Inject()(implicit ec: ExecutionContext)
   *
   * @param ec Represent the execution context for asynchronous processing.
   */
-class EventLogSigner @Inject()(signer: SigningHelper)(implicit ec: ExecutionContext)
+class EventLogSigner @Inject() (signer: SigningHelper)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
-    with LazyLogging {
+  with LazyLogging {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     v1.eventLog.map { el =>
@@ -104,9 +104,9 @@ class EventLogSigner @Inject()(signer: SigningHelper)(implicit ec: ExecutionCont
   * @param events Represents the DAO for the Events type.
   * @param ec     Represent the execution context for asynchronous processing.
   */
-class EventsStore @Inject()(events: Events)(implicit ec: ExecutionContext)
+class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
-    with LazyLogging {
+  with LazyLogging {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
@@ -126,7 +126,7 @@ class EventsStore @Inject()(events: Events)(implicit ec: ExecutionContext)
 
 }
 
-class MetricsLogger @Inject()(implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
+class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
 
   val metricsNamespace: String = "ubirch"
 
@@ -175,13 +175,13 @@ trait ExecutorFamily {
   * @param eventsStore    Executor that stores an EventLog into Cassandra
   */
 @Singleton
-case class DefaultExecutorFamily @Inject()(
-                                            filterEmpty: FilterEmpty,
-                                            eventLogParser: EventLogParser,
-                                            eventLogSigner: EventLogSigner,
-                                            eventsStore: EventsStore,
-                                            metricsLogger: MetricsLogger
-                                          ) extends ExecutorFamily
+case class DefaultExecutorFamily @Inject() (
+    filterEmpty: FilterEmpty,
+    eventLogParser: EventLogParser,
+    eventLogSigner: EventLogSigner,
+    eventsStore: EventsStore,
+    metricsLogger: MetricsLogger
+) extends ExecutorFamily
 
 /**
   * Default Executor Composer Convenience for creating executor compositions and
@@ -191,7 +191,7 @@ case class DefaultExecutorFamily @Inject()(
   * @param executorFamily Represents a family of executors.
   */
 @Singleton
-class DefaultExecutor @Inject()(val reporter: Reporter, executorFamily: ExecutorFamily)(implicit ec: ExecutionContext) {
+class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: ExecutorFamily)(implicit ec: ExecutionContext) {
 
   import UUIDHelper._
   import executorFamily._

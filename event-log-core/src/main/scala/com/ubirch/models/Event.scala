@@ -1,9 +1,7 @@
 package com.ubirch.models
 
-import java.util.{Date, UUID}
+import java.util.{ Date, UUID }
 
-import com.google.inject.Inject
-import com.ubirch.crypto.utils.Utils
 import com.ubirch.util.ToJson
 import com.ubirch.util.UUIDHelper._
 import org.json4s.JValue
@@ -58,15 +56,15 @@ trait JValueEventLog extends EventLogBase[JValue]
   *                      to support its creation from the eventTime.
   * @param signature     Represents the signature for the event log.
   */
-case class EventLog (
-                               id: UUID,
-                               serviceClass: String,
-                               category: String,
-                               event: JValue,
-                               eventTime: Date,
-                               eventTimeInfo: TimeInfo,
-                               signature: String
-                             ) extends JValueEventLog {
+case class EventLog(
+    id: UUID,
+    serviceClass: String,
+    category: String,
+    event: JValue,
+    eventTime: Date,
+    eventTimeInfo: TimeInfo,
+    signature: String
+) extends JValueEventLog {
 
   override def withNewId: EventLog = this.copy(id = timeBasedUUID)
 
