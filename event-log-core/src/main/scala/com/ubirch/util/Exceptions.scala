@@ -90,7 +90,6 @@ object Exceptions {
     */
   case class SigningEventLogException(message: String, pipeData: PipeData) extends ExecutionException(message)
 
-
   /**
     * Exception thrown when storing an EventLog to the database.
     * @param message Represents the error message.
