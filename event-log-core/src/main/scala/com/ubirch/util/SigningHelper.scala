@@ -1,21 +1,24 @@
 package com.ubirch.util
 
-import com.google.inject.Inject
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths
 import com.ubirch.crypto.utils.{ Algorithms, Hashs }
 import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
-import javax.inject.Singleton
 
-@Singleton
-class SigningHelper @Inject() (config: Config) {
+object SigningHelper {
 
-  private final val pk = config.getString(ConfPaths.Crypto.SERVICE_PK)
-
-  def signData(payload: Array[Byte]): Array[Byte] = {
-    val pkString = config.getString(ConfPaths.Crypto.SERVICE_PK)
-    val pk: PrivKey = GeneratorKeyFactory.getPrivKey(pkString.take(64), Algorithms.EDDSA)
+  def signData(pk: PrivKey, payload: Array[Byte]): Array[Byte] = {
     pk.sign(payload, Hashs.SHA512)
+  }
+
+  def signData(pkString: String, payload: Array[Byte]): Array[Byte] = {
+    val pk: PrivKey = GeneratorKeyFactory.getPrivKey(pkString.take(64), Algorithms.EDDSA)
+    signData(pk, payload)
+  }
+
+  def signData(config: Config, payload: Array[Byte]): Array[Byte] = {
+    val pkString = config.getString(ConfPaths.Crypto.SERVICE_PK)
+    signData(pkString, payload)
   }
 
 }

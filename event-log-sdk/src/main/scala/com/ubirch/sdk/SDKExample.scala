@@ -3,12 +3,11 @@ package com.ubirch.sdk
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.util.ToJson
-
-import scala.concurrent.Future
 import com.ubirch.util.Implicits.enrichedInstant
+import com.ubirch.util.ToJson
 import org.joda.time.Instant
 
+import scala.concurrent.Future
 import scala.util.Try
 /**
   * Represents an example of how to use the EventLogging SDK
