@@ -1,13 +1,13 @@
 package com.ubirch.process
 
 import com.typesafe.config.{ Config, ConfigValueFactory }
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.Implicits.enrichedEventLog
 import com.ubirch.{ ConfPaths, Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord

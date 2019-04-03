@@ -1,45 +1,30 @@
 package com.ubirch.services.kafka.producer
 
-import java.util.concurrent.atomic.AtomicBoolean
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths
+import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.Implicits.configsToProps
 import com.ubirch.util.URLsHelper
 import javax.inject._
-import org.apache.kafka.clients.producer.{ Producer, KafkaProducer => JKafkaProducer }
-import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
+import org.apache.kafka.common.serialization.StringSerializer
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 /**
   * Class that represents a String Producer Factory
-  *
-  * @param props Properties for initiating a Kafka Producer
   */
-class StringProducer(props: Map[String, AnyRef]) extends KafkaProducerBase[String, String] with LazyLogging {
+class StringProducer extends ProducerRunner[String, String]
 
-  require(props.nonEmpty, "Can't be empty")
-
-  val isProducerCreated = new AtomicBoolean(false)
-
-  val keySerializer: Serializer[String] = new StringSerializer()
-  val valueSerializer: Serializer[String] = new StringSerializer()
-
-  lazy val producer: Producer[String, String] = createConsumer(props)
-
-  private def createConsumer(props: Map[String, AnyRef]): Producer[String, String] = {
-    logger.debug("Creating Producer ...")
-    keySerializer.configure(props.asJava, true)
-    valueSerializer.configure(props.asJava, false)
-    val producer = new JKafkaProducer[String, String](props.asJava, keySerializer, valueSerializer)
-    isProducerCreated.set(true)
-    producer
+object StringProducer {
+  def apply(props: Map[String, AnyRef], keySerializer: StringSerializer, valueSerializer: StringSerializer): StringProducer = {
+    require(props.nonEmpty, "Can't be empty")
+    val pd = new StringProducer
+    pd.setProps(props)
+    pd.setKeySerializer(Some(new StringSerializer()))
+    pd.setValueSerializer(Some(new StringSerializer()))
+    pd
   }
-
 }
 
 /**
@@ -59,17 +44,19 @@ class DefaultStringProducer @Inject() (
 
   def configs = Configs(bootstrapServers)
 
-  private lazy val producer = new StringProducer(configs)
+  private lazy val producerConfigured = StringProducer(configs, new StringSerializer(), new StringSerializer())
 
-  override def get(): StringProducer = producer
+  override def get(): StringProducer = producerConfigured
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Producer...")
 
-    if (get().isProducerCreated.get())
-      Future.successful(get().producer.close())
+    get().getProducerAsOpt.map { prod =>
+      Future.successful(prod.close())
+    }.getOrElse {
+      Future.unit
+    }
 
-    Future.unit
   }
 
 }

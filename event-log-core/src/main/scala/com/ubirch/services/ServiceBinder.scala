@@ -2,11 +2,12 @@ package com.ubirch.services
 
 import com.google.inject.AbstractModule
 import com.typesafe.config.Config
+import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumer }
+import com.ubirch.services.kafka.consumer.DefaultStringConsumer
 import com.ubirch.services.kafka.producer.{ DefaultStringProducer, StringProducer }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 

@@ -1,16 +1,18 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.consumer._
+import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ DefaultExecutor, Executor, WithConsumerRecordsExecutor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.Implicits.configsToProps
-import com.ubirch.util.{ URLsHelper, UUIDHelper, VersionedLazyLogging }
+import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
@@ -25,17 +27,8 @@ import scala.language.postfixOps
   * @param consumerRecord Represents the data received in the poll from Kafka
   * @param eventLog Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String]
-
-/**
-  * Represents a concrete data type for a consumer runner of type Consumer[String, String]
-  */
-class StringConsumer extends ConsumerRunnerWithMetrics[String, String]("consumer_runner_thread" + "_" + UUIDHelper.randomUUID) {
-
-  override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-    getConsumerRecordsController.map(_.process(consumerRecord)).getOrElse(Future.failed(new Exception("No Records Controller Found")))
-  }
-
+case class PipeData(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends ProcessResult[String, String] {
+  override val id: UUID = UUIDHelper.randomUUID
 }
 
 /**
@@ -51,13 +44,21 @@ class DefaultConsumerRecordsController @Inject() (val defaultExecutor: DefaultEx
   with WithConsumerRecordsExecutor[String, String]
   with LazyLogging {
 
-  override def executor[A >: ProcessResult[String, String]]: Executor[ConsumerRecord[String, String], Future[PipeData]] = defaultExecutor.executor
+  override type A = PipeData
 
-  override def executorExceptionHandler[A >: ProcessResult[String, String]]: PartialFunction[Throwable, Future[PipeData]] = defaultExecutor.executorExceptionHandler
+  override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+    defaultExecutor.executor
+  }
 
-  override def reporter: Reporter = defaultExecutor.reporter
+  override def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
+    defaultExecutor.executorExceptionHandler
+  }
 
-  override def process[A >: ProcessResult[String, String]](consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
+  override def reporter: Reporter = {
+    defaultExecutor.reporter
+  }
+
+  override def process(consumerRecord: ConsumerRecord[String, String]): Future[PipeData] = {
     executor(consumerRecord).recoverWith(executorExceptionHandler)
   }
 
@@ -130,7 +131,7 @@ class DefaultStringConsumer @Inject() (
     autoOffsetReset = OffsetResetStrategy.EARLIEST
   )
 
-  val consumerImp = new StringConsumer
+  val consumerImp = new StringConsumer() with WithMetrics[String, String]
 
   private val consumerConfigured = {
     consumerImp.setUseAutoCommit(false)
