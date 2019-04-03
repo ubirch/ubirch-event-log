@@ -7,7 +7,7 @@ This SDK allows to easily send out event to the Event Log Service.
 ```scala
 package com.ubirch.sdk
 
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 
 /**
   * Represents an example of how to use the EventLogging SDK
@@ -24,9 +24,9 @@ object SDKExample extends EventLogging {
     log0.commit
 
     //From JValue
-    val log1 = log(ToJson(Hello("Hola")).get, "My Category")
+    val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category")
 
-    val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
+    val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category")
 
     //Let's unite them in order first in first out
     val log1_2 = log1 +> log2

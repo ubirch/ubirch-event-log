@@ -3,8 +3,8 @@ package com.ubirch.sdk
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Implicits.enrichedInstant
-import com.ubirch.util.ToJson
 import org.joda.time.Instant
 
 import scala.concurrent.Future
@@ -18,7 +18,7 @@ object SDKExample extends EventLogging with LazyLogging {
 
   def main(args: Array[String]): Unit = {
 
-    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(100)
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(10000000)
 
     val startTime = new Instant()
     logger.info("Current time: " + startTime)
@@ -42,9 +42,9 @@ object SDKExample extends EventLogging with LazyLogging {
       val rLog0 = log0.commitAsync
 
       //From JValue
-      val log1 = log(ToJson(Hello("Hola")).get, "My Category")
+      val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category")
 
-      val log2 = log(ToJson(Hello("Como estas")).get, "My another Category")
+      val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category")
 
       //Let's unite them in order first in first out
       val log1_2 = log1 +> log2

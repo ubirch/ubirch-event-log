@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 
 /**
   * Represents the error that is eventually published to Kafka.
@@ -33,6 +33,6 @@ case class Error(
 ) {
 
   override def toString: String = {
-    ToJson[this.type](this).toString
+    EventLogJsonSupport.ToJson[this.type](this).toString
   }
 }

@@ -1,6 +1,6 @@
 package com.ubirch.models
 
-import com.ubirch.util.FromJson
+import com.ubirch.util.EventLogJsonSupport
 import org.json4s.JsonAST.JValue
 import org.json4s.native.JsonMethods._
 
@@ -27,7 +27,7 @@ trait CustomEncodings[T] extends CustomEncodingsBase {
 
   import db._
 
-  implicit def encodeJValue = MappedEncoding[JValue, String](Option(_).map(FromJson(_).toString).getOrElse(""))
+  implicit def encodeJValue = MappedEncoding[JValue, String](Option(_).map(EventLogJsonSupport.FromJson(_).toString).getOrElse(""))
   implicit def decodeJValue = MappedEncoding[String, JValue](x => parse(x))
 
 }

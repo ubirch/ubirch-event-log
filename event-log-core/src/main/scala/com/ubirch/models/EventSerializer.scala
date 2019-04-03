@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.util.Formats._
+import com.ubirch.util.EventLogJsonSupport._
 import org.json4s.JsonDSL._
 import org.json4s.{ CustomSerializer, JObject, JValue, MappingException }
 
@@ -46,7 +46,7 @@ class EventSerializer extends CustomSerializer[EventLog](_ =>
         val category: String = (_jsonObj \ CATEGORY).extract[String]
         val event: JValue = _jsonObj \ EVENT
         val eventTime: Date = (_jsonObj \ EVENT_TIME).extract[Date]
-        val eventTimeInfo: TimeInfo = TimeInfo(eventTime)
+        val eventTimeInfo: TimeInfo = TimeInfo.fromDate(eventTime)
         val signature: String = (_jsonObj \ SIGNATURE).extract[String]
 
         EventLog(id, serviceClass, category, event, eventTime, eventTimeInfo, signature)

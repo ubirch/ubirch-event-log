@@ -2,12 +2,13 @@ package com.ubirch.process
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.Implicits.enrichedEventLog
-import com.ubirch.util.{ FromString, UUIDHelper }
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -18,7 +19,6 @@ import scala.util.{ Failure, Success }
 /**
   * Represents a process to be executed.
   * It allows for Executor composition with the operator andThen
-  *
   * @tparam T1 the input to the pipe
   * @tparam R  the output of the pipe
   */
@@ -35,7 +35,6 @@ trait Executor[-T1, +R] extends (T1 => R) {
 
 /**
   * Executor that filters ConsumerRecords values.
-  *
   * @param ec Represent the execution context for asynchronous processing.
   */
 
@@ -57,7 +56,6 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
 
 /**
   * Executor that transforms a ConsumerRecord into an EventLog
-  *
   * @param ec Represent the execution context for asynchronous processing.
   */
 class EventLogParser @Inject() (implicit ec: ExecutionContext)
@@ -66,7 +64,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
-      val eventLog = FromString[EventLog](v1.consumerRecord.value()).get
+      val eventLog = EventLogJsonSupport.FromString[EventLog](v1.consumerRecord.value()).get
       v1.copy(eventLog = Some(eventLog))
     } catch {
       case _: Exception =>
@@ -107,7 +105,6 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
 
 /**
   * Executor that stores an EventLog into Cassandra by Using the Events value.
-  *
   * @param events Represents the DAO for the Events type.
   * @param ec     Represent the execution context for asynchronous processing.
   */
@@ -180,10 +177,9 @@ trait ExecutorFamily {
 
 /**
   * Default materialization of the family of executors
-  *
-  * @param filterEmpty    Executor that filters ConsumerRecords
+  * @param filterEmpty Executor that filters ConsumerRecords
   * @param eventLogParser Executor that parses a ConsumerRecord into an Event Log
-  * @param eventsStore    Executor that stores an EventLog into Cassandra
+  * @param eventsStore Executor that stores an EventLog into Cassandra
   */
 @Singleton
 case class DefaultExecutorFamily @Inject() (
@@ -197,8 +193,7 @@ case class DefaultExecutorFamily @Inject() (
 /**
   * Default Executor Composer Convenience for creating executor compositions and
   * executor exceptions management.
-  *
-  * @param reporter       Represents a convenience type that allows to report to a producer.
+  * @param reporter Represents a convenience type that allows to report to a producer.
   * @param executorFamily Represents a family of executors.
   */
 @Singleton
@@ -246,7 +241,7 @@ class DefaultExecutor @Inject() (val reporter: Reporter, executorFamily: Executo
       )
 
       val res = e.pipeData.eventLog.map { el =>
-        Future.failed(NeedForPauseException("Requesting Pause", el, e.getMessage))
+        Future.failed(NeedForPauseException("Requesting Pause", e.getMessage))
       }.getOrElse {
         Future.successful(e.pipeData)
       }

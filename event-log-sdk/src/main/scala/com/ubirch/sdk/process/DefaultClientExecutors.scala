@@ -10,7 +10,7 @@ import com.ubirch.sdk.ConfPaths
 import com.ubirch.sdk.util.Exceptions._
 import com.ubirch.services.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
-import com.ubirch.util.{ FutureHelper, ProducerRecordHelper, ToJson }
+import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.json4s.JValue
 
@@ -28,7 +28,7 @@ import scala.util.{ Failure, Success }
 class CreateEventFrom[T: Manifest](serviceClass: String, category: String) extends Executor[T, EventLog] {
   override def apply(v1: T): EventLog = {
     try {
-      val json = ToJson[T](v1)
+      val json = EventLogJsonSupport.ToJson[T](v1)
       EventLog(serviceClass, category, json.get)
     } catch {
       case e: Exception =>
@@ -60,7 +60,7 @@ class CreateProducerRecord(config: Config)
 
       val topic = config.getStringAsOption(ConfPaths.Producer.TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
-      val json = ToJson[EventLog](v1)
+      val json = EventLogJsonSupport.ToJson[EventLog](v1)
 
       (ProducerRecordHelper.toRecord(topic, v1.id.toString, json.toString, Map.empty), v1)
 
@@ -80,7 +80,9 @@ class CreateProducerRecord(config: Config)
   */
 class Commit(stringProducer: StringProducer) extends Executor[(ProducerRecord[String, String], EventLog), (JavaFuture[RecordMetadata], EventLog)] {
 
-  def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = stringProducer.producer.send(record)
+  def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = {
+    stringProducer.getProducerOrCreate.send(record)
+  }
 
   override def apply(v1: (ProducerRecord[String, String], EventLog)): (JavaFuture[RecordMetadata], EventLog) = {
 
@@ -131,8 +133,10 @@ class CommitHandlerSync extends Executor[(JavaFuture[RecordMetadata], EventLog),
   */
 class CommitHandlerAsync(implicit ec: ExecutionContext) extends Executor[(JavaFuture[RecordMetadata], EventLog), Future[EventLog]] {
 
+  val futureHelper = new FutureHelper()
+
   def get(javaFutureRecordMetadata: JavaFuture[RecordMetadata], eventLog: EventLog): Future[EventLog] = {
-    FutureHelper.fromJavaFuture(javaFutureRecordMetadata).map { _ =>
+    futureHelper.fromJavaFuture(javaFutureRecordMetadata).map { _ =>
       eventLog
     }.recover {
       case e: Exception =>

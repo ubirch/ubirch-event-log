@@ -2,7 +2,7 @@ package com.ubirch.models
 
 import java.util.{ Date, UUID }
 
-import com.ubirch.util.ToJson
+import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.UUIDHelper._
 import org.json4s.JValue
 
@@ -77,18 +77,18 @@ case class EventLog(
   override def withServiceClass(serviceClass: String): EventLog = this.copy(serviceClass = serviceClass)
 
   override def withEventTime(eventTime: Date): EventLog = {
-    this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo(eventTime))
+    this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo.fromDate(eventTime))
   }
 
   override def withCurrentEventTime: EventLog = {
     val currentTime = new Date
-    this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo(currentTime))
+    this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo.fromDate(currentTime))
   }
 
   override def withSignature(signature: String): EventLog = this.copy(signature = signature)
 
   override def toString: String = {
-    ToJson[this.type](this).toString
+    EventLogJsonSupport.ToJson[this.type](this).toString
   }
 }
 
@@ -105,7 +105,7 @@ object EventLog {
       category,
       event,
       currentTime,
-      TimeInfo(currentTime),
+      TimeInfo.fromDate(currentTime),
       ""
     )
   }

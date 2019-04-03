@@ -1,6 +1,6 @@
 package com.ubirch
 
-import com.ubirch.services.kafka.consumer.StringConsumer
+import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.util.Boot
 
 import scala.concurrent.duration._

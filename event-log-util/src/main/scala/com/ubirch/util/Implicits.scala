@@ -1,36 +1,14 @@
 package com.ubirch.util
 
-import java.nio.charset.StandardCharsets
 import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
-import com.ubirch.crypto.utils.Utils
-import com.ubirch.models.{ EventLog, TimeInfo }
 import org.joda.time._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
 import scala.collection.mutable
-import scala.concurrent.duration.FiniteDuration
 import scala.language.implicitConversions
-
-/**
-  * It is an enriched iterator
-  * @param iterator Represents the iterator that gets enriched
-  * @tparam A Represents the type of the elems found in the iterator
-  */
-case class EnrichedIterator[A](iterator: Iterator[A]) {
-
-  def delayOnNext(duration: FiniteDuration): Iterator[A] = iterator.map { x =>
-    FutureHelper.delay(duration)(x)
-  }
-
-  def consumeWithFinalDelay[U](f: A => U)(duration: FiniteDuration): Unit = {
-    while (iterator.hasNext) f(iterator.next())
-    FutureHelper.delay(duration)(())
-  }
-
-}
 
 /**
   * It is an enriched date
@@ -44,12 +22,14 @@ case class EnrichedDate(date: Date) {
 
   val enrichedDatetime = EnrichedDatetime(buildDateTime)
 
-  def buildTimeInfo: TimeInfo = enrichedDatetime.buildTimeInfo
-
   def secondsBetween(otherTime: Date): Int = enrichedDatetime.secondsBetween(buildDateTime(otherTime))
 
 }
 
+/**
+  * It is an enriched instant
+  * @param instant Represents the instant that gets enriched
+  */
 case class EnrichedInstant(instant: Instant) {
 
   def millisBetween(other: Instant): Long = new Duration(instant, other).getMillis
@@ -64,15 +44,6 @@ case class EnrichedDatetime(dateTime: DateTime) {
 
   def secondsBetween(otherTime: DateTime): Int = Seconds.secondsBetween(dateTime, otherTime).getSeconds
 
-  def buildTimeInfo: TimeInfo = TimeInfo(
-    year = dateTime.year().get(),
-    month = dateTime.monthOfYear().get(),
-    day = dateTime.dayOfMonth().get(),
-    hour = dateTime.hourOfDay().get(),
-    minute = dateTime.minuteOfHour().get(),
-    second = dateTime.secondOfMinute().get(),
-    milli = dateTime.millisOfSecond().get()
-  )
 }
 
 /**
@@ -115,42 +86,10 @@ case class EnrichedConfig(config: Config) {
   }
 }
 
-case class EnrichedEventLog(eventLog: EventLog) {
-
-  def getEventBytes: Array[Byte] = {
-    eventLog.event.toString.getBytes(StandardCharsets.UTF_8)
-  }
-
-  def sign(config: Config): EventLog = {
-    eventLog.withSignature(
-      Utils.bytesToHex(
-        SigningHelper.signData(
-          config,
-          getEventBytes
-        )
-      )
-    )
-  }
-
-  def sign(pkString: String): EventLog = {
-    eventLog.withSignature(
-      Utils.bytesToHex(
-        SigningHelper.signData(
-          pkString,
-          getEventBytes
-        )
-      )
-    )
-  }
-
-}
-
 /**
   * Util that contains the implicits to create enriched values.
   */
 object Implicits {
-
-  implicit def enrichedIterator[T](iterator: Iterator[T]): EnrichedIterator[T] = EnrichedIterator[T](iterator)
 
   implicit def enrichedInstant(instant: Instant): EnrichedInstant = EnrichedInstant(instant)
 
@@ -160,7 +99,4 @@ object Implicits {
 
   implicit def enrichedConfig(config: Config): EnrichedConfig = EnrichedConfig(config)
 
-  implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
-
-  implicit def enrichedEventLog(eventLog: EventLog): EnrichedEventLog = EnrichedEventLog(eventLog)
 }
