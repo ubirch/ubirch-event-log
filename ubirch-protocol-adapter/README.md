@@ -15,7 +15,7 @@ mvn package
 ## Run
 
 ```
-java -jar target/event-log-service-1.0-SNAPSHOT.jar
+java -jar target/event-log-service-1.2.0-SNAPSHOT.jar
 ```
 
 ## Create Docker Image
