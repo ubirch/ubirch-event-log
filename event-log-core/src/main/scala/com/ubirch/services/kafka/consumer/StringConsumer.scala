@@ -67,7 +67,7 @@ class DefaultConsumerRecordsManager @Inject() (
   type A = PipeData
 
   def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-    filterEmpty andThen eventLogParser andThen eventsStore andThen metricsLogger
+    filterEmpty andThen eventLogParser andThen eventLogSigner andThen eventsStore andThen metricsLogger
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {

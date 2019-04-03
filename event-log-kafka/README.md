@@ -27,6 +27,8 @@ This type is usually extended to support customized data.
 
 5. **WithMetrics:** Adds prometheus support to consumer runners.
 
+6. **Consumers:** There are out-of-the box consumers. A String and Bytes Consumers.
+
 ## Producer Runner
 
 The purpose of the producer runner is to provide a simple and straightforward abstraction 
@@ -38,3 +40,12 @@ The principal elements of the producer runner environment are:
 
 2. **ProducerRunner:** Represents a simple definition for a kafka producer. It supports callback on the producer creation event
 
+## Import into project
+
+```xml
+      <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-kafka</artifactId>
+            <version>1.2.0-SNAPSHOT</version>
+       </dependency>
+```

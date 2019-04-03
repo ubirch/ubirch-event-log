@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
@@ -7,16 +8,27 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
 
     <!-- basic info -->
     <artifactId>event-log-sdk</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger SDK</description>
     <inceptionYear>2018</inceptionYear>
     <packaging>jar</packaging>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
 
@@ -24,7 +36,7 @@
 
         <build.number>${timestamp}-dev</build.number>
 
-        <event-log-core.version>1.2.0</event-log-core.version>
+        <event-log-core.version>1.2.0-SNAPSHOT</event-log-core.version>
         <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
 
         <!-- plugins -->
@@ -160,7 +172,6 @@
                     <skip>true</skip>
                 </configuration>
             </plugin>
-
 
         </plugins>
     </build>

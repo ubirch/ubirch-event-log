@@ -30,7 +30,7 @@ object Entities extends UUIDHelper {
 
   object Errors {
 
-    def errorExample(id: UUID = randomUUID) = Error(
+    def errorExample(id: UUID = randomUUID): Error = Error(
       id = id,
       message = "This is an error message",
       exceptionName = "My_Exception",

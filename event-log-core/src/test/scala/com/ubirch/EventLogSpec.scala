@@ -3,9 +3,11 @@ package com.ubirch
 import java.util.concurrent.CountDownLatch
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.Events
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
 import com.ubirch.util.{ InjectorHelper, PortGiver }
@@ -25,10 +27,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume message and store it in cassandra" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         autoOffsetReset =
           OffsetResetStrategy.EARLIEST
@@ -38,7 +40,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entity1 = Entities.Events.eventExample()
+        val config = InjectorHelper.get[Config]
+        val entity1 = Entities.Events.eventExample().sign(config)
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -64,7 +67,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         assert(res1.headOption == Option(entity1))
 
         //Next Message
-        val entity2 = Entities.Events.eventExample()
+        val entity2 = Entities.Events.eventExample().sign(config)
         val entityAsString2 = entity2.toString
 
         publishStringMessageToKafka(topic, entityAsString2)
@@ -84,10 +87,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume messages and store them in cassandra" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         autoOffsetReset =
           OffsetResetStrategy.EARLIEST
@@ -97,7 +100,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entities = (0 to 500).map(_ => Entities.Events.eventExample()).toList
+        val config = InjectorHelper.get[Config]
+        val entities = (0 to 500).map(_ => Entities.Events.eventExample().sign(config)).toList
 
         val entitiesAsString = entities.map(_.toString)
 
@@ -131,10 +135,11 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
     }
 
     "not insert message twice with same id unless the primary value parts don't change" in {
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         autoOffsetReset =
           OffsetResetStrategy.EARLIEST
@@ -144,7 +149,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entity1 = Entities.Events.eventExample()
+        val config = InjectorHelper.get[Config]
+        val entity1 = Entities.Events.eventExample().sign(config)
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -204,10 +210,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume message and store it in cassandra less the error" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         autoOffsetReset =
           OffsetResetStrategy.EARLIEST
@@ -217,7 +223,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entities = (0 to 10).map(_ => Entities.Events.eventExample()).toList
+        val config = InjectorHelper.get[Config]
+
+        val entities = (0 to 10).map(_ => Entities.Events.eventExample().sign(config)).toList
 
         val entitiesAsStringWithErrors = entities.map(_.toString) ++ //Malformed data
           List("{}")
