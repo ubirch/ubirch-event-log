@@ -33,6 +33,8 @@ trait EventLogBase[T] {
 
   def withNewId(id: UUID): EventLogBase[T]
 
+  def withSignature(signature: String): EventLogBase[T]
+
 }
 
 /**
@@ -82,6 +84,8 @@ case class EventLog(
     val currentTime = new Date
     this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo(currentTime))
   }
+
+  override def withSignature(signature: String): EventLog = this.copy(signature = signature)
 
   override def toString: String = {
     ToJson[this.type](this).toString

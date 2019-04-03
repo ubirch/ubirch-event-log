@@ -1,12 +1,14 @@
 package com.ubirch.process
 
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.SigningHelper
-import com.ubirch.{ Entities, TestBase }
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Implicits.enrichedEventLog
+import com.ubirch.{ ConfPaths, Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.header.internals.{ RecordHeader, RecordHeaders }
@@ -220,6 +222,51 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
   }
 
+  "EventLogSigner" must {
+
+    "sign eventLog" in {
+
+      val config = new ConfigProvider {} get ()
+      val signer = new EventLogSigner(config)
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      val data = Entities.Events.eventExample()
+
+      when(consumerRecord.value()).thenReturn(data.toString)
+
+      val pipeData = PipeData(consumerRecord, Some(data))
+
+      val futureSigned = signer(Future.successful(pipeData))
+
+      val signed = await(futureSigned, 2 seconds)
+
+      assert(signed.eventLog.isDefined)
+      assert(Option(data.sign(config)) == signed.eventLog)
+
+    }
+
+    "throw valid exception when invalid key" in {
+
+      val config = new ConfigProvider {} get () withValue (ConfPaths.Crypto.SERVICE_PK, ConfigValueFactory.fromAnyRef(""))
+      val signer = new EventLogSigner(config)
+
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+
+      val data = Entities.Events.eventExample()
+
+      when(consumerRecord.value()).thenReturn(data.toString)
+
+      val pipeData = PipeData(consumerRecord, Some(data))
+
+      val futureSigned = signer(Future.successful(pipeData))
+
+      assertThrows[SigningEventLogException](await(futureSigned, 2 seconds))
+
+    }
+
+  }
+
   "Composed DefaultExecutor" must {
     "filter successfully" in {
 
@@ -236,7 +283,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val family = DefaultExecutorFamily(
         new FilterEmpty(),
         new EventLogParser(),
-        new EventLogSigner(mock[SigningHelper]),
+        new EventLogSigner(mock[Config]),
         new EventsStore(events),
         new MetricsLogger()
       )

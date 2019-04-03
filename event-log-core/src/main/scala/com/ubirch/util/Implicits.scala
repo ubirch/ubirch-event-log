@@ -1,9 +1,11 @@
 package com.ubirch.util
 
+import java.nio.charset.StandardCharsets
 import java.util.{ Date, Properties }
 
 import com.typesafe.config.Config
-import com.ubirch.models.TimeInfo
+import com.ubirch.crypto.utils.Utils
+import com.ubirch.models.{ EventLog, TimeInfo }
 import org.joda.time._
 
 import scala.collection.JavaConverters._
@@ -113,6 +115,36 @@ case class EnrichedConfig(config: Config) {
   }
 }
 
+case class EnrichedEventLog(eventLog: EventLog) {
+
+  def getEventBytes: Array[Byte] = {
+    eventLog.event.toString.getBytes(StandardCharsets.UTF_8)
+  }
+
+  def sign(config: Config): EventLog = {
+    eventLog.withSignature(
+      Utils.bytesToHex(
+        SigningHelper.signData(
+          config,
+          getEventBytes
+        )
+      )
+    )
+  }
+
+  def sign(pkString: String): EventLog = {
+    eventLog.withSignature(
+      Utils.bytesToHex(
+        SigningHelper.signData(
+          pkString,
+          getEventBytes
+        )
+      )
+    )
+  }
+
+}
+
 /**
   * Util that contains the implicits to create enriched values.
   */
@@ -130,4 +162,5 @@ object Implicits {
 
   implicit def configsToProps(configs: ConfigProperties): Map[String, AnyRef] = configs.props
 
+  implicit def enrichedEventLog(eventLog: EventLog): EnrichedEventLog = EnrichedEventLog(eventLog)
 }

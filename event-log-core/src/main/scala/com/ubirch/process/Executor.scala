@@ -1,12 +1,13 @@
 package com.ubirch.process
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.crypto.utils.Utils
 import com.ubirch.models.{ Error, EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Exceptions._
-import com.ubirch.util.{ FromString, SigningHelper, UUIDHelper }
+import com.ubirch.util.Implicits.enrichedEventLog
+import com.ubirch.util.{ FromString, UUIDHelper }
 import io.prometheus.client.Counter
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -79,21 +80,27 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 }
 
 /**
-  * Executor that transforms a ConsumerRecord into an EventLog
+  *  Executor that signs an EventLog
   *
+  * @param config Represents a config object
   * @param ec Represent the execution context for asynchronous processing.
   */
-class EventLogSigner @Inject() (signer: SigningHelper)(implicit ec: ExecutionContext)
+class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     v1.eventLog.map { el =>
-      val signedEventLog = el.copy(signature = Utils.bytesToHex(signer.signData(el.toString.getBytes())))
-      v1.copy(eventLog = Some(signedEventLog))
+      try {
+        val signedEventLog = el.sign(config)
+        v1.copy(eventLog = Some(signedEventLog))
+      } catch {
+        case _: Exception =>
+          throw SigningEventLogException("Error signing data", v1)
+      }
+
     }.getOrElse {
-      //logger.error("Error storing data: EventLog Data Not Defined")
-      throw StoringIntoEventLogException("Error signing data", v1, "EventLog Data Not Defined")
+      throw SigningEventLogException("No EventLog Found", v1)
     }
   }
 }
@@ -126,6 +133,10 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
 
 }
 
+/**
+  * Represents an Executor that add metrics to the pipeline.
+  * @param ec     Represent the execution context for asynchronous processing.
+  */
 class MetricsLogger @Inject() (implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
 
   val metricsNamespace: String = "ubirch"
