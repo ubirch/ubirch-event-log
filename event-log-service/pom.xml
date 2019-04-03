@@ -7,15 +7,26 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
+        <version>1.2.0-SNAPSHOT</version>
     </parent>
 
     <!-- basic info -->
     <artifactId>event-log-service</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event logger service for the Ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <dependencies>
 
@@ -23,7 +34,7 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.0-SNAPSHOT</version>
         </dependency>
 
     </dependencies>

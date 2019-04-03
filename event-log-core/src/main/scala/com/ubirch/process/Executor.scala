@@ -1,6 +1,8 @@
 package com.ubirch.process
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Events }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.Counter
@@ -16,7 +18,7 @@ import scala.util.{ Failure, Success }
   * Represents a process to be executed.
   * It allows for Executor composition with the operator andThen
   * @tparam T1 the input to the pipe
-  * @tparam R the output of the pipe
+  * @tparam R  the output of the pipe
   */
 trait Executor[-T1, +R] extends (T1 => R) {
   self =>
@@ -74,9 +76,35 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 }
 
 /**
+  *  Executor that signs an EventLog
+  *
+  * @param config Represents a config object
+  * @param ec Represent the execution context for asynchronous processing.
+  */
+class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
+  extends Executor[Future[PipeData], Future[PipeData]]
+  with LazyLogging {
+
+  override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
+    v1.eventLog.map { el =>
+      try {
+        val signedEventLog = el.sign(config)
+        v1.copy(eventLog = Some(signedEventLog))
+      } catch {
+        case _: Exception =>
+          throw SigningEventLogException("Error signing data", v1)
+      }
+
+    }.getOrElse {
+      throw SigningEventLogException("No EventLog Found", v1)
+    }
+  }
+}
+
+/**
   * Executor that stores an EventLog into Cassandra by Using the Events value.
   * @param events Represents the DAO for the Events type.
-  * @param ec Represent the execution context for asynchronous processing.
+  * @param ec     Represent the execution context for asynchronous processing.
   */
 class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
@@ -126,6 +154,8 @@ trait ExecutorFamily {
 
   def eventLogParser: EventLogParser
 
+  def eventLogSigner: EventLogSigner
+
   def metricsLogger: MetricsLogger
 
 }
@@ -140,6 +170,7 @@ trait ExecutorFamily {
 case class DefaultExecutorFamily @Inject() (
     filterEmpty: FilterEmpty,
     eventLogParser: EventLogParser,
+    eventLogSigner: EventLogSigner,
     eventsStore: EventsStore,
     metricsLogger: MetricsLogger
 ) extends ExecutorFamily
