@@ -8,6 +8,7 @@ import org.json4s.JValue
 
 /**
   * EventLogBase that conforms a packet for the event T.
+  *
   * @tparam T Represents the Type of the Event.
   */
 trait EventLogBase[T] {
@@ -20,14 +21,19 @@ trait EventLogBase[T] {
   val event: T
   val signature: String
 
-  def sign: EventLogBase[T]
-
   def withCategory(category: String): EventLogBase[T]
+
   def withServiceClass(serviceClass: String): EventLogBase[T]
+
   def withEventTime(eventTime: Date): EventLogBase[T]
+
   def withCurrentEventTime: EventLogBase[T]
+
   def withNewId: EventLogBase[T]
+
   def withNewId(id: UUID): EventLogBase[T]
+
+  def withSignature(signature: String): EventLogBase[T]
 
 }
 
@@ -38,18 +44,19 @@ trait JValueEventLog extends EventLogBase[JValue]
 
 /**
   * Concrete type for the EventLogBase whose type T is JValue
-  * @param id UUID that identifies the EventLog
-  * @param serviceClass Represents the name from where the log comes.
+  *
+  * @param id            UUID that identifies the EventLog
+  * @param serviceClass  Represents the name from where the log comes.
   *                     E.G: The name of the class.
-  * @param category Represents the category for the event. This is useful for
-  *                 adding layers of description to the event.
-  * @param event Represents the event that is to be recorded.
-  * @param eventTime Represents the time when the event log was created.
+  * @param category      Represents the category for the event. This is useful for
+  *                      adding layers of description to the event.
+  * @param event         Represents the event that is to be recorded.
+  * @param eventTime     Represents the time when the event log was created.
   * @param eventTimeInfo Represents the time of the event in an unfolded manner.
   *                      This is useful and needed for making cluster keys with
   *                      the time of the event possible. Helpers are provided
   *                      to support its creation from the eventTime.
-  * @param signature Represents the signature for the event log.
+  * @param signature     Represents the signature for the event log.
   */
 case class EventLog(
     id: UUID,
@@ -61,19 +68,24 @@ case class EventLog(
     signature: String
 ) extends JValueEventLog {
 
-  override def sign: EventLog = this.copy(signature = "THIS IS A SIGNATURE")
-
   override def withNewId: EventLog = this.copy(id = timeBasedUUID)
+
   override def withNewId(id: UUID): EventLog = this.copy(id = id)
+
   override def withCategory(category: String): EventLog = this.copy(category = category)
+
   override def withServiceClass(serviceClass: String): EventLog = this.copy(serviceClass = serviceClass)
+
   override def withEventTime(eventTime: Date): EventLog = {
     this.copy(eventTime = eventTime, eventTimeInfo = TimeInfo.fromDate(eventTime))
   }
+
   override def withCurrentEventTime: EventLog = {
     val currentTime = new Date
     this.copy(eventTime = currentTime, eventTimeInfo = TimeInfo.fromDate(currentTime))
   }
+
+  override def withSignature(signature: String): EventLog = this.copy(signature = signature)
 
   override def toString: String = {
     EventLogJsonSupport.ToJson[this.type](this).toString
@@ -95,7 +107,7 @@ object EventLog {
       currentTime,
       TimeInfo.fromDate(currentTime),
       ""
-    ).sign
+    )
   }
 
 }

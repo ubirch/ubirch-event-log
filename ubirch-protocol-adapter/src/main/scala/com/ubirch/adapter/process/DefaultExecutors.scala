@@ -8,9 +8,9 @@ import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import javax.inject._

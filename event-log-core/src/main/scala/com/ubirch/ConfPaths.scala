@@ -31,4 +31,8 @@ object ConfPaths {
     val PORT = "eventLog.metrics.prometheus.port"
   }
 
+  trait CryptoConfPaths {
+    val SERVICE_PK = "crypto.keys.ed25519.signingPrivateKey"
+  }
+
 }

@@ -4,11 +4,11 @@ import java.util.concurrent.{ Future => JavaFuture }
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.sdk.ConfPaths
 import com.ubirch.sdk.util.Exceptions._
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
