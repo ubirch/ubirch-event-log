@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ include "ubirch-protocol-adapter.fullname" . }}
+    labels:
+        app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
+        helm.sh/chart: {{ include "ubirch-protocol-adapter.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+    replicas: {{ .Values.ubirchProtocolAdapter.replicaCount }}
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
+            app.kubernetes.io/instance: {{ .Release.Name }}
+    template:
+        metadata:
+            labels:
+                app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
+                app.kubernetes.io/instance: {{ .Release.Name }}
+        spec:
+            containers:
+                - name: {{ .Chart.Name }}
+                  image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  ports:
+                      - containerPort: 9010
+                      - containerPort: 9020
+                      - containerPort: 4321
+                  readinessProbe:
+                      tcpSocket:
+                          port: 9010
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                  livenessProbe:
+                      tcpSocket:
+                          port: 9010
+                      initialDelaySeconds: 20
+                      periodSeconds: 60
+                  env:
+                      - name: UPA_KFC_NODES
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.bootstrapServers}}"
+                      - name: UPA_KFC_TOPIC
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.topic}}"
+                      - name: UPA_KFC_GROUP
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.groupId}}"
+                      - name: UPA_KFP_NODES
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.bootstrapServers}}"
+                      - name: UPA_KFP_TOPIC
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.topic}}"
+                      - name: UPA_KFP_ERROR_TOPIC
+                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.errorTopic}}"
+                      - name: UPA_PROM_HTTP_PORT
+                        value: "{{ .Values.ubirchProtocolAdapter.prometheus.httpPort}}"
+                  resources:
+{{- toYaml .Values.resources | nindent 22 }}
+                {{- with .Values.nodeSelector }}
+            nodeSelector:
+                {{- toYaml . | nindent 8 }}
+            {{- end }}
+            {{- with .Values.affinity }}
+            affinity:
+            {{- toYaml . | nindent 8 }}
+            {{- end }}
+            {{- with .Values.tolerations }}
+            tolerations:
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
