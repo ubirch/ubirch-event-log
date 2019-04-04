@@ -3,7 +3,7 @@ package com.ubirch.sdk
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.util.EventLogJsonSupport
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import com.ubirch.util.Implicits.enrichedInstant
 import org.joda.time.Instant
 
@@ -36,15 +36,17 @@ object SDKExample extends EventLogging with LazyLogging {
 
       current = current + 1
 
+      def customer = UUIDHelper.randomUUID.toString
+
       //One Event From Case Class
-      val log0 = log(Hello("Que más"))
+      val log0 = log(Hello("Que más")).withCustomerId(customer)
 
       val rLog0 = log0.commitAsync
 
       //From JValue
-      val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category")
+      val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category").withCustomerId(customer)
 
-      val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category")
+      val log2 = log(EventLogJsonSupport.ToJson(Hello("Como estas")).get, "My another Category").withCustomerId(customer)
 
       //Let's unite them in order first in first out
       val log1_2 = log1 +> log2
@@ -53,9 +55,9 @@ object SDKExample extends EventLogging with LazyLogging {
       val rLog1_2 = log1_2.commitAsync
 
       //Another Log From A Case Class
-      val log3 = log(Hello("Hola"), "Category")
+      val log3 = log(Hello("Hola"), "Category").withCustomerId(customer)
 
-      val log4 = log(Hello("Como estas"))
+      val log4 = log(Hello("Como estas")).withCustomerId(customer)
 
       //Let's unite them in order first in last out
       val log3_4 = log3 <+ log4
@@ -66,9 +68,9 @@ object SDKExample extends EventLogging with LazyLogging {
       //Wanna have list of events and fold it
 
       val foldedLogs = List(
-        log(Hello("Hello")),
-        log(Hello("Hallo")),
-        log(Hello("Hola"))
+        log(Hello("Hello")).withCustomerId(customer),
+        log(Hello("Hallo")).withCustomerId(customer),
+        log(Hello("Hola")).withCustomerId(customer)
       )
 
       val rFoldedLogs = foldedLogs.commitAsync
@@ -76,7 +78,7 @@ object SDKExample extends EventLogging with LazyLogging {
       //By default the service class is the class extending or mixing the EventLogging trait
       //But you can also change it
 
-      val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category")
+      val log5 = log(Hello("Buenos Dias"), "THIS_IS_MY_CUSTOMIZED_SERVICE_CLASS", "Category").withCustomerId(customer)
 
       val rLog5 = log5.commitAsync
 
@@ -90,10 +92,10 @@ object SDKExample extends EventLogging with LazyLogging {
       // With .commitStealthAsync we commit asynchronously but we don't care about the response.
       // It is like fire a forget.
 
-      val log6 = log(Hello("Hallo"))
+      val log6 = log(Hello("Hallo")).withCustomerId(customer)
       val rLog6 = log6.commitAsync
 
-      val log7 = log(Hello("Hi"))
+      val log7 = log(Hello("Hi")).withCustomerId(customer)
       val rLog7 = Future.successful(log7.commitStealthAsync)
 
       val results = Vector(rLog0, rLog5, rLog6, rLog7) ++ rLog1_2 ++ rLog3_4 ++ rFoldedLogs
