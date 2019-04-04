@@ -22,6 +22,8 @@ trait EventLogBase[T] {
   val event: T
   val signature: String
 
+  def withCustomerId(customerId: String): EventLog
+
   def withCategory(category: String): EventLogBase[T]
 
   def withServiceClass(serviceClass: String): EventLogBase[T]
@@ -33,6 +35,8 @@ trait EventLogBase[T] {
   def withNewId: EventLogBase[T]
 
   def withNewId(id: UUID): EventLogBase[T]
+
+  def withNewId(id: String): EventLogBase[T]
 
   def withSignature(signature: String): EventLogBase[T]
 
@@ -66,7 +70,9 @@ case class EventLog(id: String, customerId: String, serviceClass: String, catego
 
   override def withNewId(id: UUID): EventLog = this.copy(id = id.toString)
 
-  def withCustomerId(customerId: String): EventLog = this.copy(customerId = customerId)
+  override def withNewId(id: String): EventLog = this.copy(id = id)
+
+  override def withCustomerId(customerId: String): EventLog = this.copy(customerId = customerId)
 
   override def withCategory(category: String): EventLog = this.copy(category = category)
 
@@ -92,6 +98,11 @@ case class EventLog(id: String, customerId: String, serviceClass: String, catego
   * Companion object that holds useful for things for the management of the EventLog
   */
 object EventLog {
+
+  def apply(event: JValue): EventLog = {
+    val currentTime = new Date
+    EventLog("", "", "", "", event, currentTime, TimeInfo.fromDate(currentTime), "")
+  }
 
   def apply(serviceClass: String, category: String, event: JValue): EventLog = {
     val currentTime = new Date

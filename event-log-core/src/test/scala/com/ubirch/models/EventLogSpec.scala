@@ -5,12 +5,23 @@ import java.util.Date
 
 import com.ubirch.util.{ EventLogJsonSupport, JsonHelper, UUIDHelper }
 import com.ubirch.{ Entities, TestBase }
-import org.json4s.MappingException
+import org.json4s.jackson.JsonMethods.parse
+import org.json4s.{ JValue, MappingException }
 import org.scalatest.mockito.MockitoSugar
 
 class EventLogSpec extends TestBase with MockitoSugar {
 
   "Event Log Model" must {
+
+    "generate new id as string" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+
+      val eventLog = EventLog(data).withNewId("this is my unique id")
+
+      assert(eventLog.id == "this is my unique id")
+
+    }
 
     "generate new uuid" in {
 
@@ -76,16 +87,113 @@ class EventLogSpec extends TestBase with MockitoSugar {
     }
 
     "get same fields" in {
-      val event = """{"id":"61002dd0-23e7-11e9-8be0-61a26140e9b5","service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
+      val event = """{"id":"61002dd0-23e7-11e9-8be0-61a26140e9b5", "customer_id": "61002dd0-23e7-11e9-8be0-61a26140e9b5", "service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
 
       val fromJson = EventLogJsonSupport.FromString[EventLog](event).get
 
-      assert(fromJson.id.toString == "61002dd0-23e7-11e9-8be0-61a26140e9b5")
-      assert(fromJson.serviceClass.toString == "com.ubirch.sdk.EventLogging")
-      assert(fromJson.category.toString == "My Category")
+      assert(fromJson.id == "61002dd0-23e7-11e9-8be0-61a26140e9b5")
+      assert(fromJson.customerId == "61002dd0-23e7-11e9-8be0-61a26140e9b5")
+      assert(fromJson.serviceClass == "com.ubirch.sdk.EventLogging")
+      assert(fromJson.category == "My Category")
       assert(fromJson.event == EventLogJsonSupport.getJValue("""{"name":"Hola"}"""))
       assert(fromJson.eventTime == JsonHelper.formats.dateFormat.parse("2019-01-29T17:00:28.333Z").getOrElse(new Date))
       assert(fromJson.signature == "THIS IS A SIGNATURE")
+
+    }
+
+    "check constructors (1)" in {
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+
+      val el = EventLog(data)
+
+      assert(el.id.isEmpty)
+      assert(el.customerId.isEmpty)
+      assert(el.serviceClass.isEmpty)
+      assert(el.category.isEmpty)
+      assert(el.event == data)
+      assert(el.eventTime != null)
+      assert(el.eventTimeInfo != null)
+      assert(el.signature.isEmpty)
+
+    }
+
+    "check constructors (2)" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+      val time = new Date()
+
+      val id = UUIDHelper.timeBasedUUID
+
+      val el = EventLog(
+        id,
+        "my customer id",
+        "my service class",
+        "my category",
+        data,
+        time,
+        TimeInfo.fromDate(time),
+        "my signature"
+      )
+
+      assert(el.id == id.toString)
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime == time)
+      assert(el.eventTimeInfo == TimeInfo.fromDate(time))
+      assert(el.signature == "my signature")
+
+    }
+
+    "check constructors (3)" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+      val time = new Date()
+
+      val id = UUIDHelper.timeBasedUUID.toString
+
+      val el = EventLog(
+        id,
+        "my customer id",
+        "my service class",
+        "my category",
+        data,
+        time,
+        TimeInfo.fromDate(time),
+        "my signature"
+      )
+
+      assert(el.id == id)
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime == time)
+      assert(el.eventTimeInfo == TimeInfo.fromDate(time))
+      assert(el.signature == "my signature")
+
+    }
+
+    "check constructors (4)" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+
+      val el = EventLog(
+        "my customer id",
+        "my service class",
+        "my category",
+        data
+      )
+
+      assert(el.id.nonEmpty)
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime != null)
+      assert(el.eventTimeInfo == TimeInfo.fromDate(el.eventTime))
+      assert(el.signature.isEmpty)
 
     }
 

@@ -62,7 +62,7 @@ class CreateProducerRecord(config: Config)
 
       val json = EventLogJsonSupport.ToJson[EventLog](v1)
 
-      (ProducerRecordHelper.toRecord(topic, v1.id.toString, json.toString, Map.empty), v1)
+      (ProducerRecordHelper.toRecord(topic, v1.id, json.toString, Map.empty), v1)
 
     } catch {
 
