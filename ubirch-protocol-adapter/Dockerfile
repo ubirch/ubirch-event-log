@@ -11,7 +11,7 @@ LABEL "com.ubirch.build"="${BUILD}"
 
 EXPOSE 9010
 EXPOSE 9020
-EXPOSE ${EVTL_PROM_HTTP_PORT}
+EXPOSE 4321
 
 ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true"
 
