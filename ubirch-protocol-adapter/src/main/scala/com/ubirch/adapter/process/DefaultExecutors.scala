@@ -28,13 +28,15 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
+  val CUSTOMER_ID_FIELD = "customerId"
+
   import org.json4s.jackson.JsonMethods._
   import EventLogJsonSupport.formats
 
   override def apply(v1: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
       val payload = fromJsonNode(v1.value().ubirchPacket.getPayload)
-      val jValueCustomerId = v1.value().context \\ "customerId"
+      val jValueCustomerId = v1.value().context \\ CUSTOMER_ID_FIELD
       val customerId = jValueCustomerId
         .extractOpt[String]
         .getOrElse {
