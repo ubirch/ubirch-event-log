@@ -29,13 +29,25 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   with LazyLogging {
 
   import org.json4s.jackson.JsonMethods._
+  import EventLogJsonSupport.formats
 
   override def apply(v1: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
       val payload = fromJsonNode(v1.value().ubirchPacket.getPayload)
-      val eventLog = EventLog("EventLogFromConsumerRecord", "UPA", payload)
+      val jValueCustomerId = v1.value().context \\ "customerId"
+      val customerId = jValueCustomerId
+        .extractOpt[String]
+        .getOrElse {
+          throw EventLogFromConsumerRecordException(
+            "No CustomerId found",
+            MessageEnvelopePipeData(v1, None, None, None)
+          )
+        }
+      val eventLog = EventLog("EventLogFromConsumerRecord", "UPA", payload).withCustomerId(customerId)
       MessageEnvelopePipeData(v1, Some(eventLog), None, None)
     } catch {
+      case e: EventLogFromConsumerRecordException =>
+        throw e
       case _: Exception =>
         throw EventLogFromConsumerRecordException("Error Parsing Into Event Log", MessageEnvelopePipeData(v1, None, None, None))
     }

@@ -15,15 +15,7 @@ object Entities extends UUIDHelper {
 
     def eventExample(id: UUID = randomUUID): EventLog = {
       val date = new Date()
-      EventLog(
-        id,
-        "this is a service class",
-        "this is a category",
-        data,
-        date,
-        TimeInfo.fromDate(date),
-        "this is a signature"
-      )
+      EventLog(id, "this is customer id", "this is a service class", "this is a category", data, date, TimeInfo.fromDate(date), "this is a signature")
     }
 
   }

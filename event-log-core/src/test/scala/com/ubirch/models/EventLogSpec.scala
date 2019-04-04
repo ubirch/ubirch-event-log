@@ -17,7 +17,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
       val uuid = UUIDHelper.timeBasedUUID
       val eventLog = Entities.Events.eventExample()
 
-      assert(uuid == eventLog.withNewId(uuid).id)
+      assert(uuid.toString == eventLog.withNewId(uuid).id)
 
       assert(eventLog.id != eventLog.withNewId.id)
 

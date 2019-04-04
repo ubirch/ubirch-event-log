@@ -21,6 +21,7 @@ object CustomSerializers {
   */
 object EventSerializer {
   val ID = "id"
+  val CUSTOMER_ID = "customer_id"
   val SERVICE_CLASS = "service_class"
   val CATEGORY = "category"
   val EVENT = "event"
@@ -42,6 +43,7 @@ class EventSerializer extends CustomSerializer[EventLog](_ =>
         val _jsonObj = jsonObj.underscoreKeys
 
         val id: UUID = (_jsonObj \ ID).extract[UUID]
+        val customerId: String = (_jsonObj \ CUSTOMER_ID).extractOpt[String].getOrElse("")
         val serviceClass: String = (_jsonObj \ SERVICE_CLASS).extract[String]
         val category: String = (_jsonObj \ CATEGORY).extract[String]
         val event: JValue = _jsonObj \ EVENT
@@ -49,7 +51,7 @@ class EventSerializer extends CustomSerializer[EventLog](_ =>
         val eventTimeInfo: TimeInfo = TimeInfo.fromDate(eventTime)
         val signature: String = (_jsonObj \ SIGNATURE).extract[String]
 
-        EventLog(id, serviceClass, category, event, eventTime, eventTimeInfo, signature)
+        EventLog(id, customerId, serviceClass, category, event, eventTime, eventTimeInfo, signature)
       } catch {
         case NonFatal(e) =>
           val t = "For Dates, Use this format: " + formats.dateFormat.format(new Date)
@@ -62,7 +64,8 @@ class EventSerializer extends CustomSerializer[EventLog](_ =>
     case eventLog: EventLog =>
       import EventSerializer._
 
-      (ID -> eventLog.id.toString) ~
+      (ID -> eventLog.id) ~
+        (CUSTOMER_ID -> eventLog.customerId) ~
         (SERVICE_CLASS -> eventLog.serviceClass) ~
         (CATEGORY -> eventLog.category) ~
         (EVENT -> eventLog.event) ~

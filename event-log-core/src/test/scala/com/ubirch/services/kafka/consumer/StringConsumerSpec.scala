@@ -624,7 +624,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "spawning 2 consumers to test rebalancing of 1 partition" in {
+    "spawn 2 consumers to test rebalancing of 1 partition" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -650,7 +650,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "spawning 2 consumers to test rebalancing of 10 partitions" in {
+    "spawn 2 consumers to test rebalancing of 10 partitions" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -676,7 +676,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "spawning 3 consumers to test rebalancing of 10 partitions" in {
+    "spawn 3 consumers to test rebalancing of 10 partitions" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 

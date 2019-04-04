@@ -23,7 +23,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.language.postfixOps
 
 class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], eventLog: Option[EventLog]) extends ProcessResult[String, V] {
@@ -83,7 +83,7 @@ class DefaultConsumerRecordsManager @Inject() (
       counter.counter.labels("StoringIntoEventLogException").inc()
       reporter.report(
         Error(
-          id = e.pipeData.eventLog.map(_.id).getOrElse(uuid),
+          id = UUID.fromString(e.pipeData.eventLog.map(_.id).getOrElse(uuid.toString)),
           message = e.getMessage,
           exceptionName = e.name,
           value = e.pipeData.eventLog.toString

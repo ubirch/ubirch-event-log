@@ -1,14 +1,17 @@
 package com.ubirch
 
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
-import com.typesafe.config.Config
+import com.google.inject.binder.ScopedBindingBuilder
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.Events
+import com.ubirch.services.ServiceBinder
+import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
 import com.ubirch.util.{ InjectorHelper, PortGiver }
 import io.prometheus.client.CollectorRegistry
@@ -21,20 +24,29 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import scala.concurrent.ExecutionContext
 import scala.language.{ implicitConversions, postfixOps }
 
+class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new ServiceBinder {
+  override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+    override def conf: Config = super.conf
+      .withValue(
+        "eventLog.kafkaConsumer.bootstrapServers",
+        ConfigValueFactory.fromAnyRef(bootstrapServers)
+      )
+      .withValue(
+        "eventLog.kafkaProducer.bootstrapServers",
+        ConfigValueFactory.fromAnyRef(bootstrapServers)
+      )
+  })
+}))
+
 class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
-  "EventLogSpec" must {
+  "EventLog components" must {
 
     "consume message and store it in cassandra" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val configs = Configs(
-        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
-      )
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       withRunningKafka {
 
@@ -48,8 +60,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
-
-        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -89,12 +99,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val configs = Configs(
-        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
-      )
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       withRunningKafka {
 
@@ -111,7 +116,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
-        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -138,12 +142,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val configs = Configs(
-        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
-      )
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       withRunningKafka {
 
@@ -157,7 +156,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
-        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -212,12 +210,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val configs = Configs(
-        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
-      )
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       withRunningKafka {
 
@@ -236,7 +229,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
-        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
@@ -266,10 +258,12 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "try to commit after TimeoutException" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         enableAutoCommit = false,
         autoOffsetReset = OffsetResetStrategy.EARLIEST
@@ -317,8 +311,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        attempts.await()
-        assert(attempts.getCount == 0)
+        attempts.await(7000, TimeUnit.MILLISECONDS)
+        assert(0 == attempts.getCount)
 
       }
 
@@ -326,10 +320,12 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "try to commit after TimeoutException and another Exception" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         enableAutoCommit = false,
         autoOffsetReset = OffsetResetStrategy.EARLIEST
@@ -383,7 +379,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        attempts.await()
+        attempts.await(5000, TimeUnit.MILLISECONDS)
         assert(attempts.getCount == 0)
 
       }
@@ -392,10 +388,12 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "try to commit after TimeoutException and OK after" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
 
       val configs = Configs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
+        bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
         groupId = "My_Group_ID",
         enableAutoCommit = false,
         autoOffsetReset = OffsetResetStrategy.EARLIEST
@@ -453,8 +451,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        committed.await()
-        failed.await()
+        committed.await(5000, TimeUnit.MILLISECONDS)
+        failed.await(5000, TimeUnit.MILLISECONDS)
         assert(committedN == 1)
         assert(committed.getCount == 0)
         assert(failed.getCount == 0)
@@ -480,7 +478,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         "drop table if exists events;",
         """
           |create table if not exists events (
-          |    id uuid,
+          |    id text,
+          |    customer_id text,
           |    service_class text,
           |    category text,
           |    signature text,

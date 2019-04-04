@@ -19,7 +19,17 @@ import org.json4s.JsonAST.{ JInt, JObject, JString }
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-    override def conf: Config = super.conf.withValue("eventLog.kafkaProducer.bootstrapServers", ConfigValueFactory.fromAnyRef(bootstrapServers))
+    override def conf: Config = {
+      super.conf
+        .withValue(
+          "eventLog.kafkaConsumer.bootstrapServers",
+          ConfigValueFactory.fromAnyRef(bootstrapServers)
+        )
+        .withValue(
+          "eventLog.kafkaProducer.bootstrapServers",
+          ConfigValueFactory.fromAnyRef(bootstrapServers)
+        )
+    }
   })
 }))
 
@@ -36,13 +46,6 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + config.kafkaPort
 
-      val configs = ConsumerConfigs(
-        bootstrapServers = "localhost:" + config.kafkaPort,
-        groupId = "My_Group_ID",
-        autoOffsetReset =
-          OffsetResetStrategy.EARLIEST
-      )
-
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
       withRunningKafka {
@@ -51,7 +54,7 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val eventLogTopic = "com.ubirch.eventlog"
 
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
-        val ctxt = JObject("greeting" -> JString("Hola"), "farewell" -> JString("Adios"))
+        val ctxt = JObject("customerId" -> JString("Hola"))
         val entity1 = MessageEnvelope(pm, ctxt)
 
         publishToKafka(messageEnvelopeTopic, entity1)
@@ -59,7 +62,6 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
-        consumer.setProps(configs)
 
         consumer.startPolling()
         //Consumer
