@@ -1,5 +1,7 @@
-drop  KEYSPACE event_log;
-CREATE KEYSPACE event_log WITH replication = {'class': 'SimpleStrategy','replication_factor': '2'};
+/* Cassandra migration for keyspace event_log.
+   Version 2 - 2019-04-03T19:15:07.080862+00:00
+
+   Recreating table with new constrains */
 
 drop table if exists events;
 

@@ -45,6 +45,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
         //logger.debug("Reporting error [{}]", error.toString)
 
         val payload = EventLogJsonSupport.ToJson[Error](error).get
+        //TODO: WHAT ID SHOULD WE PUT HERE???
         val eventLog = EventLog(getClass.getName, topic, payload)
 
         val record = ProducerRecordHelper.toRecord(

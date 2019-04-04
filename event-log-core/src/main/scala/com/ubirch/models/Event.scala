@@ -13,7 +13,8 @@ import org.json4s.JValue
   */
 trait EventLogBase[T] {
 
-  val id: UUID
+  val id: String
+  val customerId: String
   val serviceClass: String
   val category: String
   val eventTime: Date
@@ -45,7 +46,8 @@ trait JValueEventLog extends EventLogBase[JValue]
 /**
   * Concrete type for the EventLogBase whose type T is JValue
   *
-  * @param id            UUID that identifies the EventLog
+  * @param id            String that identifies the EventLog. It can be a hash or a UUID or anything unique
+  * @param customerId    Represents an id for a customer id.
   * @param serviceClass  Represents the name from where the log comes.
   *                     E.G: The name of the class.
   * @param category      Represents the category for the event. This is useful for
@@ -58,19 +60,13 @@ trait JValueEventLog extends EventLogBase[JValue]
   *                      to support its creation from the eventTime.
   * @param signature     Represents the signature for the event log.
   */
-case class EventLog(
-    id: UUID,
-    serviceClass: String,
-    category: String,
-    event: JValue,
-    eventTime: Date,
-    eventTimeInfo: TimeInfo,
-    signature: String
-) extends JValueEventLog {
+case class EventLog(id: String, customerId: String, serviceClass: String, category: String, event: JValue, eventTime: Date, eventTimeInfo: TimeInfo, signature: String) extends JValueEventLog {
 
-  override def withNewId: EventLog = this.copy(id = timeBasedUUID)
+  override def withNewId: EventLog = this.copy(id = timeBasedUUID.toString)
 
-  override def withNewId(id: UUID): EventLog = this.copy(id = id)
+  override def withNewId(id: UUID): EventLog = this.copy(id = id.toString)
+
+  def withCustomerId(customerId: String): EventLog = this.copy(customerId = customerId)
 
   override def withCategory(category: String): EventLog = this.copy(category = category)
 
@@ -99,15 +95,16 @@ object EventLog {
 
   def apply(serviceClass: String, category: String, event: JValue): EventLog = {
     val currentTime = new Date
-    EventLog(
-      timeBasedUUID,
-      serviceClass,
-      category,
-      event,
-      currentTime,
-      TimeInfo.fromDate(currentTime),
-      ""
-    )
+    EventLog(timeBasedUUID, "", serviceClass, category, event, currentTime, TimeInfo.fromDate(currentTime), "")
+  }
+
+  def apply(customerId: String, serviceClass: String, category: String, event: JValue): EventLog = {
+    val currentTime = new Date
+    EventLog(timeBasedUUID, customerId, serviceClass, category, event, currentTime, TimeInfo.fromDate(currentTime), "")
+  }
+
+  def apply(id: UUID, customerId: String, serviceClass: String, category: String, event: JValue, eventTime: Date, eventTimeInfo: TimeInfo, signature: String): EventLog = {
+    EventLog(id.toString, customerId, serviceClass, category, event, eventTime, eventTimeInfo, signature)
   }
 
 }

@@ -46,6 +46,6 @@ The principal elements of the producer runner environment are:
       <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-kafka</artifactId>
-            <version>1.2.0-SNAPSHOT</version>
+            <version>1.2.0</version>
        </dependency>
 ```

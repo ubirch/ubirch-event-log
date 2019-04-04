@@ -1,5 +1,6 @@
 package com.ubirch.process
 
+import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -114,8 +115,11 @@ class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
     v1.eventLog.map { el =>
 
       events.insert(el).map(_ => v1).recover {
+        case e: InvalidQueryException =>
+          logger.error("Error storing data: " + e)
+          throw e
         case e: Exception =>
-          //logger.error("Error storing data: " + e.getMessage)
+          logger.error("Error storing data: " + e)
           throw StoringIntoEventLogException("Error storing data", v1, e.getMessage)
       }
 
