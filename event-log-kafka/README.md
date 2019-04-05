@@ -16,7 +16,7 @@ The consumer doesn't care about how it is processed, it can be with Futures, Act
 
 3. **ConsumerRunner:** Represents a Consumer Runner for a Kafka Consumer. 
  It supports back-pressure using the pause/unpause. The pause duration is amortized.
- It supports plugging rebalance strategies.
+ It supports plugging rebalance listeners.
  It supports autocommit and not autocommit.
  It supports commit attempts.
  It supports to "floors" for exception management. This is allows to escalate exceptions.

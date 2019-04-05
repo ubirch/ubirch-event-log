@@ -24,7 +24,7 @@ import scala.util.{ Failure, Success }
 /**
   * Represents a Consumer Runner for a Kafka Consumer.
   * It supports back-pressure using the pause/unpause. The pause duration is amortized.
-  * It supports plugging rebalance strategies.
+  * It supports plugging rebalance listeners.
   * It supports autocommit and not autocommit.
   * It supports commit attempts.
   * It supports to "floors" for exception management. This is allows to escalate exceptions.
@@ -287,13 +287,13 @@ abstract class ConsumerRunner[K, V](name: String)
       consumerRebalanceListenerBuilder match {
         case Some(crl) if !getUseSelfAsRebalanceListener =>
           val rebalancer = crl(consumer)
-          logger.debug("Subscribing to [{}] with external rebalance strategy [{}]", topics.mkString(" "), rebalancer.getClass.getCanonicalName)
+          logger.debug("Subscribing to [{}] with external rebalance listener [{}]", topics.mkString(" "), rebalancer.getClass.getCanonicalName)
           consumer.subscribe(topicsAsJava, rebalancer)
         case _ if getUseSelfAsRebalanceListener =>
-          logger.debug("Subscribing to [{}] with self rebalance strategy", topics.mkString(" "))
+          logger.debug("Subscribing to [{}] with self rebalance listener", topics.mkString(" "))
           consumer.subscribe(topicsAsJava, this)
         case _ =>
-          logger.debug("Subscribing to [{}] with no rebalance strategy", topics.mkString(" "))
+          logger.debug("Subscribing to [{}] with no rebalance listener", topics.mkString(" "))
           consumer.subscribe(topicsAsJava)
       }
 
