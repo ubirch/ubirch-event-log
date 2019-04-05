@@ -24,6 +24,8 @@ trait EventLogBase[T] {
 
   def withCustomerId(customerId: String): EventLog
 
+  def withCustomerId(customerId: UUID): EventLog
+
   def withCategory(category: String): EventLogBase[T]
 
   def withServiceClass(serviceClass: String): EventLogBase[T]
@@ -73,6 +75,8 @@ case class EventLog(id: String, customerId: String, serviceClass: String, catego
   override def withNewId(id: String): EventLog = this.copy(id = id)
 
   override def withCustomerId(customerId: String): EventLog = this.copy(customerId = customerId)
+
+  override def withCustomerId(customerId: UUID): EventLog = this.copy(customerId = customerId.toString)
 
   override def withCategory(category: String): EventLog = this.copy(category = category)
 

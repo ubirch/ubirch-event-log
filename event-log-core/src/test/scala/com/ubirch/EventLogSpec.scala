@@ -13,7 +13,7 @@ import com.ubirch.models.Events
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
-import com.ubirch.util.{ InjectorHelper, PortGiver }
+import com.ubirch.util.{ InjectorHelper, PortGiver, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
@@ -53,7 +53,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val config = InjectorHelper.get[Config]
-        val entity1 = Entities.Events.eventExample().sign(config)
+        val entity1 = Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)
+
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -77,7 +80,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         assert(res1.headOption == Option(entity1))
 
         //Next Message
-        val entity2 = Entities.Events.eventExample().sign(config)
+        val entity2 = Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)
+
         val entityAsString2 = entity2.toString
 
         publishStringMessageToKafka(topic, entityAsString2)
@@ -106,7 +112,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val config = InjectorHelper.get[Config]
-        val entities = (0 to 500).map(_ => Entities.Events.eventExample().sign(config)).toList
+        val entities = (0 to 500).map(_ => Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)).toList
 
         val entitiesAsString = entities.map(_.toString)
 
@@ -149,7 +157,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val config = InjectorHelper.get[Config]
-        val entity1 = Entities.Events.eventExample().sign(config)
+        val entity1 = Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)
+
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -218,7 +229,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val config = InjectorHelper.get[Config]
 
-        val entities = (0 to 10).map(_ => Entities.Events.eventExample().sign(config)).toList
+        val entities = (0 to 10).map(_ =>
+          Entities.Events.eventExample()
+            .sign(config)
+            .withCustomerId(UUIDHelper.randomUUID)).toList
 
         val entitiesAsStringWithErrors = entities.map(_.toString) ++ //Malformed data
           List("{}")
@@ -273,7 +287,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entity1 = Entities.Events.eventExample()
+        val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -335,7 +349,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entity1 = Entities.Events.eventExample()
+        val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
@@ -403,7 +417,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val topic = "com.ubirch.eventlog"
 
-        val entity1 = Entities.Events.eventExample()
+        val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
         val entityAsString1 = entity1.toString
 
         publishStringMessageToKafka(topic, entityAsString1)
