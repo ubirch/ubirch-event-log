@@ -54,7 +54,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val eventLogTopic = "com.ubirch.eventlog"
 
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
-        val ctxt = JObject("customerId" -> JString("Hola"))
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
         val entity1 = MessageEnvelope(pm, ctxt)
 
         publishToKafka(messageEnvelopeTopic, entity1)
@@ -71,6 +72,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
         val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
         assert(eventLog.event == JInt(3))
+        assert(eventLog.customerId == customerId)
+
 
       }
 
