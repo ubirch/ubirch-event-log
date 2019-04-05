@@ -3,8 +3,8 @@ package com.ubirch.sdk
 import java.util.concurrent.CountDownLatch
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import com.ubirch.util.Implicits.enrichedInstant
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import org.joda.time.Instant
 
 import scala.concurrent.Future

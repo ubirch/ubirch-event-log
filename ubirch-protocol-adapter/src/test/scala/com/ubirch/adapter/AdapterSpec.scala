@@ -8,14 +8,12 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.adapter.services.AdapterServiceBinder
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.kafka.consumer.{ Configs => ConsumerConfigs }
 import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
-import org.json4s.JsonAST.{ JInt, JObject, JString }
+import org.json4s.JsonAST._
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -40,7 +38,7 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   "Adapter Spec" must {
 
-    "consume message and store it in cassandra" in {
+    "consume message envelope and publish event log" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -74,6 +72,140 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         assert(eventLog.event == JInt(3))
         assert(eventLog.customerId == customerId)
 
+      }
+
+    }
+
+    "consume message envelope with empty customer id and publish it to error topic" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val errorTopic = "com.ubirch.eventlog.error"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+
+        val ctxt = JObject("customerId" -> JString(""))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(errorTopic)
+        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
+        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+
+        assert(error.message == "No CustomerId found")
+
+        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+
+        assert(error.value == entity1.toString)
+
+        assert(error.serviceName == "event-log-service")
+
+      }
+
+    }
+
+    "consume message envelope with no customer id and publish it to error topic" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val errorTopic = "com.ubirch.eventlog.error"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+
+        val ctxt = JObject("otherValue" -> JString("what!"))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(errorTopic)
+        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
+        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+
+        assert(error.message == "No CustomerId found")
+
+        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+
+        assert(error.value == entity1.toString)
+
+        assert(error.serviceName == "event-log-service")
+
+      }
+
+    }
+
+    "consume message envelope with no customer id and publish it to error topic 2" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val errorTopic = "com.ubirch.eventlog.error"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+
+        val ctxt = JObject()
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(errorTopic)
+        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
+        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+
+        assert(error.message == "No CustomerId found")
+
+        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+
+        assert(error.value == entity1.toString)
+
+        assert(error.serviceName == "event-log-service")
 
       }
 
