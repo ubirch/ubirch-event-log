@@ -23,7 +23,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
 class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], eventLog: Option[EventLog]) extends ProcessResult[String, V] {

@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
 import javax.inject._
@@ -45,8 +46,10 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
         //logger.debug("Reporting error [{}]", error.toString)
 
         val payload = EventLogJsonSupport.ToJson[Error](error).get
-        //TODO: WHAT ID SHOULD WE PUT HERE???
+
         val eventLog = EventLog(getClass.getName, topic, payload)
+          .withIdAsCustomerId
+          .sign(config)
 
         val record = ProducerRecordHelper.toRecord(
           topic,
