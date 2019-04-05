@@ -11,7 +11,7 @@ An SDK is also provided for easier creation of log from the services.
 
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/generalParts1.1.0.png "Event Log Components")
+![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/generalParts1.2.0.png "Event Log Components")
 
 
 ## Helper Libs
