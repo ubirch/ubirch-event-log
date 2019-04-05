@@ -11,14 +11,14 @@ An SDK is also provided for easier creation of log from the services.
 
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.1.x/.images/generalParts1.1.0.png "Event Log Components")
+![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/generalParts1.1.0.png "Event Log Components")
 
 
 ## Helper Libs
 
-* [Event Log Kafka](https://github.com/ubirch/ubirch-event-log/tree/1.1.x/event-log-kafka)
+* [Event Log Kafka](https://github.com/ubirch/ubirch-event-log/tree/1.2.x/event-log-kafka)
 
-* [Event Log Util](https://github.com/ubirch/ubirch-event-log/tree/1.1.x/event-log-util)
+* [Event Log Util](https://github.com/ubirch/ubirch-event-log/tree/1.2.x/event-log-util)
 
 
 ## Install
