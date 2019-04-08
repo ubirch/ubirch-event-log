@@ -1,6 +1,7 @@
 package com.ubirch.adapter
 
 import java.util.UUID
+import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
@@ -38,7 +39,45 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   "Adapter Spec" must {
 
-    "consume message envelope and publish event log" in {
+    "consume message envelope and publish event log with hint = 0" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
+        assert(eventLog.event == JInt(3))
+        assert(eventLog.customerId == customerId)
+
+      }
+
+    }
+
+    "consume message envelope and publish event log with hint != 0" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -67,10 +106,7 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         Thread.sleep(5000)
 
-        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        assert(eventLog.event == JInt(3))
-        assert(eventLog.customerId == customerId)
+        assertThrows[TimeoutException](consumeFirstStringMessageFrom(eventLogTopic))
 
       }
 

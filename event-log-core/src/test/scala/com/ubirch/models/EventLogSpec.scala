@@ -78,15 +78,15 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(eventLog.toString == eventLogAsString)
     }
 
-    "convert string to type" in {
+    "fail convert string to type when date format is wrong" in {
       val event = """{"id":"243f7063-6126-470e-9947-be49a62351c0","service_class":"this is a service class","category":"this is a category","event":{"numbers":[1,2,3,4]},"event_time":"Mon Jan 28 22:07:52 CET 2019","signature":"this is a signature"}"""
 
       val fromJson = EventLogJsonSupport.FromString[EventLog](event)
 
-      assertThrows[MappingException](event == fromJson.get.toString)
+      assertThrows[MappingException](fromJson.get.toString)
     }
 
-    "get same fields" in {
+    "get same fields with a uuid id" in {
       val event = """{"id":"61002dd0-23e7-11e9-8be0-61a26140e9b5", "customer_id": "61002dd0-23e7-11e9-8be0-61a26140e9b5", "service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
 
       val fromJson = EventLogJsonSupport.FromString[EventLog](event).get
@@ -98,6 +98,36 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(fromJson.event == EventLogJsonSupport.getJValue("""{"name":"Hola"}"""))
       assert(fromJson.eventTime == JsonHelper.formats.dateFormat.parse("2019-01-29T17:00:28.333Z").getOrElse(new Date))
       assert(fromJson.signature == "THIS IS A SIGNATURE")
+
+    }
+
+    "get same fields with a non-uuid id" in {
+      val event = """{"id":"this is my id", "customer_id": "61002dd0-23e7-11e9-8be0-61a26140e9b5", "service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
+
+      val fromJson = EventLogJsonSupport.FromString[EventLog](event).get
+
+      assert(fromJson.id == "this is my id")
+      assert(fromJson.customerId == "61002dd0-23e7-11e9-8be0-61a26140e9b5")
+      assert(fromJson.serviceClass == "com.ubirch.sdk.EventLogging")
+      assert(fromJson.category == "My Category")
+      assert(fromJson.event == EventLogJsonSupport.getJValue("""{"name":"Hola"}"""))
+      assert(fromJson.eventTime == JsonHelper.formats.dateFormat.parse("2019-01-29T17:00:28.333Z").getOrElse(new Date))
+      assert(fromJson.signature == "THIS IS A SIGNATURE")
+
+    }
+
+    "have proper types" in {
+      val event = """{"id":"this is my id", "customer_id": "61002dd0-23e7-11e9-8be0-61a26140e9b5", "service_class":"com.ubirch.sdk.EventLogging","category":"My Category","event":{"name":"Hola"},"event_time":"2019-01-29T17:00:28.333Z","signature":"THIS IS A SIGNATURE"}"""
+
+      val fromJson = EventLogJsonSupport.FromString[EventLog](event).get
+
+      assert(fromJson.id.isInstanceOf[String])
+      assert(fromJson.id.isInstanceOf[String])
+      assert(fromJson.serviceClass.isInstanceOf[String])
+      assert(fromJson.category.isInstanceOf[String])
+      assert(fromJson.event.isInstanceOf[JValue])
+      assert(fromJson.eventTime.isInstanceOf[Date])
+      assert(fromJson.signature.isInstanceOf[String])
 
     }
 
@@ -194,6 +224,32 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(el.eventTime != null)
       assert(el.eventTimeInfo == TimeInfo.fromDate(el.eventTime))
       assert(el.signature.isEmpty)
+
+    }
+
+    "check withXXXX helpers" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+
+      val date = new Date()
+
+      val el = EventLog(data)
+        .withNewId("my id")
+        .withCustomerId("my customer id")
+        .withCategory("my customer id")
+        .withServiceClass("my service class")
+        .withCategory("my category")
+        .withEventTime(date)
+        .withSignature("my signature")
+
+      assert(el.id == "my id")
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime == date)
+      assert(el.eventTimeInfo == TimeInfo.fromDate(el.eventTime))
+      assert(el.signature == "my signature")
 
     }
 
