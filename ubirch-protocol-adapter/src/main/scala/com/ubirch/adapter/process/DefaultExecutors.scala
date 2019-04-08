@@ -1,5 +1,6 @@
 package com.ubirch.adapter.process
 
+import java.util.UUID
 import java.util.concurrent.{ Future => JavaFuture }
 
 import com.typesafe.config.Config
@@ -22,6 +23,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 /**
   * Represents an executor that converts a consumer record of type String, MessageEnvelope into
   * an EventLog and wraps these values into the pipeline data.
+  *
   * @param ec Represents an execution context
   */
 class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
@@ -44,7 +46,17 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
             MessageEnvelopePipeData(v1, None, None, None)
           )
         }
-      val eventLog = EventLog("EventLogFromConsumerRecord", "UPA", payload).withCustomerId(customerId)
+
+      val eventLog = v1.value().ubirchPacket.getHint match {
+        case 0 =>
+          EventLog("EventLogFromConsumerRecord", "UPA", payload)
+            .withCustomerId(customerId)
+            .withNewId(payload.extractOpt[String].getOrElse(UUID.randomUUID().toString))
+        case _ =>
+          EventLog("EventLogFromConsumerRecord", "UPA", payload)
+            .withCustomerId(customerId)
+      }
+
       MessageEnvelopePipeData(v1, Some(eventLog), None, None)
     } catch {
       case e: EventLogFromConsumerRecordException =>
@@ -68,8 +80,9 @@ object EventLogFromConsumerRecord {
 
 /**
   * Represents an executor that creates the producer record object that will be eventually published to Kafka
+  *
   * @param config Represents a config object to read config values from
-  * @param ec Represents an execution context
+  * @param ec     Represents an execution context
   */
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
@@ -103,9 +116,10 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 
 /**
   * Represents an executor that commits a producer record
+  *
   * @param stringProducer Represents a producer.
-  * @param config Represents a config object to read config values from
-  * @param ec Represents an execution context
+  * @param config         Represents a config object to read config values from
+  * @param ec             Represents an execution context
   */
 class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]] {
 
@@ -144,7 +158,9 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
 trait ExecutorFamily {
 
   def eventLogFromConsumerRecord: EventLogFromConsumerRecord
+
   def createProducerRecord: CreateProducerRecord
+
   def commit: Commit
 
 }
