@@ -1,6 +1,6 @@
 package com.ubirch.models
 
-import java.util.{ Date, UUID }
+import java.util.Date
 
 import com.ubirch.util.EventLogJsonSupport._
 import org.json4s.JsonDSL._

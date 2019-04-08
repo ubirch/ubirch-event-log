@@ -3,7 +3,7 @@ package com.ubirch.adapter.services.kafka.consumer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
-import com.ubirch.adapter.process.ExecutorFamily
+import com.ubirch.adapter.process.{ CommitDecision, ExecutorFamily }
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
@@ -31,7 +31,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class MessageEnvelopePipeData(
     override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
     eventLog: Option[EventLog],
-    producerRecord: Option[ProducerRecord[String, String]],
+    producerRecord: Option[CommitDecision[ProducerRecord[String, String]]],
     recordMetadata: Option[RecordMetadata]
 ) extends EventLogPipeData[MessageEnvelope](consumerRecord, eventLog)
 

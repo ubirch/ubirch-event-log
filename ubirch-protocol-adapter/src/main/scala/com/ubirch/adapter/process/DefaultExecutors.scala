@@ -1,8 +1,5 @@
 package com.ubirch.adapter.process
 
-import java.util.UUID
-import java.util.concurrent.{ Future => JavaFuture }
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
@@ -47,17 +44,27 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
           )
         }
 
+      val payloadAsString = payload.extractOpt[String]
+        .filter(_.nonEmpty)
+        .getOrElse {
+          throw EventLogFromConsumerRecordException(
+            "Payload not found or is empty",
+            MessageEnvelopePipeData(v1, None, None, None)
+          )
+        }
+
       val eventLog = v1.value().ubirchPacket.getHint match {
         case 0 =>
           EventLog("EventLogFromConsumerRecord", "UPA", payload)
             .withCustomerId(customerId)
-            .withNewId(payload.extractOpt[String].getOrElse(UUID.randomUUID().toString))
+            .withNewId(payloadAsString)
         case _ =>
           EventLog("EventLogFromConsumerRecord", "UPA", payload)
             .withCustomerId(customerId)
       }
 
       MessageEnvelopePipeData(v1, Some(eventLog), None, None)
+
     } catch {
       case e: EventLogFromConsumerRecordException =>
         throw e
@@ -97,7 +104,16 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 
         val output = v1.eventLog
           .map(EventLogJsonSupport.ToJson[EventLog])
-          .map(x => ProducerRecordHelper.toRecord(topic, v1.id.toString, x.toString, Map.empty))
+          .map { x =>
+            val commitDecision: CommitDecision[ProducerRecord[String, String]] = if (v1.consumerRecord.value().ubirchPacket.getHint == 0) {
+              Go(ProducerRecordHelper.toRecord(topic, v1.id.toString, x.toString, Map.empty))
+            } else {
+              Ignore()
+            }
+
+            commitDecision
+
+          }
           .map(x => v1.copy(producerRecord = Some(x)))
           .getOrElse(throw CreateProducerRecordException("Empty Materials: Either the eventlog or/and the producer record are empty.", v1))
 
@@ -123,11 +139,17 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   */
 class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]] {
 
-  def commit(record: ProducerRecord[String, String]): JavaFuture[RecordMetadata] = {
-    stringProducer.getProducerOrCreate.send(record)
-  }
-
   val futureHelper = new FutureHelper()
+
+  def commit(value: CommitDecision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
+    value match {
+      case Go(record) =>
+        val javaFuture = stringProducer.getProducerOrCreate.send(record)
+        futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
+      case Ignore() =>
+        Future.successful(None)
+    }
+  }
 
   override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = {
 
@@ -137,8 +159,7 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
 
         v1.producerRecord
           .map(x => commit(x))
-          .map(x => futureHelper.fromJavaFuture(x))
-          .map(x => x.map(y => v1.copy(recordMetadata = Some(y))))
+          .map(x => x.map(y => v1.copy(recordMetadata = y)))
           .getOrElse(throw CommitException("No Producer Record Found", v1))
 
       } catch {
