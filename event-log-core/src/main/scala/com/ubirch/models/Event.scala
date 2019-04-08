@@ -109,7 +109,7 @@ object EventLog {
 
   def apply(event: JValue): EventLog = {
     val currentTime = new Date
-    EventLog("", "", "", "", event, currentTime, TimeInfo.fromDate(currentTime), "")
+    EventLog(id = "", customerId = "", serviceClass = "", category = "", event = event, eventTime = currentTime, eventTimeInfo = TimeInfo.fromDate(currentTime), signature = "")
   }
 
   def apply(serviceClass: String, category: String, event: JValue): EventLog = {

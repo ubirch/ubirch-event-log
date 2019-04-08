@@ -42,7 +42,7 @@ class EventSerializer extends CustomSerializer[EventLog](_ =>
 
         val _jsonObj = jsonObj.underscoreKeys
 
-        val id: UUID = (_jsonObj \ ID).extract[UUID]
+        val id: String = (_jsonObj \ ID).extract[String]
         val customerId: String = (_jsonObj \ CUSTOMER_ID).extractOpt[String].getOrElse("")
         val serviceClass: String = (_jsonObj \ SERVICE_CLASS).extract[String]
         val category: String = (_jsonObj \ CATEGORY).extract[String]
