@@ -12,9 +12,11 @@ import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver, UUIDHelper }
+import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver, UUIDHelper, SigningHelper }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST._
+import org.json4s.jackson.JsonMethods._
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -34,16 +36,16 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
-  implicit val se = com.ubirch.kafka.EnvelopeSerializer
-  implicit val de = com.ubirch.kafka.EnvelopeDeserializer
+  implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
+  implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
 
   "Adapter Spec" must {
 
     "consume message envelope and publish event log with hint = 0" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val bootstrapServers = "localhost:" + config.kafkaPort
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
@@ -72,6 +74,12 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
         assert(eventLog.event == JInt(3))
         assert(eventLog.customerId == customerId)
+
+        val eventBytes = SigningHelper.getBytesFromString(fromJsonNode(pm.getPayload).toString)
+
+        val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+
+        assert(eventLog.signature == signature)
 
       }
 
