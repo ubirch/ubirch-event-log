@@ -3,7 +3,8 @@ package com.ubirch.models
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import com.ubirch.util.{ EventLogJsonSupport, JsonHelper, UUIDHelper }
+import com.ubirch.services.config.ConfigProvider
+import com.ubirch.util.{ EventLogJsonSupport, JsonHelper, SigningHelper, UUIDHelper }
 import com.ubirch.{ Entities, TestBase }
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.{ JValue, MappingException }
@@ -250,6 +251,36 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(el.eventTime == date)
       assert(el.eventTimeInfo == TimeInfo.fromDate(el.eventTime))
       assert(el.signature == "my signature")
+
+    }
+
+    "check signature" in {
+
+      import com.ubirch.models.EnrichedEventLog.enrichedEventLog
+
+      val config = new ConfigProvider {} get ()
+
+      val data: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+
+      val date = new Date()
+
+      val el = EventLog(data)
+        .withNewId("my id")
+        .withCustomerId("my customer id")
+        .withCategory("my customer id")
+        .withServiceClass("my service class")
+        .withCategory("my category")
+        .withEventTime(date)
+        .sign(config)
+
+      assert(el.id == "my id")
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime == date)
+      assert(el.eventTimeInfo == TimeInfo.fromDate(el.eventTime))
+      assert(el.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(data.toString)))
 
     }
 
