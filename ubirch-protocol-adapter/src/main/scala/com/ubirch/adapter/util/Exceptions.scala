@@ -28,6 +28,13 @@ object Exceptions {
   case class CreateProducerRecordException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
 
   /**
+    * Represents an exception thrown when signing a EventLog message
+    * @param message Represents the error message.
+    * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
+    */
+  case class SigningEventLogException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+
+  /**
     * Represents an exception thrown in the execution pipeline for when there has been an error committing the producer record value
     * into Kafka
     * @param message Represents the error message.

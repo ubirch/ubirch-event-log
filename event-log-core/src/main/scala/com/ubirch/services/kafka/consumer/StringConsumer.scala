@@ -15,7 +15,7 @@ import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
-import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
@@ -26,7 +26,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
-class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], eventLog: Option[EventLog]) extends ProcessResult[String, V] {
+class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], val eventLog: Option[EventLog]) extends ProcessResult[String, V] {
   override val id: UUID = UUIDHelper.randomUUID
 }
 
@@ -35,7 +35,7 @@ class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], eventLo
   * @param consumerRecord Represents the data received in the poll from Kafka
   * @param eventLog Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(override val consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]) extends EventLogPipeData[String](consumerRecord, eventLog)
+case class PipeData(override val consumerRecord: ConsumerRecord[String, String], override val eventLog: Option[EventLog]) extends EventLogPipeData[String](consumerRecord, eventLog)
 
 /**
   * Represents a String Consumer Record Controller with an Executor Pipeline
@@ -77,6 +77,10 @@ class DefaultConsumerRecordsManager @Inject() (
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
       counter.counter.labels("ParsingIntoEventLogException").inc()
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
+      Future.successful(e.pipeData)
+    case e: SigningEventLogException =>
+      counter.counter.labels("SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>

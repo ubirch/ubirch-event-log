@@ -7,6 +7,7 @@ import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
@@ -83,6 +84,32 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
 object EventLogFromConsumerRecord {
   val CUSTOMER_ID_FIELD = "customerId"
 
+}
+
+/**
+  *  Executor that signs an EventLog
+  *
+  * @param config Represents a config object
+  * @param ec Represent the execution context for asynchronous processing.
+  */
+class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
+  extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  with LazyLogging {
+
+  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
+    v1.eventLog.map { el =>
+      try {
+        val signedEventLog = el.sign(config)
+        v1.copy(eventLog = Some(signedEventLog))
+      } catch {
+        case _: Exception =>
+          throw SigningEventLogException("Error signing data", v1)
+      }
+
+    }.getOrElse {
+      throw SigningEventLogException("No EventLog Found", v1)
+    }
+  }
 }
 
 /**
@@ -182,6 +209,8 @@ trait ExecutorFamily {
 
   def createProducerRecord: CreateProducerRecord
 
+  def eventLogSigner: EventLogSigner
+
   def commit: Commit
 
 }
@@ -198,5 +227,6 @@ trait ExecutorFamily {
 class DefaultExecutorFamily @Inject() (
     val eventLogFromConsumerRecord: EventLogFromConsumerRecord,
     val createProducerRecord: CreateProducerRecord,
+    val eventLogSigner: EventLogSigner,
     val commit: Commit
 ) extends ExecutorFamily

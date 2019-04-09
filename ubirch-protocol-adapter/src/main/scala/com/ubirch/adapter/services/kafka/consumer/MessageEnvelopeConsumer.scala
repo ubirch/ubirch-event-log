@@ -30,10 +30,10 @@ import scala.concurrent.{ ExecutionContext, Future }
   */
 case class MessageEnvelopePipeData(
     override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
-    eventLog: Option[EventLog],
+    override val eventLog: Option[EventLog],
     producerRecord: Option[CommitDecision[ProducerRecord[String, String]]],
     recordMetadata: Option[RecordMetadata]
-) extends EventLogPipeData[MessageEnvelope](consumerRecord, eventLog)
+) extends EventLogPipeData[MessageEnvelope](consumerRecord = consumerRecord, eventLog = eventLog)
 
 /**
   * Represents an Envelope Consumer.
@@ -64,11 +64,17 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
   type A = MessageEnvelopePipeData
 
   def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
-    executorFamily.eventLogFromConsumerRecord andThen executorFamily.createProducerRecord andThen executorFamily.commit
+    executorFamily.eventLogFromConsumerRecord andThen
+      executorFamily.eventLogSigner andThen
+      executorFamily.createProducerRecord andThen
+      executorFamily.commit
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      Future.successful(pipeData)
+    case e @ SigningEventLogException(_, pipeData) =>
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>

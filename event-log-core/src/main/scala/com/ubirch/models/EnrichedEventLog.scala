@@ -1,9 +1,6 @@
 package com.ubirch.models
 
-import java.nio.charset.StandardCharsets
-
 import com.typesafe.config.Config
-import com.ubirch.crypto.utils.Utils
 import com.ubirch.util.SigningHelper
 
 import scala.language.implicitConversions
@@ -11,27 +8,23 @@ import scala.language.implicitConversions
 case class EnrichedEventLog(eventLog: EventLog) {
 
   def getEventBytes: Array[Byte] = {
-    eventLog.event.toString.getBytes(StandardCharsets.UTF_8)
+    SigningHelper.getBytesFromString(eventLog.event.toString)
   }
 
   def sign(config: Config): EventLog = {
     eventLog.withSignature(
-      Utils.bytesToHex(
-        SigningHelper.signData(
-          config,
-          getEventBytes
-        )
+      SigningHelper.signAndGetAsHex(
+        config,
+        getEventBytes
       )
     )
   }
 
   def sign(pkString: String): EventLog = {
     eventLog.withSignature(
-      Utils.bytesToHex(
-        SigningHelper.signData(
-          pkString,
-          getEventBytes
-        )
+      SigningHelper.signAndGetAsHex(
+        pkString,
+        getEventBytes
       )
     )
   }
