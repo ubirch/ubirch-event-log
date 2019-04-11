@@ -11,7 +11,7 @@
 
     <!-- basic info -->
     <artifactId>event-log-kafka</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.0-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Kafka for the Ubirch Platform</description>
     <url>https://ubirch.com</url>
@@ -168,6 +168,9 @@
 
 
   <scm>
-    <tag>event-log-kafka-1.2.0</tag>
+      <connection>scm:git:git://github.com/ubirch/ubirch-event-log.git</connection>
+      <developerConnection>scm:git:git@github.com:ubirch/ubirch-event-log.git</developerConnection>
+      <url>https://github.com/ubirch/ubirch-event-log</url>
+      <tag>HEAD</tag>
   </scm>
 </project>
