@@ -54,6 +54,9 @@
         <scala.version>2.12.6</scala.version>
         <scala.compat.version>2.12</scala.compat.version>
         <scalatest.version>3.0.5</scalatest.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <encoding>UTF-8</encoding>
+
         <!-- versions -->
 
         <event-log-util.version>1.2.0</event-log-util.version>
@@ -64,6 +67,18 @@
         <json4s-ext>3.6.0</json4s-ext>
         <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+
+        <scala.logging.version>3.9.0</scala.logging.version>
+        <slf4j.api.version>1.7.15</slf4j.api.version>
+        <logback-classic.version>1.2.3</logback-classic.version>
+        <log4j-over-slf4j.version>1.7.25</log4j-over-slf4j.version>
+        <jcl-over-slf4j.version>1.7.25</jcl-over-slf4j.version>
+        <logstash-logback-encoder.version>5.3</logstash-logback-encoder.version>
+        <io.prometheus.simpleclient.version>0.6.0</io.prometheus.simpleclient.version>
+        <io.prometheus.simpleclient_hotspot.version>0.6.0</io.prometheus.simpleclient_hotspot.version>
+        <io.prometheus.simpleclient_httpserver.version>0.6.0</io.prometheus.simpleclient_httpserver.version>
+        <io.prometheus.simpleclient_logback.version>0.6.0</io.prometheus.simpleclient_logback.version>
+        <io.prometheus.simpleclient_graphite_bridge.version>0.6.0</io.prometheus.simpleclient_graphite_bridge.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -117,6 +132,61 @@
             <version>${json4s-ext}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.slf4j/jcl-over-slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${jcl-over-slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_${scala.compat.version}</artifactId>
+            <version>${scala.logging.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/net.logstash.logback/logstash-logback-encoder -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>${logstash-logback-encoder.version}</version>
+        </dependency>
+
+        <!-- Prometheus -->
+
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+            <version>${io.prometheus.simpleclient.version}</version>
+        </dependency>
+        <!-- Hotspot JVM metrics-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+            <version>${io.prometheus.simpleclient_hotspot.version}</version>
+        </dependency>
+        <!-- Exposition HTTPServer-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_httpserver</artifactId>
+            <version>${io.prometheus.simpleclient_httpserver.version}</version>
+        </dependency>
+        <!-- SimpleClient_Logback -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_logback</artifactId>
+            <version>${io.prometheus.simpleclient_logback.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.prometheus/simpleclient_graphite_bridge -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_graphite_bridge</artifactId>
+            <version>${io.prometheus.simpleclient_graphite_bridge.version}</version>
+        </dependency>
+
+        <!-- Prometheus -->
+
         <!-- Test -->
 
         <dependency>
@@ -130,6 +200,13 @@
             <groupId>com.github.nosan</groupId>
             <artifactId>embedded-cassandra-test</artifactId>
             <version>${embedded-cassandra-test}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
