@@ -5,7 +5,7 @@
     <!-- basic info -->
     <groupId>com.ubirch</groupId>
     <artifactId>event-log-util</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.1</version>
     <name>${project.artifactId}</name>
     <description>Event logger util for the Ubirch Platform</description>
     <url>https://ubirch.com</url>
@@ -33,7 +33,7 @@
         <connection>scm:git:git://github.com/ubirch/ubirch-event-log.git</connection>
         <developerConnection>scm:git:git@github.com:ubirch/ubirch-event-log.git</developerConnection>
         <url>https://github.com/ubirch/ubirch-event-log</url>
-        <tag>HEAD</tag>
+        <tag>event-log-util-1.2.1</tag>
     </scm>
 
     <distributionManagement>
