@@ -7,6 +7,8 @@ object ConfPaths {
 
   trait CassandraClusterConfPaths {
     val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
+    val CONSISTENCY_LEVEL = "eventLog.cassandra.cluster.consistencyLevel"
+    val SERIAL_CONSISTENCY_LEVEL = "eventLog.cassandra.cluster.serialConsistencyLevel"
     val WITH_SSL = "eventLog.cassandra.cluster.withSSL"
     val USERNAME = "eventLog.cassandra.cluster.username"
     val PASSWORD = "eventLog.cassandra.cluster.password"
