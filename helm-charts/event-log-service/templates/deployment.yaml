@@ -43,6 +43,10 @@ spec:
                         value: "{{ .Values.eventLog.cassandra.cluster.preparedStatementCacheSize}}"
                       - name: EVTL_CS_NODES
                         value: "{{ .Values.eventLog.cassandra.cluster.contactPoints}}"
+                      - name: EVTL_CS_CONSISTENCY_LEVEL
+                        value: "{{ .Values.eventLog.cassandra.cluster.consistencyLevel}}"
+                      - name: EVTL_CS_SERIAL_CONSISTENCY_LEVEL
+                        value: "{{ .Values.eventLog.cassandra.cluster.serialConsistencyLevel}}"
                       - name: EVTL_CS_USERNAME
                         value: "{{ .Values.eventLog.cassandra.cluster.username}}"
                       - name: EVTL_CS_PASSWORD

@@ -2,9 +2,10 @@ package com.ubirch.services.cluster
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.{ Cluster, PoolingOptions }
+import com.datastax.driver.core.{ Cluster, ConsistencyLevel, PoolingOptions, QueryOptions }
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
+import com.ubirch.util.Exceptions.InvalidConsistencyLevel
 import com.ubirch.util.URLsHelper
 import javax.inject._
 
@@ -15,8 +16,24 @@ trait ClusterConfigs {
 
   val contactPoints: List[InetSocketAddress]
 
-  def buildContactPointsFromString(contactPoints: String): List[InetSocketAddress] =
+  def buildContactPointsFromString(contactPoints: String): List[InetSocketAddress] = {
     URLsHelper.inetSocketAddressesString(contactPoints)
+  }
+
+  val maybeConsistencyLevel: Option[ConsistencyLevel]
+
+  val maybeSerialConsistencyLevel: Option[ConsistencyLevel]
+
+  def checkConsistencyLevel(consistencyLevel: String): Option[ConsistencyLevel] = try {
+    if (consistencyLevel.isEmpty)
+      None
+    else {
+      Option(ConsistencyLevel.valueOf(consistencyLevel))
+    }
+  } catch {
+    case e: Exception =>
+      throw InvalidConsistencyLevel("Invalid Consistency Level: " + e.getMessage)
+  }
 
 }
 
@@ -26,6 +43,7 @@ trait ClusterConfigs {
 
 trait ClusterService extends ClusterConfigs {
   val poolingOptions: PoolingOptions
+  val queryOptions: QueryOptions
   val cluster: Cluster
 }
 
@@ -38,17 +56,30 @@ trait ClusterService extends ClusterConfigs {
 class DefaultClusterService @Inject() (config: Config) extends ClusterService with CassandraClusterConfPaths {
 
   val contactPoints: List[InetSocketAddress] = buildContactPointsFromString(config.getString(CONTACT_POINTS))
+  val maybeConsistencyLevel: Option[ConsistencyLevel] = checkConsistencyLevel(config.getString(CONSISTENCY_LEVEL))
+  val maybeSerialConsistencyLevel: Option[ConsistencyLevel] = checkConsistencyLevel(config.getString(SERIAL_CONSISTENCY_LEVEL))
   val withSSL: Boolean = config.getBoolean(WITH_SSL)
   val username: String = config.getString(USERNAME)
   val password: String = config.getString(PASSWORD)
 
   val poolingOptions = new PoolingOptions
 
-  override val cluster = {
+  val queryOptions = new QueryOptions
+
+  maybeConsistencyLevel.foreach { cl =>
+    queryOptions.setConsistencyLevel(cl)
+  }
+
+  maybeSerialConsistencyLevel.foreach { cl =>
+    queryOptions.setSerialConsistencyLevel(cl)
+  }
+
+  override val cluster: Cluster = {
     val builder = Cluster.builder
       .addContactPointsWithPorts(contactPoints: _*)
       .withPoolingOptions(poolingOptions)
       .withCredentials(username, password)
+      .withQueryOptions(queryOptions)
 
     if (withSSL) {
       builder.withSSL()

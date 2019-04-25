@@ -46,7 +46,7 @@ public abstract class ShutdownableThread extends Thread {
      * testing, where AssertionExceptions in the thread may not cause the test to fail. Since one
      * instance is used for all threads, it must be thread-safe.
      */
-    volatile public static UncaughtExceptionHandler funcaughtExceptionHandler = null;
+    volatile public static Thread.UncaughtExceptionHandler funcaughtExceptionHandler = null;
 
     public ShutdownableThread(String name) {
         // The default is daemon=true so that these threads will not prevent shutdown. We use this
@@ -124,7 +124,7 @@ public abstract class ShutdownableThread extends Thread {
      * @param timeout the maximum time to wait
      * @param unit the time unit of the timeout argument
      * @return true if successful, false if the timeout elapsed
-     * @throws InterruptedException
+     * @throws InterruptedException if the shutdown is interrupted
      */
     public boolean awaitShutdown(long timeout, TimeUnit unit) throws InterruptedException {
         return shutdownLatch.await(timeout, unit);

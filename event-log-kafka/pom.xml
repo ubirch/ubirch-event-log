@@ -1,21 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- parent pom -->
-    <parent>
-        <groupId>com.ubirch</groupId>
-        <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
-    </parent>
-
     <!-- basic info -->
+    <groupId>com.ubirch</groupId>
     <artifactId>event-log-kafka</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Kafka for the Ubirch Platform</description>
     <url>https://ubirch.com</url>
     <inceptionYear>2019</inceptionYear>
+
+    <organization>
+        <name>ubirch GmbH</name>
+        <url>https://ubirch.com/</url>
+    </organization>
+    <developers>
+        <developer>
+            <name>Carlos Sánchez</name>
+            <email>carlos.sanchez@ubirch.com</email>
+            <organization>ubirch GmbH</organization>
+            <organizationUrl>https://ubirch.com/</organizationUrl>
+        </developer>
+        <developer>
+            <name>Michael Merz</name>
+            <email>michael.merz@ubirch.com</email>
+            <organization>ubirch GmbH</organization>
+            <organizationUrl>https://ubirch.com/</organizationUrl>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:git://github.com/ubirch/ubirch-event-log.git</connection>
+        <developerConnection>scm:git:git@github.com:ubirch/ubirch-event-log.git</developerConnection>
+        <url>https://github.com/ubirch/ubirch-event-log</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <distributionManagement>
         <snapshotRepository>
@@ -28,7 +48,22 @@
         </repository>
     </distributionManagement>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <scala.version>2.12.6</scala.version>
+        <scala.compat.version>2.12</scala.compat.version>
+        <scalatest.version>3.0.5</scalatest.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <encoding>UTF-8</encoding>
 
         <!-- versions -->
 
@@ -40,6 +75,18 @@
         <json4s-ext>3.6.0</json4s-ext>
         <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+
+        <scala.logging.version>3.9.0</scala.logging.version>
+        <slf4j.api.version>1.7.15</slf4j.api.version>
+        <logback-classic.version>1.2.3</logback-classic.version>
+        <log4j-over-slf4j.version>1.7.25</log4j-over-slf4j.version>
+        <jcl-over-slf4j.version>1.7.25</jcl-over-slf4j.version>
+        <logstash-logback-encoder.version>5.3</logstash-logback-encoder.version>
+        <io.prometheus.simpleclient.version>0.6.0</io.prometheus.simpleclient.version>
+        <io.prometheus.simpleclient_hotspot.version>0.6.0</io.prometheus.simpleclient_hotspot.version>
+        <io.prometheus.simpleclient_httpserver.version>0.6.0</io.prometheus.simpleclient_httpserver.version>
+        <io.prometheus.simpleclient_logback.version>0.6.0</io.prometheus.simpleclient_logback.version>
+        <io.prometheus.simpleclient_graphite_bridge.version>0.6.0</io.prometheus.simpleclient_graphite_bridge.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -93,6 +140,61 @@
             <version>${json4s-ext}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.slf4j/jcl-over-slf4j -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>${jcl-over-slf4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_${scala.compat.version}</artifactId>
+            <version>${scala.logging.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/net.logstash.logback/logstash-logback-encoder -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>${logstash-logback-encoder.version}</version>
+        </dependency>
+
+        <!-- Prometheus -->
+
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+            <version>${io.prometheus.simpleclient.version}</version>
+        </dependency>
+        <!-- Hotspot JVM metrics-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+            <version>${io.prometheus.simpleclient_hotspot.version}</version>
+        </dependency>
+        <!-- Exposition HTTPServer-->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_httpserver</artifactId>
+            <version>${io.prometheus.simpleclient_httpserver.version}</version>
+        </dependency>
+        <!-- SimpleClient_Logback -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_logback</artifactId>
+            <version>${io.prometheus.simpleclient_logback.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.prometheus/simpleclient_graphite_bridge -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_graphite_bridge</artifactId>
+            <version>${io.prometheus.simpleclient_graphite_bridge.version}</version>
+        </dependency>
+
+        <!-- Prometheus -->
+
         <!-- Test -->
 
         <dependency>
@@ -106,6 +208,13 @@
             <groupId>com.github.nosan</groupId>
             <artifactId>embedded-cassandra-test</artifactId>
             <version>${embedded-cassandra-test}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>
@@ -124,6 +233,8 @@
                         <goals>
                             <goal>compile</goal>
                             <goal>testCompile</goal>
+                            <goal>add-source</goal>
+                            <goal>doc-jar</goal>
                         </goals>
                         <configuration>
                             <args>
@@ -162,15 +273,73 @@
                     </execution>
                 </executions>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <autoVersionSubmodules>true</autoVersionSubmodules>
+                    <useReleaseProfile>false</useReleaseProfile>
+                    <releaseProfiles>release</releaseProfiles>
+                    <goals>deploy</goals>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <!-- build source and documentation and gpg signing only for release -->
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.9.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <keyname>7a672196888951a7cccdc200810233050cd1c9f0</keyname>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 
-  <scm>
-      <connection>scm:git:git://github.com/ubirch/ubirch-event-log.git</connection>
-      <developerConnection>scm:git:git@github.com:ubirch/ubirch-event-log.git</developerConnection>
-      <url>https://github.com/ubirch/ubirch-event-log</url>
-      <tag>HEAD</tag>
-  </scm>
+    </profiles>
+
 </project>
