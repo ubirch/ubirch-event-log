@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CryptoConfPaths
-import com.ubirch.crypto.utils.{ Algorithms, Hashs, Utils }
+import com.ubirch.crypto.utils.{ Algorithm, Hash, Utils }
 import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 
 /**
@@ -29,11 +29,11 @@ object SigningHelper extends CryptoConfPaths {
   }
 
   def signData(pk: PrivKey, payload: Array[Byte]): Array[Byte] = {
-    pk.sign(payload, Hashs.SHA512)
+    pk.sign(payload, Hash.SHA512)
   }
 
   def signData(pkString: String, payload: Array[Byte]): Array[Byte] = {
-    val pk: PrivKey = GeneratorKeyFactory.getPrivKey(pkString.take(64), Algorithms.EDDSA)
+    val pk: PrivKey = GeneratorKeyFactory.getPrivKey(pkString.take(64), Algorithm.EDDSA)
     signData(pk, payload)
   }
 
