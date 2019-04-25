@@ -32,8 +32,7 @@
             <artifactId>ubirch-kafka-envelope</artifactId>
             <version>1.0.1</version>
         </dependency>
-
-
+        
         <!-- Test -->
 
         <dependency>
@@ -48,7 +47,6 @@
             <artifactId>embedded-cassandra-test</artifactId>
             <version>${embedded-cassandra-test}</version>
         </dependency>
-
 
     </dependencies>
 
