@@ -69,6 +69,7 @@
         <io.monix.version>2.3.2</io.monix.version>
 
         <!-- plugins -->
+        <scalariform.version>0.2.2</scalariform.version>
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
         <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
@@ -129,6 +130,36 @@
     <build>
 
         <plugins>
+
+            <!-- code formatting -->
+            <plugin>
+                <groupId>com.github.tashoyan</groupId>
+                <artifactId>scalariform-maven-plugin</artifactId>
+                <version>${scalariform.version}</version>
+                <executions>
+                    <execution>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                        <configuration>
+                            <firstArgumentOnNewline>Force</firstArgumentOnNewline>
+                            <firstParameterOnNewline>Force</firstParameterOnNewline>
+                            <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
+                            <danglingCloseParenthesis>Force</danglingCloseParenthesis>
+                            <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>
+                            <doubleIndentMethodDeclaration>true</doubleIndentMethodDeclaration>
+                            <newlineAtEndOfFile>true</newlineAtEndOfFile>
+                            <placeScaladocAsterisksBeneathSecondAsterisk>true
+                            </placeScaladocAsterisksBeneathSecondAsterisk>
+                            <singleCasePatternOnNewline>false</singleCasePatternOnNewline>
+                            <spacesAroundMultiImports>true</spacesAroundMultiImports>
+                            <rewriteArrowSymbols>false</rewriteArrowSymbols>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- code formatting -->
 
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
