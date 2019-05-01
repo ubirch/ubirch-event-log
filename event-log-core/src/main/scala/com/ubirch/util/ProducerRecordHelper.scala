@@ -1,5 +1,6 @@
 package com.ubirch.util
 
+import com.ubirch.models.EventLog
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
@@ -17,6 +18,10 @@ object ProducerRecordHelper {
     }
 
     new ProducerRecord[String, T](topic, null, key, payload, kafkaHeaders.asJava)
+  }
+
+  def toRecordFromEventLog(topic: String, key: String, eventLog: EventLog): ProducerRecord[String, String] = {
+    toRecord(topic, key, eventLog.toJson, Map.empty)
   }
 
 }

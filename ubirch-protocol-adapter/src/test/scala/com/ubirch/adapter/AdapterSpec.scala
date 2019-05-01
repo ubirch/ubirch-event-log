@@ -12,7 +12,7 @@ import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver, UUIDHelper, SigningHelper }
+import com.ubirch.util._
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST._
@@ -72,14 +72,14 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
         val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        assert(eventLog.event == JInt(3))
-        assert(eventLog.customerId == customerId)
-
         val eventBytes = SigningHelper.getBytesFromString(fromJsonNode(pm.getPayload).toString)
 
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
 
+        assert(eventLog.event == JInt(3))
+        assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
 
       }
 

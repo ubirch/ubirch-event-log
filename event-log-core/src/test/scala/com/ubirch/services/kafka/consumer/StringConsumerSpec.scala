@@ -72,11 +72,11 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
     val executionFamily = mock[ExecutorFamily]
 
     val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-      override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-        new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-          override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+      override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+        new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+          override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
             val promiseTest = Promise[PipeData]()
-            val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
+            val el = v1.headOption.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get)
 
             promiseTest.completeWith(Future.successful(PipeData(v1, el)))
             promiseTest.future
@@ -108,7 +108,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = entity.toString
+        val entityAsString = entity.toJson
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
@@ -121,12 +121,12 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
 
                 val promiseTest = Promise[PipeData]()
-                promiseTestSuccess.completeWith(Future.successful(v1.value()))
+                promiseTestSuccess.completeWith(Future.successful(v1.headOption.map(_.value()).getOrElse("")))
 
                 promiseTest.completeWith(Future.successful(PipeData(v1, Some(entity))))
                 promiseTest.future
@@ -163,7 +163,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val topic = NameGiver.giveMeATopicName
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = entity.toString
+        val entityAsString = entity.toJson
 
         publishStringMessageToKafka(topic, entityAsString)
 
@@ -176,9 +176,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
                 promiseTest.completeWith(Future.successful(PipeData(v1, Some(entity))))
                 promiseTest.future
               }
@@ -296,7 +296,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val entities = (1 to maxEntities).map(_ => Entities.Events.eventExample()).toList
 
-        val entitiesAsString = entities.map(_.toString)
+        val entitiesAsString = entities.map(_.toJson)
 
         entitiesAsString.foreach { entityAsString =>
           publishStringMessageToKafka(topic, entityAsString)
@@ -309,19 +309,19 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
 
                 val promiseTest = Promise[PipeData]()
 
-                val el = Option(EventLogJsonSupport.FromString[EventLog](v1.value()).get)
+                val el = v1.headOption.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get)
 
                 lazy val somethingStored = promiseTest.completeWith(Future.successful(PipeData(v1, el)))
 
                 somethingStored
 
-                listfWithSuccess += v1.value()
+                listfWithSuccess += v1.headOption.map(_.value()).getOrElse("")
                 listf += promiseTest.future
 
                 max.set(max.get() - 1)
@@ -412,9 +412,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
                 Future.failed(ParsingIntoEventLogException("OH OH", PipeData(v1, None)))
               }
             }
@@ -454,7 +454,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = entity.toString
+        val entityAsString = entity.toJson
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
@@ -484,9 +484,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
 
                 val promiseTest = Promise[PipeData]()
 
@@ -541,7 +541,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
       withRunningKafka {
 
         val entity = Entities.Events.eventExample()
-        val entityAsString = entity.toString
+        val entityAsString = entity.toJson
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
@@ -571,9 +571,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         val executionFamily = mock[ExecutorFamily]
 
         val recordsManager = new DefaultConsumerRecordsManager(reporter, executionFamily, counter) {
-          override def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
-            new Executor[ConsumerRecord[String, String], Future[PipeData]] {
-              override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = {
+          override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
+            new Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] {
+              override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
 
                 val promiseTest = Promise[PipeData]()
 

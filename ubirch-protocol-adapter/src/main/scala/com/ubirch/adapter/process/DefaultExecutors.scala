@@ -3,6 +3,7 @@ package com.ubirch.adapter.process
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.adapter.ServiceTraits
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
@@ -11,10 +12,11 @@ import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
-import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
+import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.json4s.JsonAST.JNothing
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -25,16 +27,16 @@ import scala.concurrent.{ ExecutionContext, Future }
   * @param ec Represents an execution context
   */
 class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
-  extends Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]]
+  extends Executor[Vector[ConsumerRecord[String, MessageEnvelope]], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
   import EventLogJsonSupport.formats
   import org.json4s.jackson.JsonMethods._
 
-  override def apply(v1: ConsumerRecord[String, MessageEnvelope]): Future[MessageEnvelopePipeData] = Future {
+  override def apply(v1: Vector[ConsumerRecord[String, MessageEnvelope]]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
-      val payload = fromJsonNode(v1.value().ubirchPacket.getPayload)
-      val jValueCustomerId = v1.value().context \\ EventLogFromConsumerRecord.CUSTOMER_ID_FIELD
+
+      val jValueCustomerId = v1.headOption.map(_.value().context \\ EventLogFromConsumerRecord.CUSTOMER_ID_FIELD).getOrElse(JNothing)
       val customerId = jValueCustomerId
         .extractOpt[String]
         .filter(_.nonEmpty)
@@ -45,6 +47,7 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
           )
         }
 
+      val payload = v1.headOption.map(x => fromJsonNode(x.value().ubirchPacket.getPayload)).getOrElse(JNothing)
       val payloadAsString = payload.extractOpt[String]
         .filter(_.nonEmpty)
         .getOrElse {
@@ -54,13 +57,13 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
           )
         }
 
-      val eventLog = v1.value().ubirchPacket.getHint match {
-        case 0 =>
-          EventLog("EventLogFromConsumerRecord", "UPA", payload)
+      val eventLog = v1.headOption.map(_.value().ubirchPacket.getHint) match {
+        case Some(0) =>
+          EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
             .withCustomerId(customerId)
             .withNewId(payloadAsString)
         case _ =>
-          EventLog("EventLogFromConsumerRecord", "UPA", payload)
+          EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
             .withCustomerId(customerId)
       }
 
@@ -132,10 +135,12 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val output = v1.eventLog
           .map(EventLogJsonSupport.ToJson[EventLog])
           .map { x =>
-            val commitDecision: CommitDecision[ProducerRecord[String, String]] = if (v1.consumerRecord.value().ubirchPacket.getHint == 0) {
-              Go(ProducerRecordHelper.toRecord(topic, v1.id.toString, x.toString, Map.empty))
-            } else {
-              Ignore()
+            val commitDecision: Decision[ProducerRecord[String, String]] = {
+              if (v1.consumerRecords.headOption.exists(_.value().ubirchPacket.getHint == 0)) {
+                Go(ProducerRecordHelper.toRecord(topic, v1.id.toString, x.toString, Map.empty))
+              } else {
+                Ignore()
+              }
             }
 
             commitDecision
@@ -168,7 +173,7 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
 
   val futureHelper = new FutureHelper()
 
-  def commit(value: CommitDecision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
+  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
     value match {
       case Go(record) =>
         val javaFuture = stringProducer.getProducerOrCreate.send(record)

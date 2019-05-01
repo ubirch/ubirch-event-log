@@ -16,6 +16,6 @@ trait ProcessResult[K, V] {
 
   val id: UUID
 
-  val consumerRecord: ConsumerRecord[K, V]
+  val consumerRecords: Vector[ConsumerRecord[K, V]]
 
 }

@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.Events
+import com.ubirch.models.{ EventLogRow, Events }
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
@@ -57,7 +57,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .sign(config)
           .withCustomerId(UUIDHelper.randomUUID)
 
-        val entityAsString1 = entity1.toString
+        val entityAsString1 = entity1.toJson
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -74,17 +74,17 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         def res = events.selectAll
         //Read
 
-        val res1 = await(res)
+        val res1: List[EventLogRow] = await(res)
 
         assert(res1.nonEmpty)
-        assert(res1.headOption == Option(entity1))
+        assert(res1.headOption == Option(EventLogRow.fromEventLog(entity1)))
 
         //Next Message
         val entity2 = Entities.Events.eventExample()
           .sign(config)
           .withCustomerId(UUIDHelper.randomUUID)
 
-        val entityAsString2 = entity2.toString
+        val entityAsString2 = entity2.toJson
 
         publishStringMessageToKafka(topic, entityAsString2)
 
@@ -93,7 +93,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val res2 = await(res)
 
         assert(res2.nonEmpty)
-        assert(res2.contains(entity2))
+        assert(res2.contains(EventLogRow.fromEventLog(entity2)))
 
         assert(res2.size == 2)
 
@@ -116,7 +116,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .sign(config)
           .withCustomerId(UUIDHelper.randomUUID)).toList
 
-        val entitiesAsString = entities.map(_.toString)
+        val entitiesAsString = entities.map(_.toJson)
 
         entitiesAsString.foreach { entityAsString =>
           publishStringMessageToKafka(topic, entityAsString)
@@ -135,11 +135,11 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         def res = events.selectAll
         //Read
 
-        val res1 = await(res)
+        val res1: List[EventLogRow] = await(res)
 
         assert(res1.nonEmpty)
 
-        res1 must contain theSameElementsAs entities
+        res1 must contain theSameElementsAs entities.map(EventLogRow.fromEventLog)
         res1.size must be(entities.size)
 
       }
@@ -161,7 +161,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .sign(config)
           .withCustomerId(UUIDHelper.randomUUID)
 
-        val entityAsString1 = entity1.toString
+        val entityAsString1 = entity1.toJson
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -181,7 +181,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val res1 = await(res)
 
         assert(res1.nonEmpty)
-        assert(res1.contains(entity1))
+        assert(res1.contains(EventLogRow.fromEventLog(entity1)))
 
         //Next Message
 
@@ -193,14 +193,14 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         assert(res2.nonEmpty)
 
-        assert(res2.contains(entity1))
+        assert(res2.contains(EventLogRow.fromEventLog(entity1)))
 
         assert(res2.size == 1)
 
         //Next Message with same id but different stuff inside
 
         val entity1Modified = entity1.copy(category = "This is a brand new cat", signature = "This is another signature")
-        val entityAsString1Modified = entity1Modified.toString
+        val entityAsString1Modified = entity1Modified.toJson
 
         publishStringMessageToKafka(topic, entityAsString1Modified)
 
@@ -210,7 +210,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         assert(res3.nonEmpty)
 
-        assert(res3.contains(entity1))
+        assert(res3.contains(EventLogRow.fromEventLog(entity1)))
 
         assert(res3.size == 2)
 
@@ -234,7 +234,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             .sign(config)
             .withCustomerId(UUIDHelper.randomUUID)).toList
 
-        val entitiesAsStringWithErrors = entities.map(_.toString) ++ //Malformed data
+        val entitiesAsStringWithErrors = entities.map(_.toJson) ++ //Malformed data
           List("{}")
 
         entitiesAsStringWithErrors.foreach { entityAsString =>
@@ -255,11 +255,11 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         def res = events.selectAll
         //Read
 
-        val res1 = await(res)
+        val res1: List[EventLogRow] = await(res)
 
         assert(res1.nonEmpty)
 
-        res1 must contain theSameElementsAs entities
+        res1 must contain theSameElementsAs entities.map(EventLogRow.fromEventLog)
         res1.size must be(entities.size)
 
         Thread.sleep(1000)
@@ -288,7 +288,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
-        val entityAsString1 = entity1.toString
+        val entityAsString1 = entity1.toJson
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -305,9 +305,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
@@ -350,7 +350,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
-        val entityAsString1 = entity1.toString
+        val entityAsString1 = entity1.toJson
 
         publishStringMessageToKafka(topic, entityAsString1)
 
@@ -367,9 +367,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 if (attempts.getCount == 2) {
@@ -418,14 +418,14 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val topic = "com.ubirch.eventlog"
 
         val entity1 = Entities.Events.eventExample().withCustomerId(UUIDHelper.randomUUID)
-        val entityAsString1 = entity1.toString
+        val entityAsString1 = entity1.toJson
 
         publishStringMessageToKafka(topic, entityAsString1)
 
         val controller = InjectorHelper.get[DefaultConsumerRecordsManager]
 
         val committed = new CountDownLatch(1)
-        val failed = new CountDownLatch(3)
+        val failedProcesses = new CountDownLatch(3)
         var committedN = 0
 
         implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
@@ -437,14 +437,14 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
-                failed.countDown()
-                if (failed.getCount == 1) {
+                failedProcesses.countDown()
+                if (failedProcesses.getCount == 1) {
                   val f = super.commitFunc()
-                  failed.countDown()
+                  failedProcesses.countDown()
                   committed.countDown()
                   f
                 } else {
@@ -466,10 +466,10 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         //Consumer
 
         committed.await(5000, TimeUnit.MILLISECONDS)
-        failed.await(5000, TimeUnit.MILLISECONDS)
+        failedProcesses.await(5000, TimeUnit.MILLISECONDS)
         assert(committedN == 1)
         assert(committed.getCount == 0)
-        assert(failed.getCount == 0)
+        assert(failedProcesses.getCount == 0)
 
       }
 
@@ -506,6 +506,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    second int,
           |    milli int,
           |    event_time timestamp,
+          |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
         """.stripMargin

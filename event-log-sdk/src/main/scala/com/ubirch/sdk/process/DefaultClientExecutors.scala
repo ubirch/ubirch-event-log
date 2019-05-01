@@ -21,8 +21,6 @@ import scala.util.{ Failure, Success }
   * Executor for creating an Event from a value T.
   * @param serviceClass Represents the origin class for the event.
   * @param category Represents a category for the event.
-  * @param manifest$T Represents the manifest for the type T the Event Type
-  *                   wants to be created from.
   * @tparam T Represent the type from which an Event is created from.
   */
 class CreateEventFrom[T: Manifest](serviceClass: String, category: String) extends Executor[T, EventLog] {
@@ -131,7 +129,9 @@ class CommitHandlerSync extends Executor[(JavaFuture[RecordMetadata], EventLog),
 /**
   * Executor that Asynchronously handles the java future of the RecordMetadata.
   */
-class CommitHandlerAsync(implicit ec: ExecutionContext) extends Executor[(JavaFuture[RecordMetadata], EventLog), Future[EventLog]] {
+class CommitHandlerAsync(implicit ec: ExecutionContext)
+  extends Executor[(JavaFuture[RecordMetadata], EventLog), Future[EventLog]]
+  with LazyLogging {
 
   val futureHelper = new FutureHelper()
 
@@ -140,6 +140,7 @@ class CommitHandlerAsync(implicit ec: ExecutionContext) extends Executor[(JavaFu
       eventLog
     }.recover {
       case e: Exception =>
+        logger.error("CommitHandlerAsync Error (1), {}", e.getMessage)
         throw CommitHandlerASyncException(eventLog, e.getMessage)
     }
 
@@ -156,6 +157,8 @@ class CommitHandlerAsync(implicit ec: ExecutionContext) extends Executor[(JavaFu
     } catch {
 
       case e: Exception =>
+        logger.error("CommitHandlerAsync Error (2), {}", e.getMessage)
+
         throw CommitHandlerASyncException(eventLog, e.getMessage)
 
     }
@@ -198,7 +201,8 @@ class CommitHandlerStealthAsync extends Executor[(JavaFuture[RecordMetadata], Ev
 
 class Logger extends Executor[EventLog, EventLog] with LazyLogging {
   override def apply(v1: EventLog): EventLog = {
-    logger.debug(v1.toString); v1
+    logger.debug(v1.toJson);
+    v1
   }
 }
 
@@ -210,7 +214,7 @@ class FutureLogger(implicit ec: ExecutionContext) extends Executor[Future[EventL
   override def apply(v1: Future[EventLog]): Future[EventLog] = {
 
     v1.onComplete {
-      case Success(value) => logger.debug(value.toString)
+      case Success(value) => logger.debug(value.toJson)
       case Failure(exception) => logger.debug(exception.getMessage)
     }
 

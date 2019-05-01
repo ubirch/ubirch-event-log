@@ -285,6 +285,7 @@
         <module>event-log-core</module>
         <module>event-log-service</module>
         <module>event-log-sdk</module>
+        <module>event-log-chainer</module>
         <module>ubirch-protocol-adapter</module>
     </modules>
 
