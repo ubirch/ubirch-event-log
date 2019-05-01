@@ -21,8 +21,7 @@ class AdapterServiceBinder
   extends AbstractModule
   with BasicServices
   with ExecutionServices
-  with Consumer
-  with Producer {
+  with Kafka {
 
   def lifecycle: ScopedBindingBuilder = bind(classOf[Lifecycle]).to(classOf[DefaultLifecycle])
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])

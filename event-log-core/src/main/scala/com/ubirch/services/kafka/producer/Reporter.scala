@@ -54,7 +54,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
         val record = ProducerRecordHelper.toRecord(
           topic,
           error.id.toString,
-          eventLog.toString,
+          eventLog.toJson,
           Map.empty
         )
 

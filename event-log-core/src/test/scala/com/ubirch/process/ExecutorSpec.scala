@@ -3,7 +3,7 @@ package com.ubirch.process
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.ubirch.ConfPaths.CryptoConfPaths
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKeyRow }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
@@ -58,7 +58,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
     "filter successfully" in {
 
       val data = Entities.Events.eventExample()
-      val dataAsString = data.toString
+      val dataAsString = data.toJson
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
@@ -68,7 +68,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val filtered = filter(consumerRecord)
 
-      assert(await(filtered, 2 seconds).consumerRecord.value() == dataAsString)
+      assert(await(filtered, 2 seconds).consumerRecords.headOption.map(_.value()) == Option(dataAsString))
 
     }
 
@@ -92,7 +92,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
     "parse successfully" in {
 
       val data = Entities.Events.eventExample()
-      val dataAsString = data.toString
+      val dataAsString = data.toJson
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
       when(consumerRecord.value()).thenReturn(dataAsString)
@@ -150,17 +150,17 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val data = Entities.Events.eventExample()
 
-      val events = mock[Events]
-      val promiseTest = Promise[Unit]()
+      val events = mock[EventsDAO]
+      val promiseTest = Promise[Int]()
 
-      when(events.insert(any[EventLog]())).thenReturn {
-        promiseTest.completeWith(Future(()))
+      when(events.insert(any[EventLogRow](), any[Seq[LookupKeyRow]]())).thenReturn {
+        promiseTest.completeWith(Future(1))
         promiseTest.future
       }
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
-      when(consumerRecord.value()).thenReturn(data.toString)
+      when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = PipeData(consumerRecord, Some(data))
 
@@ -178,17 +178,17 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val data = Entities.Events.eventExample()
 
-      val events = mock[Events]
-      val promiseTest = Promise[Unit]()
+      val events = mock[EventsDAO]
+      val promiseTest = Promise[Int]()
 
-      when(events.insert(any[EventLog]())).thenReturn {
-        promiseTest.completeWith(Future(()))
+      when(events.insert(any[EventLogRow](), any[Seq[LookupKeyRow]]())).thenReturn {
+        promiseTest.completeWith(Future(1))
         promiseTest.future
       }
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
-      when(consumerRecord.value()).thenReturn(data.toString)
+      when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = Future.successful(PipeData(consumerRecord, None))
 
@@ -202,17 +202,17 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val data = Entities.Events.eventExample()
 
-      val events = mock[Events]
-      val promiseTest = Promise[Unit]()
+      val events = mock[EventsDAO]
+      val promiseTest = Promise[Int]()
 
-      when(events.insert(any[EventLog]())).thenReturn {
+      when(events.insert(any[EventLogRow](), any[Seq[LookupKeyRow]]())).thenReturn {
         promiseTest.completeWith(Future.failed(new Exception("Something happened when storing")))
         promiseTest.future
       }
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
-      when(consumerRecord.value()).thenReturn(data.toString)
+      when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = Future.successful(PipeData(consumerRecord, None))
 
@@ -235,7 +235,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val data = Entities.Events.eventExample()
 
-      when(consumerRecord.value()).thenReturn(data.toString)
+      when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = PipeData(consumerRecord, Some(data))
 
@@ -259,7 +259,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val data = Entities.Events.eventExample()
 
-      when(consumerRecord.value()).thenReturn(data.toString)
+      when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = PipeData(consumerRecord, Some(data))
 
@@ -276,11 +276,11 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val reporter = mock[Reporter]
 
-      val events = mock[Events]
-      val promiseTest = Promise[Unit]()
+      val events = mock[EventsDAO]
+      val promiseTest = Promise[Int]()
 
-      when(events.insert(any[EventLog]())).thenReturn {
-        promiseTest.completeWith(Future(()))
+      when(events.insert(any[EventLogRow](), any[Seq[LookupKeyRow]]())).thenReturn {
+        promiseTest.completeWith(Future(1))
         promiseTest.future
       }
 
@@ -297,7 +297,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
       when(consumerRecord.value()).thenReturn(
-        Entities.Events.eventExample().toString
+        Entities.Events.eventExample().toJson
       )
 
       val header = new RecordHeader("HolaHeader", "HolaHeaderData".getBytes)
@@ -307,7 +307,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       when(consumerRecord.headers()).thenReturn(headers)
 
       val executor = defaultExecutor.executor
-      executor(consumerRecord)
+      executor(Vector(consumerRecord))
 
       await(promiseTest.future, 10 seconds)
 

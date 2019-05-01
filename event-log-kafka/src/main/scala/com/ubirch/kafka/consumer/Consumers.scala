@@ -19,10 +19,10 @@ object StringConsumer {
 
   def emptyWithMetrics(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() with WithMetrics[String, String]
 
-  def fBased(f: ConsumerRecord[String, String] => Future[ProcessResult[String, String]])(implicit ec: ExecutionContext): StringConsumer = {
+  def fBased(f: Vector[ConsumerRecord[String, String]] => Future[ProcessResult[String, String]])(implicit ec: ExecutionContext): StringConsumer = {
     new StringConsumer() {
-      override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-        f(consumerRecord)
+      override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+        f(consumerRecords)
       }
     }
   }
@@ -50,9 +50,11 @@ object BytesConsumer {
 
   def emptyWithMetrics(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() with WithMetrics[String, Array[Byte]]
 
-  def fBased(f: ConsumerRecord[String, Array[Byte]] => Future[ProcessResult[String, Array[Byte]]])(implicit ec: ExecutionContext): BytesConsumer = {
+  def fBased(f: Vector[ConsumerRecord[String, Array[Byte]]] => Future[ProcessResult[String, Array[Byte]]])(implicit ec: ExecutionContext): BytesConsumer = {
     new BytesConsumer() {
-      override def process(consumerRecord: ConsumerRecord[String, Array[Byte]]): Future[ProcessResult[String, Array[Byte]]] = f(consumerRecord)
+      override def process(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]]): Future[ProcessResult[String, Array[Byte]]] = {
+        f(consumerRecords)
+      }
     }
   }
 

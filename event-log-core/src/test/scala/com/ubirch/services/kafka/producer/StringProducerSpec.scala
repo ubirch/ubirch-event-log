@@ -52,12 +52,12 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
           .send(ProducerRecordHelper.toRecord(
             topic,
             message.id,
-            message.toString,
+            message.toJson,
             Map.empty
           ))
           .get()
 
-        consumeFirstStringMessageFrom(topic) mustBe message.toString
+        consumeFirstStringMessageFrom(topic) mustBe message.toJson
 
         stringProducer.getProducerAsOpt.foreach(_.close())
 

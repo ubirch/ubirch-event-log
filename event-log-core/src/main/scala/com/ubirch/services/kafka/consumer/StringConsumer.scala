@@ -26,24 +26,22 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
-class EventLogPipeData[V](val consumerRecord: ConsumerRecord[String, V], val eventLog: Option[EventLog]) extends ProcessResult[String, V] {
-  override val id: UUID = UUIDHelper.randomUUID
-}
-
 /**
   * Represents the ProcessResult implementation for a the string consumer.
-  * @param consumerRecord Represents the data received in the poll from Kafka
+  * @param consumerRecords Represents the data received in the poll from Kafka
   * @param eventLog Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(override val consumerRecord: ConsumerRecord[String, String], override val eventLog: Option[EventLog]) extends EventLogPipeData[String](consumerRecord, eventLog)
+case class PipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String]
+
+object PipeData {
+  def apply(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]): PipeData = PipeData(Vector(consumerRecord), eventLog)
+}
 
 /**
   * Represents a String Consumer Record Controller with an Executor Pipeline
   * This class can be thought of as a the glue for the consumer and the executor.
   */
-trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String] {
-  val executorFamily: ExecutorFamily
-}
+trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String]
 
 /**
   * Represents a concrete records controller for the string consumer.
@@ -56,8 +54,7 @@ class DefaultConsumerRecordsManager @Inject() (
     val reporter: Reporter,
     val executorFamily: ExecutorFamily,
     @Named("DefaultConsumerRecordsManagerCounter") counter: Counter
-)
-  (implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext)
   extends StringConsumerRecordsManager
   with LazyLogging {
 
@@ -66,7 +63,7 @@ class DefaultConsumerRecordsManager @Inject() (
 
   type A = PipeData
 
-  def executor: Executor[ConsumerRecord[String, String], Future[PipeData]] = {
+  def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
     filterEmpty andThen eventLogParser andThen eventLogSigner andThen eventsStore andThen metricsLogger
   }
 
@@ -77,11 +74,11 @@ class DefaultConsumerRecordsManager @Inject() (
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
       counter.counter.labels("ParsingIntoEventLogException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
       counter.counter.labels("SigningEventLogException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecord.value()))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
       counter.counter.labels("StoringIntoEventLogException").inc()

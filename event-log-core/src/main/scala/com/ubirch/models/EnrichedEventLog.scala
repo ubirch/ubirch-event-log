@@ -29,6 +29,10 @@ case class EnrichedEventLog(eventLog: EventLog) {
     )
   }
 
+  def addOriginHeader(origin: String): EventLog = {
+    eventLog.addHeaders(HeaderNames.ORIGIN -> origin)
+  }
+
 }
 
 object EnrichedEventLog {

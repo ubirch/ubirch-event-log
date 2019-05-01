@@ -21,6 +21,161 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
+trait WithProcessRecords[K, V] {
+
+  cr: ConsumerRunner[K, V] =>
+
+  trait ProcessRecordsBase {
+
+    val currentPartitionIndex: Int
+    val currentPartition: TopicPartition
+    val allPartitions: Set[TopicPartition]
+    val consumerRecords: ConsumerRecords[K, V]
+
+    protected val batchCountDownSize: Int
+
+    protected lazy val failed = new AtomicReference[Option[Throwable]](None)
+
+    protected lazy val partitionRecords = consumerRecords.records(currentPartition).asScala.toVector
+
+    protected lazy val partitionRecordsSize = partitionRecords.size
+
+    protected lazy val batchCountDown: CountDownLatch = new CountDownLatch(batchCountDownSize)
+
+    def run(): Vector[Unit] = {
+      start()
+      aggregate()
+      finish()
+    }
+
+    def start(): Unit
+
+    def processRecords(consumerRecords: Vector[ConsumerRecord[K, V]]) {
+      val processing = process(consumerRecords)
+      processing.onComplete {
+        case Success(_) =>
+          batchCountDown.countDown()
+        case Failure(e) =>
+          failed.set(Some(e))
+          batchCountDown.countDown()
+      }
+    }
+
+    //TODO: probably we should add a timeout
+    def aggregate(): Unit = batchCountDown.await()
+
+    def commitFunc(): Vector[Unit] = {
+
+      try {
+        val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
+        consumer.commitSync(Collections.singletonMap(currentPartition, new OffsetAndMetadata(lastOffset + 1)))
+        postCommitCallback.run(partitionRecordsSize)
+      } catch {
+        case e: TimeoutException =>
+          throw CommitTimeoutException("Commit timed out", () => this.commitFunc(), e)
+        case e: Throwable =>
+          throw e
+      }
+
+    }
+
+    def finish(): Vector[Unit] = {
+      val error = failed.get()
+      if (error.isDefined) {
+
+        val initialOffsets = allPartitions.map { p =>
+          (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
+        }
+
+        initialOffsets.drop(currentPartitionIndex).foreach {
+          case (p, Some(of)) => consumer.seek(p, of)
+          case (_, None) =>
+        }
+
+        failed.set(None)
+
+        throw error.get
+
+      } else {
+
+        commitFunc()
+
+      }
+
+    }
+
+  }
+
+  class ProcessRecordsOne(
+      val currentPartitionIndex: Int,
+      val currentPartition: TopicPartition,
+      val allPartitions: Set[TopicPartition],
+      val consumerRecords: ConsumerRecords[K, V]
+  ) extends ProcessRecordsBase {
+
+    override protected val batchCountDownSize: Int = partitionRecordsSize
+
+    def start() {
+      if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
+        partitionRecords.foreach(x => processRecords(Vector(x)))
+      } else {
+        partitionRecords.toIterator
+          .delayOnNext(getDelaySingleRecord)
+          .consumeWithFinalDelay(x => processRecords(Vector(x)))(getDelayRecords)
+      }
+    }
+
+  }
+
+  class ProcessRecordsAll(
+      val currentPartitionIndex: Int,
+      val currentPartition: TopicPartition,
+      val allPartitions: Set[TopicPartition],
+      val consumerRecords: ConsumerRecords[K, V]
+  ) extends ProcessRecordsBase {
+
+    override protected val batchCountDownSize: Int = 1
+
+    val futureHelper = new FutureHelper()
+
+    def start() {
+      processRecords(partitionRecords)
+      if (getDelayRecords > 0.millis) {
+        futureHelper.delay(getDelayRecords)(())
+      }
+    }
+
+  }
+
+  def createProcessRecords(
+      currentPartitionIndex: Int,
+      currentPartition: TopicPartition,
+      allPartitions: Set[TopicPartition],
+      consumerRecords: ConsumerRecords[K, V]
+  ): ProcessRecordsBase = {
+
+    getConsumptionStrategy match {
+      case All =>
+        new ProcessRecordsAll(
+          currentPartitionIndex,
+          currentPartition,
+          allPartitions,
+          consumerRecords
+        )
+
+      case One =>
+        new ProcessRecordsOne(
+          currentPartitionIndex,
+          currentPartition,
+          allPartitions,
+          consumerRecords
+        )
+    }
+
+  }
+
+}
+
 /**
   * Represents a Consumer Runner for a Kafka Consumer.
   * It supports back-pressure using the pause/unpause. The pause duration is amortized.
@@ -36,6 +191,7 @@ import scala.util.{ Failure, Success }
 abstract class ConsumerRunner[K, V](name: String)
   extends ShutdownableThread(name)
   with ConsumerRebalanceListener
+  with WithProcessRecords[K, V]
   with VersionedLazyLogging {
 
   implicit def ec: ExecutionContext
@@ -61,7 +217,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private val postConsumeCallback = new Callback[Int, Unit] {}
 
-  private val postCommitCallback = new Callback[Int, Unit] {}
+  protected val postCommitCallback = new Callback[Int, Unit] {}
 
   private val needForPauseCallback = new Callback[(FiniteDuration, Int), Unit] {}
 
@@ -85,6 +241,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var consumerRecordsController: Option[ConsumerRecordsController[K, V]] = None
 
+  @BeanProperty var consumptionStrategy: ConsumptionStrategy = One
+
   @BeanProperty var useAutoCommit: Boolean = false
 
   @BeanProperty var maxCommitAttempts = 3
@@ -93,7 +251,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
 
-  private var consumer: Consumer[K, V] = _
+  protected var consumer: Consumer[K, V] = _
 
   def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
 
@@ -105,9 +263,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def onNeedForResumeCallback(f: () => Unit): Unit = needForResumeCallback.addCallback(f)
 
-  def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]] = {
+  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
     getConsumerRecordsController
-      .map(_.process(consumerRecord))
+      .map(_.process(consumerRecords))
       .getOrElse(Future.failed(ConsumerRecordsControllerException("No Records Controller Found")))
   }
 
@@ -220,7 +378,6 @@ abstract class ConsumerRunner[K, V](name: String)
   }
 
   private def amortizePauseDuration(): FiniteDuration = {
-    // 10 => 512 => about 8.5 min
     if (pauses.get() == 10) {
       isPauseUpwards.set(false)
     } else if (pauses.get() == 0) {
@@ -243,6 +400,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @throws(classOf[ConsumerCreationException])
   def createConsumer(props: Map[String, AnyRef]): Unit = {
+
+    logger.debug(s"Starting Processing in mode '${getConsumptionStrategy.toString}'")
+
     if (getKeyDeserializer.isEmpty && getValueDeserializer.isEmpty) {
       throw ConsumerCreationException("No Serializers Found", "Please set the serializers for the key and value.")
     }
@@ -323,102 +483,6 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def startPolling(): Unit = start()
 
-  class ProcessRecords(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[K, V]) {
-
-    private val failed = new AtomicReference[Option[Throwable]](None)
-
-    private val partitionRecords = consumerRecords.records(currentPartition).asScala.toVector
-
-    private val partitionRecordsSize = partitionRecords.size
-
-    //TODO: probably we should add a timeout
-    private val batchCountDown = new CountDownLatch(partitionRecordsSize)
-
-    def run(): Vector[Unit] = {
-      start()
-      aggregate()
-      finish()
-    }
-
-    private def start() {
-      if (getDelaySingleRecord == 0.millis && getDelayRecords == 0.millis) {
-        partitionRecords.foreach(processRecord)
-      } else {
-        partitionRecords.toIterator
-          .delayOnNext(getDelaySingleRecord)
-          .consumeWithFinalDelay(processRecord)(getDelayRecords)
-      }
-    }
-
-    private def processRecord(consumerRecord: ConsumerRecord[K, V]) {
-      val processing = process(consumerRecord)
-      processing.onComplete {
-        case Success(_) =>
-          batchCountDown.countDown()
-        case Failure(e) =>
-          failed.set(Some(e))
-          batchCountDown.countDown()
-      }
-    }
-
-    private def aggregate(): Unit = batchCountDown.await()
-
-    def commitFunc(): Vector[Unit] = {
-
-      try {
-        val lastOffset = partitionRecords(partitionRecordsSize - 1).offset()
-        consumer.commitSync(Collections.singletonMap(currentPartition, new OffsetAndMetadata(lastOffset + 1)))
-        postCommitCallback.run(partitionRecordsSize)
-      } catch {
-        case e: TimeoutException =>
-          throw CommitTimeoutException("Commit timed out", () => ProcessRecords.this.commitFunc(), e)
-        case e: Throwable =>
-          throw e
-      }
-
-    }
-
-    private def finish() = {
-      val error = failed.get()
-      if (error.isDefined) {
-
-        val initialOffsets = allPartitions.map { p =>
-          (p, consumerRecords.records(p).asScala.headOption.map(_.offset()))
-        }
-
-        initialOffsets.drop(currentPartitionIndex).foreach {
-          case (p, Some(of)) => consumer.seek(p, of)
-          case (_, None) =>
-        }
-
-        failed.set(None)
-
-        throw error.get
-
-      } else {
-
-        commitFunc()
-
-      }
-
-    }
-
-  }
-
-  def createProcessRecords(
-      currentPartitionIndex: Int,
-      currentPartition: TopicPartition,
-      allPartitions: Set[TopicPartition],
-      consumerRecords: ConsumerRecords[K, V]
-  ): ProcessRecords = {
-    new ProcessRecords(
-      currentPartitionIndex,
-      currentPartition,
-      allPartitions,
-      consumerRecords
-    )
-  }
-
 }
 
 /**
@@ -427,15 +491,15 @@ abstract class ConsumerRunner[K, V](name: String)
 object ConsumerRunner {
   val version: AtomicInteger = new AtomicInteger(0)
 
-  def fBased[K, V](f: ConsumerRecord[K, V] => Future[ProcessResult[K, V]])(implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+  def fBased[K, V](f: Vector[ConsumerRecord[K, V]] => Future[ProcessResult[K, V]])(implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
     new ConsumerRunner[K, V](name) {
 
       private def _ec: ExecutionContext = ec
 
       override implicit def ec: ExecutionContext = _ec
 
-      override def process(consumerRecord: ConsumerRecord[K, V]): Future[ProcessResult[K, V]] = {
-        f(consumerRecord)
+      override def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
+        f(consumerRecords)
       }
     }
   }

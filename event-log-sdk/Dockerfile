@@ -12,7 +12,7 @@ LABEL "com.ubirch.build"="${BUILD}"
 EXPOSE 9010
 EXPOSE 9020
 
-ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true"
+ENV _JAVA_OPTIONS "-Xms128m -Xmx512m -Djava.awt.headless=true"
 
 ENTRYPOINT [ \
   "/usr/bin/java", \

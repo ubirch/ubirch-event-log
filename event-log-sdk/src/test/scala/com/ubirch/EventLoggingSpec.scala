@@ -29,11 +29,11 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val logged = logger.log(Hello("Hello")).withCustomerId("my customer id").commit
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged.toString
+        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged.toJson
 
         val logged2 = logger.log(EventLogJsonSupport.ToJson("Hola").get).withCustomerId("my customer id").commit
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged2.toString
+        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged2.toJson
 
         val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category").withCustomerId("my customer id")
 
@@ -63,9 +63,9 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(log2.category == "My another Category")
         assert(log2.customerId == "my customer id 2")
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toString
+        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toJson
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toString
+        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toJson
 
         getStringProducer.getProducer.close()
       }

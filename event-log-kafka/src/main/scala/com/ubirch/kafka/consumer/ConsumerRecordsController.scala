@@ -16,8 +16,13 @@ trait ConsumerRecordsController[K, V] {
 
   type A <: ProcessResult[K, V]
 
-  def process(consumerRecord: ConsumerRecord[K, V]): Future[A]
+  def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[A]
 
 }
 
 trait StringConsumerRecordsController extends ConsumerRecordsController[String, String]
+
+sealed trait ConsumptionStrategy
+
+case object All extends ConsumptionStrategy
+case object One extends ConsumptionStrategy
