@@ -5,18 +5,19 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.adapter.ServiceTraits
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
+import com.ubirch.adapter.util.AdapterJsonSupport
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
-import org.json4s.JsonAST.JNothing
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -30,49 +31,57 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, MessageEnvelope]], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
-  import EventLogJsonSupport.formats
+  import AdapterJsonSupport._
   import org.json4s.jackson.JsonMethods._
 
   override def apply(v1: Vector[ConsumerRecord[String, MessageEnvelope]]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
 
-      val jValueCustomerId = v1.headOption.map(_.value().context \\ EventLogFromConsumerRecord.CUSTOMER_ID_FIELD).getOrElse(JNothing)
-      val customerId = jValueCustomerId
-        .extractOpt[String]
-        .filter(_.nonEmpty)
-        .getOrElse {
-          throw EventLogFromConsumerRecordException(
-            "No CustomerId found",
-            MessageEnvelopePipeData(v1, None, None, None)
-          )
-        }
+      val maybeEventLog = v1.headOption.map(_.value()).map { messageEnvelope =>
+        val jValueCustomerId = messageEnvelope.context \\ EventLogFromConsumerRecord.CUSTOMER_ID_FIELD
+        val customerId = jValueCustomerId.extractOpt[String]
+          .filter(_.nonEmpty)
+          .getOrElse {
+            throw EventLogFromConsumerRecordException(
+              "No CustomerId found",
+              MessageEnvelopePipeData(v1, None, None, None)
+            )
+          }
 
-      val payload = v1.headOption.map(x => fromJsonNode(x.value().ubirchPacket.getPayload)).getOrElse(JNothing)
-      val payloadAsString = payload.extractOpt[String]
-        .filter(_.nonEmpty)
-        .getOrElse {
-          throw EventLogFromConsumerRecordException(
-            "Payload not found or is empty",
-            MessageEnvelopePipeData(v1, None, None, None)
-          )
-        }
+        val payloadToJson = AdapterJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket)
 
-      val eventLog = v1.headOption.map(_.value().ubirchPacket.getHint) match {
-        case Some(0) =>
+        val payload = payloadToJson.get
+
+        if (messageEnvelope.ubirchPacket.getHint == 0) {
+
+          val payloadHash = fromJsonNode(messageEnvelope.ubirchPacket.getPayload)
+            .extractOpt[String]
+            .filter(_.nonEmpty)
+            .getOrElse {
+              throw EventLogFromConsumerRecordException(
+                "Payload not found or is empty",
+                MessageEnvelopePipeData(v1, None, None, None)
+              )
+            }
+
           EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
             .withCustomerId(customerId)
-            .withNewId(payloadAsString)
-        case _ =>
+            .withNewId(payloadHash)
+
+        } else {
           EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
             .withCustomerId(customerId)
+        }
+
       }
 
-      MessageEnvelopePipeData(v1, Some(eventLog), None, None)
+      MessageEnvelopePipeData(v1, maybeEventLog, None, None)
 
     } catch {
       case e: EventLogFromConsumerRecordException =>
         throw e
-      case _: Exception =>
+      case e: Exception =>
+        logger.error("Error Parsing Into Event Log: {}", e.getMessage)
         throw EventLogFromConsumerRecordException("Error Parsing Into Event Log", MessageEnvelopePipeData(v1, None, None, None))
     }
 
@@ -133,7 +142,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
         val output = v1.eventLog
-          .map(EventLogJsonSupport.ToJson[EventLog])
+          .map(AdapterJsonSupport.ToJson[EventLog])
           .map { x =>
             val commitDecision: Decision[ProducerRecord[String, String]] = {
               if (v1.consumerRecords.headOption.exists(_.value().ubirchPacket.getHint == 0)) {
