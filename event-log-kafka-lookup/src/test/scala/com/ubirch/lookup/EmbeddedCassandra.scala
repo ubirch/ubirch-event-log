@@ -1,4 +1,4 @@
-package com.ubirch.adapter
+package com.ubirch.lookup
 
 import com.github.nosan.embedded.cassandra.local.LocalCassandraFactoryBuilder
 import com.github.nosan.embedded.cassandra.test.TestCassandra
