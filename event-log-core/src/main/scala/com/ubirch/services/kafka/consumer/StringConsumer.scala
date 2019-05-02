@@ -28,8 +28,9 @@ import scala.language.postfixOps
 
 /**
   * Represents the ProcessResult implementation for a the string consumer.
+  *
   * @param consumerRecords Represents the data received in the poll from Kafka
-  * @param eventLog Represents the event log type. It is here for informative purposes.
+  * @param eventLog        Represents the event log type. It is here for informative purposes.
   */
 case class PipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String]
 
@@ -47,6 +48,7 @@ trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String
   * Represents a concrete records controller for the string consumer.
   * This class can be thought of as a the glue for the consumer and the executor.
   * It defines the executor and the error exception handler and the error reporter.
+  *
   * @param ec Represent the execution context for asynchronous processing.
   */
 @Singleton
@@ -104,6 +106,7 @@ class DefaultConsumerRecordsManager @Inject() (
 
 /**
   * Represents a simple rebalance listener that can be plugged into the consumer.
+  *
   * @param consumer Represents an instance a consumer.
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
@@ -140,10 +143,11 @@ object DefaultConsumerRebalanceListener {
 /**
   * Represents a string consumer provider. Basically, it plugs in
   * configurations and shutdown hooks.
-  * @param config Represents a config instance.
-  * @param lifecycle Represents a lifecycle service instance to register shutdown hooks.
+  *
+  * @param config     Represents a config instance.
+  * @param lifecycle  Represents a lifecycle service instance to register shutdown hooks.
   * @param controller Represents a the records controllers for the consumer.
-  * @param ec Represent the execution context for asynchronous processing.
+  * @param ec         Represent the execution context for asynchronous processing.
   */
 class DefaultStringConsumer @Inject() (
     config: Config,
@@ -176,7 +180,8 @@ class DefaultStringConsumer @Inject() (
     bootstrapServers = bootstrapServers,
     groupId = groupId,
     enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST
+    autoOffsetReset = OffsetResetStrategy.EARLIEST,
+    maxPollRecords = 800
   )
 
   def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
