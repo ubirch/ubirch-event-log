@@ -34,7 +34,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
   })
 }))
 
-class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
+class AdapterSpec extends TestBase with LazyLogging {
 
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer

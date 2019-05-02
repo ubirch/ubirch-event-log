@@ -19,6 +19,10 @@ trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[Eve
 
   def selectAllQ: db.Quoted[db.EntityQuery[EventLogRow]] = quote(query[EventLogRow])
 
+  def byIdAndCatQ(id: String, category: String) = quote {
+    query[EventLogRow].filter(_.id == lift(id)).filter(_.category == lift(category)).map(_.event)
+  }
+
   def insertQ(eventLogRow: EventLogRow): db.Quoted[db.Insert[EventLogRow]] = quote {
     query[EventLogRow].insert(lift(eventLogRow))
   }
@@ -41,6 +45,8 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
   //These actually run the queries.
 
   def selectAll: Future[List[EventLogRow]] = run(selectAllQ)
+
+  def byIdAndCat(id: String, category: String) = run(byIdAndCatQ(id, category))
 
   def insert(eventLogRow: EventLogRow): Future[RunActionResult] = run(insertQ(eventLogRow))
 
