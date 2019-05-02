@@ -8,7 +8,7 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
-  * Represents an adapter boot object.
+  * Represents an the Kafka Lookup boot object.
   */
 object Service extends Boot(LookupServiceBinder.modules) {
 
