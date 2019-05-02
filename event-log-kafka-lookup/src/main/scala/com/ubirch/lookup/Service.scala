@@ -16,8 +16,8 @@ object Service extends Boot(LookupServiceBinder.modules) {
 
     val consumer = get[StringConsumer]
 
-    consumer.setDelaySingleRecord(500 micro)
-    consumer.setDelayRecords(10 millis)
+    //consumer.setDelaySingleRecord(500 micro)
+    //consumer.setDelayRecords(10 millis)
 
     consumer.start()
 
