@@ -1,5 +1,9 @@
 package com.ubirch.util
 
+import java.nio.charset.StandardCharsets
+
+import org.bouncycastle.util.Strings
+import org.bouncycastle.util.encoders.Base64
 import org.json4s._
 import org.json4s.jackson.Serialization
 
@@ -36,6 +40,10 @@ trait JsonHelperBase extends WithJsonFormats {
     if (compact) jackson.compactJson(v1)
     else jackson.prettyJson(v1)
 
+  def _getBytes(v1: JValue): Array[Byte] = stringify(v1).getBytes(StandardCharsets.UTF_8)
+
+  def _toBase64String(v1: JValue): String = Base64.toBase64String(_getBytes(v1))
+
   def getJValue(v1: String): JValue = jackson.parseJson(v1)
 
 }
@@ -51,16 +59,19 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
     * Class that allows to convert a value T to JValue.
     * It also allows to create its string representation.
     * @param v1 Represents the value to be parsed.
-    * @param manifest$T Represents the manifest of T
     * @tparam T Represents the type of the value v1.
     */
   case class ToJson[T: Manifest](v1: T) {
 
-    def get: JValue = to(v1)
+    def get: JValue = to(v1).underscoreKeys
 
-    override def toString: String = stringify(get.underscoreKeys)
+    override def toString: String = stringify(get)
 
-    def pretty: String = stringify(get.underscoreKeys, compact = false)
+    def getBytes: Array[Byte] = _getBytes(get)
+
+    def toBase64String: String = _toBase64String(get)
+
+    def pretty: String = stringify(get, compact = false)
 
   }
 
@@ -68,28 +79,34 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
     * Class that allows to convert a JValue to a value of type T.
     * It also allows to create its string representation.
     * @param v1 Represents the JValue to transform into a value of the T.
-    * @param manifest$T Represents the manifest of T
     * @tparam T Represents the type of the value v1.
     */
   case class FromJson[T: Manifest](v1: JValue) {
 
+    private val _v1 = v1.underscoreKeys
+
     def get: T = getCamelized(v1)
 
-    override def toString: String = stringify(v1.underscoreKeys)
+    override def toString: String = stringify(_v1)
 
-    def pretty: String = stringify(v1.underscoreKeys, compact = false)
+    def getBytes: Array[Byte] = _getBytes(_v1)
+
+    def toBase64String: String = _toBase64String(_v1)
+
+    def pretty: String = stringify(_v1, compact = false)
 
   }
 
   /**
     * Class that allows to convert a String to a value of type T.
     * @param v1 Represents the json value in string representation.
-    * @param manifest$T Represents the manifest of T
     * @tparam T Represents the type of the value v1.
     */
   case class FromString[T: Manifest](v1: String) {
 
     def get: T = getCamelized(getJValue(v1).camelizeKeys)
+
+    def getFromBase64: T = FromString[T](Strings.fromUTF8ByteArray(Base64.decode(v1))).get
 
   }
 

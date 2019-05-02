@@ -3,17 +3,17 @@ package com.ubirch.adapter.services.kafka.consumer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
-import com.ubirch.adapter.process.{ CommitDecision, ExecutorFamily }
+import com.ubirch.adapter.process.ExecutorFamily
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.kafka.{ EnvelopeDeserializer, MessageEnvelope }
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ ConsumerRecordsManager, EventLogPipeData }
+import com.ubirch.services.kafka.consumer.{ ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
+import com.ubirch.util.{ Decision, URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
@@ -23,17 +23,18 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Represents a convenience for handling and keeping data through the pipeline
-  * @param consumerRecord Represents the consumer record read from kafka
+  * @param consumerRecords Represents the consumer record read from kafka
   * @param eventLog Represents the EventLog created from the consumer record.
   * @param producerRecord Represents the Producer Record that is published back to kafka
   * @param recordMetadata Represents the response gotten from the publishing of the producer record.
   */
 case class MessageEnvelopePipeData(
-    override val consumerRecord: ConsumerRecord[String, MessageEnvelope],
-    override val eventLog: Option[EventLog],
-    producerRecord: Option[CommitDecision[ProducerRecord[String, String]]],
+    consumerRecords: Vector[ConsumerRecord[String, MessageEnvelope]],
+    eventLog: Option[EventLog],
+    producerRecord: Option[Decision[ProducerRecord[String, String]]],
     recordMetadata: Option[RecordMetadata]
-) extends EventLogPipeData[MessageEnvelope](consumerRecord = consumerRecord, eventLog = eventLog)
+)
+  extends EventLogPipeData[MessageEnvelope] with WithPublishingData[String]
 
 /**
   * Represents an Envelope Consumer.
@@ -63,7 +64,7 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
 
   type A = MessageEnvelopePipeData
 
-  def executor: Executor[ConsumerRecord[String, MessageEnvelope], Future[MessageEnvelopePipeData]] = {
+  def executor: Executor[Vector[ConsumerRecord[String, MessageEnvelope]], Future[MessageEnvelopePipeData]] = {
     executorFamily.eventLogFromConsumerRecord andThen
       executorFamily.eventLogSigner andThen
       executorFamily.createProducerRecord andThen
@@ -72,16 +73,20 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ SigningEventLogException(_, pipeData) =>
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      logger.debug("SigningEventLogException: " + e.getMessage)
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      logger.debug("CreateProducerRecordException: " + e.getMessage)
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecord.value().toString))
+      logger.debug("CommitException: " + e.getMessage)
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
   }
 

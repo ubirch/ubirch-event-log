@@ -13,7 +13,9 @@ EXPOSE 9010
 EXPOSE 9020
 EXPOSE ${EVTL_PROM_HTTP_PORT}
 
-ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true"
+COPY certs/truststore.jks /usr/share/service/lib/truststore.jks
+
+ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true -Djavax.net.ssl.trustStore=/usr/share/service/lib/truststore.jks"
 
 ENTRYPOINT [ \
   "/usr/bin/java", \

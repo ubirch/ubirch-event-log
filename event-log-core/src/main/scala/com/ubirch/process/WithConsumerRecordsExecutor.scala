@@ -18,7 +18,7 @@ trait WithConsumerRecordsExecutorBase[K, V, R] {
 
   type A <: R
 
-  def executor: Executor[ConsumerRecord[K, V], Future[A]]
+  def executor: Executor[Vector[ConsumerRecord[K, V]], Future[A]]
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[A]]
 

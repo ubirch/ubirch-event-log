@@ -4,7 +4,7 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, Events }
+import com.ubirch.models.{ EventLog, EventLogRow, EventsDAO, LookupKeyRow }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.EventLogJsonSupport
@@ -38,18 +38,21 @@ trait Executor[-T1, +R] extends (T1 => R) {
   */
 
 class FilterEmpty @Inject() (implicit ec: ExecutionContext)
-  extends Executor[ConsumerRecord[String, String], Future[PipeData]]
+  extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]]
   with LazyLogging {
 
-  override def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = Future {
+  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = Future {
+
     val pd = PipeData(v1, None)
-    if (v1.value().nonEmpty) {
+    if (v1.headOption.exists(_.value().nonEmpty)) {
       pd
     } else {
       //logger.error("Record is empty")
       throw EmptyValueException("Record is empty", pd)
     }
   }
+
+  def apply(v1: ConsumerRecord[String, String]): Future[PipeData] = apply(Vector(v1))
 
 }
 
@@ -63,8 +66,8 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
-      val eventLog = EventLogJsonSupport.FromString[EventLog](v1.consumerRecord.value()).get
-      v1.copy(eventLog = Some(eventLog))
+      val eventLog = v1.consumerRecords.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get).headOption
+      v1.copy(eventLog = eventLog)
     } catch {
       case _: Exception =>
         //logger.error("Error Parsing Event: " + e.getMessage)
@@ -107,14 +110,14 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param events Represents the DAO for the Events type.
   * @param ec     Represent the execution context for asynchronous processing.
   */
-class EventsStore @Inject() (events: Events)(implicit ec: ExecutionContext)
+class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
 
-      events.insert(el).map(_ => v1).recover {
+      events.insert(EventLogRow.fromEventLog(el), el.lookupKeys.flatMap(LookupKeyRow.fromLookUpKey)).map(_ => v1).recover {
         case e: InvalidQueryException =>
           logger.error("Error storing data: " + e)
           throw e
