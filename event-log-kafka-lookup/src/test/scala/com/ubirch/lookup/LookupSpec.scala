@@ -65,8 +65,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
+        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup-request"
+        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
 
         val key = UUIDHelper.randomUUID.toString
         val value = "c29tZSBieXRlcyEAAQIDnw=="
@@ -113,8 +113,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
+        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup-request"
+        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
 
         val key = UUIDHelper.randomUUID.toString
         val value = "c29tZSBieXRlcyEAAQIDnw=="
@@ -148,8 +148,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
+        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup-request"
+        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
 
         val key = ""
         val value = ""
