@@ -491,12 +491,10 @@ abstract class ConsumerRunner[K, V](name: String)
 object ConsumerRunner {
   val version: AtomicInteger = new AtomicInteger(0)
 
-  def fBased[K, V](f: Vector[ConsumerRecord[K, V]] => Future[ProcessResult[K, V]])(implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+  def fBased[K, V](f: Vector[ConsumerRecord[K, V]] => Future[ProcessResult[K, V]])(implicit executionContext: ExecutionContext): ConsumerRunner[K, V] = {
     new ConsumerRunner[K, V](name) {
 
-      private def _ec: ExecutionContext = ec
-
-      override implicit def ec: ExecutionContext = _ec
+      override implicit def ec: ExecutionContext = executionContext
 
       override def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
         f(consumerRecords)
@@ -510,11 +508,9 @@ object ConsumerRunner {
     consumer
   }
 
-  def empty[K, V](implicit ec: ExecutionContext): ConsumerRunner[K, V] = {
+  def empty[K, V](implicit executionContext: ExecutionContext): ConsumerRunner[K, V] = {
     new ConsumerRunner[K, V](name) {
-      private def _ec: ExecutionContext = ec
-
-      override implicit def ec: ExecutionContext = _ec
+      override implicit def ec: ExecutionContext = executionContext
     }
 
   }
