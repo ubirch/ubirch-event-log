@@ -64,19 +64,19 @@ trait WithConversions {
 trait WithCommitters {
   _: EventLoggingBase =>
 
-  private def committer = {
+  lazy val committer = {
     new CreateProducerRecord(getConfig) andThen new Commit(getStringProducer)
   }
 
-  def stealthAsyncCommitter: Executor[EventLog, EventLog] = {
+  lazy val stealthAsyncCommitter: Executor[EventLog, EventLog] = {
     committer andThen new CommitHandlerStealthAsync andThen new Logger
   }
 
-  def syncCommitter: Executor[EventLog, EventLog] = {
+  lazy val syncCommitter: Executor[EventLog, EventLog] = {
     committer andThen new CommitHandlerSync andThen new Logger
   }
 
-  def asyncCommitter: Executor[EventLog, Future[EventLog]] = {
+  lazy val asyncCommitter: Executor[EventLog, Future[EventLog]] = {
     committer andThen new CommitHandlerAsync andThen new FutureLogger()
   }
 

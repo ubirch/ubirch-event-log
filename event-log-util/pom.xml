@@ -65,7 +65,7 @@
         <scalatest.version>3.0.5</scalatest.version>
 
         <!-- versions -->
-
+        <bcprov-jdk15on.version>1.61</bcprov-jdk15on.version>
         <io.monix.version>2.3.2</io.monix.version>
 
         <!-- plugins -->
@@ -86,6 +86,12 @@
     </properties>
 
     <dependencies>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>${bcprov-jdk15on.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.typesafe</groupId>

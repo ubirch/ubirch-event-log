@@ -84,7 +84,7 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
       val (record, eventLogOut) = createProducerRecord(eventLog)
 
       assert(record.isInstanceOf[ProducerRecord[String, String]])
-      assert(record.value() == eventLogOut.toString)
+      assert(record.value() == eventLogOut.toJson)
       assert(eventLog == eventLogOut)
 
     }

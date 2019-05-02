@@ -8,15 +8,15 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.adapter.services.AdapterServiceBinder
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
+import com.ubirch.adapter.util.AdapterJsonSupport
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper, PortGiver, UUIDHelper, SigningHelper }
+import com.ubirch.util._
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST._
-import org.json4s.jackson.JsonMethods._
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -71,15 +71,15 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        assert(eventLog.event == JInt(3))
-        assert(eventLog.customerId == customerId)
-
-        val eventBytes = SigningHelper.getBytesFromString(fromJsonNode(pm.getPayload).toString)
+        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
 
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
 
+        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
 
       }
 
@@ -150,8 +150,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 
@@ -195,8 +195,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "Error Parsing Into Event Log")
 
@@ -240,8 +240,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 
@@ -285,8 +285,8 @@ class AdapterSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = EventLogJsonSupport.FromString[EventLog](readMessage).get
-        val error = EventLogJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 

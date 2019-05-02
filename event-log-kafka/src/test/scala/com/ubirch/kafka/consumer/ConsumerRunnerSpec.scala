@@ -18,6 +18,12 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class ConsumerRunnerSpec extends TestBase {
 
+  def processResult(_consumerRecords: Vector[ConsumerRecord[String, String]]) = new ProcessResult[String, String] {
+    override val id: UUID = UUID.randomUUID()
+    override val consumerRecords: Vector[ConsumerRecord[String, String]] = _consumerRecords
+
+  }
+
   "Consumer Runner" must {
 
     "fail if topic is not provided" in {
@@ -28,17 +34,13 @@ class ConsumerRunnerSpec extends TestBase {
         autoOffsetReset = OffsetResetStrategy.EARLIEST
       )
 
-      def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-        override val id: UUID = UUID.randomUUID()
-        override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-      }
-
       val consumer = new ConsumerRunner[String, String]("cr-1") {
         override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-        override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-          Future.successful(processResult(consumerRecord))
+        override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+          Future.successful(processResult(consumerRecords))
         }
+
       }
 
       consumer.setKeyDeserializer(Some(new StringDeserializer()))
@@ -61,17 +63,13 @@ class ConsumerRunnerSpec extends TestBase {
         autoOffsetReset = OffsetResetStrategy.EARLIEST
       )
 
-      def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-        override val id: UUID = UUID.randomUUID()
-        override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-      }
-
       val consumer = new ConsumerRunner[String, String]("cr-2") {
         override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-        override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-          Future.successful(processResult(consumerRecord))
+        override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+          Future.successful(processResult(consumerRecords))
         }
+
       }
 
       consumer.setProps(configs)
@@ -85,16 +83,11 @@ class ConsumerRunnerSpec extends TestBase {
 
     "fail if props are empty" in {
 
-      def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-        override val id: UUID = UUID.randomUUID()
-        override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-      }
-
       val consumer = new ConsumerRunner[String, String]("cr-3") {
         override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-        override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-          Future.successful(processResult(consumerRecord))
+        override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+          Future.successful(processResult(consumerRecords))
         }
       }
 
@@ -132,18 +125,13 @@ class ConsumerRunnerSpec extends TestBase {
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
 
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
-
         val consumer = new ConsumerRunner[String, String]("cr-4") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            futureMessages += consumerRecord.value()
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            consumerRecords.headOption.foreach(x => futureMessages += x.value())
             counter.countDown()
-            Future.successful(processResult(consumerRecord))
+            Future.successful(processResult(consumerRecords))
           }
         }
 
@@ -187,8 +175,8 @@ class ConsumerRunnerSpec extends TestBase {
         val consumer = new ConsumerRunner[String, String]("cr-5") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            futureMessages += consumerRecord.value()
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            consumerRecords.headOption.foreach(x => futureMessages += x.value())
             counter.countDown()
             Future.failed(NeedForPauseException("Need to pause", "yeah"))
           }
@@ -241,8 +229,8 @@ class ConsumerRunnerSpec extends TestBase {
         val consumer = new ConsumerRunner[String, String]("cr-6") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            futureMessages += consumerRecord.value()
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            consumerRecords.headOption.foreach(x => futureMessages += x.value())
             counter.countDown()
             Future.failed(NeedForPauseException("Need to pause", "yeah"))
           }
@@ -295,11 +283,6 @@ class ConsumerRunnerSpec extends TestBase {
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
 
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
-
         val doErrorOn: Int = {
           val start = 1
           val end = maxEntities
@@ -313,15 +296,15 @@ class ConsumerRunnerSpec extends TestBase {
         val consumer = new ConsumerRunner[String, String]("cr-7") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             current = current + 1
             if (current == doErrorOn && !alreadyFailed) {
               futureMessages.clear()
               alreadyFailed = true
               Future.failed(NeedForPauseException("Need to pause", "yeah"))
             } else {
-              futureMessages += consumerRecord.value()
-              Future.successful(processResult(consumerRecord))
+              consumerRecords.headOption.foreach(x => futureMessages += x.value())
+              Future.successful(processResult(consumerRecords))
             }
 
           }
@@ -363,16 +346,11 @@ class ConsumerRunnerSpec extends TestBase {
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
 
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
-
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-8") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            Future.successful(processResult(consumerRecord))
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            Future.successful(processResult(consumerRecords))
           }
 
           override def createProcessRecords(
@@ -380,9 +358,9 @@ class ConsumerRunnerSpec extends TestBase {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
@@ -426,16 +404,11 @@ class ConsumerRunnerSpec extends TestBase {
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
 
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
-
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            Future.successful(processResult(consumerRecord))
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            Future.successful(processResult(consumerRecords))
           }
 
           override def createProcessRecords(
@@ -443,9 +416,9 @@ class ConsumerRunnerSpec extends TestBase {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 if (attempts.getCount == 2) {
@@ -477,7 +450,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 1
 
       val committed = new CountDownLatch(1)
-      val failed = new CountDownLatch(3)
+      val failedProcesses = new CountDownLatch(3)
       var committedN = 0
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -497,16 +470,11 @@ class ConsumerRunnerSpec extends TestBase {
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
 
-        def processResult(_consumerRecord: ConsumerRecord[String, String]) = new ProcessResult[String, String] {
-          override val id: UUID = UUID.randomUUID()
-          override val consumerRecord: ConsumerRecord[String, String] = _consumerRecord
-        }
-
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
-          override def process(consumerRecord: ConsumerRecord[String, String]): Future[ProcessResult[String, String]] = {
-            Future.successful(processResult(consumerRecord))
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            Future.successful(processResult(consumerRecords))
           }
 
           override def createProcessRecords(
@@ -514,14 +482,14 @@ class ConsumerRunnerSpec extends TestBase {
               currentPartition: TopicPartition,
               allPartitions: Set[TopicPartition],
               consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecords = {
+          ): ProcessRecordsBase = {
 
-            new ProcessRecords(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
+            new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
-                failed.countDown()
-                if (failed.getCount == 1) {
+                failedProcesses.countDown()
+                if (failedProcesses.getCount == 1) {
                   val f = super.commitFunc()
-                  failed.countDown()
+                  failedProcesses.countDown()
                   committed.countDown()
                   f
                 } else {
@@ -541,10 +509,10 @@ class ConsumerRunnerSpec extends TestBase {
         consumer.startPolling()
 
         committed.await()
-        failed.await()
+        failedProcesses.await()
         assert(committedN == 1)
         assert(committed.getCount == 0)
-        assert(failed.getCount == 0)
+        assert(failedProcesses.getCount == 0)
 
       }
     }

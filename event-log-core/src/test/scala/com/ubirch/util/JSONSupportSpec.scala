@@ -39,6 +39,38 @@ class JSONSupportSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
+    "ToJson -> FromString be the same in Base64" in {
+
+      val entity = Entities.Events.eventExample()
+
+      val toJson = EventLogJsonSupport.ToJson[EventLog](entity)
+
+      val stringEntity = toJson.toBase64String
+
+      val fromString = EventLogJsonSupport.FromString[EventLog](stringEntity)
+
+      val fromStringEntity = fromString.getFromBase64
+
+      assert(entity == fromStringEntity)
+
+    }
+
+    "ToJson -> FromString be the same in Base64 2" in {
+
+      val entity = Map("Hello" -> "Hola")
+
+      val toJson = EventLogJsonSupport.ToJson(entity)
+
+      val stringEntity = toJson.toBase64String
+
+      val fromString = EventLogJsonSupport.FromString[Map[String, String]](stringEntity)
+
+      val fromStringEntity = fromString.getFromBase64
+
+      assert(entity.map(x => (x._1.toLowerCase, x._2)) == fromStringEntity)
+
+    }
+
   }
 
   "Errors" must {
