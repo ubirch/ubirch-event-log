@@ -5,7 +5,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.lookup.models.Found
+import com.ubirch.lookup.models.{ Found, NotFound }
 import com.ubirch.lookup.services.LookupServiceBinder
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.services.config.ConfigProvider
@@ -49,7 +49,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   "Lookup Spec" must {
 
-    "consume message envelope and publish event log with hint = 0" in {
+    "consume and process successfully when Found" in {
 
       cassandra.executeScripts(
         CqlScript.statements(
@@ -98,6 +98,77 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         )
 
         assert(lookupRes == Found(key, data))
+
+      }
+
+    }
+
+    "consume and process successfully when NotFound" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val key = UUIDHelper.randomUUID.toString
+        val value = "c29tZSBieXRlcyEAAQIDnw=="
+        publishToKafka(messageEnvelopeTopic, key, value)
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val lookupRes = LookupJsonSupport.FromString[NotFound](readMessage).get
+
+        assert(lookupRes == NotFound(key))
+
+      }
+
+    }
+
+    "consume and process successfully when NotFound when key and value are empty" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val key = ""
+        val value = ""
+
+        publishToKafka(messageEnvelopeTopic, key, value)
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val lookupRes = LookupJsonSupport.FromString[NotFound](readMessage).get
+
+        assert(lookupRes == NotFound(key))
 
       }
 
