@@ -33,14 +33,18 @@ class LookupExecutor @Inject() (events: Events)(implicit ec: ExecutionContext)
       key <- maybeKey
       value <- maybeValue
     } yield {
-      val futureRes = events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY)
-      futureRes.map(_.headOption).map {
-        case Some(ev) => LookupPipeData(v1, Some(key), Some(Found(key, ev)), None, None)
-        case None => LookupPipeData(v1, Some(key), Some(NotFound(key)), None, None)
-      }.recover {
-        case e: Exception =>
-          logger.error("ehh" + e.getMessage)
-          throw e
+      if (value.isEmpty || key.isEmpty) {
+        Future.successful(LookupPipeData(v1, Some(key), Some(NotFound(key)), None, None))
+      } else {
+        val futureRes = events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY)
+        futureRes.map(_.headOption).map {
+          case Some(ev) => LookupPipeData(v1, Some(key), Some(Found(key, ev)), None, None)
+          case None => LookupPipeData(v1, Some(key), Some(NotFound(key)), None, None)
+        }.recover {
+          case e: Exception =>
+            logger.error("LookupExecutor:" + e.getMessage)
+            throw e
+        }
       }
 
     }
