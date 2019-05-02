@@ -73,15 +73,19 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
+      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ SigningEventLogException(_, pipeData) =>
+      logger.debug("SigningEventLogException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
+      logger.debug("CreateProducerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
+      logger.debug("CommitException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
   }
