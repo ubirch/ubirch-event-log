@@ -2,7 +2,7 @@ package com.ubirch.lookup.models
 
 import org.json4s.JsonAST.JValue
 
-trait LookupResult
+sealed trait LookupResult
 
 case class NotFound(key: String) extends LookupResult
 

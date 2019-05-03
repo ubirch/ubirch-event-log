@@ -1,5 +1,6 @@
 package com.ubirch.lookup.process
 
+import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
@@ -41,16 +42,19 @@ class LookupExecutor @Inject() (events: Events)(implicit ec: ExecutionContext)
           case Some(ev) => LookupPipeData(v1, Some(key), Some(Found(key, ev)), None, None)
           case None => LookupPipeData(v1, Some(key), Some(NotFound(key)), None, None)
         }.recover {
-          case e: Exception =>
-            logger.error("LookupExecutor:" + e.getMessage)
+          case e: InvalidQueryException =>
+            logger.error("Error querying db: " + e)
             throw e
+          case e: Exception =>
+            logger.error("Error querying data: " + e)
+            throw LookupExecutorException("Error storing data", LookupPipeData(v1, Some(key), Some(NotFound(key)), None, None), e.getMessage)
         }
       }
 
     }
 
     maybeFutureRes
-      .getOrElse(throw LookupExecutorException("No key or value were found", LookupPipeData(v1, maybeKey, None, None, None)))
+      .getOrElse(throw LookupExecutorException("No key or value were found", LookupPipeData(v1, maybeKey, None, None, None), ""))
 
   }
 
