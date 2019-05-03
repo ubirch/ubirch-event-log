@@ -11,7 +11,7 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
-  case class LookupExecutorException(message: String, pipeData: LookupPipeData) extends ExecutionException(message)
+  case class LookupExecutorException(message: String, pipeData: LookupPipeData, reason: String) extends ExecutionException(message)
 
   case class CreateProducerRecordException(message: String, pipeData: LookupPipeData) extends ExecutionException(message)
 

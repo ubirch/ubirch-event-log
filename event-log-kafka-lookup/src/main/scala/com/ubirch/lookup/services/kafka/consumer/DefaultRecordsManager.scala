@@ -47,7 +47,7 @@ class DefaultRecordsManager @Inject() (val reporter: Reporter, val executorFamil
 
   override def executorExceptionHandler: PartialFunction[Throwable, Future[LookupPipeData]] = {
 
-    case e @ LookupExecutorException(_, pipeData) =>
+    case e @ LookupExecutorException(_, pipeData, _) =>
       logger.debug("LookupExecutorException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
