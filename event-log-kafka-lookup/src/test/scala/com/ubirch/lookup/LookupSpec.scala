@@ -5,7 +5,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.lookup.models.{ Found, NotFound }
+import com.ubirch.lookup.models.{ Found, NotFound, Payload, QueryType }
 import com.ubirch.lookup.services.LookupServiceBinder
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.services.config.ConfigProvider
@@ -70,7 +70,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val key = UUIDHelper.randomUUID.toString
         val value = "c29tZSBieXRlcyEAAQIDnw=="
-        publishToKafka(messageEnvelopeTopic, key, value)
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> Payload.value))
+        publishToKafka(pr)
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
@@ -118,7 +119,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val key = UUIDHelper.randomUUID.toString
         val value = "c29tZSBieXRlcyEAAQIDnw=="
-        publishToKafka(messageEnvelopeTopic, key, value)
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> Payload.value))
+        publishToKafka(pr)
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
@@ -154,7 +156,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val key = ""
         val value = ""
 
-        publishToKafka(messageEnvelopeTopic, key, value)
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> Payload.value))
+        publishToKafka(pr)
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
