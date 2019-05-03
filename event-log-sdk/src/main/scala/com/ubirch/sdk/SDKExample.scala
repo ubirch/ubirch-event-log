@@ -23,7 +23,7 @@ object SDKExample extends EventLogging with LazyLogging {
 
     val startTime = new Instant()
     logger.info("Current time: " + startTime)
-    logger.info("Sending data ... ")
+    logger.info(s"Sending data $loop records ... ")
 
     val pingEvery = loop / 2
     var current = 1
@@ -155,14 +155,15 @@ object SDKExample2 extends EventLogging with LazyLogging {
   def main(args: Array[String]): Unit = {
 
     val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(1000000)
+    val parallel = false
 
     val startTime = new Instant()
     logger.info("Current time: " + startTime)
-    logger.info("Sending data ... ")
+    logger.info(s"Sending data $loop records ... ")
 
     val countDown = new CountDownLatch(loop)
 
-    Stream.continually {
+    def go = {
       log(
         """
           |{
@@ -199,8 +200,28 @@ object SDKExample2 extends EventLogging with LazyLogging {
             countDown.countDown()
             logger.error("Something happened: {}", e.getMessage)
         }
-    }.take(loop)
-      .toList
+    }
+
+    if (parallel) {
+      Future {
+        Iterator
+          .continually(go)
+          .take(loop / 2)
+          .foreach(x => x)
+      }
+
+      Future {
+        Iterator
+          .continually(go)
+          .take(loop / 2)
+          .foreach(x => x)
+      }
+    } else {
+      Iterator
+        .continually(go)
+        .take(loop)
+        .foreach(x => x)
+    }
 
     logger.info("Data Sent, waiting on acknowledgement")
 
@@ -239,7 +260,7 @@ object SDKExample3 extends EventLogging with LazyLogging {
 
     val startTime = new Instant()
     logger.info("Current time: " + startTime)
-    logger.info("Sending data ... ")
+    logger.info(s"Sending data $loop records ... ")
 
     val customerIds = List("Sun", "Earth", "Marz")
 
