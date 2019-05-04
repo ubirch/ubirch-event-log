@@ -10,5 +10,5 @@ create table if not exists lookups (
     value text,
     name text,
     category text,
-    PRIMARY KEY (value, category)
+    PRIMARY KEY ((value, category), name)
 );

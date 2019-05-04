@@ -3,10 +3,10 @@ package com.ubirch.lookup.services.kafka.consumer
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.lookup.util.Exceptions.{ CommitException, CreateProducerRecordException, LookupExecutorException }
 import com.ubirch.kafka.consumer._
 import com.ubirch.lookup.models.{ LookupResult, QueryType }
 import com.ubirch.lookup.process.ExecutorFamily
+import com.ubirch.lookup.util.Exceptions.{ CommitException, CreateProducerRecordException, LookupExecutorException }
 import com.ubirch.models.Error
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.StringConsumerRecordsManager

@@ -1,9 +1,13 @@
 package com.ubirch.lookup.models
 
-import org.json4s.JsonAST.JValue
+import org.json4s.JsonAST.{ JNull, JValue }
 
-sealed trait LookupResult
+case class LookupResult(key: String, queryType: QueryType, event: Option[JValue])
 
-case class NotFound(key: String) extends LookupResult
+object LookupResult {
 
-case class Found(key: String, event: JValue) extends LookupResult
+  def NotFound(key: String, queryType: QueryType) = LookupResult(key, queryType, Option(JNull))
+
+  def Found(key: String, queryType: QueryType, event: JValue) = LookupResult(key, queryType, Option(event))
+
+}
