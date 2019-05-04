@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "event-log-kafka-lookup.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
+    helm.sh/chart: {{ include "event-log-kafka-lookup.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.eventLogLookup.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 9010
+            - containerPort: 9020
+            - containerPort: 4321
+          readinessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 20
+            periodSeconds: 60
+          env:
+            - name: LU_KFC_NODES
+              value: "{{ .Values.eventLogLookup.kafka.bootstrapServers}}"
+            - name: LU_KFC_TOPIC
+              value: "{{ .Values.eventLogLookup.kafka.consumer.topic}}"
+            - name: LU_KFC_GROUP
+              value: "{{ .Values.eventLogLookup.kafka.consumer.group}}"
+            - name: LU_KFP_NODES
+              value: "{{ .Values.eventLogLookup.kafka.bootstrapServers}}"
+            - name: LU_KFP_TOPIC
+              value: "{{ .Values.eventLogLookup.kafka.producer.topic}}"
+            - name: LU_KFP_ERROR_TOPIC
+              value: "{{ .Values.eventLogLookup.kafka.producer.errortopic}}"
+            - name: LU_PROM_HTTP_PORT
+              value: "{{ .Values.eventLogLookup.prometheus.port}}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+    affinity:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
