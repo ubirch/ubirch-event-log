@@ -43,7 +43,7 @@
 
     <logger name="com.ubirch" level="DEBUG"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="JSONSTDOUT"/>
     </root>
 
