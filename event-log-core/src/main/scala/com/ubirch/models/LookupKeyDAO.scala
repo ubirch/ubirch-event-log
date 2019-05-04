@@ -16,6 +16,13 @@ trait LookupKeyQueries extends TablePointer[LookupKeyRow] with CustomEncodings[L
 
   def selectAllQ: db.Quoted[db.EntityQuery[LookupKeyRow]] = quote(query[LookupKeyRow])
 
+  def byValueAndNameAndCategoryQ(value: String, name: String, category: String) = quote {
+    query[LookupKeyRow]
+      .filter(_.value == lift(value))
+      .filter(_.category == lift(category))
+      .filter(_.name == lift(name))
+  }
+
   def insertQ(lookupKeyRow: LookupKeyRow): db.Quoted[db.Insert[LookupKeyRow]] = quote {
     query[LookupKeyRow].insert(lift(lookupKeyRow))
   }
@@ -32,6 +39,10 @@ class Lookups @Inject() (val connectionService: ConnectionService)(implicit ec: 
   //These actually run the queries.
 
   def selectAll: Future[List[LookupKeyRow]] = run(selectAllQ)
+
+  def byValueAndNameAndCategory(value: String, name: String, category: String) = {
+    run(byValueAndNameAndCategoryQ(value, name, category))
+  }
 
   def insert(lookupKey: LookupKeyRow): Future[RunActionResult] = run(insertQ(lookupKey))
 

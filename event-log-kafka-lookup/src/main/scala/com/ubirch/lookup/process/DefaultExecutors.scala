@@ -4,24 +4,25 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.lookup.ServiceTraits
+import com.ubirch.lookup.models.{ LookupResult, Payload, QueryType, Signature }
+import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
-import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.models.{ Found, LookupResult, NotFound, Payload, QueryType, Signature }
-import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
-import com.ubirch.lookup.ServiceTraits
-import com.ubirch.models.Events
+import com.ubirch.models.EventsDAO
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.json4s.JValue
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
-class LookupExecutor @Inject() (events: Events)(implicit ec: ExecutionContext)
+class LookupExecutor @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[LookupPipeData]]
   with LazyLogging {
 
@@ -43,25 +44,27 @@ class LookupExecutor @Inject() (events: Events)(implicit ec: ExecutionContext)
       queryType <- maybeQueryType
     } yield {
       if (value.isEmpty || key.isEmpty) {
-        Future.successful(LookupPipeData(v1, Some(key), Some(queryType), Some(NotFound(key)), None, None))
+        Future.successful(LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
       } else {
 
-        val futureRes = queryType match {
-          case Payload => events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY)
-          case Signature => //TODO NEED TO ADD LOOKUP SEARCH
-            events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY)
+        val futureRes: Future[Option[JValue]] = queryType match {
+          case Payload => eventsDAO.events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY).map(_.headOption)
+          case Signature => eventsDAO.byValueAndNameAndCategory(value, Signature.value, ServiceTraits.ADAPTER_CATEGORY)
         }
 
-        futureRes.map(_.headOption).map {
-          case Some(ev) => LookupPipeData(v1, Some(key), Some(queryType), Some(Found(key, ev)), None, None)
-          case None => LookupPipeData(v1, Some(key), Some(queryType), Some(NotFound(key)), None, None)
+        futureRes.map {
+          case Some(ev) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev)), None, None)
+          case None => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
             logger.error("Error querying db: " + e)
             throw e
           case e: Exception =>
             logger.error("Error querying data: " + e)
-            throw LookupExecutorException("Error storing data", LookupPipeData(v1, Some(key), Some(queryType), Some(NotFound(key)), None, None), e.getMessage)
+            throw LookupExecutorException(
+              "Error storing data",
+              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None), e.getMessage
+            )
         }
       }
 
@@ -92,10 +95,11 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
         val output = v1.lookupResult
-          .map(x => LookupJsonSupport.ToJson[LookupResult](x))
-          .map { x =>
+          .flatMap(x => x.event.map(y => (x, y)))
+          .map { case (x, y) => (x, LookupJsonSupport.FromJson[LookupResult](y)) }
+          .map { case (x, y) =>
             val commitDecision: Decision[ProducerRecord[String, String]] = {
-              Go(ProducerRecordHelper.toRecord(topic, v1.key.getOrElse(""), x.toString, Map.empty))
+              Go(ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.QUERY_TYPE_HEADER -> x.queryType.value)))
             }
 
             commitDecision
