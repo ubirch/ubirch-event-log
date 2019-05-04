@@ -116,7 +116,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> ServiceTraits.SLAVE_TREE_CATEGORY))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse(""))
-        assert(treeEventLog.lookupKeys == Seq(LookupKey(LookupKey.SLAVE_TREE, treeEventLog.id, chainer.getNodes.map(_.value))))
+        assert(treeEventLog.lookupKeys == Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.getNodes.map(_.value))))
 
         val eventsWithHeaders = events.map(_.addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY))
 

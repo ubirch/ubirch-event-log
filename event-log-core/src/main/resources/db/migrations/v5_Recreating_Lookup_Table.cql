@@ -8,6 +8,7 @@ drop table if exists lookups;
 create table if not exists lookups (
     key text,
     value text,
+    name text,
     category text,
     PRIMARY KEY (value, category)
 );
