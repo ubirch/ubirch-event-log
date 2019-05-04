@@ -10,7 +10,7 @@ import com.ubirch.adapter.services.AdapterServiceBinder
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
 import com.ubirch.adapter.util.AdapterJsonSupport
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, LookupKey }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
@@ -41,7 +41,62 @@ class AdapterSpec extends TestBase with LazyLogging {
 
   "Adapter Spec" must {
 
-    "consume message envelope and publish event log with hint = 0" in {
+    "consume message envelope and publish event log with hint = 0 with lookup key" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+
+        val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+
+        val lookupKeys = Seq(
+          LookupKey(
+            "signature",
+            ServiceTraits.ADAPTER_CATEGORY,
+            "3",
+            Seq("1111")
+          )
+        )
+
+        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.customerId == customerId)
+        assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog.lookupKeys == lookupKeys)
+
+      }
+
+    }
+
+    "consume message envelope and publish event log with hint = 0 with no lookup key" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
