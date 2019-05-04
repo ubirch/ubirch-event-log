@@ -3,6 +3,7 @@ package com.ubirch.models
 import com.ubirch.services.cluster.ConnectionService
 import io.getquill.{ CassandraAsyncContext, SnakeCase }
 import javax.inject._
+import org.json4s.JValue
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -53,7 +54,7 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 }
 
 @Singleton
-class EventsDAO @Inject() (events: Events, lookups: Lookups)(implicit ec: ExecutionContext) {
+class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec: ExecutionContext) {
 
   def insert(eventLogRow: EventLogRow, lookupKeyRows: Seq[LookupKeyRow]): Future[Int] = {
 
@@ -64,6 +65,19 @@ class EventsDAO @Inject() (events: Events, lookups: Lookups)(implicit ec: Execut
 
     fLookupKeysResp
 
+  }
+
+  def byValueAndNameAndCategory(value: String, name: String, category: String): Future[Option[JValue]] = {
+
+    lookups.byValueAndNameAndCategory(value, name, category)
+      .map(_.headOption)
+      .flatMap {
+        _.map { y =>
+          events.byIdAndCat(y.key, y.category).map(_.headOption)
+        }.getOrElse {
+          Future.successful(None)
+        }
+      }
   }
 
 }

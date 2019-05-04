@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLogRow, Events }
+import com.ubirch.models._
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
@@ -96,6 +96,76 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         assert(res2.contains(EventLogRow.fromEventLog(entity2)))
 
         assert(res2.size == 2)
+
+      }
+
+    }
+
+    "consume message and store it in cassandra with lookup key" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
+
+      withRunningKafka {
+
+        val topic = "com.ubirch.eventlog"
+
+        val config = InjectorHelper.get[Config]
+        val entity1 = Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)
+          .withLookupKeys(Seq(LookupKey("name", "category", "key", Seq("value", "value1"))))
+
+        val entityAsString1 = entity1.toJson
+
+        publishStringMessageToKafka(topic, entityAsString1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        //Read Events
+        val events = InjectorHelper.get[Events]
+        def res = events.selectAll
+        //Read
+
+        val res1: List[EventLogRow] = await(res)
+
+        assert(res1.nonEmpty)
+        assert(res1.headOption == Option(EventLogRow.fromEventLog(entity1)))
+
+        //Next Message
+        val entity2 = Entities.Events.eventExample()
+          .sign(config)
+          .withCustomerId(UUIDHelper.randomUUID)
+
+        val entityAsString2 = entity2.toJson
+
+        publishStringMessageToKafka(topic, entityAsString2)
+
+        Thread.sleep(5000) //Wait for next consumption
+
+        val res2 = await(res)
+
+        assert(res2.nonEmpty)
+        assert(res2.contains(EventLogRow.fromEventLog(entity2)))
+
+        assert(res2.size == 2)
+
+        //Read Events
+        val lookupKeys = InjectorHelper.get[Lookups]
+        def lookupKeysRes = lookupKeys.selectAll
+        //Read
+
+        val lookupKeysRes1: List[LookupKeyRow] = await(lookupKeysRes)
+
+        assert(lookupKeysRes1.nonEmpty)
+        assert(lookupKeysRes1 == Seq(LookupKeyRow("name", "category", "key", "value1"), LookupKeyRow("name", "category", "key", "value")))
 
       }
 
@@ -509,6 +579,16 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
+        """.stripMargin,
+        "drop table if exists lookups;",
+        """
+          |create table if not exists lookups (
+          |    key text,
+          |    value text,
+          |    name text,
+          |    category text,
+          |    PRIMARY KEY ((value, category), name)
+          |);
         """.stripMargin
       )
     )

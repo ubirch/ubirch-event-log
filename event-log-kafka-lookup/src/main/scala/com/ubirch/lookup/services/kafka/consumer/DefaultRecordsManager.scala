@@ -3,10 +3,10 @@ package com.ubirch.lookup.services.kafka.consumer
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.lookup.util.Exceptions.{ CommitException, CreateProducerRecordException, LookupExecutorException }
 import com.ubirch.kafka.consumer._
-import com.ubirch.lookup.models.LookupResult
+import com.ubirch.lookup.models.{ LookupResult, QueryType }
 import com.ubirch.lookup.process.ExecutorFamily
+import com.ubirch.lookup.util.Exceptions.{ CommitException, CreateProducerRecordException, LookupExecutorException }
 import com.ubirch.models.Error
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.StringConsumerRecordsManager
@@ -21,6 +21,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class LookupPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
     key: Option[String],
+    queryType: Option[QueryType],
     lookupResult: Option[LookupResult],
     producerRecord: Option[Decision[ProducerRecord[String, String]]],
     recordMetadata: Option[RecordMetadata]
@@ -47,7 +48,7 @@ class DefaultRecordsManager @Inject() (val reporter: Reporter, val executorFamil
 
   override def executorExceptionHandler: PartialFunction[Throwable, Future[LookupPipeData]] = {
 
-    case e @ LookupExecutorException(_, pipeData) =>
+    case e @ LookupExecutorException(_, pipeData, _) =>
       logger.debug("LookupExecutorException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
