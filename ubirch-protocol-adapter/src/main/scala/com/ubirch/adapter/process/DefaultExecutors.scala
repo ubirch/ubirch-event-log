@@ -10,7 +10,7 @@ import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, LookupKey }
 import com.ubirch.process.Executor
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util.Implicits.enrichedConfig
@@ -64,7 +64,25 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
               )
             }
 
+          val maybeSignature = Option(messageEnvelope.ubirchPacket)
+            .flatMap(x => Option(x.getSignature))
+            .map(org.bouncycastle.util.Strings.fromUTF8ByteArray)
+            .filter(_.nonEmpty)
+
+          //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
+          val maybeLookupKeys = maybeSignature.map { x =>
+            Seq(
+              LookupKey(
+                "signature",
+                ServiceTraits.ADAPTER_CATEGORY,
+                payloadHash,
+                Seq(x)
+              )
+            )
+          }.getOrElse(Nil)
+
           EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
+            .withLookupKeys(maybeLookupKeys)
             .withCustomerId(customerId)
             .withNewId(payloadHash)
 

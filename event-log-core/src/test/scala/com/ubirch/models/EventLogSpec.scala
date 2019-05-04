@@ -353,7 +353,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
       val headers = Headers.create("HOLA" -> "HOLA")
 
-      val lookupKeys = Seq(LookupKey("name", "key", Seq("value")))
+      val lookupKeys = Seq(LookupKey("name", "category", "key", Seq("value")))
 
       val el = EventLog(
         headers,
