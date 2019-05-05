@@ -38,6 +38,22 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 60
           env:
+            - name: LU_CS_KEYSPACE
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.keyspace}}"
+            - name: LU_CS_PREPSTM_CACHE
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.preparedStatementCacheSize}}"
+            - name: LU_CS_NODES
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.contactPoints}}"
+            - name: LU_CS_CONSISTENCY_LEVEL
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.consistencyLevel}}"
+            - name: LU_CS_SERIAL_CONSISTENCY_LEVEL
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.serialConsistencyLevel}}"
+            - name: LU_CS_USERNAME
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.username}}"
+            - name: LU_CS_PASSWORD
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.password}}"
+            - name: LU_CS_WITH_SSL
+              value: "{{ .Values.eventLogLookup.cassandra.cluster.withSsl}}"
             - name: LU_KFC_NODES
               value: "{{ .Values.eventLogLookup.kafka.bootstrapServers}}"
             - name: LU_KFC_TOPIC
