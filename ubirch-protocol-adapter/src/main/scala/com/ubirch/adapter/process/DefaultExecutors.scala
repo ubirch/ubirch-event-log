@@ -20,6 +20,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 /**
   * Represents an executor that converts a consumer record of type String, MessageEnvelope into
@@ -66,8 +67,14 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
 
           val maybeSignature = Option(messageEnvelope.ubirchPacket)
             .flatMap(x => Option(x.getSignature))
-            .map(org.bouncycastle.util.Strings.fromUTF8ByteArray)
-            .filter(_.nonEmpty)
+            .map(x => Try(org.bouncycastle.util.Strings.fromByteArray(x)))
+            .flatMap {
+              case Success(value) if value.nonEmpty => Some(value)
+              case Success(_) => None
+              case Failure(e) =>
+                logger.error("Error Parsing Into Event Log [Signature]: {}", e.getMessage)
+                throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", MessageEnvelopePipeData(v1, None, None, None))
+            }
 
           //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
           val maybeLookupKeys = maybeSignature.map { x =>
