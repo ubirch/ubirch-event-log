@@ -67,7 +67,7 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
 
           val maybeSignature = Option(messageEnvelope.ubirchPacket)
             .flatMap(x => Option(x.getSignature))
-            .map(x => Try(org.bouncycastle.util.Strings.fromByteArray(x)))
+            .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
             .flatMap {
               case Success(value) if value.nonEmpty => Some(value)
               case Success(_) => None
