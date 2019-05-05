@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "event-log-service.fullname" . }}
+  name: {{ include "event-log-kafka-lookup.fullname" . }}
 
   labels:
-    app.kubernetes.io/name: {{ include "event-log-service.name" . }}
-    helm.sh/chart: {{ include "event-log-service.chart" . }}
+    app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
+    helm.sh/chart: {{ include "event-log-kafka-lookup.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
@@ -15,5 +15,5 @@ spec:
       port: 9010
 
   selector:
-    app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+    app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}

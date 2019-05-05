@@ -16,7 +16,7 @@ fi
 
 /keybase/team/ubirchdevops/bin/helm.sh dev delete event-log-kafka-lookup --purge
 /keybase/team/ubirchdevops/bin/helm.sh dev install \
-    event-log-sdk --namespace core-dev \
+    event-log-kafka-lookup --namespace core-dev \
     --name event-log-kafka-lookup --debug \
     -f $2 \
     --set image.tag=$1
