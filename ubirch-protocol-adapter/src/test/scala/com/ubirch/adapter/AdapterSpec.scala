@@ -82,7 +82,11 @@ class AdapterSpec extends TestBase with LazyLogging {
             "signature",
             ServiceTraits.ADAPTER_CATEGORY,
             "3",
-            Seq("1111")
+            Seq {
+              org.bouncycastle.util.encoders.Base64.toBase64String {
+                org.bouncycastle.util.Strings.toByteArray("1111")
+              }
+            }
           )
         )
 
