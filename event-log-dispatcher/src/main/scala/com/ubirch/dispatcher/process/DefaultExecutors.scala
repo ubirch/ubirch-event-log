@@ -69,6 +69,8 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
   with ProducerConfPaths {
   override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = {
 
+    import EventLogJsonSupport._
+
     v1.map { v1 =>
 
       try {
@@ -83,7 +85,15 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
               val eventLogJson = EventLogJsonSupport.ToJson[EventLog](x).get
 
               y.topics.map { t =>
-                Go(ProducerRecordHelper.toRecord(t, v1.id.toString, x.toString, Map.empty))
+
+                val dataToSend: String = t.dataToSend.filter(_.nonEmpty).flatMap { dts =>
+                  val dataFromEventLog = eventLogJson \ dts
+                  dataFromEventLog.extractOpt[String]
+                }.orElse {
+                  Option(x.toJson)
+                }.getOrElse(throw CreateProducerRecordException("Empty Materials 2: No data field extracted.", v1))
+
+                Go(ProducerRecordHelper.toRecord(t.name, v1.id.toString, dataToSend, Map.empty))
 
               }.toVector
 
@@ -92,7 +102,7 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
             commitDecision
           }
           .map(x => v1.copy(producerRecords = x))
-          .getOrElse(throw CreateProducerRecordException("Empty Materials", v1))
+          .getOrElse(throw CreateProducerRecordException("Empty Materials 1", v1))
 
         output
 
