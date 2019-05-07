@@ -42,22 +42,21 @@ class DefaultRecordsManager @Inject() (val reporter: Reporter, val executorFamil
   override def executorExceptionHandler: PartialFunction[Throwable, Future[DispatcherPipeData]] = {
 
     case e @ EmptyValueException(_, pipeData) =>
-      logger.debug("EmptyValueException: " + e.getMessage)
+      logger.error(s"EmptyValueException: ${e.getMessage}", e)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ ParsingIntoEventLogException(_, pipeData) =>
-      logger.debug("ParsingIntoEventLogException: " + e.getMessage)
+      logger.error(s"ParsingIntoEventLogException: ${e.getMessage}", e)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
-      logger.debug("CreateProducerRecordException: " + e.getMessage)
+      logger.error(s"CreateProducerRecordException: ${e.getMessage}", e)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
-      logger.debug("CommitException: " + e.getMessage)
+      logger.error(s"CommitException: ${e.getMessage}", e)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
-
   }
 
 }
