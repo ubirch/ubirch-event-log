@@ -46,7 +46,7 @@ class DispatchSpec extends TestBase with LazyLogging {
         val dispatchInfo = InjectorHelper.get[DispatchInfo].info
 
         val eventLogs = dispatchInfo.map { x =>
-          EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(x.category)
+          EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(x.category).withNewId
         }
 
         eventLogs.foreach { x =>
