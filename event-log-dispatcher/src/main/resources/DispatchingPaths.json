@@ -2,15 +2,27 @@
   {
     "category": "UPA",
     "topics": [
-      "com.ubirch.eventlog",
-      "com.ubirch.chainer.slave"
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.chainer.slave",
+        "data_to_send": null
+      }
     ]
   },
   {
     "category": "UBIRCH_SLAVE_TREE",
     "topics": [
-      "com.ubirch.eventlog",
-      "com.ubirch.chainer.slave.trees"
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.chainer.slave.trees",
+        "data_to_send": "id"
+      }
     ]
   }
 ]
