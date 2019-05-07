@@ -288,6 +288,7 @@
         <module>event-log-chainer</module>
         <module>ubirch-protocol-adapter</module>
         <module>event-log-kafka-lookup</module>
+        <module>event-log-dispatcher</module>
     </modules>
 
 </project>
