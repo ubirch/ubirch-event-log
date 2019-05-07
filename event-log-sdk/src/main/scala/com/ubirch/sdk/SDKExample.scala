@@ -154,7 +154,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
 
   def main(args: Array[String]): Unit = {
 
-    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(1000000)
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(5)
     val parallel = false
 
     val startTime = new Instant()

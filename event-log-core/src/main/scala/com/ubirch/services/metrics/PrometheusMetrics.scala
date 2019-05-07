@@ -1,6 +1,7 @@
 package com.ubirch.services.metrics
 
 import java.net.BindException
+import java.util.Random
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -25,7 +26,7 @@ class PrometheusMetrics @Inject() (config: Config, lifecycle: Lifecycle) extends
     new HTTPServer(port)
   } catch {
     case _: BindException =>
-      val newPort = port + 1
+      val newPort = port + (new scala.util.Random()).nextInt(50)
       logger.debug("Port[{}] is busy, trying Port[{}]", port, newPort)
       new HTTPServer(newPort)
   }

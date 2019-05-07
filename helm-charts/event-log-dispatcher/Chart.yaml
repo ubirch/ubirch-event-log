@@ -1,0 +1,5 @@
+apiVersion: v1
+appVersion: "1.0"
+description: Event Logger Dispatcher Service for the Ubirch Platform
+name: event-log-dispatcher
+version: 0.1.0

@@ -2,14 +2,15 @@
   {
     "category": "UPA",
     "topics": [
-      "com.ubirch.eventlog.lookup_request",
-      "com.ubirch.eventlog.lookup_request1"
+      "com.ubirch.eventlog",
+      "com.ubirch.chainer.slave"
     ]
   },
   {
     "category": "UBIRCH_SLAVE_TREE",
     "topics": [
-      "com.ubirch.eventlog.lookup_request"
+      "com.ubirch.eventlog",
+      "com.ubirch.chainer.slave.trees"
     ]
   }
 ]

@@ -95,7 +95,7 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
       } catch {
 
         case e: Exception =>
-          throw CreateProducerRecordException(e.getMessage, v1)
+          throw CreateProducerRecordException(s"dispatchInfo: ${dispatchInfo.info} / current error: ${e.getMessage}", v1)
 
       }
     }
