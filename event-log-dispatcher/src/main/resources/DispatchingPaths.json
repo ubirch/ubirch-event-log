@@ -1,0 +1,15 @@
+[
+  {
+    "category": "UPA",
+    "topics": [
+      "com.ubirch.eventlog.lookup_request",
+      "com.ubirch.eventlog.lookup_request1"
+    ]
+  },
+  {
+    "category": "UBIRCH_SLAVE_TREE",
+    "topics": [
+      "com.ubirch.eventlog.lookup_request"
+    ]
+  }
+]
