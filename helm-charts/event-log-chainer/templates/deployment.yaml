@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "event-log-chainer.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
+    helm.sh/chart: {{ include "event-log-chainer.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.eventLogChainer.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 9010
+            - containerPort: 9020
+            - containerPort: 4321
+          readinessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9010
+            initialDelaySeconds: 20
+            periodSeconds: 60
+          env:
+            - name: SLV_CHAINER_KFC_NODES
+              value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
+            - name: SLV_CHAINER_KFC_TOPIC
+              value: "{{ .Values.eventLogChainer.kafka.consumer.topic}}"
+            - name: SLV_CHAINER_KFC_GROUP
+              value: "{{ .Values.eventLogChainer.kafka.consumer.group}}"
+            - name: SLV_CHAINER_KFP_NODES
+              value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
+            - name: SLV_CHAINER_KFP_TOPIC
+              value: "{{ .Values.eventLogChainer.kafka.producer.topic}}"
+            - name: SLV_CHAINER_KFP_ERROR_TOPIC
+              value: "{{ .Values.eventLogChainer.kafka.producer.errortopic}}"
+            - name: SLV_CHAINER_PROM_HTTP_PORT
+              value: "{{ .Values.eventLogChainer.prometheus.port}}"
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+    affinity:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+    tolerations:
+      {{- toYaml . | nindent 8 }}
+    {{- end }}

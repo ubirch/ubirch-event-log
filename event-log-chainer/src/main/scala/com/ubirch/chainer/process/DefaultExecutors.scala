@@ -150,6 +150,8 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
           Try(EventLogJsonSupport.ToJson(node).get).map {
             EventLog(_)
               .withCategory(ServiceTraits.SLAVE_TREE_CATEGORY)
+              .withCustomerId("ubirch")
+              .withServiceClass("ubirchChainer")
               .withNewId(node.value)
               .withRandomNonce
               .sign(config)
