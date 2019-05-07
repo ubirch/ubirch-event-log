@@ -32,6 +32,8 @@ case class Node[A](value: A, left: Option[Node[A]], right: Option[Node[A]]) {
 
   def depth: Int = Node.depth(this)
 
+  def size: Int = Node.size(this)
+
 }
 
 /**
@@ -82,6 +84,14 @@ object Node {
     node match {
       case Node(_, None, None) => 0
       case Node(_, l, r) => 1 + l.map(x => depth(x)).getOrElse(0) max r.map(x => depth(x)).getOrElse(0)
+    }
+
+  }
+
+  def size[A](node: Node[A]): Int = {
+    node match {
+      case Node(_, None, None) => 1
+      case Node(_, l, r) => 1 + l.map(x => size(x)).getOrElse(0) + r.map(x => size(x)).getOrElse(0)
     }
 
   }

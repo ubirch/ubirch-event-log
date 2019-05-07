@@ -414,5 +414,26 @@ class NodeSpec extends TestBase {
 
     }
 
+    "size" in {
+      val values = ('a' to 'b').toList.map(_.toString)
+      val nodes = Node.seeds(values: _*).join2((a, b) => a + b)
+
+      assert(nodes.map(_.size) == List(3))
+    }
+
+    "size 2" in {
+      val values = (1 to 12).toList.map(_.toString)
+      val nodes = Node.seeds(values: _*).join2((a, b) => a + b)
+
+      assert(nodes.map(_.size) == List(23))
+    }
+
+    "size 3" in {
+      val values = (1 to 20).toList.map(_.toString)
+      val nodes = Node.seeds(values: _*).join2((a, b) => a + b)
+
+      assert(nodes.map(_.size) == List(39))
+    }
+
   }
 }

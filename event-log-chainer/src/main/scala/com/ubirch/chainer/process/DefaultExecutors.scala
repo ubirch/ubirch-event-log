@@ -205,15 +205,8 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
           Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, eventLogWithHeaders))
         }.toVector
 
-        lazy val eventLogsProducerRecords = v1.eventLogs.map { x =>
-
-          val eventLogWithHeaders = x.addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY)
-
-          Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, eventLogWithHeaders))
-        }
-
-        if (treeEventLogProducerRecord.nonEmpty && eventLogsProducerRecords.nonEmpty) {
-          v1.copy(producerRecords = treeEventLogProducerRecord ++ eventLogsProducerRecords)
+        if (treeEventLogProducerRecord.nonEmpty) {
+          v1.copy(producerRecords = treeEventLogProducerRecord)
         } else {
           throw CreateTreeProducerRecordException("Error creating producer records", v1)
         }

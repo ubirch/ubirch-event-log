@@ -100,7 +100,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         Thread.sleep(5000)
 
-        val maxNumberToRead = events.size + 1 /* tree */
+        val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
@@ -117,19 +117,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> ServiceTraits.SLAVE_TREE_CATEGORY))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse(""))
         assert(treeEventLog.lookupKeys == Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.getNodes.map(_.value))))
-
-        val eventsWithHeaders = events.map(_.addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY))
-
-        messages.tail.map {
-          EventLogJsonSupport.FromString[EventLog](_).get
-        }.map { x =>
-          assert(x.category == ServiceTraits.ADAPTER_CATEGORY)
-          assert(eventsWithHeaders.exists(el => el.id == x.id))
-          assert(eventsWithHeaders.map(_.toJson).contains(x.toJson))
-
-        }
-
         assert(maxNumberToRead == messages.size)
+        assert(chainer.getNodes.map(_.value).size == customerIds.size)
+        assert(chainer.getHashes.flatten.size == events.size)
 
       }
 
