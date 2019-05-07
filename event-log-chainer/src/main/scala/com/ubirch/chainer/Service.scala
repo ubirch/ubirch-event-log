@@ -15,11 +15,11 @@ object Service extends Boot(ChainerServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
 
-    val consumer = get[StringConsumer]
+    val consumer: StringConsumer = get[StringConsumer]
 
-    consumer.setDelaySingleRecord(500 micro)
+    consumer.setDelaySingleRecord(50 micro)
     consumer.setConsumptionStrategy(All)
-    consumer.setDelayRecords(10 millis)
+    consumer.setDelayRecords(30 seconds)
 
     consumer.start()
 

@@ -20,7 +20,11 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.chainer.slave.trees",
+        "name": "com.ubirch.chainer.master",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.ethereum.input.bin",
         "data_to_send": "id"
       }
     ]
