@@ -4,6 +4,7 @@ import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.lookup.services.LookupServiceBinder
 import com.ubirch.util.Boot
 
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
@@ -15,8 +16,8 @@ object Service extends Boot(LookupServiceBinder.modules) {
 
     val consumer = get[StringConsumer]
 
-    //consumer.setDelaySingleRecord(500 micro)
-    //consumer.setDelayRecords(10 millis)
+    consumer.setDelaySingleRecord(500 micro)
+    consumer.setDelayRecords(10 millis)
 
     consumer.start()
 
