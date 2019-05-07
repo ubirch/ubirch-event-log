@@ -14,6 +14,29 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
   "Event Log Model" must {
 
+    "Extract data from path" in {
+      val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
+
+      val date = new Date()
+
+      val eventLog = EventLog(data)
+        .withNewId
+        .withCustomerId("my customer id")
+        .withCategory("my customer id")
+        .withServiceClass("my service class")
+        .withCategory("my category")
+        .withEventTime(date)
+        .withSignature("my signature")
+        .withNonce("my nonce")
+        .withHeaders("hola" -> "Hello", "hey" -> "como estas")
+
+      val eventLogJson = EventLogJsonSupport.ToJson[EventLog](eventLog).get \ "id"
+
+      import EventLogJsonSupport._
+      assert(eventLog.id == eventLogJson.extractOpt[String].getOrElse(""))
+
+    }
+
     "generate with headers" in {
 
       val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)

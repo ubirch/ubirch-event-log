@@ -78,6 +78,10 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
           .map { case (x, y) =>
             val commitDecision: Vector[Decision[ProducerRecord[String, String]]] = {
 
+              import org.json4s._
+
+              val eventLogJson = EventLogJsonSupport.ToJson[EventLog](x).get
+
               y.topics.map { t =>
                 Go(ProducerRecordHelper.toRecord(t, v1.id.toString, x.toString, Map.empty))
 
