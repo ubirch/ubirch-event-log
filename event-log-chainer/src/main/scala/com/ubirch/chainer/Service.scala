@@ -19,7 +19,7 @@ object Service extends Boot(ChainerServiceBinder.modules) {
 
     consumer.setDelaySingleRecord(50 micro)
     consumer.setConsumptionStrategy(All)
-    consumer.setDelayRecords(30 seconds)
+    consumer.setDelayRecords(10 seconds)
 
     consumer.start()
 

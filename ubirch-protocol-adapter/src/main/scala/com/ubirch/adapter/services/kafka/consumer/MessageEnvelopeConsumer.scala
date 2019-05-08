@@ -126,7 +126,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
 
   def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
 
-  def topic: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty)
+  def topic: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
   def configs: ConfigProperties = Configs(
     bootstrapServers = bootstrapServers,
