@@ -154,7 +154,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
 
   def main(args: Array[String]): Unit = {
 
-    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(5)
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(2000)
     val parallel = false
 
     val startTime = new Instant()
@@ -191,7 +191,8 @@ object SDKExample2 extends EventLogging with LazyLogging {
           |}
         """.stripMargin,
         serviceClass = "SDKExample2",
-        category = "UPA2"
+        category = "UPA",
+
       ).withRandomNonce
         .commitAsync
         .map(_ => countDown.countDown())
