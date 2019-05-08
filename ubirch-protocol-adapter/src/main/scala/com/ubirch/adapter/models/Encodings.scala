@@ -23,7 +23,7 @@ object Encodings extends LazyLogging {
 
   def UPA(messageEnvelopePipeData: MessageEnvelopePipeData): PartialFunction[JValue, MessageEnvelopePipeData] = {
 
-    case jv =>
+    case jv if Try(AdapterJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
       val messageEnvelope: MessageEnvelope = AdapterJsonSupport.FromJson[MessageEnvelope](jv).get
 
@@ -83,6 +83,26 @@ object Encodings extends LazyLogging {
       }
 
       messageEnvelopePipeData.copy(eventLog = Some(eventLog), producerRecord = pr)
+
+  }
+
+  def PublichBlockchain(messageEnvelopePipeData: MessageEnvelopePipeData): PartialFunction[JValue, MessageEnvelopePipeData] = {
+    case jv if Try(AdapterJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
+
+      val blockchainResponse: BlockchainResponse = AdapterJsonSupport.FromJson[BlockchainResponse](jv).get
+
+      val eventLog = EventLog("EventLogFromConsumerRecord", blockchainResponse.category, jv)
+        .withNewId(blockchainResponse.txid)
+        .withLookupKeys(Seq(
+          LookupKey(
+            "blockchain_tx_id",
+            blockchainResponse.category,
+            blockchainResponse.message,
+            Seq(blockchainResponse.txid)
+          )
+        ))
+
+      messageEnvelopePipeData.copy(eventLog = Some(eventLog), producerRecord = None)
 
   }
 
