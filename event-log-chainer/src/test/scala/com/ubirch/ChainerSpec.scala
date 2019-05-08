@@ -110,7 +110,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
-        assert(treeEventLog.customerId.isEmpty)
+        assert(treeEventLog.customerId == "ubirch")
+        assert(treeEventLog.serviceClass == "ubirchChainerSlave")
         assert(treeEventLog.category == ServiceTraits.SLAVE_TREE_CATEGORY)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)

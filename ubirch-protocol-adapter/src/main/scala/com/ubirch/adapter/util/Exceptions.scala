@@ -11,6 +11,8 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
+  case class JValueFromConsumerRecordException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+
   /**
     * Represents an exception thrown in the execution pipeline for when there has been an error creating
     * an EventLog from the Consumer Records that contains the Message Envelope

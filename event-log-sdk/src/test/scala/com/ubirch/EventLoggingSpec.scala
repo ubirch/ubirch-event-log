@@ -25,15 +25,17 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
 
         val configs = Configs(bootstrapServers = "localhost:" + kafKaConfig.kafkaPort)
 
+        val topic = "com.ubirch.eventlog.dispatch_request"
+
         setStringProducer(StringProducer(configs))
 
         val logged = logger.log(Hello("Hello")).withCustomerId("my customer id").commit
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged.toJson
+        consumeFirstStringMessageFrom(topic) mustBe logged.toJson
 
         val logged2 = logger.log(EventLogJsonSupport.ToJson("Hola").get).withCustomerId("my customer id").commit
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe logged2.toJson
+        consumeFirstStringMessageFrom(topic) mustBe logged2.toJson
 
         val log1 = log(EventLogJsonSupport.ToJson(Hello("Hola")).get, "My Category").withCustomerId("my customer id")
 
@@ -63,9 +65,9 @@ class EventLoggingSpec extends TestBase with MockitoSugar with LazyLogging {
         assert(log2.category == "My another Category")
         assert(log2.customerId == "my customer id 2")
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log1.toJson
+        consumeFirstStringMessageFrom(topic) mustBe log1.toJson
 
-        consumeFirstStringMessageFrom("com.ubirch.eventlog") mustBe log2.toJson
+        consumeFirstStringMessageFrom(topic) mustBe log2.toJson
 
         getStringProducer.getProducer.close()
       }

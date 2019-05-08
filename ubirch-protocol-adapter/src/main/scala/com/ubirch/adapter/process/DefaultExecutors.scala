@@ -1,18 +1,18 @@
 package com.ubirch.adapter.process
 
+import java.io.ByteArrayInputStream
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.adapter.ServiceTraits
+import com.ubirch.adapter.models.Encodings
 import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
 import com.ubirch.adapter.util.AdapterJsonSupport
 import com.ubirch.adapter.util.Exceptions._
-import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, LookupKey }
+import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
-import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -20,94 +20,24 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
 
-/**
-  * Represents an executor that converts a consumer record of type String, MessageEnvelope into
-  * an EventLog and wraps these values into the pipeline data.
-  *
-  * @param ec Represents an execution context
-  */
-class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
-  extends Executor[Vector[ConsumerRecord[String, MessageEnvelope]], Future[MessageEnvelopePipeData]]
+class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
+  extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
-  import AdapterJsonSupport._
   import org.json4s.jackson.JsonMethods._
 
-  override def apply(v1: Vector[ConsumerRecord[String, MessageEnvelope]]): Future[MessageEnvelopePipeData] = Future {
+  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[MessageEnvelopePipeData] = Future {
     val result: MessageEnvelopePipeData = try {
 
-      val maybeEventLog = v1.headOption.map(_.value()).map { messageEnvelope =>
-        val jValueCustomerId = messageEnvelope.context \\ EventLogFromConsumerRecord.CUSTOMER_ID_FIELD
-        val customerId = jValueCustomerId.extractOpt[String]
-          .filter(_.nonEmpty)
-          .getOrElse {
-            throw EventLogFromConsumerRecordException(
-              "No CustomerId found",
-              MessageEnvelopePipeData(v1, None, None, None)
-            )
-          }
+      val maybeJValue = v1.map { x => new ByteArrayInputStream(x.value()) }.map { x => parse(x) }.headOption
 
-        val payloadToJson = AdapterJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket)
-
-        val payload = payloadToJson.get
-
-        if (messageEnvelope.ubirchPacket.getHint == 0) {
-
-          val payloadHash = fromJsonNode(messageEnvelope.ubirchPacket.getPayload)
-            .extractOpt[String]
-            .filter(_.nonEmpty)
-            .getOrElse {
-              throw EventLogFromConsumerRecordException(
-                "Payload not found or is empty",
-                MessageEnvelopePipeData(v1, None, None, None)
-              )
-            }
-
-          val maybeSignature = Option(messageEnvelope.ubirchPacket)
-            .flatMap(x => Option(x.getSignature))
-            .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
-            .flatMap {
-              case Success(value) if value.nonEmpty => Some(value)
-              case Success(_) => None
-              case Failure(e) =>
-                logger.error("Error Parsing Into Event Log [Signature]: {}", e.getMessage)
-                throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", MessageEnvelopePipeData(v1, None, None, None))
-            }
-
-          //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
-          val maybeLookupKeys = maybeSignature.map { x =>
-            Seq(
-              LookupKey(
-                "signature",
-                ServiceTraits.ADAPTER_CATEGORY,
-                payloadHash,
-                Seq(x)
-              )
-            )
-          }.getOrElse(Nil)
-
-          EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
-            .withLookupKeys(maybeLookupKeys)
-            .withCustomerId(customerId)
-            .withNewId(payloadHash)
-
-        } else {
-          EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
-            .withCustomerId(customerId)
-        }
-
-      }
-
-      MessageEnvelopePipeData(v1, maybeEventLog, None, None)
+      MessageEnvelopePipeData(v1, maybeJValue, None, None, None)
 
     } catch {
-      case e: EventLogFromConsumerRecordException =>
-        throw e
       case e: Exception =>
-        logger.error("Error Parsing Into Event Log: {}", e.getMessage)
-        throw EventLogFromConsumerRecordException("Error Parsing Into Event Log", MessageEnvelopePipeData(v1, None, None, None))
+        logger.error("Error Parsing Into Bytes into JValue: {}", e.getMessage)
+        throw JValueFromConsumerRecordException("Error Parsing Into Event Log", MessageEnvelopePipeData(v1, None, None, None, None))
     }
 
     result
@@ -116,10 +46,35 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
 }
 
 /**
-  * Companion object for the executor EventLogFromConsumerRecord
+  * Represents an executor that converts a consumer record of type String, MessageEnvelope into
+  * an EventLog and wraps these values into the pipeline data.
+  *
+  * @param ec Represents an execution context
   */
-object EventLogFromConsumerRecord {
-  val CUSTOMER_ID_FIELD = "customerId"
+class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
+  extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  with LazyLogging {
+
+  def decode(messageEnvelopePipeData: MessageEnvelopePipeData) = Encodings.UPA(messageEnvelopePipeData)
+
+  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
+    val result: MessageEnvelopePipeData = try {
+
+      val jValue = v1.messageJValue.getOrElse { throw EventLogFromConsumerRecordException("No JValue Found", v1) }
+      val decoded = decode(v1)(jValue)
+
+      decoded
+
+    } catch {
+      case e: EventLogFromConsumerRecordException =>
+        throw e
+      case e: Exception =>
+        logger.error("Error Parsing Into Event Log: {}", e.getMessage)
+        throw EventLogFromConsumerRecordException("Error Parsing Into Event Log", v1)
+    }
+
+    result
+  }
 
 }
 
@@ -134,16 +89,19 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   with LazyLogging {
 
   override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
+
     v1.eventLog.map { el =>
       try {
         val signedEventLog = el.sign(config)
         v1.copy(eventLog = Some(signedEventLog))
       } catch {
-        case _: Exception =>
+        case e: Exception =>
+          logger.error("Error signing data: {}", e.getMessage)
           throw SigningEventLogException("Error signing data", v1)
       }
 
     }.getOrElse {
+      logger.error("No EventLog Found")
       throw SigningEventLogException("No EventLog Found", v1)
     }
   }
@@ -157,6 +115,7 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   */
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  with LazyLogging
   with ProducerConfPaths {
   override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = {
 
@@ -170,10 +129,8 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
           .map(AdapterJsonSupport.ToJson[EventLog])
           .map { x =>
             val commitDecision: Decision[ProducerRecord[String, String]] = {
-              if (v1.consumerRecords.headOption.exists(_.value().ubirchPacket.getHint == 0)) {
+              v1.producerRecord.getOrElse {
                 Go(ProducerRecordHelper.toRecord(topic, v1.id.toString, x.toString, Map.empty))
-              } else {
-                Ignore()
               }
             }
 
@@ -188,6 +145,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
       } catch {
 
         case e: Exception =>
+          logger.error("Error Creating producer record: {}", e.getMessage)
           throw CreateProducerRecordException(e.getMessage, v1)
 
       }
@@ -244,6 +202,8 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
   */
 trait ExecutorFamily {
 
+  def jValueFromConsumerRecord: JValueFromConsumerRecord
+
   def eventLogFromConsumerRecord: EventLogFromConsumerRecord
 
   def createProducerRecord: CreateProducerRecord
@@ -264,6 +224,7 @@ trait ExecutorFamily {
   */
 @Singleton
 class DefaultExecutorFamily @Inject() (
+    val jValueFromConsumerRecord: JValueFromConsumerRecord,
     val eventLogFromConsumerRecord: EventLogFromConsumerRecord,
     val createProducerRecord: CreateProducerRecord,
     val eventLogSigner: EventLogSigner,

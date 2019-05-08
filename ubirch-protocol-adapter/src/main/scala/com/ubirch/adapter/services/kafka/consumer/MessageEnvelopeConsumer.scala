@@ -7,7 +7,6 @@ import com.ubirch.adapter.process.ExecutorFamily
 import com.ubirch.adapter.util.Exceptions._
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
-import com.ubirch.kafka.{ EnvelopeDeserializer, MessageEnvelope }
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.{ ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
@@ -17,7 +16,9 @@ import com.ubirch.util.{ Decision, URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
-import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
+import org.json4s.JValue
+import org.json4s.JsonAST.JString
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -29,23 +30,18 @@ import scala.concurrent.{ ExecutionContext, Future }
   * @param recordMetadata Represents the response gotten from the publishing of the producer record.
   */
 case class MessageEnvelopePipeData(
-    consumerRecords: Vector[ConsumerRecord[String, MessageEnvelope]],
+    consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]],
+    messageJValue: Option[JValue],
     eventLog: Option[EventLog],
     producerRecord: Option[Decision[ProducerRecord[String, String]]],
     recordMetadata: Option[RecordMetadata]
 )
-  extends EventLogPipeData[MessageEnvelope] with WithPublishingData[String]
-
-/**
-  * Represents an Envelope Consumer.
-  * @param ec Represents an execution context
-  */
-class MessageEnvelopeConsumer(implicit val ec: ExecutionContext) extends ConsumerRunner[String, MessageEnvelope](ConsumerRunner.name)
+  extends EventLogPipeData[Array[Byte]] with WithPublishingData[String]
 
 /**
   * Represents the Message Envelope Manager Description
   */
-trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[String, MessageEnvelope] {
+trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[String, Array[Byte]] {
   val executorFamily: ExecutorFamily
 }
 
@@ -60,33 +56,39 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
   extends MessageEnvelopeConsumerRecordsManager
   with LazyLogging {
 
+  import org.json4s.jackson.JsonMethods._
   import reporter.Types._
 
   type A = MessageEnvelopePipeData
 
-  def executor: Executor[Vector[ConsumerRecord[String, MessageEnvelope]], Future[MessageEnvelopePipeData]] = {
-    executorFamily.eventLogFromConsumerRecord andThen
+  def executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[MessageEnvelopePipeData]] = {
+    executorFamily.jValueFromConsumerRecord andThen
+      executorFamily.eventLogFromConsumerRecord andThen
       executorFamily.eventLogSigner andThen
       executorFamily.createProducerRecord andThen
       executorFamily.commit
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
+    case e @ JValueFromConsumerRecordException(_, pipeData) =>
+      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.toString))
+      Future.successful(pipeData)
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
       logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = compact(pipeData.messageJValue.getOrElse(JString("No JValue")))))
       Future.successful(pipeData)
     case e @ SigningEventLogException(_, pipeData) =>
       logger.debug("SigningEventLogException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
       logger.debug("CreateProducerRecordException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
       logger.debug("CommitException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
   }
 
@@ -104,19 +106,19 @@ class DefaultMessageEnvelopeConsumer @Inject() (
     lifecycle: Lifecycle,
     controller: MessageEnvelopeConsumerRecordsManager
 )(implicit ec: ExecutionContext)
-  extends Provider[MessageEnvelopeConsumer]
+  extends Provider[BytesConsumer]
   with ConsumerConfPaths
   with LazyLogging {
 
   import UUIDHelper._
 
   lazy val consumerConfigured = {
-    val consumerImp = new MessageEnvelopeConsumer() with WithMetrics[String, MessageEnvelope]
+    val consumerImp = new BytesConsumer() with WithMetrics[String, Array[Byte]]
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(Set(topic))
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
-    consumerImp.setValueDeserializer(Some(EnvelopeDeserializer))
+    consumerImp.setValueDeserializer(Some(new ByteArrayDeserializer()))
     consumerImp.setUseSelfAsRebalanceListener(true)
     consumerImp.setConsumerRecordsController(Some(controller))
     consumerImp
@@ -141,7 +143,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
     else gid
   }
 
-  override def get(): MessageEnvelopeConsumer = consumerConfigured
+  override def get(): BytesConsumer = consumerConfigured
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Consumer: " + consumerConfigured.getName)
