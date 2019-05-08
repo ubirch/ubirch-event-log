@@ -117,7 +117,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> ServiceTraits.SLAVE_TREE_CATEGORY))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse(""))
-        assert(treeEventLog.lookupKeys == Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.getNodes.map(_.value))))
+        assert(treeEventLog.lookupKeys ==
+          Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.getHashes.flatten)))
+        assert(events.map(_.hash).sorted == chainer.getHashes.flatten.sorted)
+        assert(events.size  ==  chainer.getHashes.flatten.size)
+        assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         assert(chainer.getNodes.map(_.value).size == customerIds.size)
         assert(chainer.getHashes.flatten.size == events.size)
