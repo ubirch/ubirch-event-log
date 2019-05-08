@@ -115,7 +115,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
   lazy val consumerConfigured = {
     val consumerImp = new BytesConsumer() with WithMetrics[String, Array[Byte]]
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(Set(topic))
+    consumerImp.setTopics(topic)
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new ByteArrayDeserializer()))
@@ -126,7 +126,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
 
   def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
 
-  def topic: String = config.getString(TOPIC_PATH)
+  def topic: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty)
 
   def configs: ConfigProperties = Configs(
     bootstrapServers = bootstrapServers,
