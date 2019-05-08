@@ -147,7 +147,9 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
       val chainerEventLog = v1.chainer.flatMap { _.getNode }
         .map { node =>
+
           Try(EventLogJsonSupport.ToJson(node).get).map {
+            logger.debug(s"new chainer tree created, root hash is: ${node.value}")
             EventLog(_)
               .withCategory(ServiceTraits.SLAVE_TREE_CATEGORY)
               .withCustomerId("ubirch")
