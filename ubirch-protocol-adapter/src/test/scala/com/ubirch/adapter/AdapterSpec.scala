@@ -7,9 +7,9 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.adapter.services.AdapterServiceBinder
-import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopeConsumer
 import com.ubirch.adapter.util.AdapterJsonSupport
 import com.ubirch.kafka.MessageEnvelope
+import com.ubirch.kafka.consumer.BytesConsumer
 import com.ubirch.models.{ EventLog, LookupKey }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
@@ -63,7 +63,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -121,7 +121,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -165,7 +165,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -200,7 +200,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -216,7 +216,8 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
 
-        assert(error.value == entity1.toString)
+        //Ubirch Packet is not with underscores.
+        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -245,7 +246,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -261,7 +262,8 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
 
-        assert(error.value == entity1.toString)
+        //Ubirch Packet is not with underscores.
+        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -290,7 +292,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -306,7 +308,8 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
 
-        assert(error.value == entity1.toString)
+        //Ubirch Packet is not with underscores.
+        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -335,7 +338,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         publishToKafka(messageEnvelopeTopic, entity1)
 
         //Consumer
-        val consumer = InjectorHelper.get[MessageEnvelopeConsumer]
+        val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -351,7 +354,8 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
 
-        assert(error.value == entity1.toString)
+        //Ubirch Packet is not with underscores.
+        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 

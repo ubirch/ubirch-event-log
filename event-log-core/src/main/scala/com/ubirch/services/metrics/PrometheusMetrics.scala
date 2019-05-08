@@ -1,7 +1,6 @@
 package com.ubirch.services.metrics
 
 import java.net.BindException
-import java.util.Random
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging

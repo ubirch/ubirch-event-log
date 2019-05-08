@@ -4,7 +4,8 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.adapter.process.{ DefaultExecutorFamily, ExecutorFamily }
-import com.ubirch.adapter.services.kafka.consumer.{ DefaultMessageEnvelopeConsumer, DefaultMessageEnvelopeManager, MessageEnvelopeConsumer, MessageEnvelopeConsumerRecordsManager }
+import com.ubirch.adapter.services.kafka.consumer.{ DefaultMessageEnvelopeConsumer, DefaultMessageEnvelopeManager, MessageEnvelopeConsumerRecordsManager }
+import com.ubirch.kafka.consumer.BytesConsumer
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services._
 import com.ubirch.services.config.ConfigProvider
@@ -29,7 +30,7 @@ class AdapterServiceBinder
   def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
   def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[MessageEnvelopeConsumerRecordsManager]).to(classOf[DefaultMessageEnvelopeManager])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
-  def consumer: ScopedBindingBuilder = bind(classOf[MessageEnvelopeConsumer]).toProvider(classOf[DefaultMessageEnvelopeConsumer])
+  def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultMessageEnvelopeConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
 
   override def configure(): Unit = {
