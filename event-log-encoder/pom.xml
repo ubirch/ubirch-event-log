@@ -11,10 +11,10 @@
     </parent>
 
     <!-- basic info -->
-    <artifactId>ubirch-protocol-adapter</artifactId>
+    <artifactId>event-log-encoder</artifactId>
     <version>1.2.0</version>
     <name>${project.artifactId}</name>
-    <description>ubirch protocol adaptor service for the Ubirch Platform</description>
+    <description>Event Log Encoder service for the Ubirch Platform that understands MessageEnvelopes and Blockchain Responses </description>
     <inceptionYear>2018</inceptionYear>
 
     <dependencies>
@@ -133,7 +133,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.ubirch.adapter.Service</mainClass>
+                            <mainClass>com.ubirch.encoder.Service</mainClass>
                             <useUniqueVersions>false</useUniqueVersions>
                         </manifest>
                     </archive>

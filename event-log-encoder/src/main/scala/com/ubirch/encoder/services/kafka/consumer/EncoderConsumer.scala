@@ -1,10 +1,10 @@
-package com.ubirch.adapter.services.kafka.consumer
+package com.ubirch.encoder.services.kafka.consumer
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
-import com.ubirch.adapter.process.ExecutorFamily
-import com.ubirch.adapter.util.Exceptions._
+import com.ubirch.encoder.process.ExecutorFamily
+import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.{ Error, EventLog }
@@ -29,7 +29,7 @@ import scala.concurrent.{ ExecutionContext, Future }
   * @param producerRecord Represents the Producer Record that is published back to kafka
   * @param recordMetadata Represents the response gotten from the publishing of the producer record.
   */
-case class MessageEnvelopePipeData(
+case class EncoderPipeData(
     consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]],
     messageJValue: Option[JValue],
     eventLog: Option[EventLog],
@@ -41,7 +41,7 @@ case class MessageEnvelopePipeData(
 /**
   * Represents the Message Envelope Manager Description
   */
-trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[String, Array[Byte]] {
+trait EncoderConsumerRecordsManager extends ConsumerRecordsManager[String, Array[Byte]] {
   val executorFamily: ExecutorFamily
 }
 
@@ -52,16 +52,16 @@ trait MessageEnvelopeConsumerRecordsManager extends ConsumerRecordsManager[Strin
   * @param ec Represents an execution context
   */
 @Singleton
-class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val executorFamily: ExecutorFamily)(implicit ec: ExecutionContext)
-  extends MessageEnvelopeConsumerRecordsManager
+class DefaultEncoderManager @Inject() (val reporter: Reporter, val executorFamily: ExecutorFamily)(implicit ec: ExecutionContext)
+  extends EncoderConsumerRecordsManager
   with LazyLogging {
 
   import org.json4s.jackson.JsonMethods._
   import reporter.Types._
 
-  type A = MessageEnvelopePipeData
+  type A = EncoderPipeData
 
-  def executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[MessageEnvelopePipeData]] = {
+  def executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]] = {
     executorFamily.jValueFromConsumerRecord andThen
       executorFamily.eventLogFromConsumerRecord andThen
       executorFamily.eventLogSigner andThen
@@ -69,7 +69,7 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
       executorFamily.commit
   }
 
-  def executorExceptionHandler: PartialFunction[Throwable, Future[MessageEnvelopePipeData]] = {
+  def executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
     case e @ JValueFromConsumerRecordException(_, pipeData) =>
       logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.toString))
@@ -101,10 +101,10 @@ class DefaultMessageEnvelopeManager @Inject() (val reporter: Reporter, val execu
   * @param controller Represents a Message Envelope Records Controller
   * @param ec Represents an execution context
   */
-class DefaultMessageEnvelopeConsumer @Inject() (
+class DefaultEncoderConsumer @Inject() (
     config: Config,
     lifecycle: Lifecycle,
-    controller: MessageEnvelopeConsumerRecordsManager
+    controller: EncoderConsumerRecordsManager
 )(implicit ec: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerConfPaths
@@ -139,7 +139,7 @@ class DefaultMessageEnvelopeConsumer @Inject() (
 
   def groupId: String = {
     val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "adapter_event_log_group_" + randomUUID
+    if (gid.isEmpty) "encoder_event_log_group_" + randomUUID
     else gid
   }
 

@@ -1,4 +1,4 @@
-package com.ubirch.adapter.models
+package com.ubirch.encoder.models
 
 /**
   * {

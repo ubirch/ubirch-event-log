@@ -1,4 +1,4 @@
-package com.ubirch.adapter
+package com.ubirch.encoder
 
 import java.util.UUID
 import java.util.concurrent.TimeoutException
@@ -6,8 +6,8 @@ import java.util.concurrent.TimeoutException
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.adapter.services.AdapterServiceBinder
-import com.ubirch.adapter.util.AdapterJsonSupport
+import com.ubirch.encoder.services.EncoderServiceBinder
+import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.BytesConsumer
 import com.ubirch.models.{ EventLog, LookupKey }
@@ -19,7 +19,7 @@ import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods.parse
 
-class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new AdapterServiceBinder {
+class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new EncoderServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
@@ -35,12 +35,12 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
   })
 }))
 
-class AdapterSpec extends TestBase with LazyLogging {
+class EncoderSpec extends TestBase with LazyLogging {
 
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
 
-  "Adapter Spec for MessageEnvelope" must {
+  "Encoder Spec for MessageEnvelope" must {
 
     "consume message envelope and publish event log with hint = 0 with lookup key" in {
 
@@ -73,15 +73,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
 
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
 
         val lookupKeys = Seq(
           LookupKey(
             "signature",
-            ServiceTraits.ADAPTER_CATEGORY,
+            ServiceTraits.ENCODER_CATEGORY,
             "3",
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -91,10 +91,10 @@ class AdapterSpec extends TestBase with LazyLogging {
           )
         )
 
-        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -132,15 +132,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
 
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
 
-        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
 
       }
 
@@ -211,15 +211,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
         //Ubirch Packet is not with underscores.
-        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -257,15 +257,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "Error Parsing Into Event Log")
 
-        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
         //Ubirch Packet is not with underscores.
-        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -303,15 +303,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
         //Ubirch Packet is not with underscores.
-        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -349,15 +349,15 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
         //Ubirch Packet is not with underscores.
-        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(entity1)))
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
 
@@ -367,9 +367,9 @@ class AdapterSpec extends TestBase with LazyLogging {
 
   }
 
-  "Adapter Spec for BlockchainResponse" must {
+  "Encoder Spec for BlockchainResponse" must {
 
-    "consume message envelope and publish event log with lookup key" in {
+    "consume blockchain response and publish event log with lookup key" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -407,7 +407,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
 
         assert(eventLog.category == "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK")
         assert(eventLog.event == parse(blockchainResp))
@@ -426,9 +426,9 @@ class AdapterSpec extends TestBase with LazyLogging {
     }
   }
 
-  "Adapter Spec for unsupported message" must {
+  "Encoder Spec for unsupported message" must {
 
-    "consume message envelope and publish event log with lookup key" in {
+    "fail when message not supported" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -457,20 +457,20 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(errorTopic)
 
-        val eventLog: EventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
-        val error = AdapterJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "Error Parsing Into Event Log")
-        assert(error.exceptionName == "com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException")
-        //        assert(error.value == AdapterJsonSupport.stringify(AdapterJsonSupport.to(blockchainResp)))
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
+        //        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(blockchainResp)))
 
       }
     }
   }
 
-  "Adapter Spec reading from multiple topics" must {
+  "Encoder Spec reading from multiple topics" must {
 
-    "consume message envelope and publish event log with hint = 0 with lookup key" in {
+    "consume messages from different topics" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -506,12 +506,12 @@ class AdapterSpec extends TestBase with LazyLogging {
 
         Thread.sleep(10000)
 
-        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+        val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
         val lookupKeys = Seq(
           LookupKey(
             "signature",
-            ServiceTraits.ADAPTER_CATEGORY,
+            ServiceTraits.ENCODER_CATEGORY,
             "3",
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -522,22 +522,22 @@ class AdapterSpec extends TestBase with LazyLogging {
         )
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
 
-        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
         val readMessage1 = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog1 = AdapterJsonSupport.FromString[EventLog](readMessage1).get
+        val eventLog1 = EncoderJsonSupport.FromString[EventLog](readMessage1).get
 
-        assert(eventLog1.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog1.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog1.customerId == customerId)
         assert(eventLog1.signature == signature)
-        assert(eventLog1.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog1.category == ServiceTraits.ENCODER_CATEGORY)
         assert(eventLog1.lookupKeys == lookupKeys)
         assert(eventLog1.nonce.nonEmpty)
 
