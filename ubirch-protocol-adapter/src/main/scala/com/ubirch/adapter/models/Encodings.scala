@@ -73,6 +73,7 @@ object Encodings extends LazyLogging {
         val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
           .withLookupKeys(maybeLookupKeys)
           .withCustomerId(customerId)
+          .withRandomNonce
           .withNewId(payloadHash)
 
         (el, None)

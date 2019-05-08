@@ -96,6 +96,7 @@ class AdapterSpec extends TestBase with LazyLogging {
         assert(eventLog.signature == signature)
         assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
+        assert(eventLog.nonce.nonEmpty)
 
       }
 
