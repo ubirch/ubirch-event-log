@@ -24,5 +24,14 @@
         "data_to_send": "id"
       }
     ]
+  },
+  {
+    "category": "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      }
+    ]
   }
 ]

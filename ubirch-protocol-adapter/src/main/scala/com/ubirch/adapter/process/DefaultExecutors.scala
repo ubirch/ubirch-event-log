@@ -55,7 +55,9 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
   with LazyLogging {
 
-  def decode(messageEnvelopePipeData: MessageEnvelopePipeData) = Encodings.UPA(messageEnvelopePipeData)
+  def decode(messageEnvelopePipeData: MessageEnvelopePipeData) = {
+    Encodings.UPA(messageEnvelopePipeData).orElse(Encodings.PublichBlockchain(messageEnvelopePipeData))
+  }
 
   override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
     val result: MessageEnvelopePipeData = try {
