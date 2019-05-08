@@ -98,8 +98,8 @@ object Encodings extends LazyLogging {
           LookupKey(
             "blockchain_tx_id",
             blockchainResponse.category,
-            blockchainResponse.message,
-            Seq(blockchainResponse.txid)
+            blockchainResponse.txid,
+            Seq(blockchainResponse.message)
           )
         ))
 
