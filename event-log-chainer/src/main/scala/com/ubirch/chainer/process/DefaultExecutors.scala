@@ -196,7 +196,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
           treeId <- treeEventLogId
           ch <- v1.chainer
         } yield {
-          val values = ch.getNodes.map(_.value)
+          val values = ch.getHashes.flatten
           LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeId, values)
         }
 
