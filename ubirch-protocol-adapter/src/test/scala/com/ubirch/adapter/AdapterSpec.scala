@@ -468,4 +468,82 @@ class AdapterSpec extends TestBase with LazyLogging {
     }
   }
 
+  "Adapter Spec reading from multiple topics" must {
+
+    "consume message envelope and publish event log with hint = 0 with lookup key" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+
+      val topic2 = "topic2"
+
+      val topics = List(messageEnvelopeTopic, topic2)
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+        publishToKafka(topic2, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(topics.toSet)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(10000)
+
+        val eventBytes = SigningHelper.getBytesFromString(AdapterJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+        val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+        val lookupKeys = Seq(
+          LookupKey(
+            "signature",
+            ServiceTraits.ADAPTER_CATEGORY,
+            "3",
+            Seq {
+              org.bouncycastle.util.encoders.Base64.toBase64String {
+                org.bouncycastle.util.Strings.toByteArray("1111")
+              }
+            }
+          )
+        )
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = AdapterJsonSupport.FromString[EventLog](readMessage).get
+
+        assert(eventLog.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.customerId == customerId)
+        assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog.lookupKeys == lookupKeys)
+        assert(eventLog.nonce.nonEmpty)
+
+        val readMessage1 = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog1 = AdapterJsonSupport.FromString[EventLog](readMessage1).get
+
+        assert(eventLog1.event == AdapterJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog1.customerId == customerId)
+        assert(eventLog1.signature == signature)
+        assert(eventLog1.category == ServiceTraits.ADAPTER_CATEGORY)
+        assert(eventLog1.lookupKeys == lookupKeys)
+        assert(eventLog1.nonce.nonEmpty)
+
+      }
+
+    }
+  }
+
 }
