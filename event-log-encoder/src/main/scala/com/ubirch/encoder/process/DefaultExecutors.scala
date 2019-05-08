@@ -1,14 +1,14 @@
-package com.ubirch.adapter.process
+package com.ubirch.encoder.process
 
 import java.io.ByteArrayInputStream
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.adapter.models.Encodings
-import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
-import com.ubirch.adapter.util.AdapterJsonSupport
-import com.ubirch.adapter.util.Exceptions._
+import com.ubirch.encoder.models.Encodings
+import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
+import com.ubirch.encoder.util.EncoderJsonSupport
+import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.EventLog
@@ -22,22 +22,22 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import scala.concurrent.{ ExecutionContext, Future }
 
 class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
-  extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[MessageEnvelopePipeData]]
+  extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
   with LazyLogging {
 
   import org.json4s.jackson.JsonMethods._
 
-  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[MessageEnvelopePipeData] = Future {
-    val result: MessageEnvelopePipeData = try {
+  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
+    val result: EncoderPipeData = try {
 
       val maybeJValue = v1.map { x => new ByteArrayInputStream(x.value()) }.map { x => parse(x) }.headOption
 
-      MessageEnvelopePipeData(v1, maybeJValue, None, None, None)
+      EncoderPipeData(v1, maybeJValue, None, None, None)
 
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Into Bytes into JValue: {}", e.getMessage)
-        throw JValueFromConsumerRecordException("Error Parsing Into Event Log", MessageEnvelopePipeData(v1, None, None, None, None))
+        throw JValueFromConsumerRecordException("Error Parsing Into Event Log", EncoderPipeData(v1, None, None, None, None))
     }
 
     result
@@ -52,15 +52,15 @@ class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   * @param ec Represents an execution context
   */
 class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
-  extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
-  def decode(messageEnvelopePipeData: MessageEnvelopePipeData) = {
-    Encodings.UPA(messageEnvelopePipeData).orElse(Encodings.PublichBlockchain(messageEnvelopePipeData))
+  def decode(encoderPipeData: EncoderPipeData) = {
+    Encodings.UPA(encoderPipeData).orElse(Encodings.PublichBlockchain(encoderPipeData))
   }
 
-  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
-    val result: MessageEnvelopePipeData = try {
+  override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = v1.map { v1 =>
+    val result: EncoderPipeData = try {
 
       val jValue = v1.messageJValue.getOrElse { throw EventLogFromConsumerRecordException("No JValue Found", v1) }
       val decoded = decode(v1)(jValue)
@@ -87,10 +87,10 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   * @param ec Represent the execution context for asynchronous processing.
   */
 class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
-  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = v1.map { v1 =>
+  override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = v1.map { v1 =>
 
     v1.eventLog.map { el =>
       try {
@@ -116,10 +116,10 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param ec     Represents an execution context
   */
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]]
+  extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging
   with ProducerConfPaths {
-  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = {
+  override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = {
 
     v1.map { v1 =>
 
@@ -128,7 +128,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
         val output = v1.eventLog
-          .map(AdapterJsonSupport.ToJson[EventLog])
+          .map(EncoderJsonSupport.ToJson[EventLog])
           .map { x =>
             val commitDecision: Decision[ProducerRecord[String, String]] = {
               v1.producerRecord.getOrElse {
@@ -163,7 +163,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   * @param config         Represents a config object to read config values from
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[MessageEnvelopePipeData], Future[MessageEnvelopePipeData]] {
+class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]] {
 
   val futureHelper = new FutureHelper()
 
@@ -177,7 +177,7 @@ class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit
     }
   }
 
-  override def apply(v1: Future[MessageEnvelopePipeData]): Future[MessageEnvelopePipeData] = {
+  override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = {
 
     v1.flatMap { v1 =>
 

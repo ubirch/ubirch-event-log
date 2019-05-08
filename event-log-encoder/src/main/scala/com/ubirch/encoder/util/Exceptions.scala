@@ -1,6 +1,6 @@
-package com.ubirch.adapter.util
+package com.ubirch.encoder.util
 
-import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
+import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.util.Exceptions.ExecutionException
 
 /**
@@ -11,7 +11,7 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
-  case class JValueFromConsumerRecordException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+  case class JValueFromConsumerRecordException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**
     * Represents an exception thrown in the execution pipeline for when there has been an error creating
@@ -19,7 +19,7 @@ object Exceptions {
     * @param message Represents the error message.
     * @param pipeData Represents a convenience for handling and keeping data through the pipeline
     */
-  case class EventLogFromConsumerRecordException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+  case class EventLogFromConsumerRecordException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**
     * Represents an exception thrown in the execution pipeline for when there has been an error creating
@@ -27,14 +27,14 @@ object Exceptions {
     * @param message Represents the error message.
     * @param pipeData Represents a convenience for handling and keeping data through the pipeline
     */
-  case class CreateProducerRecordException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+  case class CreateProducerRecordException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**
     * Represents an exception thrown when signing a EventLog message
     * @param message Represents the error message.
     * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
     */
-  case class SigningEventLogException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+  case class SigningEventLogException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**
     * Represents an exception thrown in the execution pipeline for when there has been an error committing the producer record value
@@ -42,7 +42,7 @@ object Exceptions {
     * @param message Represents the error message.
     * @param pipeData Represents a convenience for handling and keeping data through the pipeline
     */
-  case class CommitException(message: String, pipeData: MessageEnvelopePipeData) extends ExecutionException(message)
+  case class CommitException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
 

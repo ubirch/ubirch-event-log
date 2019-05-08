@@ -1,4 +1,4 @@
-package com.ubirch.adapter
+package com.ubirch.encoder
 
 import net.manub.embeddedkafka.EmbeddedKafka
 import org.scalatest.concurrent.ScalaFutures

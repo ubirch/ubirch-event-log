@@ -1,10 +1,10 @@
-package com.ubirch.adapter.services
+package com.ubirch.encoder.services
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
-import com.ubirch.adapter.process.{ DefaultExecutorFamily, ExecutorFamily }
-import com.ubirch.adapter.services.kafka.consumer.{ DefaultMessageEnvelopeConsumer, DefaultMessageEnvelopeManager, MessageEnvelopeConsumerRecordsManager }
+import com.ubirch.encoder.process.{ DefaultExecutorFamily, ExecutorFamily }
+import com.ubirch.encoder.services.kafka.consumer.{ DefaultEncoderConsumer, DefaultEncoderManager, EncoderConsumerRecordsManager }
 import com.ubirch.kafka.consumer.BytesConsumer
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services._
@@ -16,9 +16,9 @@ import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook
 import scala.concurrent.ExecutionContext
 
 /**
-  * Core Adapter Service Wiring
+  * Core Encoder Service Wiring
   */
-class AdapterServiceBinder
+class EncoderServiceBinder
   extends AbstractModule
   with BasicServices
   with ExecutionServices
@@ -28,9 +28,9 @@ class AdapterServiceBinder
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
   def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
-  def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[MessageEnvelopeConsumerRecordsManager]).to(classOf[DefaultMessageEnvelopeManager])
+  def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[EncoderConsumerRecordsManager]).to(classOf[DefaultEncoderManager])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
-  def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultMessageEnvelopeConsumer])
+  def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultEncoderConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
 
   override def configure(): Unit = {
@@ -47,8 +47,8 @@ class AdapterServiceBinder
 }
 
 /**
-  * Represents the companion object for the AdapterServiceBinder
+  * Represents the companion object for the EncoderServiceBinder
   */
-object AdapterServiceBinder {
-  val modules: List[Module] = List(new AdapterServiceBinder)
+object EncoderServiceBinder {
+  val modules: List[Module] = List(new EncoderServiceBinder)
 }

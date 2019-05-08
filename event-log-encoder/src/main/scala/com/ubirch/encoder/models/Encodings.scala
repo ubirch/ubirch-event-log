@@ -1,10 +1,10 @@
-package com.ubirch.adapter.models
+package com.ubirch.encoder.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.adapter.ServiceTraits
-import com.ubirch.adapter.services.kafka.consumer.MessageEnvelopePipeData
-import com.ubirch.adapter.util.AdapterJsonSupport
-import com.ubirch.adapter.util.Exceptions.EventLogFromConsumerRecordException
+import com.ubirch.encoder.ServiceTraits
+import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
+import com.ubirch.encoder.util.EncoderJsonSupport
+import com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.{ EventLog, LookupKey }
 import com.ubirch.protocol.ProtocolMessage
@@ -16,25 +16,25 @@ import scala.util.{ Failure, Success, Try }
 
 object Encodings extends LazyLogging {
 
-  import AdapterJsonSupport._
+  import EncoderJsonSupport._
   import org.json4s.jackson.JsonMethods._
 
   val CUSTOMER_ID_FIELD = "customerId"
 
-  def UPA(messageEnvelopePipeData: MessageEnvelopePipeData): PartialFunction[JValue, MessageEnvelopePipeData] = {
+  def UPA(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
 
-    case jv if Try(AdapterJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
+    case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
-      val messageEnvelope: MessageEnvelope = AdapterJsonSupport.FromJson[MessageEnvelope](jv).get
+      val messageEnvelope: MessageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
 
       val jValueCustomerId = messageEnvelope.context \\ CUSTOMER_ID_FIELD
       val customerId = jValueCustomerId.extractOpt[String]
         .filter(_.nonEmpty)
         .getOrElse {
-          throw EventLogFromConsumerRecordException("No CustomerId found", messageEnvelopePipeData)
+          throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
         }
 
-      val payloadToJson = AdapterJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket)
+      val payloadToJson = EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket)
 
       val payload = payloadToJson.get
 
@@ -44,7 +44,7 @@ object Encodings extends LazyLogging {
           .extractOpt[String]
           .filter(_.nonEmpty)
           .getOrElse {
-            throw EventLogFromConsumerRecordException("Payload not found or is empty", messageEnvelopePipeData)
+            throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData)
           }
 
         val maybeSignature = Option(messageEnvelope.ubirchPacket)
@@ -55,7 +55,7 @@ object Encodings extends LazyLogging {
             case Success(_) => None
             case Failure(e) =>
               logger.error("Error Parsing Into Event Log [Signature]: {}", e.getMessage)
-              throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", messageEnvelopePipeData)
+              throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", encoderPipeData)
           }
 
         //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
@@ -63,14 +63,14 @@ object Encodings extends LazyLogging {
           Seq(
             LookupKey(
               "signature",
-              ServiceTraits.ADAPTER_CATEGORY,
+              ServiceTraits.ENCODER_CATEGORY,
               payloadHash,
               Seq(x)
             )
           )
         }.getOrElse(Nil)
 
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload)
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload)
           .withLookupKeys(maybeLookupKeys)
           .withCustomerId(customerId)
           .withRandomNonce
@@ -79,18 +79,18 @@ object Encodings extends LazyLogging {
         (el, None)
 
       } else {
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, payload).withCustomerId(customerId)
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload).withCustomerId(customerId)
         (el, Some(Ignore[ProducerRecord[String, String]]()))
       }
 
-      messageEnvelopePipeData.copy(eventLog = Some(eventLog), producerRecord = pr)
+      encoderPipeData.copy(eventLog = Some(eventLog), producerRecord = pr)
 
   }
 
-  def PublichBlockchain(messageEnvelopePipeData: MessageEnvelopePipeData): PartialFunction[JValue, MessageEnvelopePipeData] = {
-    case jv if Try(AdapterJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
+  def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
+    case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
 
-      val blockchainResponse: BlockchainResponse = AdapterJsonSupport.FromJson[BlockchainResponse](jv).get
+      val blockchainResponse: BlockchainResponse = EncoderJsonSupport.FromJson[BlockchainResponse](jv).get
 
       val eventLog = EventLog("EventLogFromConsumerRecord", blockchainResponse.category, jv)
         .withNewId(blockchainResponse.txid)
@@ -103,7 +103,7 @@ object Encodings extends LazyLogging {
           )
         ))
 
-      messageEnvelopePipeData.copy(eventLog = Some(eventLog), producerRecord = None)
+      encoderPipeData.copy(eventLog = Some(eventLog), producerRecord = None)
 
   }
 
