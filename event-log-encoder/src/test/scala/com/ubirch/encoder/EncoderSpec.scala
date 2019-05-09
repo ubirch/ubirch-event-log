@@ -416,8 +416,8 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "blockchain_tx_id",
             "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK",
-            "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19",
-            Seq("51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0")
+            "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
+            Seq("e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19")
           )
         ))
 
