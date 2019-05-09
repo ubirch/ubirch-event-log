@@ -10,7 +10,7 @@ import com.ubirch.util.UUIDHelper
   *           Chainable
   * @tparam T Represents the type T of the elements to chain.
   */
-class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
+class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
 
   private var grouped: List[List[T]] = Nil
   private var seedHashes: List[List[String]] = Nil
