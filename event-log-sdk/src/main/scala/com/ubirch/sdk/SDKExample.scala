@@ -19,7 +19,7 @@ object SDKExample extends EventLogging with LazyLogging {
 
   def main(args: Array[String]): Unit = {
 
-    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(1000000)
+    val loop = args.headOption.flatMap(x => Try(x.toInt).toOption).getOrElse(1000)
 
     val startTime = new Instant()
     logger.info("Current time: " + startTime)

@@ -65,6 +65,8 @@ spec:
                         value: "{{ .Values.eventLog.kafkaProducer.errorTopic}}"
                       - name: EVTL_PROM_HTTP_PORT
                         value: "{{ .Values.eventLog.prometheus.httpPort}}"
+                      - name: EVTL_JAVA_OPTS
+                        value: "{{ .Values.eventLog.javaopts}}"
                   resources:
 {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}

@@ -63,15 +63,35 @@ object Encodings extends LazyLogging {
           Seq(
             LookupKey(
               "signature",
-              ServiceTraits.ENCODER_CATEGORY,
+              ServiceTraits.UPP_CATEGORY,
               payloadHash,
               Seq(x)
             )
           )
         }.getOrElse(Nil)
 
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload)
-          .withLookupKeys(maybeLookupKeys)
+        val maybeChain = Option(messageEnvelope.ubirchPacket)
+          .flatMap(x => Option(x.getChain))
+          .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
+          .map {
+            case Success(value) if value.nonEmpty =>
+              Seq(
+                LookupKey(
+                  "upp-chain",
+                  ServiceTraits.CHAIN_CATEGORY,
+                  payloadHash,
+                  Seq(value)
+                )
+              )
+            case Success(_) =>
+              Seq.empty
+            case Failure(e) =>
+              logger.error("Error Parsing Into Event Log [Chain]: {}", e.getMessage)
+              throw EventLogFromConsumerRecordException(s"Error parsing chain [${e.getMessage}] ", encoderPipeData)
+          }.getOrElse(Nil)
+
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload)
+          .withLookupKeys(maybeLookupKeys ++ maybeChain)
           .withCustomerId(customerId)
           .withRandomNonce
           .withNewId(payloadHash)
@@ -79,7 +99,7 @@ object Encodings extends LazyLogging {
         (el, None)
 
       } else {
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload).withCustomerId(customerId)
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload).withCustomerId(customerId)
         (el, Some(Ignore[ProducerRecord[String, String]]()))
       }
 
