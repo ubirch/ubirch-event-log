@@ -5,15 +5,15 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.lookup.models.{ Payload, QueryType, Signature }
+import com.ubirch.lookup.models.{ LookupResult, Payload, QueryType, Signature }
 import com.ubirch.lookup.services.LookupServiceBinder
 import com.ubirch.lookup.util.LookupJsonSupport
+import com.ubirch.models.GenericResponse
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
-import org.json4s.JsonAST.JNull
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new LookupServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -91,7 +91,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val lookupRes = LookupJsonSupport.getJValue(readMessage)
 
         val data =
           """
@@ -105,7 +104,12 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             |}
           """.stripMargin
 
-        assert(lookupRes == LookupJsonSupport.getJValue(data))
+        val expectedLookup = LookupResult.Found(key, queryType, LookupJsonSupport.getJValue(data), Nil)
+        val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
+        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+
+        assert(expectedGenericResponseAsJson == readMessage)
 
       }
 
@@ -140,9 +144,10 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val lookupRes = LookupJsonSupport.getJValue(readMessage)
 
-        assert(lookupRes == JNull)
+        val expected = s"""{"success":true,"message":"Nothing Found","data":{"key":"$key","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}"""
+
+        assert(readMessage == expected)
 
       }
 
@@ -177,9 +182,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val lookupRes = LookupJsonSupport.getJValue(readMessage)
 
-        assert(lookupRes == JNull)
+        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}""")
 
       }
 
@@ -220,7 +224,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val lookupRes = LookupJsonSupport.getJValue(readMessage)
 
         val data = LookupJsonSupport.getJValue(
           """
@@ -235,7 +238,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           """.stripMargin
         )
 
-        assert(lookupRes == JNull)
+        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":[]}}""")
 
       }
 
@@ -277,9 +280,87 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val lookupRes = LookupJsonSupport.getJValue(readMessage)
 
-        val data = LookupJsonSupport.getJValue(
+        assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[]}}""")
+
+      }
+
+    }
+
+    "handle json OK" in {
+
+      val data = LookupJsonSupport.getJValue(
+        """
+          |{
+          |   "hint":0,
+          |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
+          |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
+          |   "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
+          |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
+          |   "version":34
+          |}
+        """.stripMargin
+      )
+
+      val anchors = EventLogJsonSupport.getJValue {
+        """
+          |{
+          |  "status": "added",
+          |  "txid": "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
+          |  "message": "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19",
+          |  "blockchain": "ethereum",
+          |  "network_info": "Rinkeby Testnet Network",
+          |  "network_type": "testnet",
+          |  "created": "2019-05-07T21:30:14.421095"
+          |}
+        """.stripMargin
+      }
+
+      val value = EventLogJsonSupport.ToJson(LookupResult("key", Payload, "", Option(data), Seq(anchors))).toString
+
+      val expected = """{"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[{"status":"added","txid":"51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0","message":"e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19","blockchain":"ethereum","network_info":"Rinkeby Testnet Network","network_type":"testnet","created":"2019-05-07T21:30:14.421095"}]}"""
+
+      assert(value == expected)
+
+    }
+
+    "consume and process successfully when Found with Anchors" in {
+
+      cassandra.executeScripts(
+        CqlScript.statements(
+          insertEventSql
+        )
+      )
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup_request"
+        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
+
+        val key = UUIDHelper.randomUUID.toString
+        val value = "c29tZSBieXRlcyEAAQIDnw=="
+        val queryType = Payload
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value))
+        publishToKafka(pr)
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+
+        val data =
           """
             |{
             |   "hint":0,
@@ -290,9 +371,13 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             |   "version":34
             |}
           """.stripMargin
-        )
 
-        assert(lookupRes == data)
+        val expectedLookup = LookupResult.Found(key, queryType, LookupJsonSupport.getJValue(data), Nil)
+        val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
+        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+
+        assert(expectedGenericResponseAsJson == readMessage)
 
       }
 
