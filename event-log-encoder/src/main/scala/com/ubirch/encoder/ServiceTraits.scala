@@ -2,6 +2,7 @@ package com.ubirch.encoder
 
 object ServiceTraits {
 
-  val ENCODER_CATEGORY = "UPA"
+  val UPP_CATEGORY = "UPA"
+  val CHAIN_CATEGORY = "CHAIN"
 
 }

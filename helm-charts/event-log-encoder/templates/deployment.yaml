@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ include "ubirch-protocol-adapter.fullname" . }}
+    name: {{ include "event-log-encoder.fullname" . }}
     labels:
-        app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
-        helm.sh/chart: {{ include "ubirch-protocol-adapter.chart" . }}
+        app.kubernetes.io/name: {{ include "event-log-encoder.name" . }}
+        helm.sh/chart: {{ include "event-log-encoder.chart" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-    replicas: {{ .Values.ubirchProtocolAdapter.replicaCount }}
+    replicas: {{ .Values.eventLogEncoder.replicaCount }}
     selector:
         matchLabels:
-            app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
+            app.kubernetes.io/name: {{ include "event-log-encoder.name" . }}
             app.kubernetes.io/instance: {{ .Release.Name }}
     template:
         metadata:
             labels:
-                app.kubernetes.io/name: {{ include "ubirch-protocol-adapter.name" . }}
+                app.kubernetes.io/name: {{ include "event-log-encoder.name" . }}
                 app.kubernetes.io/instance: {{ .Release.Name }}
         spec:
             containers:
@@ -39,19 +39,19 @@ spec:
                       periodSeconds: 60
                   env:
                       - name: UPA_KFC_NODES
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.bootstrapServers}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaConsumer.bootstrapServers}}"
                       - name: UPA_KFC_TOPIC
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.topic}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaConsumer.topic}}"
                       - name: UPA_KFC_GROUP
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaConsumer.groupId}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaConsumer.groupId}}"
                       - name: UPA_KFP_NODES
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.bootstrapServers}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaProducer.bootstrapServers}}"
                       - name: UPA_KFP_TOPIC
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.topic}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaProducer.topic}}"
                       - name: UPA_KFP_ERROR_TOPIC
-                        value: "{{ .Values.ubirchProtocolAdapter.kafkaProducer.errorTopic}}"
+                        value: "{{ .Values.eventLogEncoder.kafkaProducer.errorTopic}}"
                       - name: UPA_PROM_HTTP_PORT
-                        value: "{{ .Values.ubirchProtocolAdapter.prometheus.httpPort}}"
+                        value: "{{ .Values.eventLogEncoder.prometheus.httpPort}}"
                   resources:
 {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}

@@ -81,7 +81,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val lookupKeys = Seq(
           LookupKey(
             "signature",
-            ServiceTraits.ENCODER_CATEGORY,
+            ServiceTraits.UPP_CATEGORY,
             "3",
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -94,7 +94,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -140,7 +140,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
 
       }
 
@@ -511,7 +511,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val lookupKeys = Seq(
           LookupKey(
             "signature",
-            ServiceTraits.ENCODER_CATEGORY,
+            ServiceTraits.UPP_CATEGORY,
             "3",
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -527,7 +527,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.ENCODER_CATEGORY)
+        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -537,7 +537,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog1.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog1.customerId == customerId)
         assert(eventLog1.signature == signature)
-        assert(eventLog1.category == ServiceTraits.ENCODER_CATEGORY)
+        assert(eventLog1.category == ServiceTraits.UPP_CATEGORY)
         assert(eventLog1.lookupKeys == lookupKeys)
         assert(eventLog1.nonce.nonEmpty)
 
