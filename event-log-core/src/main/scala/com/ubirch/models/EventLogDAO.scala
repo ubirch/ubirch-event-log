@@ -47,9 +47,9 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 
   def selectAll: Future[List[EventLogRow]] = run(selectAllQ)
 
-  def byIdAndCat(id: String, category: String) = run(byIdAndCatQ(id, category))
+  def byIdAndCat(id: String, category: String): Future[List[JValue]] = run(byIdAndCatQ(id, category))
 
-  def insert(eventLogRow: EventLogRow): Future[RunActionResult] = run(insertQ(eventLogRow))
+  def insert(eventLogRow: EventLogRow): Future[Unit] = run(insertQ(eventLogRow))
 
 }
 
@@ -77,6 +77,20 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec
         }.getOrElse {
           Future.successful(None)
         }
+      }
+  }
+
+  def byValueAndCategory(value: String, category: String): Future[Seq[JValue]] = {
+
+    lookups.byValueAndCategory(value, category)
+      .flatMap { x =>
+        Future.sequence {
+          x.map { y =>
+            events.byIdAndCat(y.key, y.category)
+          }
+
+        }.map(_.flatten)
+
       }
   }
 
