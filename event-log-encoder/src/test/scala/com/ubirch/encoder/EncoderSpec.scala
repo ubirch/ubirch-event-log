@@ -365,6 +365,138 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     }
 
+    "consume message envelope and publish event log with hint = 0 with no lookup key when no chain" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+
+        val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+
+        val lookupKeys = Seq(
+          LookupKey(
+            "signature",
+            ServiceTraits.UPP_CATEGORY,
+            "3",
+            Seq {
+              org.bouncycastle.util.encoders.Base64.toBase64String {
+                org.bouncycastle.util.Strings.toByteArray("1111")
+              }
+            }
+          )
+        )
+
+        assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.customerId == customerId)
+        assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.lookupKeys == lookupKeys)
+        assert(eventLog.nonce.nonEmpty)
+
+      }
+
+    }
+
+    "consume message envelope and publish event log with hint = 0 with no lookup key when there is a chain" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        pm.setChain(org.bouncycastle.util.Strings.toByteArray("this is my chain"))
+
+        val customerId = UUID.randomUUID().toString
+        val ctxt = JObject("customerId" -> JString(customerId))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
+
+        val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+
+        val lookupKeys = Seq(
+          LookupKey(
+            "signature",
+            ServiceTraits.UPP_CATEGORY,
+            "3",
+            Seq {
+              org.bouncycastle.util.encoders.Base64.toBase64String {
+                org.bouncycastle.util.Strings.toByteArray("1111")
+              }
+            }
+          ),
+          LookupKey(
+            "upp-chain",
+            ServiceTraits.CHAIN_CATEGORY,
+            "3",
+            Seq {
+              org.bouncycastle.util.encoders.Base64.toBase64String {
+                org.bouncycastle.util.Strings.toByteArray("this is my chain")
+              }
+            }
+          )
+        )
+
+        assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
+        assert(eventLog.customerId == customerId)
+        assert(eventLog.signature == signature)
+        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.lookupKeys == lookupKeys)
+        assert(eventLog.nonce.nonEmpty)
+
+      }
+
+    }
+
   }
 
   "Encoder Spec for BlockchainResponse" must {
