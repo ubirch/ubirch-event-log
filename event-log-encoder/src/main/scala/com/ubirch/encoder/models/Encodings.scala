@@ -59,39 +59,37 @@ object Encodings extends LazyLogging {
           }
 
         //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
-        val maybeLookupKeys = maybeSignature.map { x =>
-          Seq(
-            LookupKey(
-              "signature",
-              ServiceTraits.UPP_CATEGORY,
-              payloadHash,
-              Seq(x)
-            )
+        val signatureLookupKey = maybeSignature.map { x =>
+          LookupKey(
+            "signature",
+            ServiceTraits.UPP_CATEGORY,
+            payloadHash,
+            Seq(x)
           )
-        }.getOrElse(Nil)
+        }.toSeq
 
         val maybeChain = Option(messageEnvelope.ubirchPacket)
           .flatMap(x => Option(x.getChain))
           .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
-          .map {
-            case Success(value) if value.nonEmpty =>
-              Seq(
-                LookupKey(
-                  "upp-chain",
-                  ServiceTraits.CHAIN_CATEGORY,
-                  payloadHash,
-                  Seq(value)
-                )
-              )
-            case Success(_) =>
-              Seq.empty
+          .flatMap {
+            case Success(value) if value.nonEmpty => Some(value)
+            case Success(_) => None
             case Failure(e) =>
               logger.error("Error Parsing Into Event Log [Chain]: {}", e.getMessage)
               throw EventLogFromConsumerRecordException(s"Error parsing chain [${e.getMessage}] ", encoderPipeData)
-          }.getOrElse(Nil)
+          }
+
+        val chainLookupKey = maybeChain.map { x =>
+          LookupKey(
+            "upp-chain",
+            ServiceTraits.CHAIN_CATEGORY,
+            payloadHash,
+            Seq(x)
+          )
+        }.toSeq
 
         val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload)
-          .withLookupKeys(maybeLookupKeys ++ maybeChain)
+          .withLookupKeys(signatureLookupKey ++ chainLookupKey)
           .withCustomerId(customerId)
           .withRandomNonce
           .withNewId(payloadHash)
