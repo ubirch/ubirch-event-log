@@ -59,19 +59,37 @@ object Encodings extends LazyLogging {
           }
 
         //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
-        val maybeLookupKeys = maybeSignature.map { x =>
-          Seq(
-            LookupKey(
-              "signature",
-              ServiceTraits.ENCODER_CATEGORY,
-              payloadHash,
-              Seq(x)
-            )
+        val signatureLookupKey = maybeSignature.map { x =>
+          LookupKey(
+            "signature",
+            ServiceTraits.UPP_CATEGORY,
+            payloadHash,
+            Seq(x)
           )
-        }.getOrElse(Nil)
+        }.toSeq
 
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload)
-          .withLookupKeys(maybeLookupKeys)
+        val maybeChain = Option(messageEnvelope.ubirchPacket)
+          .flatMap(x => Option(x.getChain))
+          .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
+          .flatMap {
+            case Success(value) if value.nonEmpty => Some(value)
+            case Success(_) => None
+            case Failure(e) =>
+              logger.error("Error Parsing Into Event Log [Chain]: {}", e.getMessage)
+              throw EventLogFromConsumerRecordException(s"Error parsing chain [${e.getMessage}] ", encoderPipeData)
+          }
+
+        val chainLookupKey = maybeChain.map { x =>
+          LookupKey(
+            "upp-chain",
+            ServiceTraits.CHAIN_CATEGORY,
+            payloadHash,
+            Seq(x)
+          )
+        }.toSeq
+
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload)
+          .withLookupKeys(signatureLookupKey ++ chainLookupKey)
           .withCustomerId(customerId)
           .withRandomNonce
           .withNewId(payloadHash)
@@ -79,7 +97,7 @@ object Encodings extends LazyLogging {
         (el, None)
 
       } else {
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ENCODER_CATEGORY, payload).withCustomerId(customerId)
+        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload).withCustomerId(customerId)
         (el, Some(Ignore[ProducerRecord[String, String]]()))
       }
 

@@ -1,10 +1,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: ubirch-protocol-adapter
+  name: event-log-dispatcher
   namespace: prometheus
   labels:
-    app: ubirch-protocol-adapter
+    app: event-log-dispatcher
     release: prometheus-operator
 spec:
   endpoints:
@@ -15,4 +15,4 @@ spec:
     matchNames:
     - {{ .Release.Namespace }}
   selector:
-    name: "event-log-service"
+    name: "event-log-dispatcher"
