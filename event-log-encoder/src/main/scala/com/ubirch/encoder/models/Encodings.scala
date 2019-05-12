@@ -110,12 +110,13 @@ object Encodings extends LazyLogging {
 
       val blockchainResponse: BlockchainResponse = EncoderJsonSupport.FromJson[BlockchainResponse](jv).get
 
+      //The category of the tx event log has to be the name of the lookup key.
       val eventLog = EventLog("EventLogFromConsumerRecord", blockchainResponse.category, jv)
         .withNewId(blockchainResponse.txid)
         .withLookupKeys(Seq(
           LookupKey(
-            "blockchain_tx_id",
             blockchainResponse.category,
+            "PUBLIC_CHAIN",
             blockchainResponse.txid,
             Seq(blockchainResponse.message)
           )
