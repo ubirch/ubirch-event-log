@@ -56,7 +56,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
             logger.error("Error querying db: {}", e)
             throw e
           case e: Exception =>
-            logger.error("Error querying data: {}",  e)
+            logger.error("Error querying data: {}", e)
             throw LookupExecutorException(
               "Error querying data",
               LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Error(key, queryType, "Error processing request {} " + e.getMessage)), None, None), e.getMessage
