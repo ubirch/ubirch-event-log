@@ -15,9 +15,7 @@ EXPOSE ${EVTL_PROM_HTTP_PORT}
 
 COPY certs/truststore-dev.jks /usr/share/service/lib/truststore-dev.jks
 
-#ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true -Djavax.net.ssl.trustStore=/usr/share/service/lib/truststore-dev.jks"
 ENV _JAVA_OPTIONS "-Xms128m -Xmx512m -Djava.awt.headless=true"
-#ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true"
 
 ENTRYPOINT [ "/bin/bash", "-c", "/usr/bin/java -Djava.security.egd=file:/dev/./urandom -Djava.rmi.server.hostname=localhost -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=9010 -Dcom.sun.management.jmxremote.rmi.port=9010 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9020 -Dconfig.resource=application-docker.conf -Dlogback.configurationFile=logback-docker.xml $EVTL_JAVA_OPTS -jar /usr/share/service/main.jar" ]
 
