@@ -3,7 +3,6 @@ package com.ubirch.models
 import com.ubirch.services.cluster.ConnectionService
 import io.getquill.{ CassandraAsyncContext, SnakeCase }
 import javax.inject._
-import org.json4s.JValue
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -21,7 +20,7 @@ trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[Eve
   def selectAllQ: db.Quoted[db.EntityQuery[EventLogRow]] = quote(query[EventLogRow])
 
   def byIdAndCatQ(id: String, category: String) = quote {
-    query[EventLogRow].filter(_.id == lift(id)).filter(_.category == lift(category)).map(_.event)
+    query[EventLogRow].filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
   }
 
   def insertQ(eventLogRow: EventLogRow): db.Quoted[db.Insert[EventLogRow]] = quote {
@@ -47,7 +46,7 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 
   def selectAll: Future[List[EventLogRow]] = run(selectAllQ)
 
-  def byIdAndCat(id: String, category: String): Future[List[JValue]] = run(byIdAndCatQ(id, category))
+  def byIdAndCat(id: String, category: String): Future[List[EventLogRow]] = run(byIdAndCatQ(id, category))
 
   def insert(eventLogRow: EventLogRow): Future[Unit] = run(insertQ(eventLogRow))
 
@@ -55,6 +54,8 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 
 @Singleton
 class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec: ExecutionContext) {
+
+  def insertFromEventLog(eventLog: EventLog): Future[Int] = insert(EventLogRow.fromEventLog(eventLog), eventLog.lookupKeys.flatMap(x => LookupKeyRow.fromLookUpKey(x)))
 
   def insert(eventLogRow: EventLogRow, lookupKeyRows: Seq[LookupKeyRow]): Future[Int] = {
 
@@ -67,7 +68,7 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec
 
   }
 
-  def byValueAndNameAndCategory(value: String, name: String, category: String): Future[Option[JValue]] = {
+  def eventLogRowByLookupRowInfo(value: String, name: String, category: String): Future[Option[EventLogRow]] = {
 
     lookups.byValueAndNameAndCategory(value, name, category)
       .map(_.headOption)
@@ -80,13 +81,13 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec
       }
   }
 
-  def byValueAndCategory(value: String, category: String): Future[Seq[JValue]] = {
+  def eventLogRowByLookupValueAndCategory(value: String, category: String): Future[Seq[EventLogRow]] = {
 
     lookups.byValueAndCategory(value, category)
       .flatMap { x =>
         Future.sequence {
-          x.map { y =>
-            events.byIdAndCat(y.key, y.category)
+          x.distinct.map { y =>
+            events.byIdAndCat(y.key, y.name)
           }
 
         }.map(_.flatten)

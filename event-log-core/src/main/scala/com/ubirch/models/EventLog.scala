@@ -145,10 +145,6 @@ case class EventLog(
 
   override def addLookupKeys(lookupKey: LookupKey*): EventLog = this.copy(lookupKeys = this.lookupKeys ++ lookupKey)
 
-  override def toString: String = {
-    EventLogJsonSupport.ToJson[this.type](this).toString
-  }
-
   def toJson: String = {
     EventLogJsonSupport.ToJson[this.type](this).toString
   }

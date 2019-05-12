@@ -5,24 +5,22 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.ServiceTraits
-import com.ubirch.lookup.models.{ LookupResult, Payload, QueryType, Signature }
+import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
-import com.ubirch.models.{ EventsDAO, GenericResponse }
+import com.ubirch.models.GenericResponse
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
-import org.json4s.JValue
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
-class LookupExecutor @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext)
+class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[LookupPipeData]]
   with LazyLogging {
 
@@ -47,22 +45,12 @@ class LookupExecutor @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionCont
         Future.successful(LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
       } else {
 
-        val futureRes: Future[Option[JValue]] = queryType match {
-          case Payload => eventsDAO.events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY).map(_.headOption)
-          case Signature => eventsDAO.byValueAndNameAndCategory(value, Signature.value, ServiceTraits.ADAPTER_CATEGORY)
-        }
+        val futureRes = finder.findAll(value, queryType)
 
-        val futureAnchorsRes = futureRes flatMap {
-          case Some(ev) =>
-            val fas = eventsDAO.byValueAndCategory(value, "PUBLIC_CHAIN")
-            fas.map(x => Some((ev, x)))
-          case None =>
-            Future.successful(None)
-        }
-
-        futureAnchorsRes.map {
-          case Some((ev, anchors)) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev, anchors)), None, None)
-          case None => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
+        futureRes.map {
+          case (Some(ev), _, maybeAnchors) =>
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, maybeAnchors.map(_.event))), None, None)
+          case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
             logger.error("Error querying db: " + e)
@@ -71,7 +59,7 @@ class LookupExecutor @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionCont
             logger.error("Error querying data: " + e)
             throw LookupExecutorException(
               "Error storing data",
-              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None), e.getMessage
+              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NoEvent(key, queryType, "Error processing request")), None, None), e.getMessage
             )
         }
       }
