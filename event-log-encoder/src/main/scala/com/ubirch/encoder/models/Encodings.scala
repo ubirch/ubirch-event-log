@@ -68,6 +68,26 @@ object Encodings extends LazyLogging {
           )
         }.toSeq
 
+        val maybeDevice = Option(messageEnvelope.ubirchPacket)
+          .flatMap(x => Option(x.getUUID))
+          .map(x => Try(x.toString))
+          .flatMap {
+            case Success(value) if value.nonEmpty => Some(value)
+            case Success(_) => None
+            case Failure(e) =>
+              logger.error("Error Parsing Into Event Log [deviceId]: {}", e.getMessage)
+              throw EventLogFromConsumerRecordException(s"Error parsing deviceId [${e.getMessage}] ", encoderPipeData)
+          }
+
+        val deviceLookupKey = maybeDevice.map { x =>
+          LookupKey(
+            name = "device-id",
+            category = ServiceTraits.DEVICE_CATEGORY,
+            key = x,
+            value = Seq(payloadHash)
+          )
+        }.toSeq
+
         val maybeChain = Option(messageEnvelope.ubirchPacket)
           .flatMap(x => Option(x.getChain))
           .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
@@ -81,15 +101,15 @@ object Encodings extends LazyLogging {
 
         val chainLookupKey = maybeChain.map { x =>
           LookupKey(
-            "upp-chain",
-            ServiceTraits.CHAIN_CATEGORY,
-            payloadHash,
-            Seq(x)
+            name = "upp-chain",
+            category = ServiceTraits.CHAIN_CATEGORY,
+            value = Seq(x),
+            key = payloadHash
           )
         }.toSeq
 
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload)
-          .withLookupKeys(signatureLookupKey ++ chainLookupKey)
+        val el = EventLog("upp-event-log-entry", ServiceTraits.UPP_CATEGORY, payload)
+          .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
           .withCustomerId(customerId)
           .withRandomNonce
           .withNewId(payloadHash)
