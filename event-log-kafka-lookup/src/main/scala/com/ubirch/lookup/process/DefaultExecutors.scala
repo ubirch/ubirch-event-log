@@ -53,13 +53,13 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
           case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
-            logger.error("Error querying db: " + e)
+            logger.error("Error querying db: {}", e)
             throw e
           case e: Exception =>
-            logger.error("Error querying data: " + e)
+            logger.error("Error querying data: {}",  e)
             throw LookupExecutorException(
-              "Error storing data",
-              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NoEvent(key, queryType, "Error processing request")), None, None), e.getMessage
+              "Error querying data",
+              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Error(key, queryType, "Error processing request {} " + e.getMessage)), None, None), e.getMessage
             )
         }
       }
@@ -93,7 +93,8 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val output = v1.lookupResult
           .map { x =>
             val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
-            val gr = GenericResponse.Success(x.message, lookupJValue)
+            val gr = GenericResponse(success = x.success, x.message, lookupJValue)
+
             (x, LookupJsonSupport.ToJson[GenericResponse](gr))
           }
           .map { case (x, y) =>
