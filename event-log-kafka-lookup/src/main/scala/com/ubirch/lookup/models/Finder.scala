@@ -1,13 +1,15 @@
 package com.ubirch.lookup.models
 
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.ServiceTraits
 import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKey }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 @Singleton
-class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) {
+class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
     queryType match {
@@ -25,7 +27,7 @@ class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) {
   }
 
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
-    findUPP(value, queryType).flatMap {
+    val fres = findUPP(value, queryType).flatMap {
       case upp @ Some(uppEl) =>
         findTree(uppEl).flatMap {
           case tree @ Some(treeEl) => findAnchors(treeEl).map(ax => (upp, tree, ax))
@@ -33,6 +35,17 @@ class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) {
         }
       case None => Future.successful((None, None, Seq.empty))
     }
+
+    fres.onComplete {
+      case Success(res) =>
+        logger.debug("Received a [{}] request with value [{}] and result [{}]", queryType.value, value, res.toString())
+
+      case Failure(exception) =>
+        logger.error("Received a [{}] request with value [{}] and result [{}]", queryType.value, value, exception.getMessage)
+
+    }
+
+    fres
   }
 
 }
