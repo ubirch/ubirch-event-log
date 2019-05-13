@@ -153,7 +153,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        val expected = s"""{"success":true,"message":"Nothing Found","data":{"key":"$key","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}"""
+        val expected = s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}"""
 
         assert(readMessage == expected)
 
@@ -191,7 +191,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}""")
+        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"success":true,"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}""")
 
       }
 
@@ -246,7 +246,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           """.stripMargin
         )
 
-        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":[]}}""")
+        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":[]}}""")
 
       }
 
@@ -289,7 +289,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[]}}""")
+        assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"success":true,"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[]}}""")
 
       }
 
@@ -324,9 +324,9 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         """.stripMargin
       }
 
-      val value = EventLogJsonSupport.ToJson(LookupResult(success = true , "key", Payload, "", Option(data), Seq(anchors))).toString
+      val value = EventLogJsonSupport.ToJson(LookupResult(success = true, "key", Payload, "", Option(data), Seq(anchors))).toString
 
-      val expected = """{"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[{"status":"added","txid":"51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0","message":"e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19","blockchain":"ethereum","network_info":"Rinkeby Testnet Network","network_type":"testnet","created":"2019-05-07T21:30:14.421095"}]}"""
+      val expected = """{"success":true,"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[{"status":"added","txid":"51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0","message":"e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19","blockchain":"ethereum","network_info":"Rinkeby Testnet Network","network_type":"testnet","created":"2019-05-07T21:30:14.421095"}]}"""
 
       assert(value == expected)
 
