@@ -145,18 +145,24 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
     v1.map { v1 =>
 
-      val chainerEventLog = v1.chainer.flatMap { _.getNode }
-        .map { node =>
+      val chainerEventLog = v1.chainer
+        .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
+        .map { case(node, els) =>
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
+
             logger.debug(s"new chainer tree created, root hash is: ${node.value}")
+
             EventLog(_)
+              .withNewId(node.value)
               .withCategory(ServiceTraits.SLAVE_TREE_CATEGORY)
               .withCustomerId("ubirch")
               .withServiceClass("ubirchChainerSlave")
-              .withNewId(node.value)
               .withRandomNonce
+              .addLookupKeys(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, node.value, els.map(_.id)))
+              .addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY)
               .sign(config)
+
           }
         }
         .getOrElse {
@@ -190,23 +196,8 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
-        val treeEventLogId = v1.treeEventLog.map(_.id)
-
-        val lookupKey = for {
-          treeId <- treeEventLogId
-          ch <- v1.chainer
-        } yield {
-          val values = ch.es.map(_.id)
-          LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeId, values)
-        }
-
-        lazy val treeEventLogProducerRecord = v1.treeEventLog.map { x =>
-          val eventLogWithHeaders = {
-            x.addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY)
-              .addLookupKeys(lookupKey.map(x => Seq(x)).getOrElse(Nil): _*)
-          }
-
-          Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, eventLogWithHeaders))
+        lazy val treeEventLogProducerRecord = v1.treeEventLog.map { treeEl =>
+          Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl))
         }.toVector
 
         if (treeEventLogProducerRecord.nonEmpty) {
