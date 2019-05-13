@@ -6,13 +6,12 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.chainer.ServiceTraits
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models.Chainer
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, HeaderNames, Headers, LookupKey }
+import com.ubirch.models.{ EventLog, HeaderNames, Headers, LookupKey, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -85,7 +84,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               .withRandomNonce
               .withCustomerId(x)
               .withNewId
-              .withCategory(ServiceTraits.ADAPTER_CATEGORY)
+              .withCategory(Values.UPP_CATEGORY)
               .sign(config))
         }
 
@@ -108,17 +107,19 @@ class ChainerSpec extends TestBase with LazyLogging {
         val chainer = ChainerSpec.getChainer(events)
         val node = EventLogJsonSupport.ToJson(chainer.getNode).get
 
+        val category = Values.SLAVE_TREE_CATEGORY
+
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
         assert(treeEventLog.customerId == "ubirch")
         assert(treeEventLog.serviceClass == "ubirchChainerSlave")
-        assert(treeEventLog.category == ServiceTraits.SLAVE_TREE_CATEGORY)
+        assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> ServiceTraits.SLAVE_TREE_CATEGORY))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(LookupKey(Values.SLAVE_TREE_ID, category, treeEventLog.id, chainer.es.map(_.id))))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)

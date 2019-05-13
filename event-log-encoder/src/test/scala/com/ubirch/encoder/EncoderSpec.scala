@@ -10,7 +10,7 @@ import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.BytesConsumer
-import com.ubirch.models.{ EventLog, LookupKey }
+import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
@@ -81,8 +81,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         val lookupKeys = Seq(
           LookupKey(
-            "signature",
-            ServiceTraits.UPP_CATEGORY,
+            Values.SIGNATURE,
+            Values.UPP_CATEGORY,
             pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -91,8 +91,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             }
           ),
           LookupKey(
-            name = "device-id",
-            category = ServiceTraits.DEVICE_CATEGORY,
+            name = Values.DEVICE_ID,
+            category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
           )
@@ -101,7 +101,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.category == Values.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -147,7 +147,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.category == Values.UPP_CATEGORY)
 
       }
 
@@ -411,8 +411,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         val lookupKeys = Seq(
           LookupKey(
-            "signature",
-            ServiceTraits.UPP_CATEGORY,
+            Values.SIGNATURE,
+            Values.UPP_CATEGORY,
             pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -421,8 +421,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             }
           ),
           LookupKey(
-            name = "device-id",
-            category = ServiceTraits.DEVICE_CATEGORY,
+            name = Values.DEVICE_ID,
+            category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
           )
@@ -431,7 +431,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.category == Values.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -480,8 +480,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         val lookupKeys = Seq(
           LookupKey(
-            "signature",
-            ServiceTraits.UPP_CATEGORY,
+            Values.SIGNATURE,
+            Values.UPP_CATEGORY,
             pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -490,8 +490,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             }
           ),
           LookupKey(
-            "upp-chain",
-            ServiceTraits.CHAIN_CATEGORY,
+            Values.UPP_CHAIN,
+            Values.CHAIN_CATEGORY,
             pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -500,8 +500,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             }
           ),
           LookupKey(
-            name = "device-id",
-            category = ServiceTraits.DEVICE_CATEGORY,
+            name = Values.DEVICE_ID,
+            category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
           )
@@ -510,7 +510,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.category == Values.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -567,8 +567,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.id == "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0")
         assert(eventLog.lookupKeys == Seq(
           LookupKey(
-            "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK",
-            "PUBLIC_CHAIN",
+            Values.ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK,
+            Values.PUBLIC_CHAIN_CATEGORY,
             "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
             Seq("e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19")
           )
@@ -665,8 +665,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
         val lookupKeys = Seq(
           LookupKey(
-            "signature",
-            ServiceTraits.UPP_CATEGORY,
+            Values.SIGNATURE,
+            Values.UPP_CATEGORY,
             pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
@@ -675,8 +675,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             }
           ),
           LookupKey(
-            name = "device-id",
-            category = ServiceTraits.DEVICE_CATEGORY,
+            name = Values.DEVICE_ID,
+            category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
           )
@@ -688,7 +688,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog.customerId == customerId)
         assert(eventLog.signature == signature)
-        assert(eventLog.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog.category == Values.UPP_CATEGORY)
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
@@ -698,7 +698,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog1.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
         assert(eventLog1.customerId == customerId)
         assert(eventLog1.signature == signature)
-        assert(eventLog1.category == ServiceTraits.UPP_CATEGORY)
+        assert(eventLog1.category == Values.UPP_CATEGORY)
         assert(eventLog1.lookupKeys == lookupKeys)
         assert(eventLog1.nonce.nonEmpty)
 

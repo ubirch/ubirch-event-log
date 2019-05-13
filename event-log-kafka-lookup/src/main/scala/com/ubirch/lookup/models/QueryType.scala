@@ -1,15 +1,17 @@
 package com.ubirch.lookup.models
 
+import com.ubirch.models.Values
+
 sealed trait QueryType {
   val value: String
 }
 
 case object Payload extends QueryType {
-  override val value: String = "payload"
+  override val value: String = Values.PAYLOAD
 }
 
 case object Signature extends QueryType {
-  override val value: String = "signature"
+  override val value: String = Values.SIGNATURE
 }
 
 object QueryType {

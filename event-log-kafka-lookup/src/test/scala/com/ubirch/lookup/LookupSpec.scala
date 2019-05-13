@@ -44,7 +44,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
   val insertEventSql =
     s"""
       |INSERT INTO events (id, customer_id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, nonce)
-      | VALUES ('c29tZSBieXRlcyEAAQIDnw==', 'customer_id', 'service_class', '${ServiceTraits.ADAPTER_CATEGORY}', '{
+      | VALUES ('c29tZSBieXRlcyEAAQIDnw==', 'customer_id', 'service_class', '${Values.UPP_CATEGORY}', '{
       |   "hint":0,
       |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
       |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
@@ -57,7 +57,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   val insertLookupSql =
     s"""
-      |INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${ServiceTraits.ADAPTER_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');
+      |INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${Values.UPP_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');
     """.stripMargin
 
   implicit val se: StringSerializer = new StringSerializer
@@ -354,8 +354,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val signatureLookupKey = maybeSignature.map { x =>
         LookupKey(
-          "signature",
-          ServiceTraits.ADAPTER_CATEGORY,
+          Values.SIGNATURE,
+          Values.UPP_CATEGORY,
           pmId,
           Seq(x)
         )
@@ -363,7 +363,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val pmAsJson = LookupJsonSupport.ToJson[ProtocolMessage](pm).get
 
-      val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.ADAPTER_CATEGORY, pmAsJson)
+      val el = EventLog("EventLogFromConsumerRecord", Values.UPP_CATEGORY, pmAsJson)
         .withLookupKeys(signatureLookupKey)
         .withCustomerId("1234")
         .withRandomNonce
@@ -376,13 +376,14 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
 
+      val category = Values.SLAVE_TREE_CATEGORY
       val tree = EventLog(data) //Lets say this is a tree.
-        .withCategory(LookupKey.SLAVE_TREE)
+        .withCategory(category)
         .withCustomerId("ubirch")
         .withServiceClass("ubirchChainerSlave")
         .withNewId(rootId)
         .withRandomNonce
-        .addLookupKeys(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, rootId, Seq(el.id)))
+        .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, category, rootId, Seq(el.id)))
 
       //
 
@@ -407,7 +408,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         .withLookupKeys(Seq(
           LookupKey(
             "blockchain_tx_id",
-            "PUBLIC_CHAIN",
+            Values.PUBLIC_CHAIN_CATEGORY,
             txid,
             Seq(tree.id)
           )
@@ -422,6 +423,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       val allLookups = await(eventsDAO.lookups.selectAll, 2 seconds)
 
       assert(all.size == 3)
+      assert(allLookups.size == 4)
       //Blockchain TX
 
       withRunningKafka {

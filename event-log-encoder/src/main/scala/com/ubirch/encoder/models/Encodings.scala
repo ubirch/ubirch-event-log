@@ -1,12 +1,11 @@
 package com.ubirch.encoder.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.encoder.ServiceTraits
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.models.{ EventLog, LookupKey }
+import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util.Ignore
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -21,7 +20,7 @@ object Encodings extends LazyLogging {
 
   val CUSTOMER_ID_FIELD = "customerId"
 
-  def UPA(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
+  def UPP(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
 
     case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
@@ -61,8 +60,8 @@ object Encodings extends LazyLogging {
         //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
         val signatureLookupKey = maybeSignature.map { x =>
           LookupKey(
-            name = "signature",
-            category = ServiceTraits.UPP_CATEGORY,
+            name = Values.SIGNATURE,
+            category = Values.UPP_CATEGORY,
             key = payloadHash,
             value = Seq(x)
           )
@@ -81,8 +80,8 @@ object Encodings extends LazyLogging {
 
         val deviceLookupKey = maybeDevice.map { x =>
           LookupKey(
-            name = "device-id",
-            category = ServiceTraits.DEVICE_CATEGORY,
+            name = Values.DEVICE_ID,
+            category = Values.DEVICE_CATEGORY,
             key = x,
             value = Seq(payloadHash)
           )
@@ -101,14 +100,14 @@ object Encodings extends LazyLogging {
 
         val chainLookupKey = maybeChain.map { x =>
           LookupKey(
-            name = "upp-chain",
-            category = ServiceTraits.CHAIN_CATEGORY,
+            name = Values.UPP_CHAIN,
+            category = Values.CHAIN_CATEGORY,
             key = payloadHash,
             value = Seq(x)
           )
         }.toSeq
 
-        val el = EventLog("upp-event-log-entry", ServiceTraits.UPP_CATEGORY, payload)
+        val el = EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
           .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
           .withCustomerId(customerId)
           .withRandomNonce
@@ -117,7 +116,7 @@ object Encodings extends LazyLogging {
         (el, None)
 
       } else {
-        val el = EventLog("EventLogFromConsumerRecord", ServiceTraits.UPP_CATEGORY, payload).withCustomerId(customerId)
+        val el = EventLog("EventLogFromConsumerRecord", Values.UPP_CATEGORY, payload).withCustomerId(customerId)
         (el, Some(Ignore[ProducerRecord[String, String]]()))
       }
 
@@ -136,7 +135,7 @@ object Encodings extends LazyLogging {
         .withLookupKeys(Seq(
           LookupKey(
             blockchainResponse.category,
-            "PUBLIC_CHAIN",
+            Values.PUBLIC_CHAIN_CATEGORY,
             blockchainResponse.txid,
             Seq(blockchainResponse.message)
           )
