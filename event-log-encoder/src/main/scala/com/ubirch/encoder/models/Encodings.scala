@@ -61,15 +61,15 @@ object Encodings extends LazyLogging {
         //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
         val signatureLookupKey = maybeSignature.map { x =>
           LookupKey(
-            "signature",
-            ServiceTraits.UPP_CATEGORY,
-            payloadHash,
-            Seq(x)
+            name = "signature",
+            category = ServiceTraits.UPP_CATEGORY,
+            key = payloadHash,
+            value = Seq(x)
           )
         }.toSeq
 
         val maybeDevice = Option(messageEnvelope.ubirchPacket)
-          .flatMap(x => Option(x.getUUID))
+          .flatMap(x => Option(x).map(_.getUUID))
           .map(x => Try(x.toString))
           .flatMap {
             case Success(value) if value.nonEmpty => Some(value)
@@ -103,8 +103,8 @@ object Encodings extends LazyLogging {
           LookupKey(
             name = "upp-chain",
             category = ServiceTraits.CHAIN_CATEGORY,
-            value = Seq(x),
-            key = payloadHash
+            key = payloadHash,
+            value = Seq(x)
           )
         }.toSeq
 
