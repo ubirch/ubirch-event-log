@@ -157,7 +157,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
             EventLog(_)
               .withNewId(node.value)
               .withCategory(category)
-              .withCustomerId("ubirch")
+              .withCustomerId(Values.UBIRCH)
               .withServiceClass("ubirchChainerSlave")
               .withRandomNonce
               .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, category, node.value, els.map(_.id)))
