@@ -55,7 +55,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val messageEnvelopeTopic = "com.ubirch.messageenvelope"
         val eventLogTopic = "com.ubirch.eventlog"
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val pmId = 3
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
@@ -82,12 +83,18 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "signature",
             ServiceTraits.UPP_CATEGORY,
-            "3",
+            pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
+          ),
+          LookupKey(
+            name = "device-id",
+            category = ServiceTraits.DEVICE_CATEGORY,
+            key = pm.getUUID.toString,
+            value = Seq(pmId.toString)
           )
         )
 
@@ -378,7 +385,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val messageEnvelopeTopic = "com.ubirch.messageenvelope"
         val eventLogTopic = "com.ubirch.eventlog"
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val pmId = 3
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
@@ -405,12 +413,18 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "signature",
             ServiceTraits.UPP_CATEGORY,
-            "3",
+            pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
+          ),
+          LookupKey(
+            name = "device-id",
+            category = ServiceTraits.DEVICE_CATEGORY,
+            key = pm.getUUID.toString,
+            value = Seq(pmId.toString)
           )
         )
 
@@ -438,7 +452,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val messageEnvelopeTopic = "com.ubirch.messageenvelope"
         val eventLogTopic = "com.ubirch.eventlog"
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val pmId = 3
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         pm.setChain(org.bouncycastle.util.Strings.toByteArray("this is my chain"))
 
@@ -467,7 +482,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "signature",
             ServiceTraits.UPP_CATEGORY,
-            "3",
+            pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
@@ -477,12 +492,18 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "upp-chain",
             ServiceTraits.CHAIN_CATEGORY,
-            "3",
+            pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("this is my chain")
               }
             }
+          ),
+          LookupKey(
+            name = "device-id",
+            category = ServiceTraits.DEVICE_CATEGORY,
+            key = pm.getUUID.toString,
+            value = Seq(pmId.toString)
           )
         )
 
@@ -621,7 +642,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         val eventLogTopic = "com.ubirch.eventlog"
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val pmId = 3
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
@@ -645,12 +667,18 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             "signature",
             ServiceTraits.UPP_CATEGORY,
-            "3",
+            pmId.toString,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
+          ),
+          LookupKey(
+            name = "device-id",
+            category = ServiceTraits.DEVICE_CATEGORY,
+            key = pm.getUUID.toString,
+            value = Seq(pmId.toString)
           )
         )
 
