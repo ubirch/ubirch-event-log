@@ -41,7 +41,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
-  val insertEventSql =
+  val insertEventSql: String =
     s"""
       |INSERT INTO events (id, customer_id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, nonce)
       | VALUES ('c29tZSBieXRlcyEAAQIDnw==', 'customer_id', 'service_class', '${Values.UPP_CATEGORY}', '{
@@ -55,7 +55,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       |'34376336396166392D336533382D343665652D393063332D616265313364383335353266');
     """.stripMargin
 
-  val insertLookupSql =
+  val insertLookupSql: String =
     s"""
       |INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${Values.UPP_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');
     """.stripMargin
@@ -379,7 +379,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       val category = Values.SLAVE_TREE_CATEGORY
       val tree = EventLog(data) //Lets say this is a tree.
         .withCategory(category)
-        .withCustomerId("ubirch")
+        .withCustomerId(Values.UBIRCH)
         .withServiceClass("ubirchChainerSlave")
         .withNewId(rootId)
         .withRandomNonce

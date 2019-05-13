@@ -574,6 +574,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           )
         ))
         assert(Option(eventLog.category) == eventLog.lookupKeys.map(_.name).headOption)
+        assert(eventLog.customerId == Values.UBIRCH)
 
       }
 

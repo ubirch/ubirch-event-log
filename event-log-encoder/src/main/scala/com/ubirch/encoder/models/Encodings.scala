@@ -131,6 +131,7 @@ object Encodings extends LazyLogging {
 
       //The category of the tx event log has to be the name of the lookup key.
       val eventLog = EventLog("EventLogFromConsumerRecord", blockchainResponse.category, jv)
+        .withCustomerId(Values.UBIRCH)
         .withNewId(blockchainResponse.txid)
         .withLookupKeys(Seq(
           LookupKey(
