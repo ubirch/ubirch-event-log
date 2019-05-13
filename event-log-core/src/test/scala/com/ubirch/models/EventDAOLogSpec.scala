@@ -167,7 +167,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       def date = new Date()
 
-      val genericCategory = "PUBLIC_CHAIN"
+      val genericCategory = Values.PUBLIC_CHAIN_CATEGORY
 
       val event1 = {
         EventLog(data)

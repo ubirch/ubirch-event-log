@@ -84,7 +84,7 @@ Creates an EventLog with following info
 
 Encode non-event-log messages into their corresponding event-logs
 
-***UPP/UPA with hint = 0***
+***UPP with hint = 0***
 
 Creates an Eventlog with the following info
 
@@ -92,7 +92,7 @@ Creates an Eventlog with the following info
 
 **Event**: the ubirch protocol packet
 
-**Category**: UPA
+**Category**: UPP
 
 **CustomerId**: customerId value extracted from the messageenvelope context
 
@@ -102,7 +102,7 @@ Creates an Eventlog with the following info
 
 *Name*: signature
 
-*Category*: UPA
+*Category*: UPP
 
 *Key*: The ubirch protocol payload (id)
 
@@ -156,7 +156,7 @@ Dispatches eventlogs like so:
 
 EventLogs with
 
-**Category**:UPA
+**Category**:UPP
 
 **Routed**: com.ubirch.eventlog/com.ubirch.chainer.slave
 

@@ -191,7 +191,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
           |}
         """.stripMargin,
         serviceClass = "SDKExample2",
-        category = "UPA"
+        category = "UPP"
       ).withRandomNonce
         .commitAsync
         .map(_ => countDown.countDown())

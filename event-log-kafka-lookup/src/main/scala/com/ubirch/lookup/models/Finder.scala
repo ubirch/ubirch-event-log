@@ -1,8 +1,7 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.lookup.ServiceTraits
-import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKey }
+import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKey, Values }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -13,17 +12,17 @@ class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) ext
 
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
     queryType match {
-      case Payload => eventsDAO.events.byIdAndCat(value, ServiceTraits.ADAPTER_CATEGORY).map(_.headOption)
-      case Signature => eventsDAO.eventLogRowByLookupRowInfo(value, Signature.value, ServiceTraits.ADAPTER_CATEGORY)
+      case Payload => eventsDAO.events.byIdAndCat(value, Values.UPP_CATEGORY).map(_.headOption)
+      case Signature => eventsDAO.eventLogRowByLookupRowInfo(value, Signature.value, Values.UPP_CATEGORY)
     }
   }
 
   def findTree(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
-    eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE)
+    eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.SLAVE_TREE_ID, Values.SLAVE_TREE_CATEGORY)
   }
 
   def findAnchors(treeEventLog: EventLogRow): Future[Seq[EventLogRow]] = {
-    eventsDAO.eventLogRowByLookupValueAndCategory(treeEventLog.id, "PUBLIC_CHAIN")
+    eventsDAO.eventLogRowByLookupValueAndCategory(treeEventLog.id, Values.PUBLIC_CHAIN_CATEGORY)
   }
 
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {

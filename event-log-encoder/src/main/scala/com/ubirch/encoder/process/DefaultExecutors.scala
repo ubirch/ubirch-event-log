@@ -56,7 +56,7 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   with LazyLogging {
 
   def decode(encoderPipeData: EncoderPipeData) = {
-    Encodings.UPA(encoderPipeData).orElse(Encodings.PublichBlockchain(encoderPipeData))
+    Encodings.UPP(encoderPipeData).orElse(Encodings.PublichBlockchain(encoderPipeData))
   }
 
   override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = v1.map { v1 =>

@@ -8,7 +8,7 @@ The dispatching is based on the EventLog Category and it is a json-based definit
 
 [
   {
-    "category": "UPA",
+    "category": "UPP",
     "topics": [
       "com.ubirch.eventlog.lookup_request",
       "com.ubirch.eventlog.lookup_request1"

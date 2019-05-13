@@ -5,13 +5,12 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.ServiceTraits
 import com.ubirch.chainer.models.Chainer
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey }
+import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig
@@ -147,20 +146,22 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
       val chainerEventLog = v1.chainer
         .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
-        .map { case(node, els) =>
+        .map { case (node, els) =>
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
             logger.debug(s"new chainer tree created, root hash is: ${node.value}")
 
+            val category = Values.SLAVE_TREE_CATEGORY
+
             EventLog(_)
               .withNewId(node.value)
-              .withCategory(ServiceTraits.SLAVE_TREE_CATEGORY)
+              .withCategory(category)
               .withCustomerId("ubirch")
               .withServiceClass("ubirchChainerSlave")
               .withRandomNonce
-              .addLookupKeys(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, node.value, els.map(_.id)))
-              .addOriginHeader(ServiceTraits.SLAVE_TREE_CATEGORY)
+              .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, category, node.value, els.map(_.id)))
+              .addOriginHeader(category)
               .sign(config)
 
           }
