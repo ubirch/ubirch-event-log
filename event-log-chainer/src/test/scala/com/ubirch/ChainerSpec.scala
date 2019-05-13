@@ -119,6 +119,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(LookupKey(LookupKey.SLAVE_TREE_ID, LookupKey.SLAVE_TREE, treeEventLog.id, chainer.es.map(_.id))))
+        assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
