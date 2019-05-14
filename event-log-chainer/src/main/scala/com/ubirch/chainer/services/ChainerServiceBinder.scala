@@ -32,6 +32,8 @@ class ChainerServiceBinder extends AbstractModule
   def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
 
+  def instantMonitor: ScopedBindingBuilder = bind(classOf[InstantMonitor]).to(classOf[AtomicInstantMonitor])
+
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -41,6 +43,7 @@ class ChainerServiceBinder extends AbstractModule
     consumer
     consumerRecordsManager
     producer
+    instantMonitor
   }
 
 }

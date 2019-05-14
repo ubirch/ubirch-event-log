@@ -32,7 +32,11 @@ case class EnrichedDate(date: Date) {
   */
 case class EnrichedInstant(instant: Instant) {
 
-  def millisBetween(other: Instant): Long = new Duration(instant, other).getMillis
+  def duration(other: Instant) = new Duration(instant, other)
+
+  def millisBetween(other: Instant): Long = duration(other).getMillis
+
+  def secondsBetween(other: Instant): Long = duration(other).getStandardSeconds
 
 }
 
@@ -66,6 +70,8 @@ case class EnrichedConfig(config: Config) {
   }
 
   def getStringAsOption(key: String): Option[String] = asOpt(key)(config.getString)
+
+  def getIntAsOption(key: String): Option[Int] = asOpt(key)(config.getInt)
 
   /**
     * Convert Typesafe config to Java `Properties`.

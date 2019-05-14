@@ -3,6 +3,8 @@ package com.ubirch.kafka.util
 import org.apache.kafka.clients.consumer.CommitFailedException
 import org.apache.kafka.common.errors.TimeoutException
 
+import scala.concurrent.duration.FiniteDuration
+
 /**
   * Namespace that contains the exceptions of the system and an abstract
   * exception to create more in other components that use the core component.
@@ -68,7 +70,7 @@ object Exceptions {
     * @param reason Represents the reason why this exception has been thrown.
     */
 
-  case class NeedForPauseException(message: String, reason: String) extends ConsumptionException(message)
+  case class NeedForPauseException(message: String, reason: String, maybeDuration: Option[FiniteDuration] = None) extends ConsumptionException(message)
 
   /**
     * Represents a signal that is used to ask the consumer to resume polling.

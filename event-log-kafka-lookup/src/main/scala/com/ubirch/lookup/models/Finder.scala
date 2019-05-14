@@ -1,7 +1,7 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKey, Values }
+import com.ubirch.models.{ EventLogRow, EventsDAO, Values }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }

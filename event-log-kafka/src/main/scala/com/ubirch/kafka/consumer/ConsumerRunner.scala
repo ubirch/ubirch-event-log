@@ -302,14 +302,14 @@ abstract class ConsumerRunner[K, V](name: String)
           failed.getAndSet(None).foreach { e => throw e }
 
         } catch {
-          case _: NeedForPauseException =>
+          case e: NeedForPauseException =>
             import monix.execution.Scheduler.{ global => scheduler }
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
             getPausedHistory.set(getPausedHistory.get() + 1)
             val currentPauses = pauses.get()
-            val pause = amortizePauseDuration()
+            val pause: FiniteDuration = e.maybeDuration.getOrElse(amortizePauseDuration())
             scheduler.scheduleOnce(pause) {
               failed.set(Some(NeedForResumeException(s"Restarting after a $pause millis sleep...")))
             }
