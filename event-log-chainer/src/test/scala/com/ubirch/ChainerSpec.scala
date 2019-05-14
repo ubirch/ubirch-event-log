@@ -3,13 +3,13 @@ package com.ubirch
 import java.util.Date
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{Config, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ConsumerConfPaths, ProducerConfPaths}
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
-import com.ubirch.chainer.models.{Chainer, Master, Mode, Slave}
+import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.kafka.consumer.{All, StringConsumer}
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.services.config.ConfigProvider
