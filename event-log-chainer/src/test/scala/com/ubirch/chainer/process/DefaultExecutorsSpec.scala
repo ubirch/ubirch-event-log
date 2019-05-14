@@ -3,7 +3,7 @@ package com.ubirch.chainer.process
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
-import com.ubirch.chainer.models.Chainer
+import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
 import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
@@ -229,7 +229,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
   }
 
-  "TreeEventLogCreation" must {
+  "TreeCreatorExecutor" must {
     "create tree" in {
       import org.json4s.jackson.JsonMethods.parse
 
@@ -271,6 +271,118 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(res.chainer.isDefined)
       assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
       assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
+
+    }
+  }
+
+  "TreeEventLogCreation" must {
+    "create slave tree" in {
+      import org.json4s.jackson.JsonMethods.parse
+
+      val reporter = mock[Reporter]
+
+      val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
+
+      val _balancingHash = Chainer.getEmptyNodeVal
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(config) {
+        override def outerBalancingHash: Option[String] = Option(_balancingHash)
+      }
+
+      val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+
+      val consumerRecords = (0 to 10).map { _ =>
+        val el = EventLog(eventData)
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
+      }.toVector
+
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+
+      val els = eventPreparer(Future.successful(cp))
+
+      def chainerRes = treeCreatorExecutor(els)
+
+      val res = await(chainerRes, 2 seconds)
+
+      import com.ubirch.chainer.models.Chainables.eventLogChainable
+
+      val eventLogChainer = new Chainer(res.eventLogs.toList) {
+        override def balancingHash: String = _balancingHash
+      }
+        .createGroups
+        .createSeedHashes
+        .createSeedNodes(keepOrder = true)
+        .createNode
+
+      val treeEventLogCreation = new TreeEventLogCreation(config)
+
+      val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
+
+      assert(res.chainer.isDefined)
+      assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
+      assert(treeEventLogRes.treeEventLog.isDefined)
+      assert(treeEventLogRes.treeEventLog.map(_.category).forall(x => x == Slave.category))
+      assert(treeEventLogRes.treeEventLog.map(_.serviceClass).forall(x => x == Slave.serviceClass))
+      assert(treeEventLogRes.treeEventLog.map(_.customerId).forall(x => x == Slave.customerId))
+      assert(treeEventLogRes.treeEventLog.map(_.lookupKeys).getOrElse(Nil).forall(_.name == Slave.lookupName))
+      assert(treeEventLogCreation.mode == Slave)
+
+    }
+
+    "create master tree" in {
+      import org.json4s.jackson.JsonMethods.parse
+
+      val reporter = mock[Reporter]
+
+      val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
+
+      val _balancingHash = Chainer.getEmptyNodeVal
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(config) {
+        override def outerBalancingHash: Option[String] = Option(_balancingHash)
+      }
+
+      val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+
+      val consumerRecords = (0 to 10).map { _ =>
+        val el = EventLog(eventData)
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
+      }.toVector
+
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+
+      val els = eventPreparer(Future.successful(cp))
+
+      def chainerRes = treeCreatorExecutor(els)
+
+      val res = await(chainerRes, 2 seconds)
+
+      import com.ubirch.chainer.models.Chainables.eventLogChainable
+
+      val eventLogChainer = new Chainer(res.eventLogs.toList) {
+        override def balancingHash: String = _balancingHash
+      }
+        .createGroups
+        .createSeedHashes
+        .createSeedNodes(keepOrder = true)
+        .createNode
+
+      val treeEventLogCreation = new TreeEventLogCreation(config) {
+        override def modeFromConfig: String = Master.value
+      }
+
+      val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
+
+      assert(res.chainer.isDefined)
+      assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
+      assert(treeEventLogRes.treeEventLog.isDefined)
+      assert(treeEventLogRes.treeEventLog.map(_.category).forall(x => x == Master.category))
+      assert(treeEventLogRes.treeEventLog.map(_.serviceClass).forall(x => x == Master.serviceClass))
+      assert(treeEventLogRes.treeEventLog.map(_.customerId).forall(x => x == Master.customerId))
+      assert(treeEventLogRes.treeEventLog.map(_.lookupKeys).getOrElse(Nil).forall(_.name == Master.lookupName))
+      assert(treeEventLogCreation.mode == Master)
 
     }
   }
