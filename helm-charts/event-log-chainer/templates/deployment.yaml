@@ -52,6 +52,11 @@ spec:
               value: "{{ .Values.eventLogChainer.kafka.producer.errortopic}}"
             - name: SLV_CHAINER_PROM_HTTP_PORT
               value: "{{ .Values.eventLogChainer.prometheus.port}}"
+            - name: SLV_MIN_TREE_RECORDS
+              value: "{{ .Values.eventLogChainer.minTreeRecords}}"
+            - name: SLV_MIN_TREE_EVERY
+              value: "{{ .Values.eventLogChainer.treeEvery }}"
+
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
