@@ -14,7 +14,7 @@
     <artifactId>event-log-core</artifactId>
     <version>1.2.0</version>
     <name>${project.artifactId}</name>
-    <description>Event Logger Core for the Ubirch Platform</description>
+    <description>Event Logger Core for the ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
 
     <distributionManagement>
