@@ -225,7 +225,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
-        //Ubirch Packet is not with underscores.
+        //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
@@ -271,7 +271,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
-        //Ubirch Packet is not with underscores.
+        //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
@@ -317,7 +317,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
-        //Ubirch Packet is not with underscores.
+        //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")
@@ -363,7 +363,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
 
-        //Ubirch Packet is not with underscores.
+        //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
 
         assert(error.serviceName == "event-log-service")

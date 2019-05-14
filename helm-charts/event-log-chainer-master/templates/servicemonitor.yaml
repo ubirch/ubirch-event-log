@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: event-log-chainer-master
+  namespace: prometheus
+  labels:
+    app: event-log-chainer-master
+    release: prometheus-operator
+spec:
+  endpoints:
+  - interval: 30s
+    path: /
+    port: prometheus-metrics
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    name: "event-log-chainer-master"
