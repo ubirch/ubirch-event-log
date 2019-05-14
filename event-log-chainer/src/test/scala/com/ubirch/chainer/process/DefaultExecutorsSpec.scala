@@ -7,6 +7,7 @@ import com.ubirch.chainer.models.Chainer
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
 import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EventLog
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
@@ -38,7 +39,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
     }
 
-    "succeed if non empty" in {
+    "succeed if non empty and threshold was reached" in {
 
       val uuid = UUIDHelper.timeBasedUUID
 
@@ -58,6 +59,56 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(res.isInstanceOf[ChainerPipeData])
 
     }
+
+    "instant monitor should reset after filtering" in {
+
+      val uuid = UUIDHelper.timeBasedUUID
+
+      val data = (0 to 10).map { _ =>
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", uuid.toString)
+      } ++ (0 to 10).map { _ =>
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", "")
+      }
+
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      Thread.sleep(3000)
+
+      val filterEmpty = new FilterEmpty(instantMonitor, config)
+
+      val cim0 = instantMonitor.elapsedSeconds
+
+      val fres = filterEmpty(data.toVector)
+
+      val res = await(fres, 2 seconds)
+
+      val cim1 = instantMonitor.elapsedSeconds
+
+      assert(cim0 > cim1)
+      assert(cim1 == 0)
+      assert(res.isInstanceOf[ChainerPipeData])
+
+    }
+
+    "fail if threshold hasn't been reached" in {
+
+      val uuid = UUIDHelper.timeBasedUUID
+
+      val data = (0 to 7).map { _ =>
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", uuid.toString)
+      }
+
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val filterEmpty = new FilterEmpty(instantMonitor, config)
+      val fres = filterEmpty(data.toVector)
+
+      lazy val res = await(fres, 2 seconds)
+
+      assertThrows[NeedForPauseException](res)
+
+    }
+
   }
 
   "EventLogsParser" must {
