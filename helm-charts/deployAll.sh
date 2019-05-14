@@ -19,6 +19,8 @@ CUR_EVENT_DISPATCHER_TAG=201905140620-dev
 
 CUR_EVENT_CHAINER_TAG=201905141356-dev
 
+CUR_EVENT_CHAINER_MASTER_TAG=CUR_EVENT_CHAINER_TAG
+
 CUR_EVENT_ENCODER_TAG=201905140620-dev
 
 if [[ "dev" == "$ENV" ]]; then
@@ -34,3 +36,4 @@ fi
 ./deployK8SService.sh $ENV event-log-encoder $CUR_EVENT_ENCODER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-encoder-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-dispatcher $CUR_EVENT_DISPATCHER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-dispatcher-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-chainer $CUR_EVENT_CHAINER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-$ENV.yaml"
+./deployK8SService.sh $ENV event-log-chainer-master $CUR_EVENT_CHAINER_MASTER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-master-$ENV.yaml"

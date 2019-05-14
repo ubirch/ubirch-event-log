@@ -8,7 +8,7 @@
     <artifactId>event-log-util</artifactId>
     <version>1.2.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
-    <description>Event logger util for the Ubirch Platform</description>
+    <description>Event logger util for the ubirch Platform</description>
     <url>https://ubirch.com</url>
     <inceptionYear>2018</inceptionYear>
 
