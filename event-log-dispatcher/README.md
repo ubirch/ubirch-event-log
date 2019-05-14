@@ -15,7 +15,7 @@ The dispatching is based on the EventLog Category and it is a json-based definit
     ]
   },
   {
-    "category": "UBIRCH_SLAVE_TREE",
+    "category": "SLAVE_TREE",
     "topics": [
       "com.ubirch.eventlog.lookup_request"
     ]

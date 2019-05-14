@@ -63,7 +63,7 @@ Creates an EventLog with following info
 
 **Event**: The merkle tree
 
-**Category**: UBIRCH_SLAVE_TREE
+**Category**: SLAVE_TREE
 
 **CustomerId**: ubirch
 
@@ -161,7 +161,7 @@ EventLogs with
 **Routed**: com.ubirch.eventlog/com.ubirch.chainer.slave
 
 
-**Category**:UBIRCH_SLAVE_TREE
+**Category**: SLAVE_TREE
 
 **Routed**: com.ubirch.eventlog/com.ubirch.chainer.master/com.ubirch.ethereum.input.bin(only id)
 

@@ -2,12 +2,15 @@ package com.ubirch.models
 
 object Values {
 
-  val SLAVE_TREE_CATEGORY = "UBIRCH_SLAVE_TREE"
+  val MASTER_TREE_CATEGORY = "MASTER_TREE"
+
+  val SLAVE_TREE_CATEGORY = "SLAVE_TREE"
   val UPP_CATEGORY = "UPP"
   val CHAIN_CATEGORY = "CHAIN"
   val DEVICE_CATEGORY = "DEVICE"
   val PUBLIC_CHAIN_CATEGORY = "PUBLIC_CHAIN"
 
+  val MASTER_TREE_ID = "master-tree-id"
   val SLAVE_TREE_ID = "slave-tree-id"
   val PAYLOAD = "payload"
   val SIGNATURE = "signature"

@@ -13,7 +13,7 @@
     ]
   },
   {
-    "category": "UBIRCH_SLAVE_TREE",
+    "category": "SLAVE_TREE",
     "topics": [
       {
         "name": "com.ubirch.eventlog",
@@ -21,6 +21,15 @@
       },
       {
         "name": "com.ubirch.chainer.master",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "MASTER_TREE",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
         "data_to_send": null
       },
       {
