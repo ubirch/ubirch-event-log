@@ -60,6 +60,7 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
 
 }
 
+@Singleton
 class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
@@ -98,6 +99,7 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
 
 }
 
+@Singleton
 class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
@@ -134,6 +136,7 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
   }
 }
 
+@Singleton
 class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
@@ -156,13 +159,14 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
   }
 }
 
+@Singleton
 class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
 
-  val modeFromConfig: String = config.getString("eventLog.mode")
-  val mode: Mode = Mode.getMode(modeFromConfig)
+  def modeFromConfig: String = config.getString("eventLog.mode")
+  def mode: Mode = Mode.getMode(modeFromConfig)
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
@@ -176,7 +180,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
-            logger.debug(s"New chainer tree created, root hash is: ${node.value}")
+            logger.debug(s"New [${mode.value}] tree created, root hash is: ${node.value}")
 
             val category = mode.category
             val serviceClass = mode.serviceClass
@@ -213,6 +217,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
   }
 }
 
+@Singleton
 class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
@@ -247,6 +252,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
   }
 }
 
+@Singleton
 class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] {
 
@@ -280,6 +286,7 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
   }
 }
 
+@Singleton
 class BasicCommit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]] {
 
