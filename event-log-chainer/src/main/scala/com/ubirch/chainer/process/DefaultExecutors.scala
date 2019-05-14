@@ -6,9 +6,11 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.Chainer
+import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.process.Executor
@@ -19,18 +21,35 @@ import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
+import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
-class FilterEmpty @Inject() (implicit ec: ExecutionContext)
+@Singleton
+class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]]
   with LazyLogging {
+
+  val minTreeRecords: Int = config.getInt("eventLog.minTreeRecords")
+  val every: Int = config.getInt("eventLog.treeEvery")
+
+  logger.info("Min Tree Records [{}]  every [{}] seconds ", minTreeRecords, every)
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[ChainerPipeData] = Future {
     val records = v1.filter(_.value().nonEmpty)
     lazy val pd = ChainerPipeData(records, Vector.empty, None, None, Vector.empty, Vector.empty)
     if (records.nonEmpty) {
-      pd
+
+      val currentRecordsSize = records.size
+      val currentElapsedSeconds = instantMonitor.elapsedSeconds
+      if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
+        pd
+      } else {
+        logger.info("The chainer threshold hasn't been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+        throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(1 seconds))
+      }
+
     } else {
       logger.error("No Records Found")
       throw EmptyValueException("No Records Found", pd)

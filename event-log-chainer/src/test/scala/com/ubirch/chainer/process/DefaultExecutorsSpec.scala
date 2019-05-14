@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.Chainer
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
+import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
 import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
 import com.ubirch.models.EventLog
 import com.ubirch.services.config.ConfigProvider
@@ -28,7 +29,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if all values are empty" in {
 
-      val filterEmpty = new FilterEmpty
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val filterEmpty = new FilterEmpty(instantMonitor, config)
       val res = filterEmpty(Vector.empty)
 
       assertThrows[EmptyValueException](await(res, 2 seconds))
@@ -45,7 +48,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", "")
       }
 
-      val filterEmpty = new FilterEmpty
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val filterEmpty = new FilterEmpty(instantMonitor, config)
       val fres = filterEmpty(data.toVector)
 
       lazy val res = await(fres, 2 seconds)
