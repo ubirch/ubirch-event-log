@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "event-log-chainer.fullname" . }}
+  name: {{ include "event-log-chainer-master.fullname" . }}
   labels:
-    app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
-    helm.sh/chart: {{ include "event-log-chainer.chart" . }}
+    app.kubernetes.io/name: {{ include "event-log-chainer-master.name" . }}
+    helm.sh/chart: {{ include "event-log-chainer-master.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
-  replicas: {{ .Values.eventLogChainer.replicaCount }}
+  replicas: {{ .Values.eventLogChainerMaster.replicaCount }}
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
+      app.kubernetes.io/name: {{ include "event-log-chainer-master.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
+        app.kubernetes.io/name: {{ include "event-log-chainer-master.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
@@ -39,25 +39,25 @@ spec:
             periodSeconds: 60
           env:
             - name: SLV_CHAINER_KFC_NODES
-              value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.bootstrapServers}}"
             - name: SLV_CHAINER_KFC_TOPIC
-              value: "{{ .Values.eventLogChainer.kafka.consumer.topic}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.consumer.topic}}"
             - name: SLV_CHAINER_KFC_GROUP
-              value: "{{ .Values.eventLogChainer.kafka.consumer.group}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.consumer.group}}"
             - name: SLV_CHAINER_KFP_NODES
-              value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.bootstrapServers}}"
             - name: SLV_CHAINER_KFP_TOPIC
-              value: "{{ .Values.eventLogChainer.kafka.producer.topic}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.producer.topic}}"
             - name: SLV_CHAINER_KFP_ERROR_TOPIC
-              value: "{{ .Values.eventLogChainer.kafka.producer.errortopic}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.producer.errortopic}}"
             - name: SLV_CHAINER_PROM_HTTP_PORT
-              value: "{{ .Values.eventLogChainer.prometheus.port}}"
+              value: "{{ .Values.eventLogChainerMaster.prometheus.port}}"
             - name: SLV_MIN_TREE_RECORDS
-              value: "{{ .Values.eventLogChainer.minTreeRecords}}"
+              value: "{{ .Values.eventLogChainerMaster.minTreeRecords}}"
             - name: SLV_MIN_TREE_EVERY
-              value: "{{ .Values.eventLogChainer.treeEvery }}"
+              value: "{{ .Values.eventLogChainerMaster.treeEvery }}"
             - name: SLV_MODE
-              value: "{{ .Values.eventLogChainer.mode }}"
+              value: "{{ .Values.eventLogChainerMaster.mode }}"
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

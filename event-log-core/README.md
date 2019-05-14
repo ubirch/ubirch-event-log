@@ -41,7 +41,7 @@ Make sure you have the following systems up and running.
 
 * [Maven:](https://maven.apache.org/) Make sure you have Maven installed. This tool is used for building the application.
 
-* [Ubirch Event Log](https://github.com/ubirch/ubirch-event-log)
+* [ubirch Event Log](https://github.com/ubirch/ubirch-event-log)
 
     Make sure you have cloned the application and got it compiled.
 
