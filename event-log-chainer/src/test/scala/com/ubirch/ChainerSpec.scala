@@ -253,6 +253,10 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         Thread.sleep(5000)
 
+        val numberOfPauses = consumer.getPausedHistory
+
+        assert(numberOfPauses.get() > 0)
+
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
         Thread.sleep(7000)
