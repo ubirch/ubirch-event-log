@@ -452,6 +452,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
+        assert(tree.category == tree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))
 
       }
 
