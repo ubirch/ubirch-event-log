@@ -370,6 +370,88 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
+    "consume, process and publish tree and event logs after records threshold is reached in Master mode" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+      val eventLogTopic = "com.ubirch.eventlog"
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 11, mode = Master)
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 11
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(JString(UUIDHelper.randomUUID.toString))
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.UPP_CATEGORY)
+              .sign(config))
+        }
+
+        val (e1s, e2s) = events.splitAt(7)
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        e1s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        Thread.sleep(7000)
+
+        val numberOfPauses = consumer.getPausedHistory
+
+        assert(numberOfPauses.get() > 0)
+
+        e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        Thread.sleep(9000)
+
+        val maxNumberToRead = 1 /* tree */
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+
+        val treeEventLogAsString = messages.headOption.getOrElse("")
+        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val chainer = ChainerSpec.getChainer(events)
+        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+
+        val mode = Master
+
+        assert(treeEventLogAsString.nonEmpty)
+        assert(treeEventLog.id.nonEmpty)
+        assert(treeEventLog.customerId == mode.customerId)
+        assert(treeEventLog.serviceClass == mode.serviceClass)
+        assert(treeEventLog.category == mode.category)
+        assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
+        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
+        assert(treeEventLog.lookupKeys ==
+          Seq(LookupKey(mode.lookupName, mode.category, treeEventLog.id, chainer.es.map(_.id))))
+        assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
+        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
+        assert(events.size == chainer.es.size)
+        assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
+        assert(maxNumberToRead == messages.size)
+        assert(chainer.getNodes.map(_.value).size == customerIds.size)
+        assert(chainer.getHashes.flatten.size == events.size)
+
+      }
+
+    }
+
   }
 
 }
