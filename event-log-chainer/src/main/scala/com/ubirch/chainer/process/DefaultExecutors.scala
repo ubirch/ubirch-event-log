@@ -178,9 +178,11 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
         .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
         .map { case (node, els) =>
 
+          val rootHash = node.value
+
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
-            logger.debug(s"New [${mode.value}] tree created, root hash is: ${node.value}")
+            logger.debug(s"New [${mode.value}] tree created, root hash is: $rootHash")
 
             val category = mode.category
             val serviceClass = mode.serviceClass
@@ -188,12 +190,12 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
             val customerId = mode.customerId
 
             EventLog(_)
-              .withNewId(node.value)
+              .withNewId(rootHash)
               .withCategory(category)
               .withCustomerId(customerId)
               .withServiceClass(serviceClass)
               .withRandomNonce
-              .addLookupKeys(LookupKey(lookupName, category, node.value, els.map(_.id)))
+              .addLookupKeys(LookupKey(lookupName, category, rootHash, els.map(_.id)))
               .addOriginHeader(category)
               .sign(config)
 

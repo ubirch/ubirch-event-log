@@ -17,9 +17,7 @@ object Service extends Boot(ChainerServiceBinder.modules) {
 
     val consumer: StringConsumer = get[StringConsumer]
 
-    consumer.setDelaySingleRecord(50 micro)
     consumer.setConsumptionStrategy(All)
-    consumer.setDelayRecords(10 seconds)
 
     consumer.start()
 
