@@ -5,7 +5,7 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.Chainer
+import com.ubirch.chainer.models.{ Chainer, Mode }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.util._
@@ -44,11 +44,11 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
       val currentRecordsSize = records.size
       val currentElapsedSeconds = instantMonitor.elapsedSeconds
       if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
-        logger.info("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+        logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
         instantMonitor.registerNewInstant
         pd
       } else {
-        logger.info("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+        logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
         throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(1 seconds))
       }
 
@@ -161,6 +161,11 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
   with ProducerConfPaths
   with LazyLogging {
 
+  val modeFromConfig: String = config.getString("eventLog.mode")
+  val mode: Mode = Mode.getMode(modeFromConfig)
+
+  logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
+
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
     v1.map { v1 =>
@@ -171,17 +176,20 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
-            logger.debug(s"new chainer tree created, root hash is: ${node.value}")
+            logger.debug(s"New chainer tree created, root hash is: ${node.value}")
 
-            val category = Values.SLAVE_TREE_CATEGORY
+            val category = mode.category
+            val serviceClass = mode.serviceClass
+            val lookupName = mode.lookupName
+            val customerId = mode.customerId
 
             EventLog(_)
               .withNewId(node.value)
               .withCategory(category)
-              .withCustomerId(Values.UBIRCH)
-              .withServiceClass("ubirchChainerSlave")
+              .withCustomerId(customerId)
+              .withServiceClass(serviceClass)
               .withRandomNonce
-              .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, category, node.value, els.map(_.id)))
+              .addLookupKeys(LookupKey(lookupName, category, node.value, els.map(_.id)))
               .addOriginHeader(category)
               .sign(config)
 
