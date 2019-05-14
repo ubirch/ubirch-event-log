@@ -200,14 +200,14 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
           }
         }
         .getOrElse {
-          Failure(TreeEventLogCreationException("Error creating EventLog from Chainer", v1))
+          Failure(TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1))
         }
 
       chainerEventLog match {
         case Success(value) =>
           v1.copy(treeEventLog = Some(value))
         case Failure(e) =>
-          logger.error("Error creating EventLog from Chainer (2): " + e.getMessage)
+          logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
           throw TreeEventLogCreationException(e.getMessage, v1)
 
       }
