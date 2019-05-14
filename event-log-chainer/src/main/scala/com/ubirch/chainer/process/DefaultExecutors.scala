@@ -44,9 +44,10 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
       val currentRecordsSize = records.size
       val currentElapsedSeconds = instantMonitor.elapsedSeconds
       if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
+        logger.info("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
         pd
       } else {
-        logger.info("The chainer threshold hasn't been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+        logger.info("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
         throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(1 seconds))
       }
 
