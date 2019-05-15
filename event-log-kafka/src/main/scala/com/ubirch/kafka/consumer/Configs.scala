@@ -17,7 +17,7 @@ object Configs {
       autoCommitInterval: Int = 1000,
       sessionTimeoutMs: Int = 10000,
       maxPartitionFetchBytes: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES,
-      maxPollRecords: Int = 500,
+      maxPollRecords: Int = 800,
       maxPollInterval: Int = 300000,
       maxMetaDataAge: Long = 300000,
       autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,

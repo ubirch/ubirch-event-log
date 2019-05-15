@@ -3,7 +3,6 @@ package com.ubirch.models
 object Values {
 
   val MASTER_TREE_CATEGORY = "MASTER_TREE"
-
   val SLAVE_TREE_CATEGORY = "SLAVE_TREE"
   val UPP_CATEGORY = "UPP"
   val CHAIN_CATEGORY = "CHAIN"
