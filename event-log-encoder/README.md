@@ -1,28 +1,4 @@
-# UBIRCH EVENT LOG SERVICE
+# UBIRCH EVENT LOG ENCODER
 
-A service which collects events from other services and stores them into the database.
+Service that allows ubirch packets/message envelopes and blockchain responses to be encoded into an event log.
 
-The way this software collects events is consuming them from Kafka. The database used here is Cassandra.
-
-## Build
-
-From the root folder run
-
-```
-mvn package
-```
-
-## Run
-
-```
-java -jar target/event-log-service-1.2.0.jar
-```
-
-## Create Docker Image
-```
-mvn dockerfile:build
-```
-
-## Helm Charts
-
-[Event Log Service Chart](https://github.com/ubirch/ubirch-event-log/tree/master/helm-charts/event-log-service)
