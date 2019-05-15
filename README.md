@@ -2,7 +2,7 @@
 
 The Event Log System is a collection of services that allow the chaining
 
-![Event Log System](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/generalParts1.2.0.png "Event Log Components")
+![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/FastChainer-Eventlog-Overview.png "Event Log System")
 
 * [Event Log Service](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-service)
 
@@ -15,9 +15,6 @@ The Event Log System is a collection of services that allow the chaining
 * [Event Log Kafka Lookup](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
-
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/1.2.x/.images/FastChainer-Eventlog-Overview.png "Event Log System")
-
 
 ## Helper Libs
 
