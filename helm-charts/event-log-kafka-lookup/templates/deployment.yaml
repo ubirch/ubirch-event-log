@@ -60,6 +60,8 @@ spec:
               value: "{{ .Values.eventLogLookup.kafka.consumer.topic}}"
             - name: LU_KFC_GROUP
               value: "{{ .Values.eventLogLookup.kafka.consumer.group}}"
+            - name: LU_KFC_MAX_POLL_RECORDS
+              value: "{{ .Values.eventLogLookup.kafka.maxpoll}}"
             - name: LU_KFP_NODES
               value: "{{ .Values.eventLogLookup.kafka.bootstrapServers}}"
             - name: LU_KFP_TOPIC
