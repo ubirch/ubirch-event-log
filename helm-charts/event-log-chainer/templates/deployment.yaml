@@ -38,26 +38,29 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 60
           env:
-            - name: SLV_CHAINER_KFC_NODES
+            - name: CHAINER_KFC_NODES
               value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
-            - name: SLV_CHAINER_KFC_TOPIC
+            - name: CHAINER_KFC_TOPIC
               value: "{{ .Values.eventLogChainer.kafka.consumer.topic}}"
-            - name: SLV_CHAINER_KFC_GROUP
+            - name: CHAINER_KFC_GROUP
               value: "{{ .Values.eventLogChainer.kafka.consumer.group}}"
-            - name: SLV_CHAINER_KFP_NODES
+            - name: CHAINER_KFP_NODES
               value: "{{ .Values.eventLogChainer.kafka.bootstrapServers}}"
-            - name: SLV_CHAINER_KFP_TOPIC
+            - name: CHAINER_KFP_TOPIC
               value: "{{ .Values.eventLogChainer.kafka.producer.topic}}"
-            - name: SLV_CHAINER_KFP_ERROR_TOPIC
+            - name: CHAINER_KFP_ERROR_TOPIC
               value: "{{ .Values.eventLogChainer.kafka.producer.errortopic}}"
-            - name: SLV_CHAINER_PROM_HTTP_PORT
+            - name: CHAINER_PROM_HTTP_PORT
               value: "{{ .Values.eventLogChainer.prometheus.port}}"
-            - name: SLV_MIN_TREE_RECORDS
+            - name: CHAINER_MIN_TREE_RECORDS
               value: "{{ .Values.eventLogChainer.minTreeRecords}}"
-            - name: SLV_MIN_TREE_EVERY
+            - name: CHAINER_MIN_TREE_EVERY
               value: "{{ .Values.eventLogChainer.treeEvery }}"
-            - name: SLV_MODE
+            - name: CHAINER_MODE
               value: "{{ .Values.eventLogChainer.mode }}"
+            - name: CHAINER_KFC_MAX_POLL_RECORDS
+              value: "{{ .Values.eventLogChainer.kafka.consumer.maxpoll }}"
+
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
