@@ -19,6 +19,7 @@ object ConfPaths {
   trait ConsumerConfPaths {
     val BOOTSTRAP_SERVERS = "eventLog.kafkaConsumer.bootstrapServers"
     val TOPIC_PATH = "eventLog.kafkaConsumer.topic"
+    val MAX_POLL_RECORDS = "eventLog.kafkaConsumer.maxPollRecords"
     val GROUP_ID_PATH = "eventLog.kafkaConsumer.groupId"
     val GRACEFUL_TIMEOUT_PATH = "eventLog.kafkaConsumer.gracefulTimeout"
   }

@@ -15,9 +15,6 @@ object Service extends Boot(DispatcherServiceBinder.modules) {
 
     val consumer = get[StringConsumer]
 
-    //consumer.setDelaySingleRecord(500 micro)
-    //consumer.setDelayRecords(10 millis)
-
     consumer.start()
 
   }

@@ -6,17 +6,15 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
-import com.ubirch.kafka.util.{ ConfigProperties, VersionedLazyLogging }
+import com.ubirch.kafka.util.VersionedLazyLogging
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
@@ -150,20 +148,18 @@ object DefaultConsumerRebalanceListener {
   * @param ec         Represent the execution context for asynchronous processing.
   */
 class DefaultStringConsumer @Inject() (
-    config: Config,
+    val config: Config,
     lifecycle: Lifecycle,
     controller: StringConsumerRecordsManager
 )(implicit ec: ExecutionContext)
   extends Provider[StringConsumer]
-  with ConsumerConfPaths
+  with ConsumerCreator
   with LazyLogging {
-
-  import UUIDHelper._
 
   lazy val consumerConfigured = {
     val consumerImp = new StringConsumer() with WithMetrics[String, String]
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(Set(topic))
+    consumerImp.setTopics(topics)
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new StringDeserializer()))
@@ -172,25 +168,7 @@ class DefaultStringConsumer @Inject() (
     consumerImp
   }
 
-  def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
-
-  def topic: String = config.getString(TOPIC_PATH)
-
-  def configs: ConfigProperties = Configs(
-    bootstrapServers = bootstrapServers,
-    groupId = groupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = 800
-  )
-
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
-
-  def groupId: String = {
-    val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "event_log_group_" + randomUUID
-    else gid
-  }
+  override def groupIdOnEmpty: String = "event_log_group"
 
   override def get(): StringConsumer = consumerConfigured
 

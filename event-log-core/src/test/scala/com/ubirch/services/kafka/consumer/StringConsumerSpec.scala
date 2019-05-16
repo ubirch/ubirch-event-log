@@ -377,7 +377,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "talk to reporter when error occurs" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -428,7 +428,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         ) {
           override def configs: ConfigProperties = {
             Configs(
-              bootstrapServers = "localhost:" + config.kafkaPort,
+              bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",
               enableAutoCommit = false,
               autoOffsetReset = OffsetResetStrategy.EARLIEST
@@ -449,7 +449,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run an NeedForPauseException and pause and then unpause" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -509,7 +509,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         ) {
           override def configs: ConfigProperties = {
             Configs(
-              bootstrapServers = "localhost:" + config.kafkaPort,
+              bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",
               enableAutoCommit = false,
               autoOffsetReset = OffsetResetStrategy.EARLIEST
@@ -536,7 +536,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "run an NeedForPauseException and pause and then unpause when throttling" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -596,7 +596,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         ) {
           override def configs: ConfigProperties = {
             Configs(
-              bootstrapServers = "localhost:" + config.kafkaPort,
+              bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",
               enableAutoCommit = false,
               autoOffsetReset = OffsetResetStrategy.EARLIEST

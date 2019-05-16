@@ -2,19 +2,17 @@ package com.ubirch.encoder.services.kafka.consumer
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.encoder.process.ExecutorFamily
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.consumer._
-import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
+import com.ubirch.services.kafka.consumer.{ ConsumerCreator, ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ Decision, URLsHelper, UUIDHelper }
+import com.ubirch.util.Decision
 import javax.inject._
-import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
 import org.json4s.JValue
@@ -102,20 +100,18 @@ class DefaultEncoderManager @Inject() (val reporter: Reporter, val executorFamil
   * @param ec Represents an execution context
   */
 class DefaultEncoderConsumer @Inject() (
-    config: Config,
+    val config: Config,
     lifecycle: Lifecycle,
     controller: EncoderConsumerRecordsManager
 )(implicit ec: ExecutionContext)
   extends Provider[BytesConsumer]
-  with ConsumerConfPaths
+  with ConsumerCreator
   with LazyLogging {
-
-  import UUIDHelper._
 
   lazy val consumerConfigured = {
     val consumerImp = new BytesConsumer() with WithMetrics[String, Array[Byte]]
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(topic)
+    consumerImp.setTopics(topics)
     consumerImp.setProps(configs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new ByteArrayDeserializer()))
@@ -124,24 +120,7 @@ class DefaultEncoderConsumer @Inject() (
     consumerImp
   }
 
-  def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
-
-  def topic: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
-
-  def configs: ConfigProperties = Configs(
-    bootstrapServers = bootstrapServers,
-    groupId = groupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST
-  )
-
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
-
-  def groupId: String = {
-    val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) "encoder_event_log_group_" + randomUUID
-    else gid
-  }
+  override def groupIdOnEmpty: String = "encoder_event_log_group"
 
   override def get(): BytesConsumer = consumerConfigured
 

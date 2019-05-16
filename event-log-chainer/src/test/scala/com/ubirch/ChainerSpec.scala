@@ -409,7 +409,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e1s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(7000)
+        Thread.sleep(5000)
 
         val numberOfPauses = consumer.getPausedHistory
 
@@ -417,7 +417,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(9000)
+        Thread.sleep(5000)
 
         val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
