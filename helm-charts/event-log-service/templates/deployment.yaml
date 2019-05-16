@@ -67,6 +67,8 @@ spec:
                         value: "{{ .Values.eventLog.prometheus.httpPort}}"
                       - name: EVTL_JAVA_OPTS
                         value: "{{ .Values.eventLog.javaopts}}"
+                      - name: EVTL_CS_MAX_POLL_RECORDS
+                        value: "{{ .Values.eventLog.kafkaConsumer.maxpoll}}"
                   resources:
 {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}
