@@ -35,6 +35,10 @@
       {
         "name": "com.ubirch.ethereum.input.bin",
         "data_to_send": "id"
+      },
+      {
+        "name": "com.ubirch.iota",
+        "data_to_send": "id"
       }
     ]
   },
