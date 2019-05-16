@@ -12,7 +12,7 @@ import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
+import com.ubirch.models.{ Error, EventLog, LookupKey }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig

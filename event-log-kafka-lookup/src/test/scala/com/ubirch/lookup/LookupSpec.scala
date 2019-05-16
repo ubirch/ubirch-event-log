@@ -371,20 +371,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       //End PM Insert
 
-      //Tree
-      val rootId = UUIDHelper.randomUUID.toString
-
       val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
 
-      val category = Values.SLAVE_TREE_CATEGORY
-      val tree = EventLog(data) //Lets say this is a tree.
-        .withCategory(category)
+      //Slave Tree
+
+      val slaveRootId = UUIDHelper.randomUUID.toString
+      val slaveCategory = Values.SLAVE_TREE_CATEGORY
+      val slaveTree = EventLog(data) //Lets say this is a tree.
+        .withCategory(slaveCategory)
         .withCustomerId(Values.UBIRCH)
         .withServiceClass("ubirchChainerSlave")
-        .withNewId(rootId)
+        .withNewId(slaveRootId)
         .withRandomNonce
-        .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, category, rootId, Seq(el.id)))
+        .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, slaveCategory, slaveRootId, Seq(el.id)))
 
+      //Master Tree
+      val masterRootId = UUIDHelper.randomUUID.toString
+      val masterCategory = Values.MASTER_TREE_CATEGORY
+      val masterTree = EventLog(data) //Lets say this is a tree.
+        .withCategory(masterCategory)
+        .withCustomerId(Values.UBIRCH)
+        .withServiceClass("ubirchChainerMaster")
+        .withNewId(masterRootId)
+        .withRandomNonce
+        .addLookupKeys(LookupKey(Values.MASTER_TREE_ID, masterCategory, masterRootId, Seq(slaveTree.id)))
       //
 
       //Blockchain TX
@@ -410,20 +420,29 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             "blockchain_tx_id",
             Values.PUBLIC_CHAIN_CATEGORY,
             txid,
-            Seq(tree.id)
+            Seq(masterTree.id)
           )
         ))
 
       await(eventsDAO.insertFromEventLog(el), 2 seconds)
-      await(eventsDAO.insertFromEventLog(tree), 2 seconds)
+      await(eventsDAO.insertFromEventLog(slaveTree), 2 seconds)
+      await(eventsDAO.insertFromEventLog(masterTree), 2 seconds)
       await(eventsDAO.insertFromEventLog(blockTx), 2 seconds)
+
+      val allEventLogs = Seq(el, slaveTree, masterTree, blockTx)
+
+      val lookupKeys = allEventLogs.flatMap(_.lookupKeys)
 
       val all = await(eventsDAO.events.selectAll, 2 seconds)
 
       val allLookups = await(eventsDAO.lookups.selectAll, 2 seconds)
 
-      assert(all.size == 3)
+      assert(all.size == allEventLogs.size)
+      assert(all.sortBy(_.id) == allEventLogs.map(EventLogRow.fromEventLog).sortBy(_.id))
+      assert(allLookups.size == lookupKeys.flatMap(_.value).size)
+      assert(allLookups.sortBy(_.name) == lookupKeys.flatMap(LookupKeyRow.fromLookUpKey).sortBy(_.name))
       assert(allLookups.size == 4)
+
       //Blockchain TX
 
       withRunningKafka {
@@ -454,7 +473,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
-        assert(tree.category == tree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))
+        assert(masterTree.category == masterTree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))
 
       }
 
@@ -464,7 +483,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
-    cassandra.executeScripts(CqlScript.statements("TRUNCATE events;"))
+    cassandra.executeScripts(CqlScript.statements("TRUNCATE events;", "TRUNCATE lookups;"))
     Thread.sleep(5000)
   }
 

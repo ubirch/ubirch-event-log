@@ -4,7 +4,6 @@ import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.util.Boot
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
