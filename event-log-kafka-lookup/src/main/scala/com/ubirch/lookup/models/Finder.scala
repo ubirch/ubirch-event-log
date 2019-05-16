@@ -1,14 +1,14 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLogRow, EventsDAO, Values}
+import com.ubirch.models.{ EventLogRow, EventsDAO, Values }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 @Singleton
-class Finder @Inject()(eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
+class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
     queryType match {
@@ -31,11 +31,11 @@ class Finder @Inject()(eventsDAO: EventsDAO)(implicit ec: ExecutionContext) exte
 
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
     val fres = findUPP(value, queryType).flatMap {
-      case upp@Some(uppEl) =>
+      case upp @ Some(uppEl) =>
         findSlaveTree(uppEl).flatMap {
           case Some(slaveTreeEl) =>
             findMasterTree(slaveTreeEl).flatMap {
-              case tree@Some(masterTreeEl) =>
+              case tree @ Some(masterTreeEl) =>
                 findAnchors(masterTreeEl).map(ax => (upp, tree, ax))
               case None => Future.successful((upp, None, Seq.empty))
             }
