@@ -55,14 +55,15 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit ec: E
 @Singleton
 class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit ec: ExecutionContext) {
 
-  def insertFromEventLog(eventLog: EventLog): Future[Int] = insert(EventLogRow.fromEventLog(eventLog), eventLog.lookupKeys.flatMap(x => LookupKeyRow.fromLookUpKey(x)))
+  def insertFromEventLog(eventLog: EventLog): Future[Int] = {
+    insert(EventLogRow.fromEventLog(eventLog), eventLog.lookupKeys.flatMap(x => LookupKeyRow.fromLookUpKey(x)))
+  }
 
   def insert(eventLogRow: EventLogRow, lookupKeyRows: Seq[LookupKeyRow]): Future[Int] = {
 
     val fEventsRowResp = events.insert(eventLogRow).map(_ => 1)
-    val LookupKeysFutureResp = lookupKeyRows.map(x => lookups.insert(x).map(_ => 1))
-
-    val fLookupKeysResp = Future.sequence(fEventsRowResp +: LookupKeysFutureResp).map(_.sum)
+    val lookupKeysFutureResp = lookupKeyRows.map(x => lookups.insert(x).map(_ => 1))
+    val fLookupKeysResp = Future.sequence(fEventsRowResp +: lookupKeysFutureResp).map(_.sum)
 
     fLookupKeysResp
 
