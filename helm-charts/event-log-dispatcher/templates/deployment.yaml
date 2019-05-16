@@ -52,6 +52,8 @@ spec:
               value: "{{ .Values.eventLogDispatcher.kafka.producer.errortopic}}"
             - name: DIS_PROM_HTTP_PORT
               value: "{{ .Values.eventLogDispatcher.prometheus.port}}"
+            - name: DIS_KFC_MAX_POLL_RECORDS
+              value: "{{ .Values.eventLogDispatcher.kafka.maxpoll}}"
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

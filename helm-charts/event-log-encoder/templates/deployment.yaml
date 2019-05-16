@@ -52,6 +52,8 @@ spec:
                         value: "{{ .Values.eventLogEncoder.kafkaProducer.errorTopic}}"
                       - name: UPA_PROM_HTTP_PORT
                         value: "{{ .Values.eventLogEncoder.prometheus.httpPort}}"
+                      - name: UPA_KFC_MAX_POLL_RECORDS
+                        value: "{{ .Values.eventLogEncoder.kafkaConsumer.maxpoll}}"
                   resources:
 {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}
