@@ -314,14 +314,14 @@ abstract class ConsumerRunner[K, V](name: String)
               failed.set(Some(NeedForResumeException(s"Restarting after a $pause millis sleep...")))
             }
             needForPauseCallback.run((pause, currentPauses))
-            logger.debug(s"NeedForPauseException: duration[{}] pause cycle[{}] partitions[{}]", pause, currentPauses, partitions.toString)
+            logger.debug(s"NeedForPauseException: duration[{}] pause cycle[{}] partitions[{}]", pause, currentPauses, partitions.size())
           case e: NeedForResumeException =>
-            logger.debug("NeedForResumeException: [{}]", e.getMessage)
             val partitions = consumer.assignment()
             consumer.resume(partitions)
             getIsPaused.set(false)
             getUnPausedHistory.set(getUnPausedHistory.get() + 1)
             needForResumeCallback.run()
+            logger.debug("NeedForResumeException: [{}], partitions[{}]", e.getMessage, partitions.size())
           case e: CommitTimeoutException =>
             logger.error("Commit timed out {}", e.getMessage)
             import scala.util.control.Breaks._
