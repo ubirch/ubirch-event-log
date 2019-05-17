@@ -16,6 +16,7 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
@@ -39,6 +40,7 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   * Executor that transforms a ConsumerRecord into an EventLog
   * @param ec Represent the execution context for asynchronous processing.
   */
+@Singleton
 class EventLogParser @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
   with LazyLogging {
@@ -48,8 +50,8 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       val eventLog = v1.consumerRecords.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get).headOption
       v1.copy(eventLog = eventLog)
     } catch {
-      case _: Exception =>
-        //logger.error("Error Parsing Event: " + e.getMessage)
+      case e: Exception =>
+        logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
 
@@ -64,9 +66,11 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   * @param config Represents a config object to read config values from
   * @param ec     Represents an execution context
   */
+@Singleton
 class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInfo)(implicit ec: ExecutionContext)
   extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
-  with ProducerConfPaths {
+  with ProducerConfPaths
+  with LazyLogging {
   override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = {
 
     import EventLogJsonSupport._
@@ -81,6 +85,8 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
             val commitDecision: Vector[Decision[ProducerRecord[String, String]]] = {
 
               import org.json4s._
+
+              logger.debug(s"Creating PR for EventLog(${x.category}, ${x.id})")
 
               val eventLogJson = EventLogJsonSupport.ToJson[EventLog](x).get
 
@@ -117,8 +123,10 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
   }
 }
 
+@Singleton
 class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionContext)
-  extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]] {
+  extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
+  with LazyLogging {
 
   override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = {
 
@@ -140,6 +148,7 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
 
     futureResp.recoverWith {
       case e: Exception =>
+        logger.error("Error committing: {}", e)
         v1.flatMap { x =>
           Future.failed {
             CommitException(e.getMessage, x)

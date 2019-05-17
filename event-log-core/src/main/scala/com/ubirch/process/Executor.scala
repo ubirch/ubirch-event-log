@@ -117,8 +117,8 @@ class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
       events.insertFromEventLog(el).map { x =>
-        val expectedNumber = 1 + el.lookupKeys.size
-        logger.debug(s"EventLog(${el.id}) with $expectedNumber items, $x were stored")
+        val expectedNumber = 1 + el.lookupKeys.flatMap(_.value).size
+        logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
         v1
       }.recover {
         case e: InvalidQueryException =>
