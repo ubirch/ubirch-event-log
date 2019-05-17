@@ -3,7 +3,7 @@ package com.ubirch.process
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.ubirch.ConfPaths.CryptoConfPaths
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLogRow, EventsDAO, LookupKeyRow }
+import com.ubirch.models.{ EventLog, EventLogRow, EventsDAO, LookupKeyRow }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
@@ -154,6 +154,11 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val promiseTest = Promise[Int]()
 
       when(events.insert(any[EventLogRow](), any[Seq[LookupKeyRow]]())).thenReturn {
+        promiseTest.completeWith(Future(1))
+        promiseTest.future
+      }
+
+      when(events.insertFromEventLog(any[EventLog]())).thenReturn {
         promiseTest.completeWith(Future(1))
         promiseTest.future
       }

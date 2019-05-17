@@ -182,7 +182,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
-            logger.debug(s"New [${mode.value}] tree created, root hash is: $rootHash")
+            logger.debug(s"New [${mode.value}] tree(${els.size}) created, root hash is: $rootHash")
 
             val category = mode.category
             val serviceClass = mode.serviceClass

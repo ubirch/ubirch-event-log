@@ -13,7 +13,7 @@ import javax.inject._
 class DispatchInfo @Inject() (config: Config) extends LazyLogging {
 
   lazy val info: List[Dispatch] = loadInfo.map(x => toDispatch(x)).getOrElse(Nil)
-  val file: String = config.getStringAsOption("eventLog.dispatching.file").getOrElse("DispatchingPaths.json")
+  val file: String = config.getString("eventLog.dispatching.file")
   private var fileStream: InputStream = _
   private var bufferReader: BufferedReader = _
 
@@ -40,7 +40,9 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
 
   private def toDispatch(data: String): List[Dispatch] = {
     try {
-      EventLogJsonSupport.FromString[List[Dispatch]](data).get
+      val di = EventLogJsonSupport.FromString[List[Dispatch]](data).get
+      logger.debug("Dispatching Info Found: {}", data)
+      di
     } catch {
       case e: Exception =>
         logger.error("Error parsing into Dispatch {}", e.getMessage)
