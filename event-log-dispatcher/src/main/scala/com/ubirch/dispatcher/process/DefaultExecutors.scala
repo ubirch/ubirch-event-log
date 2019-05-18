@@ -148,7 +148,7 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
 
     futureResp.recoverWith {
       case e: Exception =>
-        logger.error("Error committing: {}", e)
+        logger.error("Error committing: {} ", e.getMessage)
         v1.flatMap { x =>
           Future.failed {
             CommitException(e.getMessage, x)

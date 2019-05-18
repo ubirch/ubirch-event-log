@@ -4,7 +4,7 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, EventLogRow, EventsDAO, LookupKeyRow }
+import com.ubirch.models.{ EventLog, EventsDAO }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.EventLogJsonSupport
