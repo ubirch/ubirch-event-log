@@ -6,7 +6,6 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.models.Dispatch
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Implicits.enrichedConfig
 import javax.inject._
 
 @Singleton

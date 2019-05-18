@@ -150,6 +150,59 @@ class ConsumerRunnerSpec extends TestBase {
 
     }
 
+    "run an NeedForPauseException and pause and then unpause with multiple partitions" in {
+      val maxEntities = 10
+      val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
+      val counter = new CountDownLatch(maxEntities)
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val topic = NameGiver.giveMeATopicName
+
+        createCustomTopic(topic, partitions = 40)
+
+        val messages = (1 to maxEntities).map(i => "Hello " + i).toList
+        messages.foreach { m =>
+          publishStringMessageToKafka(topic, m)
+        }
+
+        Thread.sleep(1000)
+
+        val configs = Configs(
+          bootstrapServers = "localhost:" + config.kafkaPort,
+          groupId = "My_Group_ID",
+          autoOffsetReset = OffsetResetStrategy.EARLIEST
+        )
+
+        val consumer = new ConsumerRunner[String, String]("cr-5") {
+          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            consumerRecords.foreach(x => futureMessages += x.value())
+            counter.countDown()
+            Future.failed(NeedForPauseException("Need to pause", "yeah", maybeDuration = Some(1 seconds)))
+          }
+        }
+
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setTopics(Set(topic))
+        consumer.setProps(configs)
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+
+        Thread.sleep(1000)
+
+        counter.await()
+
+        assert(futureMessages.distinct.size == maxEntities)
+        assert(messages.sorted == futureMessages.distinct.toList.sorted)
+
+      }
+    }
+
     "run an NeedForPauseException and pause and then unpause" in {
       val maxEntities = 1
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
@@ -353,20 +406,13 @@ class ConsumerRunnerSpec extends TestBase {
             Future.successful(processResult(consumerRecords))
           }
 
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
               }
             }
-
           }
         }
 
@@ -411,13 +457,7 @@ class ConsumerRunnerSpec extends TestBase {
             Future.successful(processResult(consumerRecords))
           }
 
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
@@ -430,7 +470,6 @@ class ConsumerRunnerSpec extends TestBase {
                 }
               }
             }
-
           }
         }
 
@@ -477,13 +516,7 @@ class ConsumerRunnerSpec extends TestBase {
             Future.successful(processResult(consumerRecords))
           }
 
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 failedProcesses.countDown()
@@ -497,7 +530,6 @@ class ConsumerRunnerSpec extends TestBase {
                 }
               }
             }
-
           }
         }
 

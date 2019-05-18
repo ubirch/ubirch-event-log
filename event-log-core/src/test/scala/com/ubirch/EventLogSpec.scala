@@ -370,20 +370,13 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
                 throw CommitTimeoutException("Commit timed out", () => commitFunc(), new TimeoutException("Timed out"))
               }
             }
-
           }
         }
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
@@ -432,13 +425,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 attempts.countDown()
@@ -451,7 +438,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
                 }
               }
             }
-
           }
         }
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
@@ -502,13 +488,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
-          override def createProcessRecords(
-              currentPartitionIndex: Int,
-              currentPartition: TopicPartition,
-              allPartitions: Set[TopicPartition],
-              consumerRecords: ConsumerRecords[String, String]
-          ): ProcessRecordsBase = {
-
+          override def oneFactory(currentPartitionIndex: Int, currentPartition: TopicPartition, allPartitions: Set[TopicPartition], consumerRecords: ConsumerRecords[String, String]): ProcessRecordsOne = {
             new ProcessRecordsOne(currentPartitionIndex, currentPartition, allPartitions, consumerRecords) {
               override def commitFunc(): Vector[Unit] = {
                 failedProcesses.countDown()
@@ -522,7 +502,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
                 }
               }
             }
-
           }
         }
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
