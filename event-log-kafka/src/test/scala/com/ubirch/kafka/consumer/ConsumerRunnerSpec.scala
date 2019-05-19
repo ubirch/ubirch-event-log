@@ -2,6 +2,7 @@ package com.ubirch.kafka.consumer
 
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.ubirch.TestBase
 import com.ubirch.kafka.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }
@@ -199,6 +200,64 @@ class ConsumerRunnerSpec extends TestBase {
 
         assert(futureMessages.distinct.size == maxEntities)
         assert(messages.sorted == futureMessages.distinct.toList.sorted)
+
+      }
+    }
+
+    "run an NeedForPauseException and pause and then unpause with multiple partitions with success" in {
+      val maxEntities = 10
+      val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
+      val counter = new CountDownLatch(1)
+      val successCounter = new AtomicInteger(0)
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val topic = NameGiver.giveMeATopicName
+
+        createCustomTopic(topic, partitions = 40)
+
+        val messages = (1 to maxEntities).map(i => "Hello " + i).toList
+        messages.foreach { m =>
+          publishStringMessageToKafka(topic, m)
+        }
+
+        Thread.sleep(1000)
+
+        val configs = Configs(
+          bootstrapServers = "localhost:" + config.kafkaPort,
+          groupId = "My_Group_ID",
+          autoOffsetReset = OffsetResetStrategy.EARLIEST
+        )
+
+        val consumer = new ConsumerRunner[String, String]("cr-5") {
+          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            if (successCounter.getAndIncrement() == maxEntities / 2) {
+              consumerRecords.foreach(x => futureMessages += x.value())
+              counter.countDown()
+              Future.successful(processResult(consumerRecords))
+            } else {
+              Future.failed(NeedForPauseException("Need to pause", "yeah", maybeDuration = Some(1 seconds)))
+            }
+          }
+        }
+
+        consumer.setKeyDeserializer(Some(new StringDeserializer()))
+        consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setTopics(Set(topic))
+        consumer.setProps(configs)
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+
+        Thread.sleep(1000)
+
+        counter.await()
+
+        assert(futureMessages.size == maxEntities)
+        assert(messages.sorted == futureMessages.toList.sorted)
 
       }
     }
