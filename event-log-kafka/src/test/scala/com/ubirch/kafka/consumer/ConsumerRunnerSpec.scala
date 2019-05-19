@@ -204,6 +204,90 @@ class ConsumerRunnerSpec extends TestBase {
       }
     }
 
+    "run an NeedForPauseException and pause and then unpause with multiple partitions with success with two instances" in {
+      val maxEntities = 10
+      val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
+      val counterA = new CountDownLatch(1)
+      val counterB = new CountDownLatch(1)
+      val successCounterA = new AtomicInteger(0)
+      val successCounterB = new AtomicInteger(0)
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      withRunningKafka {
+
+        val topic = NameGiver.giveMeATopicName
+
+        createCustomTopic(topic, partitions = 40)
+
+        val messages = (1 to maxEntities).map(i => "Hello " + i).toList
+        messages.foreach { m =>
+          publishStringMessageToKafka(topic, m)
+        }
+
+        Thread.sleep(1000)
+
+        val configs = Configs(
+          bootstrapServers = "localhost:" + config.kafkaPort,
+          groupId = "My_Group_ID",
+          autoOffsetReset = OffsetResetStrategy.EARLIEST
+        )
+
+        val consumerA = new ConsumerRunner[String, String]("cr-A") {
+          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            if (successCounterA.getAndIncrement() == maxEntities / 2) {
+              consumerRecords.foreach(x => futureMessages += x.value())
+              counterA.countDown()
+              Future.successful(processResult(consumerRecords))
+            } else {
+              Future.failed(NeedForPauseException("Need to pause", "yeah", maybeDuration = Some(1 seconds)))
+            }
+          }
+        }
+
+        consumerA.setKeyDeserializer(Some(new StringDeserializer()))
+        consumerA.setValueDeserializer(Some(new StringDeserializer()))
+        consumerA.setTopics(Set(topic))
+        consumerA.setProps(configs)
+        consumerA.setConsumptionStrategy(All)
+        consumerA.startPolling()
+
+
+        val consumerB = new ConsumerRunner[String, String]("cr-B") {
+          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+
+          override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
+            if (successCounterB.getAndIncrement() == maxEntities / 2) {
+              consumerRecords.foreach(x => futureMessages += x.value())
+              counterB.countDown()
+              Future.successful(processResult(consumerRecords))
+            } else {
+              Future.failed(NeedForPauseException("Need to pause", "yeah", maybeDuration = Some(1 seconds)))
+            }
+          }
+        }
+
+        consumerB.setKeyDeserializer(Some(new StringDeserializer()))
+        consumerB.setValueDeserializer(Some(new StringDeserializer()))
+        consumerB.setTopics(Set(topic))
+        consumerB.setProps(configs)
+        consumerB.setConsumptionStrategy(All)
+        consumerB.startPolling()
+
+
+        Thread.sleep(1000)
+
+        counterA.await()
+        counterB.await()
+
+        assert(futureMessages.size == maxEntities)
+        assert(messages.sorted == futureMessages.toList.sorted)
+
+      }
+    }
+
     "run an NeedForPauseException and pause and then unpause with multiple partitions with success" in {
       val maxEntities = 10
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
