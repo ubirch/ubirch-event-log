@@ -254,7 +254,6 @@ class ConsumerRunnerSpec extends TestBase {
         consumerA.setConsumptionStrategy(All)
         consumerA.startPolling()
 
-
         val consumerB = new ConsumerRunner[String, String]("cr-B") {
           override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
 
@@ -275,7 +274,6 @@ class ConsumerRunnerSpec extends TestBase {
         consumerB.setProps(configs)
         consumerB.setConsumptionStrategy(All)
         consumerB.startPolling()
-
 
         Thread.sleep(1000)
 
