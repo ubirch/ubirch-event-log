@@ -11,22 +11,22 @@ fi
 
 ENV=$1
 
-CUR_EVENT_LOG_TAG=201905171143-dev
-CUR_EVENT_LOOKUP_TAG=201905162125-dev
-CUR_EVENT_DISPATCHER_TAG=201905162125-dev
+CUR_EVENT_LOG_TAG=201905210616-dev
+CUR_EVENT_LOOKUP_TAG=201905210616-dev
+CUR_EVENT_DISPATCHER_TAG=201905210754-dev
 CUR_EVENT_CHAINER_TAG=201905192113-dev
 CUR_EVENT_CHAINER_MASTER_TAG=$CUR_EVENT_CHAINER_TAG
 CUR_EVENT_ENCODER_TAG=201905162125-dev
 
-if [[ "dev" == "$ENV" ]]; then
+#if [[ "dev" == "$ENV" ]]; then
 #     Insta
-    ./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-$ENV-insta.yaml"
-    ./deployK8SService.sh $ENV event-log-kafka-lookup $CUR_EVENT_LOOKUP_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-kafka-lookup-$ENV-insta.yaml"
-else
+./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-service-$ENV-insta.yaml"
+./deployK8SService.sh $ENV event-log-kafka-lookup $CUR_EVENT_LOOKUP_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-kafka-lookup-$ENV-insta.yaml"
+#else
 #     CosmoDB
-    ./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-$ENV.yaml"
-    ./deployK8SService.sh $ENV event-log-kafka-lookup $CUR_EVENT_LOOKUP_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-kafka-lookup-$ENV.yaml"
-fi
+#    ./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-service-log-$ENV.yaml"
+#    ./deployK8SService.sh $ENV event-log-kafka-lookup $CUR_EVENT_LOOKUP_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-kafka-lookup-$ENV.yaml"
+#fi
 
 ./deployK8SService.sh $ENV event-log-encoder $CUR_EVENT_ENCODER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-encoder-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-dispatcher $CUR_EVENT_DISPATCHER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-dispatcher-$ENV.yaml"

@@ -33,7 +33,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.ethereum.input.bin",
+        "name": "com.ubirch.ethereum",
         "data_to_send": "id"
       },
       {
