@@ -52,7 +52,25 @@
     ]
   },
   {
+    "category": "ETHEREUM_MAINNET_FRONTIER_MAINNET_NETWORK",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
     "category": "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "IOTA_MAINNET_IOTA_MAINNET_NETWORK",
     "topics": [
       {
         "name": "com.ubirch.eventlog",
