@@ -19,8 +19,6 @@ object Exceptions {
 
   case class CommitException(message: String, pipeData: DispatcherPipeData) extends ExecutionException(message)
 
-  case class BasicCommitException(message: String) extends ExecutionException(message)
-
   //EXECUTION EXCEPTIONS
 
 }

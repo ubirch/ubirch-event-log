@@ -6,13 +6,12 @@ import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.util.Exceptions._
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
-import com.ubirch.process.Executor
+import com.ubirch.process.{ BasicCommit, Executor }
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -154,33 +153,6 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
             CommitException(e.getMessage, x)
           }
         }
-    }
-
-  }
-}
-
-class BasicCommit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]] {
-
-  val futureHelper = new FutureHelper()
-
-  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-    value match {
-      case Go(record) =>
-        val javaFuture = stringProducer.getProducerOrCreate.send(record)
-        futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
-      case Ignore() =>
-        Future.successful(None)
-    }
-  }
-
-  override def apply(v1: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-
-    try {
-      commit(v1)
-    } catch {
-      case e: Exception =>
-        Future.failed(BasicCommitException(e.getMessage))
     }
 
   }

@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.kafka.util.VersionedLazyLogging
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, Relation }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -30,7 +30,9 @@ import scala.language.postfixOps
   * @param consumerRecords Represents the data received in the poll from Kafka
   * @param eventLog        Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String]
+case class PipeData private (consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String] {
+  val discoveryData: Seq[Relation] = eventLog.map(Relation.fromEventLog).getOrElse(Nil)
+}
 
 object PipeData {
   def apply(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]): PipeData = PipeData(Vector(consumerRecord), eventLog)
@@ -64,7 +66,12 @@ class DefaultConsumerRecordsManager @Inject() (
   type A = PipeData
 
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
-    filterEmpty andThen eventLogParser andThen eventLogSigner andThen eventsStore andThen metricsLogger
+    filterEmpty andThen
+      eventLogParser andThen
+      eventLogSigner andThen
+      eventsStore andThen
+      discoveryExecutor andThen
+      metricsLogger
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
