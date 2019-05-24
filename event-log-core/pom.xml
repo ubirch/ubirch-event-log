@@ -148,6 +148,8 @@
                         </goals>
                         <configuration>
                             <args>
+                                <arg>-unchecked</arg>
+                                <arg>-deprecation</arg>
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>
