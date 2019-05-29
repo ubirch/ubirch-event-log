@@ -4,7 +4,7 @@ case class LookupKeyRow(name: String, category: String, key: String, value: Stri
 
 object LookupKeyRow {
   def fromLookUpKey(lookupKey: LookupKey): Seq[LookupKeyRow] = {
-    lookupKey.value.map(LookupKeyRow(lookupKey.name, lookupKey.category, lookupKey.key, _))
+    lookupKey.value.map(x => LookupKeyRow(lookupKey.name, lookupKey.category, lookupKey.key.name, x.name))
   }
 }
 
