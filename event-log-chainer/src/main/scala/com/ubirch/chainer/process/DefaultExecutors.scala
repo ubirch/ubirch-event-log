@@ -193,7 +193,14 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
               .withCustomerId(customerId)
               .withServiceClass(serviceClass)
               .withRandomNonce
-              .addLookupKeys(LookupKey(lookupName, category, rootHash, els.map(_.id)))
+              .addLookupKeys(
+                LookupKey(
+                  lookupName,
+                  category,
+                  (rootHash, category),
+                  els.map(x => (x.id, x.category))
+                )
+              )
               .addOriginHeader(category)
               .sign(config)
 

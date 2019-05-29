@@ -64,7 +64,8 @@ object Encodings extends LazyLogging {
             category = Values.UPP_CATEGORY,
             key = payloadHash,
             value = Seq(x)
-          )
+          ).categoryAsKeyLabel
+            .nameAsValueLabelForAll
         }.toSeq
 
         val maybeDevice = Option(messageEnvelope.ubirchPacket)
@@ -84,7 +85,8 @@ object Encodings extends LazyLogging {
             category = Values.DEVICE_CATEGORY,
             key = x,
             value = Seq(payloadHash)
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.UPP_CATEGORY)
         }.toSeq
 
         val maybeChain = Option(messageEnvelope.ubirchPacket)
@@ -104,7 +106,8 @@ object Encodings extends LazyLogging {
             category = Values.CHAIN_CATEGORY,
             key = payloadHash,
             value = Seq(x)
-          )
+          ).withKeyLabel(Values.UPP_CATEGORY)
+            .categoryAsValueLabelForAll
         }.toSeq
 
         val el = EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
@@ -135,11 +138,12 @@ object Encodings extends LazyLogging {
         .withNewId(blockchainResponse.txid)
         .withLookupKeys(Seq(
           LookupKey(
-            blockchainResponse.category,
-            Values.PUBLIC_CHAIN_CATEGORY,
-            blockchainResponse.txid,
-            Seq(blockchainResponse.message)
-          )
+            name = blockchainResponse.category,
+            category = Values.PUBLIC_CHAIN_CATEGORY,
+            key = blockchainResponse.txid,
+            value = Seq(blockchainResponse.message)
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.MASTER_TREE_CATEGORY)
         ))
 
       encoderPipeData.copy(eventLog = Some(eventLog), producerRecord = None)
