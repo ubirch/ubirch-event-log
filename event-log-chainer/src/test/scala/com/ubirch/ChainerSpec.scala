@@ -131,7 +131,14 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(mode.lookupName, mode.category, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(
+            LookupKey(
+              mode.lookupName,
+              mode.category,
+              (treeEventLog.id, mode.category),
+              chainer.es.map(x => (x.id, x.category))
+            )
+          ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)
@@ -203,7 +210,14 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(mode.lookupName, mode.category, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(
+            LookupKey(
+              mode.lookupName,
+              mode.category,
+              (treeEventLog.id, mode.category),
+              chainer.es.map(x => (x.id, x.category))
+            )
+          ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)
@@ -275,7 +289,14 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(Values.SLAVE_TREE_ID, category, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(
+            LookupKey(
+              Values.SLAVE_TREE_ID,
+              category,
+              (treeEventLog.id, category),
+              chainer.es.map(x => (x.id, x.category))
+            )
+          ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)
@@ -357,7 +378,14 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(Values.SLAVE_TREE_ID, category, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(
+            LookupKey(
+              Values.SLAVE_TREE_ID,
+              category,
+              (treeEventLog.id, category),
+              chainer.es.map(x => (x.id, x.category))
+            )
+          ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)
@@ -439,7 +467,12 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
-          Seq(LookupKey(mode.lookupName, mode.category, treeEventLog.id, chainer.es.map(_.id))))
+          Seq(LookupKey(
+            mode.lookupName,
+            mode.category,
+            (treeEventLog.id, mode.category),
+            chainer.es.map(x => (x.id, x.category))
+          )))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
         assert(events.size == chainer.es.size)

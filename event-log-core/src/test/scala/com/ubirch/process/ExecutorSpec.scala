@@ -285,7 +285,8 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
   }
 
   "DiscoveryExecutor" must {
-    "publish data when there are LookupKeys " in {
+
+    "publish data when there are LookupKeys simple" in {
 
       val publishedData = new AtomicReference[String]("")
 
@@ -314,7 +315,15 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
       val discovery = new DiscoveryExecutor(basicCommit, config)
       val consumerRecord = mock[ConsumerRecord[String, String]]
-      val data = Entities.Events.eventExample().addLookupKeys(LookupKey("my name", "my category", "my key", Seq("my value")))
+      val data = Entities.Events.eventExample().addLookupKeys(
+        LookupKey(
+          "my name",
+          "my category",
+          "my key",
+          Seq("my value 1 ")
+        ).withKeyLabel("my key label")
+          .addValueLabelForAll("my value label for all")
+      )
       when(consumerRecord.value()).thenReturn(data.toJson)
 
       val pipeData = PipeData(consumerRecord, Some(data))
@@ -326,7 +335,64 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       assert(Option(data) == discovered.eventLog)
       assert(publishedData.get() == EventLogJsonSupport.ToJson(Relation.fromEventLog(data)).toString)
 
-      assert(publishedData.get() == """[{"v1":{"id":"my key","properties":{}},"v2":{"id":"my value","properties":{}},"edge":{"properties":{"category":"my category","name":"my name"}}}]""")
+      val expected = """[{"v1":{"id":"my key","label":"my key label","properties":{}},"v2":{"id":"my value 1 ","label":"my value label for all","properties":{}},"edge":{"properties":{"category":"my category","name":"my name"},"label":"my category"}}]"""
+
+      assert(publishedData.get() == expected)
+
+    }
+
+    "publish data when there are LookupKeys multiple values" in {
+
+      val publishedData = new AtomicReference[String]("")
+
+      val config = new ConfigProvider {} get ()
+      lazy val producer = mock[StringProducer]
+      when(producer.getProducerOrCreate).thenReturn(mock[Producer[String, String]])
+      when(producer.getProducerOrCreate.send(any[ProducerRecord[String, String]]())).thenReturn(mock[JavaFuture[RecordMetadata]])
+      val basicCommit = new BasicCommit(producer) {
+        override def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
+          publishedData.set(pr.value)
+          Future.successful {
+            Option {
+              new RecordMetadata(
+                new TopicPartition("topic", 1),
+                1,
+                1,
+                new Date().getTime,
+                1L,
+                1,
+                1
+              )
+            }
+          }
+        }
+      }
+
+      val discovery = new DiscoveryExecutor(basicCommit, config)
+      val consumerRecord = mock[ConsumerRecord[String, String]]
+      val data = Entities.Events.eventExample().addLookupKeys(
+        LookupKey(
+          "my name",
+          "my category",
+          "my key",
+          Seq("my value 1 ", "my value 2")
+        ).withKeyLabel("my key label")
+          .addValueLabelForAll("my value label for all")
+      )
+      when(consumerRecord.value()).thenReturn(data.toJson)
+
+      val pipeData = PipeData(consumerRecord, Some(data))
+
+      val futureDiscovery = discovery(Future.successful(pipeData))
+      val discovered = await(futureDiscovery, 2 seconds)
+
+      assert(discovered.eventLog.isDefined)
+      assert(Option(data) == discovered.eventLog)
+      assert(publishedData.get() == EventLogJsonSupport.ToJson(Relation.fromEventLog(data)).toString)
+
+      val expected = """[{"v1":{"id":"my key","label":"my key label","properties":{}},"v2":{"id":"my value 1 ","label":"my value label for all","properties":{}},"edge":{"properties":{"category":"my category","name":"my name"},"label":"my category"}},{"v1":{"id":"my key","label":"my key label","properties":{}},"v2":{"id":"my value 2","label":"my value label for all","properties":{}},"edge":{"properties":{"category":"my category","name":"my name"},"label":"my category"}}]"""
+
+      assert(publishedData.get() == expected)
 
     }
 
