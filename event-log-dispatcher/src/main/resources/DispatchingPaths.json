@@ -37,6 +37,10 @@
         "data_to_send": "id"
       },
       {
+        "name": "com.ubirch.ethereum-classic",
+        "data_to_send": "id"
+      },
+      {
         "name": "com.ubirch.iota",
         "data_to_send": "id"
       }
@@ -71,6 +75,24 @@
   },
   {
     "category": "IOTA_MAINNET_IOTA_MAINNET_NETWORK",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "ETHEREUM_TESTNNET_ETHERERUM_CLASSIC_TESTNET_NETWORK",
+    "topics": [
+      {
+        "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "ETHEREUM_MAINNET_ETHERERUM_CLASSIC_MAINNET_NETWORK",
     "topics": [
       {
         "name": "com.ubirch.eventlog",

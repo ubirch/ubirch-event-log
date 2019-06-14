@@ -13,6 +13,8 @@ spec:
   ports:
     - name: jmx
       port: 9010
+    - name: jmx
+      port: 9020
 
   selector:
     app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
