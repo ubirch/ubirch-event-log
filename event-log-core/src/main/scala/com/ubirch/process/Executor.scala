@@ -73,6 +73,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       v1.copy(eventLog = eventLog)
     } catch {
       case e: Exception =>
+        logger.error("Error Parsing Event: " + v1.consumerRecords.map(_.value()).mkString(", "))
         logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
