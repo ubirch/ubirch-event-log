@@ -149,6 +149,8 @@ class DiscoveryExecutor @Inject() (basicCommit: BasicCommit, config: Config)(imp
 
   val topic: String = config.getString(TOPIC_PATH)
 
+  logger.debug("Discovery Topic: " + topic)
+
   override def apply(v1: Future[PipeData]): Future[PipeData] = {
     v1.flatMap { v1 =>
 
