@@ -164,8 +164,12 @@ class DiscoveryExecutor @Inject() (basicCommit: BasicCommit, config: Config)(imp
           val pr = ProducerRecordHelper.toRecord(topic, null, relationsAsString, Map.empty)
 
           basicCommit(Go(pr)).map {
-            case Some(_) => v1
-            case None => throw DiscoveryException("Error sending discovery data", v1, "Error Committing Discovery Data")
+            case Some(_) =>
+              logger.debug("Discovery data successfully sent")
+              v1
+            case None =>
+              logger.error(s"Error sending discovery data to topic $topic")
+              throw DiscoveryException("Error sending discovery data", v1, "Error Committing Discovery Data")
           }
       }
 
@@ -192,11 +196,12 @@ class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Co
 
 @Singleton
 class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
-  extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]] {
+  extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]]
+    with LazyLogging {
 
   val futureHelper = new FutureHelper()
 
-  def send(pr: ProducerRecord[String, String]) = {
+  def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
     val javaFuture = stringProducer.getProducerOrCreate.send(pr)
     futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
   }
@@ -214,6 +219,7 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
       commit(v1)
     } catch {
       case e: Exception =>
+        logger.error("Error Committing: ", e)
         Future.failed(BasicCommitException(e.getMessage))
     }
 
