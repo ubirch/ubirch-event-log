@@ -62,8 +62,9 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
 
         futureHelper.fromJavaFuture(javaFutureSend).recover{
           case e: Exception =>
-            logger.error("Error Reporting Error: ", error)
-            logger.error("Error Reporting Error: ", e)
+            logger.error("Error Reporting Error 0: ", topic)
+            logger.error("Error Reporting Error 1: ", error)
+            logger.error("Error Reporting Error 2: ", e)
             throw  e
         }
 
