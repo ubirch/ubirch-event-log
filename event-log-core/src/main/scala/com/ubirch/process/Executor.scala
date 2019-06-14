@@ -72,8 +72,8 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       val eventLog = v1.consumerRecords.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get).headOption
       v1.copy(eventLog = eventLog)
     } catch {
-      case _: Exception =>
-        //logger.error("Error Parsing Event: " + e.getMessage)
+      case e: Exception =>
+        logger.error("Error Parsing Event: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
 
