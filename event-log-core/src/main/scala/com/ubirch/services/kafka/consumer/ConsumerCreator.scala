@@ -17,6 +17,8 @@ trait ConsumerCreator extends ConsumerConfPaths {
 
   def maxPollRecords: Int = config.getInt(MAX_POLL_RECORDS)
 
+  def metricsSubNamespace: String = config.getString(METRICS_SUB_NAMESPACE)
+
   def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
   def configs: ConfigProperties = Configs(

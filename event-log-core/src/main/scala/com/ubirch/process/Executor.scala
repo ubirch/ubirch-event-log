@@ -197,7 +197,7 @@ class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Co
 @Singleton
 class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
   extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]]
-    with LazyLogging {
+  with LazyLogging {
 
   val futureHelper = new FutureHelper()
 
