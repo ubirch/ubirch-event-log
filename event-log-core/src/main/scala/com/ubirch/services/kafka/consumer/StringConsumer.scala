@@ -76,18 +76,22 @@ class DefaultConsumerRecordsManager @Inject() (
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
+      logger.error("EmptyValueException: ", e)
       counter.counter.labels("EmptyValueException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
+      logger.error("ParsingIntoEventLogException: ", e)
       counter.counter.labels("ParsingIntoEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
+      logger.error("SigningEventLogException: ", e)
       counter.counter.labels("SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
+      logger.error("StoringIntoEventLogException: ", e)
       counter.counter.labels("StoringIntoEventLogException").inc()
       reporter.report(
         Error(
@@ -106,6 +110,7 @@ class DefaultConsumerRecordsManager @Inject() (
 
       res
     case e: DiscoveryException =>
+      logger.error("DiscoveryException: ", e)
       counter.counter.labels("DiscoveryException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
