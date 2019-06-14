@@ -116,6 +116,8 @@ object Encodings extends LazyLogging {
           .withRandomNonce
           .withNewId(payloadHash)
 
+        logger.debug(s"Encoded Message: ${el.toJson}")
+
         (el, None)
 
       } else {
