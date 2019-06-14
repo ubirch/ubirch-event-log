@@ -169,7 +169,7 @@ class DefaultStringConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    val consumerImp = new StringConsumer() with WithMetrics[String, String]
+    val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(topics)
     consumerImp.setProps(configs)

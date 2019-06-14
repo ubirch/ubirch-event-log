@@ -16,7 +16,9 @@ trait WithMetrics[K, V] {
 
   cr: ConsumerRunner[K, V] =>
 
-  val metricsNamespace: String = "ubirch"
+  def metricsNamespace: String = "ubirch_" + metricsSubNamespaceLabel
+
+  def metricsSubNamespaceLabel: String
 
   def metricsName(name: String): String = s"consumer_${version.get()}_$name"
 

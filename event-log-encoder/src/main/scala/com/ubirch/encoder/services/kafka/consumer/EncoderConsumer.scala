@@ -109,7 +109,7 @@ class DefaultEncoderConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    val consumerImp = new BytesConsumer() with WithMetrics[String, Array[Byte]]
+    val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(topics)
     consumerImp.setProps(configs)
