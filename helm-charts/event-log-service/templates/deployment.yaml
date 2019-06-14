@@ -59,6 +59,8 @@ spec:
                         value: "{{ .Values.eventLog.kafkaConsumer.topic}}"
                       - name: EVTL_KFC_GROUP
                         value: "{{ .Values.eventLog.kafkaConsumer.groupId}}"
+                      - name: EVTL_KFP_TOPIC
+                        value: "{{ .Values.eventLog.kafkaProducer.topic}}"
                       - name: EVTL_KFP_NODES
                         value: "{{ .Values.eventLog.kafkaProducer.bootstrapServers}}"
                       - name: EVTL_KFC_ERROR_TOPIC
