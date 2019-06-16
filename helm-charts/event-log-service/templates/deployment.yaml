@@ -66,7 +66,7 @@ spec:
                       - name: EVTL_KFC_ERROR_TOPIC
                         value: "{{ .Values.eventLog.kafkaProducer.errorTopic}}"
                       - name: EVTL_PROM_HTTP_PORT
-                        value: "{{ .Values.eventLog.prometheus.httpPort}}"
+                        value: "{{ .Values.eventLog.prometheus.port}}"
                       - name: EVTL_JAVA_OPTS
                         value: "{{ .Values.eventLog.javaopts}}"
                       - name: EVTL_KFC_MAX_POLL_RECORDS
