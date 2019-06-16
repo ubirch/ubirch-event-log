@@ -11,10 +11,15 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
+    - name: prometheus-metrics
+      port: {{ .Values.eventLogChainer.prometheus.port}}
+      protocol: TCP
     - name: jmx
       port: 9010
-    - name: jmx
+      protocol: TCP
+    - name: debug
       port: 9020
+      protocol: TCP
 
   selector:
     app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}

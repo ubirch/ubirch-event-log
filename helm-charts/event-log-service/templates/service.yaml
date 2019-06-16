@@ -11,7 +11,7 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - name: prometheus-metrics
-      port: {{ .Values.eventLog.prometheus.httpPort}}
+      port: {{ .Values.eventLog.prometheus.port}}
       protocol: TCP
     - name: jmx
       port: 9010

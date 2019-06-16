@@ -35,7 +35,7 @@
 
         <build.number>${timestamp}-dev</build.number>
 
-        <event-log-core.version>1.2.0</event-log-core.version>
+        <event-log-core.version>1.2.1-SNAPSHOT</event-log-core.version>
         <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
 
         <!-- plugins -->
