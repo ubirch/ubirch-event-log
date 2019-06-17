@@ -51,7 +51,7 @@ spec:
                       - name: UPA_KFP_ERROR_TOPIC
                         value: "{{ .Values.eventLogEncoder.kafkaProducer.errorTopic}}"
                       - name: UPA_PROM_HTTP_PORT
-                        value: "{{ .Values.eventLogEncoder.prometheus.httpPort}}"
+                        value: "{{ .Values.eventLogEncoder.prometheus.port}}"
                       - name: UPA_KFC_MAX_POLL_RECORDS
                         value: "{{ .Values.eventLogEncoder.kafkaConsumer.maxpoll}}"
                   resources:
