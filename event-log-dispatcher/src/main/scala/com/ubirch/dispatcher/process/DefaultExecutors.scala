@@ -98,6 +98,8 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
                   Option(x.toJson)
                 }.getOrElse(throw CreateProducerRecordException("Empty Materials 2: No data field extracted.", v1))
 
+                logger.debug(s"Dispatching to ${t}: " + dataToSend)
+
                 Go(ProducerRecordHelper.toRecord(t.name, v1.id.toString, dataToSend, Map.empty))
 
               }.toVector
