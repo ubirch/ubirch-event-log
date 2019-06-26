@@ -124,13 +124,6 @@
             <version>${json4s-ext}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_${scala.compat.version}</artifactId>
-            <version>${scalatest.version}</version>
-            <scope>test</scope>
-        </dependency>
-
     </dependencies>
 
     <build>
