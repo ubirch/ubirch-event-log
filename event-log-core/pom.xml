@@ -46,8 +46,6 @@
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
-        <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
-        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
         <!-- plugins -->
 
         <!-- versions -->
@@ -152,34 +150,6 @@
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- disable surefire -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <skipTests>true</skipTests>
-                </configuration>
-            </plugin>
-            <!-- enable scalatest -->
-            <plugin>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest-maven-plugin</artifactId>
-                <version>${scalatest-maven-plugin.version}</version>
-                <configuration>
-                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                    <junitxml>.</junitxml>
-                    <filereports>WDF TestSuite.txt</filereports>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test</id>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>

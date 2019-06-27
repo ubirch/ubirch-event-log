@@ -65,10 +65,6 @@
     <!-- properties -->
 
     <properties>
-        <configuration>
-            <argLine>-Xmx1024m</argLine>
-        </configuration>
-
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
@@ -99,8 +95,9 @@
         <!-- plugins -->
         <scalariform.version>0.2.2</scalariform.version>
         <maven-dependency-plugin.version>2.8</maven-dependency-plugin.version>
+        <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
+        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
         <!-- plugins -->
-
 
         <!-- versions -->
 
@@ -219,6 +216,36 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+            </plugin>
+
+            <!-- disable surefire -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <!-- enable scalatest -->
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>${scalatest-maven-plugin.version}</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                    <argLine>-Xmx1024m</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
