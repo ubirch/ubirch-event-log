@@ -3,8 +3,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- parent pom -->
+    <parent>
+        <groupId>com.ubirch</groupId>
+        <artifactId>event-log</artifactId>
+        <version>1.2.0</version>
+    </parent>
+
     <!-- basic info -->
-    <groupId>com.ubirch</groupId>
     <artifactId>event-log-util</artifactId>
     <version>1.2.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
@@ -122,13 +128,6 @@
             <groupId>org.json4s</groupId>
             <artifactId>json4s-ext_${scala.compat.version}</artifactId>
             <version>${json4s-ext}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_${scala.compat.version}</artifactId>
-            <version>${scalatest.version}</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>
