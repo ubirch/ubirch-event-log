@@ -143,6 +143,13 @@
 
         <!-- Test -->
 
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatest.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Test -->
 
     </dependencies>
