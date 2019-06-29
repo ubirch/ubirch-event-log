@@ -35,8 +35,6 @@ case class TreeEventLogCreationException(message: String, pipeData: ChainerPipeD
   */
 case class CreateTreeProducerRecordException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
 
-case class BasicCommitException(message: String) extends ExecutionException(message)
-
 /**
   * Represents an exception thrown in the execution pipeline for when there has been an error committing the producer record value
   * into Kafka

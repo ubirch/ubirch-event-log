@@ -101,6 +101,10 @@ object Exceptions {
     */
   case class StoringIntoEventLogException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
 
+  case class DiscoveryException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
+
+  case class BasicCommitException(message: String) extends ExecutionException(message)
+
   //EXECUTION EXCEPTIONS
 
 }

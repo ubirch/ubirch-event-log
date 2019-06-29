@@ -89,13 +89,15 @@ class EncoderSpec extends TestBase with LazyLogging {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
-          ),
+          ).categoryAsKeyLabel
+            .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.UPP_CATEGORY)
         )
 
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
@@ -419,13 +421,15 @@ class EncoderSpec extends TestBase with LazyLogging {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
-          ),
+          ).categoryAsKeyLabel
+            .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.UPP_CATEGORY)
         )
 
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
@@ -488,7 +492,8 @@ class EncoderSpec extends TestBase with LazyLogging {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
-          ),
+          ).categoryAsKeyLabel
+            .nameAsValueLabelForAll,
           LookupKey(
             Values.UPP_CHAIN,
             Values.CHAIN_CATEGORY,
@@ -498,13 +503,15 @@ class EncoderSpec extends TestBase with LazyLogging {
                 org.bouncycastle.util.Strings.toByteArray("this is my chain")
               }
             }
-          ),
+          ).withKeyLabel(Values.UPP_CATEGORY)
+            .categoryAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.UPP_CATEGORY)
         )
 
         assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
@@ -571,7 +578,8 @@ class EncoderSpec extends TestBase with LazyLogging {
             Values.PUBLIC_CHAIN_CATEGORY,
             "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
             Seq("e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19")
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.MASTER_TREE_CATEGORY)
         ))
         assert(Option(eventLog.category) == eventLog.lookupKeys.map(_.name).headOption)
         assert(eventLog.customerId == Values.UBIRCH)
@@ -674,13 +682,15 @@ class EncoderSpec extends TestBase with LazyLogging {
                 org.bouncycastle.util.Strings.toByteArray("1111")
               }
             }
-          ),
+          ).categoryAsKeyLabel
+            .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString,
             value = Seq(pmId.toString)
-          )
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.UPP_CATEGORY)
         )
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)

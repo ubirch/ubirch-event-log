@@ -23,7 +23,26 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.1-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Json -->
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.compat.version}</artifactId>
+            <version>${json4s-native.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
+            <version>${json4s-jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-ext_${scala.compat.version}</artifactId>
+            <version>${json4s-ext}</version>
         </dependency>
         
         <!-- Test -->
@@ -46,6 +65,10 @@
     <properties>
 
         <!-- versions -->
+
+        <json4s-native.version>3.6.0</json4s-native.version>
+        <json4s-jackson.version>3.6.1</json4s-jackson.version>
+        <json4s-ext>3.6.0</json4s-ext>
 
         <build.number>${timestamp}-dev</build.number>
 
@@ -82,6 +105,8 @@
                         </goals>
                         <configuration>
                             <args>
+                                <arg>-unchecked</arg>
+                                <arg>-deprecation</arg>
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>

@@ -9,12 +9,12 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.kafka.util.VersionedLazyLogging
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, Relation }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
-import com.ubirch.util.Exceptions.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions.{ DiscoveryException, EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
@@ -30,7 +30,9 @@ import scala.language.postfixOps
   * @param consumerRecords Represents the data received in the poll from Kafka
   * @param eventLog        Represents the event log type. It is here for informative purposes.
   */
-case class PipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String]
+case class PipeData private (consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String] {
+  val discoveryData: Seq[Relation] = eventLog.map(Relation.fromEventLog).getOrElse(Nil)
+}
 
 object PipeData {
   def apply(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]): PipeData = PipeData(Vector(consumerRecord), eventLog)
@@ -64,23 +66,32 @@ class DefaultConsumerRecordsManager @Inject() (
   type A = PipeData
 
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
-    filterEmpty andThen eventLogParser andThen eventLogSigner andThen eventsStore andThen metricsLogger
+    filterEmpty andThen
+      eventLogParser andThen
+      eventLogSigner andThen
+      eventsStore andThen
+      discoveryExecutor andThen
+      metricsLogger
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
+      logger.error("EmptyValueException: ", e)
       counter.counter.labels("EmptyValueException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
+      logger.error("ParsingIntoEventLogException: ", e)
       counter.counter.labels("ParsingIntoEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
+      logger.error("SigningEventLogException: ", e)
       counter.counter.labels("SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
+      logger.error("StoringIntoEventLogException: ", e)
       counter.counter.labels("StoringIntoEventLogException").inc()
       reporter.report(
         Error(
@@ -98,6 +109,12 @@ class DefaultConsumerRecordsManager @Inject() (
       }
 
       res
+    case e: DiscoveryException =>
+      logger.error("DiscoveryException: ", e)
+      counter.counter.labels("DiscoveryException").inc()
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
+      Future.successful(e.pipeData)
+
   }
 
 }
@@ -157,7 +174,7 @@ class DefaultStringConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    val consumerImp = new StringConsumer() with WithMetrics[String, String]
+    val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(topics)
     consumerImp.setProps(configs)

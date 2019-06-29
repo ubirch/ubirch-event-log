@@ -3,6 +3,7 @@ package com.ubirch.sdk
 import java.util.concurrent.{ CountDownLatch, TimeUnit }
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.models.{ LookupKey, Values }
 import com.ubirch.util.Implicits.enrichedInstant
 import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import org.joda.time.Instant
@@ -267,8 +268,10 @@ object SDKExample3 extends EventLogging with LazyLogging {
     val sent = customerIds.flatMap { x =>
       (1 to loop).map { _ =>
         val log0 = log(Hello("Que más"))
+          .withCategory(Values.UPP_CATEGORY)
           .withCustomerId(x)
           .withRandomNonce
+          .addLookupKeys(LookupKey("name", "category", ("key1", "key1label"), Seq(("value1", "value1 label"))))
 
         log0.commitAsync
       }

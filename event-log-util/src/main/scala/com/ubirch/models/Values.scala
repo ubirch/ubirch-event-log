@@ -20,4 +20,7 @@ object Values {
 
   val UBIRCH = "ubirch"
 
+  val CATEGORY_LABEL = "CATEGORY"
+  val NAME_LABEL = "NAME"
+
 }

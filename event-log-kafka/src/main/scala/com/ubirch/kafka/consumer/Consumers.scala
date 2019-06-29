@@ -17,7 +17,9 @@ object StringConsumer {
 
   def empty(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() {}
 
-  def emptyWithMetrics(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() with WithMetrics[String, String]
+  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() with WithMetrics[String, String] {
+    override def metricsSubNamespaceLabel: String = metricsSubNamespace
+  }
 
   def fBased(f: Vector[ConsumerRecord[String, String]] => Future[ProcessResult[String, String]])(implicit ec: ExecutionContext): StringConsumer = {
     new StringConsumer() {
@@ -48,7 +50,9 @@ object BytesConsumer {
 
   def empty(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() {}
 
-  def emptyWithMetrics(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() with WithMetrics[String, Array[Byte]]
+  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() with WithMetrics[String, Array[Byte]] {
+    override def metricsSubNamespaceLabel: String = metricsSubNamespace
+  }
 
   def fBased(f: Vector[ConsumerRecord[String, Array[Byte]]] => Future[ProcessResult[String, Array[Byte]]])(implicit ec: ExecutionContext): BytesConsumer = {
     new BytesConsumer() {

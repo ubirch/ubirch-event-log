@@ -40,6 +40,34 @@ The principal elements of the producer runner environment are:
 
 2. **ProducerRunner:** Represents a simple definition for a kafka producer. It supports callback on the producer creation event
 
+## Express Kafka Steps ##
+
+1. To create an Express Kafka App you have to implement ExpressKafkaApp. This component trait takes 
+two type parameters, K and V, K stands for Key and V for Value. You have to pass these parameters in 
+depending on the kind of consumer and producer you would like to have.
+
+2. You have to implement a couple of configuration values:
+    
+    * keyDeserializer
+    * valueDeserializer
+    * consumerTopics
+    * consumerBootstrapServers
+    * consumerGroupId
+    * consumerMaxPollRecords
+    * consumerGracefulTimeout
+    * producerBootstrapServers
+    * keySerializer
+    * valueSerializer
+
+3. You have to implement the business logic in the method called *process*. This method is basically 
+called every time the consumer polls for new data. That's to say that the vector of consumer records is 
+the data arriving in this configure topic.
+
+4. Optionally, you are able to send -publish- data to different topics if necessary. You can do this 
+with the method *send*.
+
+5. You need to have a Kafka Server running. For more information, check https://kafka.apache.org/
+
 ## Import into project
 
 ```xml

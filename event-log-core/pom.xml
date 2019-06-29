@@ -12,7 +12,7 @@
 
     <!-- basic info -->
     <artifactId>event-log-core</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Core for the ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
@@ -146,6 +146,8 @@
                         </goals>
                         <configuration>
                             <args>
+                                <arg>-unchecked</arg>
+                                <arg>-deprecation</arg>
                                 <arg>-dependencyfile</arg>
                                 <arg>${project.build.directory}/.scala_dependencies</arg>
                             </args>

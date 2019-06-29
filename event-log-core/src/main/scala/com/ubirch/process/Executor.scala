@@ -3,14 +3,17 @@ package com.ubirch.process
 import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.Counter
-import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions._
+import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
@@ -69,8 +72,10 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       val eventLog = v1.consumerRecords.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get).headOption
       v1.copy(eventLog = eventLog)
     } catch {
-      case _: Exception =>
-        //logger.error("Error Parsing Event: " + e.getMessage)
+      case e: Exception =>
+        logger.error("Error Parsing Event 0: " + v1)
+        logger.error("Error Parsing Event 1: " + v1.consumerRecords.map(_.value()).mkString(", "))
+        logger.error("Error Parsing Event 2: " + e.getMessage)
         throw ParsingIntoEventLogException("Error Parsing Into Event Log", v1)
     }
 
@@ -138,7 +143,46 @@ class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
 
 }
 
-class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Counter)(implicit ec: ExecutionContext) extends Executor[Future[PipeData], Future[PipeData]] {
+@Singleton
+class DiscoveryExecutor @Inject() (basicCommit: BasicCommit, config: Config)(implicit ec: ExecutionContext)
+  extends Executor[Future[PipeData], Future[PipeData]]
+  with ProducerConfPaths
+  with LazyLogging {
+
+  val topic: String = config.getString(TOPIC_PATH)
+
+  logger.debug("Discovery Topic: " + topic)
+
+  override def apply(v1: Future[PipeData]): Future[PipeData] = {
+    v1.flatMap { v1 =>
+
+      v1.discoveryData match {
+        case Nil =>
+          Future.successful(v1)
+        case _ =>
+
+          val relationsAsString = EventLogJsonSupport.ToJson(v1.discoveryData).toString
+
+          val pr = ProducerRecordHelper.toRecord(topic, null, relationsAsString, Map.empty)
+
+          basicCommit(Go(pr)).map {
+            case Some(_) =>
+              logger.debug("Discovery data successfully sent")
+              v1
+            case None =>
+              logger.error(s"Error sending discovery data to topic $topic")
+              throw DiscoveryException("Error sending discovery data", v1, "Error Committing Discovery Data")
+          }
+      }
+
+    }
+
+  }
+
+}
+
+class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Counter)(implicit ec: ExecutionContext)
+  extends Executor[Future[PipeData], Future[PipeData]] {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = {
     v1.onComplete {
@@ -149,6 +193,38 @@ class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Co
     }
 
     v1
+  }
+}
+
+@Singleton
+class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+  extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]]
+  with LazyLogging {
+
+  val futureHelper = new FutureHelper()
+
+  def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
+    val javaFuture = stringProducer.getProducerOrCreate.send(pr)
+    futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
+  }
+
+  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
+    value match {
+      case Go(record) => send(record)
+      case Ignore() => Future.successful(None)
+    }
+  }
+
+  override def apply(v1: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
+
+    try {
+      commit(v1)
+    } catch {
+      case e: Exception =>
+        logger.error("Error Committing: ", e)
+        Future.failed(BasicCommitException(e.getMessage))
+    }
+
   }
 }
 
@@ -166,6 +242,8 @@ trait ExecutorFamily {
 
   def eventLogSigner: EventLogSigner
 
+  def discoveryExecutor: DiscoveryExecutor
+
   def metricsLogger: MetricsLogger
 
 }
@@ -182,5 +260,6 @@ case class DefaultExecutorFamily @Inject() (
     eventLogParser: EventLogParser,
     eventLogSigner: EventLogSigner,
     eventsStore: EventsStore,
+    discoveryExecutor: DiscoveryExecutor,
     metricsLogger: MetricsLogger
 ) extends ExecutorFamily
