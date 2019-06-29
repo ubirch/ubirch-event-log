@@ -11,10 +11,13 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - name: prometheus-metrics
-      port: 4321
+      port: {{ .Values.eventLog.prometheus.port}}
       protocol: TCP
     - name: jmx
       port: 9010
+      protocol: TCP
+    - name: debug
+      port: 9020
       protocol: TCP
   selector:
     app.kubernetes.io/name: {{ include "event-log-service.name" . }}

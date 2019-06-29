@@ -401,6 +401,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(el.signature == "my signature")
       assert(el.nonce == "my nonce")
       assert(el.lookupKeys == lookupKeys)
+      assert(el.lookupKeys == Seq(LookupKey("name", "category", Key("key", None), Seq(Value("value", None)))))
 
     }
 

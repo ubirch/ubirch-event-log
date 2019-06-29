@@ -60,7 +60,13 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
 
         val javaFutureSend = producerManager.getProducerOrCreate.send(record)
 
-        futureHelper.fromJavaFuture(javaFutureSend)
+        futureHelper.fromJavaFuture(javaFutureSend).recover {
+          case e: Exception =>
+            logger.error("Error Reporting Error 0: ", topic)
+            logger.error("Error Reporting Error 1: ", error)
+            logger.error("Error Reporting Error 2: ", e)
+            throw e
+        }
 
       }
 

@@ -9,17 +9,15 @@ import com.ubirch.chainer.models.{ Chainer, Mode }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.util._
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey }
-import com.ubirch.process.Executor
+import com.ubirch.process.{ BasicCommit, Executor }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -195,7 +193,14 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
               .withCustomerId(customerId)
               .withServiceClass(serviceClass)
               .withRandomNonce
-              .addLookupKeys(LookupKey(lookupName, category, rootHash, els.map(_.id)))
+              .addLookupKeys(
+                LookupKey(
+                  lookupName,
+                  category,
+                  (rootHash, category),
+                  els.map(x => (x.id, x.category))
+                )
+              )
               .addOriginHeader(category)
               .sign(config)
 
@@ -283,34 +288,6 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
             CommitException(e.getMessage, x)
           }
         }
-    }
-
-  }
-}
-
-@Singleton
-class BasicCommit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]] {
-
-  val futureHelper = new FutureHelper()
-
-  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-    value match {
-      case Go(record) =>
-        val javaFuture = stringProducer.getProducerOrCreate.send(record)
-        futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
-      case Ignore() =>
-        Future.successful(None)
-    }
-  }
-
-  override def apply(v1: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-
-    try {
-      commit(v1)
-    } catch {
-      case e: Exception =>
-        Future.failed(BasicCommitException(e.getMessage))
     }
 
   }

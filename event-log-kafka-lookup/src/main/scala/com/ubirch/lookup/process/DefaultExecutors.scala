@@ -125,10 +125,10 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   * Represents an executor that commits a producer record
   *
   * @param stringProducer Represents a producer.
-  * @param config         Represents a config object to read config values from
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (stringProducer: StringProducer, config: Config)(implicit ec: ExecutionContext) extends Executor[Future[LookupPipeData], Future[LookupPipeData]] {
+class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+  extends Executor[Future[LookupPipeData], Future[LookupPipeData]] {
 
   val futureHelper = new FutureHelper()
 
