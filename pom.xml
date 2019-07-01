@@ -239,7 +239,7 @@
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
                     <argLine>-Xmx1024m</argLine>
-                    <argLine>-XmsM512m</argLine>
+                    <argLine>-Xms512m</argLine>
                 </configuration>
                 <executions>
                     <execution>
