@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ BasicCommit, Executor }
@@ -46,8 +47,11 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
 
   override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = v1.map { v1 =>
     val result: DispatcherPipeData = try {
-      val eventLog = v1.consumerRecords.map(x => EventLogJsonSupport.FromString[EventLog](x.value()).get).headOption
-      v1.copy(eventLog = eventLog)
+      val eventLog = v1.consumerRecords.map { x =>
+        logger.debug("EventLogParser:" + x.value())
+        EventLogJsonSupport.FromString[EventLog](x.value()).get
+      }.headOption
+      v1.copy(eventLog = eventLog.map(_.addTraceHeader("DISPATCHER")))
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Event: " + e.getMessage)
@@ -98,7 +102,7 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
                   Option(x.toJson)
                 }.getOrElse(throw CreateProducerRecordException("Empty Materials 2: No data field extracted.", v1))
 
-                logger.debug(s"Dispatching to ${t}: " + dataToSend)
+                logger.debug(s"Dispatching to $t: " + dataToSend)
 
                 Go(ProducerRecordHelper.toRecord(t.name, v1.id.toString, dataToSend, Map.empty))
 

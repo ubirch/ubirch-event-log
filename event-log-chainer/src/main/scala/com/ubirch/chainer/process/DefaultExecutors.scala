@@ -202,6 +202,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
                 )
               )
               .addOriginHeader(category)
+              .addTraceHeader(mode.value)
               .sign(config)
 
           }

@@ -65,7 +65,10 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
       val jValue = v1.messageJValue.getOrElse { throw EventLogFromConsumerRecordException("No JValue Found", v1) }
       val decoded = decode(v1)(jValue)
 
-      decoded
+      val withTrace = decoded.copy(eventLog = decoded.eventLog.map(_.addBlueMark.addTraceHeader("ENCODER")))
+      logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
+
+      withTrace
 
     } catch {
       case e: EventLogFromConsumerRecordException =>
@@ -163,7 +166,8 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   * @param ec             Represents an execution context
   */
 class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
-  extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]] {
+  extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
+  with LazyLogging {
 
   val futureHelper = new FutureHelper()
 
@@ -171,6 +175,7 @@ class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionCo
     value match {
       case Go(record) =>
         val javaFuture = stringProducer.getProducerOrCreate.send(record)
+        logger.debug("Commit: " + record.value())
         futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
       case Ignore() =>
         Future.successful(None)
