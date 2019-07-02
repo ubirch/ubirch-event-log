@@ -7,6 +7,7 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util.{ EventLogJsonSupport, JsonHelper, SigningHelper, UUIDHelper }
 import com.ubirch.{ Entities, TestBase }
 import org.json4s.jackson.JsonMethods.parse
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import org.json4s.{ JValue, MappingException }
 import org.scalatest.mockito.MockitoSugar
 
@@ -490,6 +491,26 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(el.signature == "my signature")
       assert(el.signature == "my signature")
       assert(el.nonce != "")
+
+    }
+
+    "check trace header" in {
+      val data: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+
+      val date = new Date()
+
+      val el = EventLog(data)
+        .withNewId("my id")
+        .withCustomerId("my customer id")
+        .withCategory("my customer id")
+        .withServiceClass("my service class")
+        .withCategory("my category")
+        .withEventTime(date)
+        .withSignature("my signature")
+        .addTraceHeader("System ONE")
+        .addTraceHeader("System TWO")
+
+      println(el.toJson)
 
     }
 

@@ -1,7 +1,7 @@
 package com.ubirch.models
 
 import com.typesafe.config.Config
-import com.ubirch.util.SigningHelper
+import com.ubirch.util.{ SigningHelper, UUIDHelper }
 
 import scala.language.implicitConversions
 
@@ -31,6 +31,14 @@ case class EnrichedEventLog(eventLog: EventLog) {
 
   def addOriginHeader(origin: String): EventLog = {
     eventLog.addHeaders(HeaderNames.ORIGIN -> origin)
+  }
+
+  def addTraceHeader(trace: String): EventLog = {
+    eventLog.addHeaders(HeaderNames.TRACE -> trace)
+  }
+
+  def addBlueMark: EventLog = {
+    eventLog.addHeaders(HeaderNames.BLUE_MARK -> UUIDHelper.randomUUID.toString)
   }
 
 }
