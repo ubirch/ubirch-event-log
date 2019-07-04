@@ -73,7 +73,7 @@
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
-        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
+        <embedded-kafka>2.3.0</embedded-kafka>
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
 
         <scala.logging.version>3.9.0</scala.logging.version>
@@ -200,8 +200,8 @@
 
         <dependency>
             <groupId>io.github.embeddedkafka</groupId>
-            <artifactId>embedded-kafka_2.12</artifactId>
-            <version>2.3.0</version>
+            <artifactId>embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${embedded-kafka}</version>
         </dependency>
 
         <dependency>
