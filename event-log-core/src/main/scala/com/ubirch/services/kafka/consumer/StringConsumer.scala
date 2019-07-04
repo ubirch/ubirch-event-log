@@ -14,7 +14,7 @@ import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
-import com.ubirch.util.Exceptions.{ DiscoveryException, EmptyValueException, ParsingIntoEventLogException, SigningEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions._
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition

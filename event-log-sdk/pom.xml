@@ -61,10 +61,9 @@
         </dependency>
 
         <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${scalatest-embedded-kafka}</version>
-            <scope>test</scope>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka_2.12</artifactId>
+            <version>2.3.0</version>
         </dependency>
 
     </dependencies>

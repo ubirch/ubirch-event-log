@@ -69,7 +69,7 @@
 
         <event-log-util.version>1.2.2-SNAPSHOT</event-log-util.version>
         <io.monix.version>2.3.2</io.monix.version>
-        <kafka-clients.version>2.0.0</kafka-clients.version>
+        <kafka-clients.version>2.3.0</kafka-clients.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
@@ -199,10 +199,9 @@
         <!-- Test -->
 
         <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${scalatest-embedded-kafka}</version>
-            <scope>test</scope>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka_2.12</artifactId>
+            <version>2.3.0</version>
         </dependency>
 
         <dependency>
