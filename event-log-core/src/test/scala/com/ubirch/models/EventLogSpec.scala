@@ -3,11 +3,11 @@ package com.ubirch.models
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util.{ EventLogJsonSupport, JsonHelper, SigningHelper, UUIDHelper }
 import com.ubirch.{ Entities, TestBase }
 import org.json4s.jackson.JsonMethods.parse
-import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import org.json4s.{ JValue, MappingException }
 import org.scalatest.mockito.MockitoSugar
 
@@ -497,7 +497,8 @@ class EventLogSpec extends TestBase with MockitoSugar {
     "check trace header" in {
       val data: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
 
-      val date = new Date()
+      val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
+      val date = sdf.parse("02-03-1986 16:00:00")
 
       val el = EventLog(data)
         .withNewId("my id")
@@ -510,7 +511,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
         .addTraceHeader("System ONE")
         .addTraceHeader("System TWO")
 
-      println(el.toJson)
+      assert(el.toJson == """{"headers":{"trace":["System ONE","System TWO"]},"id":"my id","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T15:00:00.000Z","signature":"my signature","nonce":"","lookup_keys":[]}""")
 
     }
 
