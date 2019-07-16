@@ -39,28 +39,28 @@ class DefaultChainerManager @Inject() (val reporter: Reporter, executorFamily: E
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[ChainerPipeData]] = {
     case e: EmptyValueException =>
-      logger.debug("EmptyValueException: " + e.getMessage)
+      logger.error("EmptyValueException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
-      logger.debug("ParsingIntoEventLogException: " + e.getMessage)
+      logger.error("ParsingIntoEventLogException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
-      logger.debug("SigningEventLogException: " + e.getMessage)
+      logger.error("SigningEventLogException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e @ TreeEventLogCreationException(_, pipeData) =>
-      logger.debug("TreeEventLogCreationException: " + e.getMessage)
+      logger.error("TreeEventLogCreationException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(pipeData)
     case e @ CreateTreeProducerRecordException(_, pipeData) =>
-      logger.debug("CreateProducerRecordException: " + e.getMessage)
+      logger.error("CreateProducerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
       //TODO: should we just retry the whole loop?
-      logger.debug("CommitException: " + e.getMessage)
+      logger.error("CommitException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(pipeData)
   }
