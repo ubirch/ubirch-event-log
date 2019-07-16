@@ -57,7 +57,6 @@ object Encodings extends LazyLogging {
               throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", encoderPipeData)
           }
 
-        //TODO: ADD THE QUERY TYPES TO UTILS OR CORE
         val signatureLookupKey = maybeSignature.map { x =>
           LookupKey(
             name = Values.SIGNATURE,
