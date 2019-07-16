@@ -69,23 +69,23 @@ class DefaultEncoderManager @Inject() (val reporter: Reporter, val executorFamil
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
     case e @ JValueFromConsumerRecordException(_, pipeData) =>
-      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.toString))
       Future.successful(pipeData)
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
-      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = compact(pipeData.messageJValue.getOrElse(JString("No JValue")))))
       Future.successful(pipeData)
     case e @ SigningEventLogException(_, pipeData) =>
-      logger.debug("SigningEventLogException: " + e.getMessage)
+      logger.error("SigningEventLogException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
-      logger.debug("CreateProducerRecordException: " + e.getMessage)
+      logger.error("CreateProducerRecordException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
-      logger.debug("CommitException: " + e.getMessage)
+      logger.error("CommitException: " + e.getMessage)
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
   }

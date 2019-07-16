@@ -62,8 +62,8 @@ trait WithMetrics[K, V] extends WithNamespace {
   //Metrics Def Start
   final val pausesCounter: Counter = Counter.build()
     .namespace(metricsNamespace)
-    .name(metricsName("event_error_total"))
-    .help("Total event errors.")
+    .name(metricsName("pauses_total"))
+    .help("Total pauses/unpauses.")
     .labelNames("result")
     .register()
 

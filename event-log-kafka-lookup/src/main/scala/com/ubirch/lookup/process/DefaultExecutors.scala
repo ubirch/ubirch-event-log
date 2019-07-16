@@ -67,7 +67,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
     }
 
     maybeFutureRes
-      .getOrElse(throw LookupExecutorException("No key or value were found", LookupPipeData(v1, maybeKey, maybeQueryType, None, None, None), ""))
+      .getOrElse(throw LookupExecutorException("No key or value was found", LookupPipeData(v1, maybeKey, maybeQueryType, None, None, None), ""))
 
   }
 
