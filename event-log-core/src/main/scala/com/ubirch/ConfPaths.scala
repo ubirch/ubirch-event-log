@@ -39,4 +39,7 @@ object ConfPaths {
     val SERVICE_PK = "crypto.keys.ed25519.signingPrivateKey"
   }
 
+  object ConsumerConfPaths extends ConsumerConfPaths
+  object ProducerConfPaths extends ProducerConfPaths
+
 }

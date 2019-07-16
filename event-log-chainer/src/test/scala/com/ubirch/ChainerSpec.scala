@@ -19,9 +19,6 @@ import org.json4s.JsonAST._
 
 class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave) extends InjectorHelper(List(new ChainerServiceBinder {
 
-  object ConsumerConfPaths extends ConsumerConfPaths
-  object ProducerConfPaths extends ProducerConfPaths
-
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
