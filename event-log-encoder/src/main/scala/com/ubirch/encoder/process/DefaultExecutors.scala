@@ -11,7 +11,7 @@ import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
@@ -65,7 +65,7 @@ class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
       val jValue = v1.messageJValue.getOrElse { throw EventLogFromConsumerRecordException("No JValue Found", v1) }
       val decoded = decode(v1)(jValue)
 
-      val withTrace = decoded.copy(eventLog = decoded.eventLog.map(_.addBlueMark.addTraceHeader("ENCODER")))
+      val withTrace = decoded.copy(eventLog = decoded.eventLog.map(_.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)))
       logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
 
       withTrace

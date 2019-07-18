@@ -198,7 +198,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(10000)
+        Thread.sleep(15000)
 
         //Read Events
         val events = InjectorHelper.get[Events]

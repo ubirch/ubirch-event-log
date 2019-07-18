@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, EventsDAO }
+import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Exceptions._
@@ -73,7 +73,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
         logger.debug("EventLogParser:" + x.value())
         EventLogJsonSupport.FromString[EventLog](x.value()).get
       }.headOption
-      v1.copy(eventLog = eventLog.map(_.addTraceHeader("EVENT_LOG")))
+      v1.copy(eventLog = eventLog.map(_.addTraceHeader(Values.EVENT_LOG_SYSTEM)))
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Event 0: " + v1)
