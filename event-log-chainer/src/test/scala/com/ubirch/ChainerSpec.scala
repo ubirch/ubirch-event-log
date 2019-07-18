@@ -14,6 +14,7 @@ import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
+import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
 
@@ -482,6 +483,10 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }
