@@ -14,6 +14,7 @@ import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
+import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST._
@@ -716,6 +717,10 @@ class EncoderSpec extends TestBase with LazyLogging {
       }
 
     }
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }

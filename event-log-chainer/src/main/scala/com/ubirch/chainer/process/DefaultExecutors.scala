@@ -8,12 +8,14 @@ import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Mode }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
+import com.ubirch.chainer.services.metrics.DefaultTreeCounter
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey }
-import com.ubirch.process.{ BasicCommit, Executor }
+import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
 import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -226,7 +228,10 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 }
 
 @Singleton
-class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionContext)
+class CreateProducerRecords @Inject() (
+    config: Config,
+    @Named(DefaultTreeCounter.name) counter: Counter
+)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -240,6 +245,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
         lazy val treeEventLogProducerRecord = v1.treeEventLog.map { treeEl =>
+          counter.counter.labels(treeEl.category).inc()
           Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl))
         }.toVector
 
@@ -261,7 +267,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 }
 
 @Singleton
-class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] {
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
@@ -269,7 +275,14 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
     val futureMetadata = v1.map(_.producerRecords)
       .flatMap { prs =>
         Future.sequence {
-          prs.map(x => basicCommitter(x))
+          prs.map { x =>
+            val futureResp = basicCommitter(x)
+            futureResp.map {
+              case Some(_) => metricsLoggerBasic.incSuccess
+              case None => metricsLoggerBasic.incFailure
+            }
+            futureResp
+          }
         }
       }.map { x =>
         x.flatMap(_.toVector)

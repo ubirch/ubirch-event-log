@@ -9,15 +9,14 @@ import com.ubirch.encoder.models.Encodings
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions._
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.Executor
+import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -51,12 +50,12 @@ class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   *
   * @param ec Represents an execution context
   */
-class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
+class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
   def decode(encoderPipeData: EncoderPipeData) = {
-    Encodings.UPP(encoderPipeData).orElse(Encodings.PublichBlockchain(encoderPipeData))
+    encodings.UPP(encoderPipeData).orElse(encodings.PublichBlockchain(encoderPipeData))
   }
 
   override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = v1.map { v1 =>
@@ -162,25 +161,12 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 /**
   * Represents an executor that commits a producer record
   *
-  * @param stringProducer Represents a producer.
+  * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommit: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
-
-  val futureHelper = new FutureHelper()
-
-  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-    value match {
-      case Go(record) =>
-        val javaFuture = stringProducer.getProducerOrCreate.send(record)
-        logger.debug("Commit: " + record.value())
-        futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
-      case Ignore() =>
-        Future.successful(None)
-    }
-  }
 
   override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = {
 
@@ -189,8 +175,18 @@ class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionCo
       try {
 
         v1.producerRecord
-          .map(x => commit(x))
-          .map(x => x.map(y => v1.copy(recordMetadata = y)))
+          .map(x => basicCommit(x))
+          .map { x =>
+            x.map { y =>
+
+              y match {
+                case Some(_) => metricsLoggerBasic.incSuccess
+                case None => metricsLoggerBasic.incFailure
+              }
+
+              v1.copy(recordMetadata = y)
+            }
+          }
           .getOrElse(throw CommitException("No Producer Record Found", v1))
 
       } catch {
