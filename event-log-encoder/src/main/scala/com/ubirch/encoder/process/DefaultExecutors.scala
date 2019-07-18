@@ -50,12 +50,12 @@ class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   *
   * @param ec Represents an execution context
   */
-class EventLogFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
+class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
   def decode(encoderPipeData: EncoderPipeData) = {
-    Encodings.UPP(encoderPipeData).orElse(Encodings.PublichBlockchain(encoderPipeData))
+    encodings.UPP(encoderPipeData).orElse(encodings.PublichBlockchain(encoderPipeData))
   }
 
   override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = v1.map { v1 =>

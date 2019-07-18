@@ -2,18 +2,22 @@ package com.ubirch.encoder.models
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
+import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Ignore
+import javax.inject._
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.json4s.JValue
 
 import scala.util.{ Failure, Success, Try }
 
-object Encodings extends LazyLogging {
+@Singleton
+class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter) extends LazyLogging {
 
   import EncoderJsonSupport._
   import org.json4s.jackson.JsonMethods._
@@ -23,6 +27,8 @@ object Encodings extends LazyLogging {
   def UPP(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
 
     case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
+
+      counter.counter.labels(Values.UPP_CATEGORY).inc()
 
       val messageEnvelope: MessageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
 
@@ -130,6 +136,8 @@ object Encodings extends LazyLogging {
 
   def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
     case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
+
+      counter.counter.labels(Values.PUBLIC_CHAIN_CATEGORY).inc()
 
       val blockchainResponse: BlockchainResponse = EncoderJsonSupport.FromJson[BlockchainResponse](jv).get
 

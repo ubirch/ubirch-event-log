@@ -16,15 +16,28 @@ trait Counter extends WithNamespace {
 
 }
 
-@Singleton
-class DefaultConsumerRecordsManagerCounter @Inject() (val config: Config) extends Counter {
+trait BasicPrometheusCounter {
 
-  final val counter: PrometheusCounter = PrometheusCounter.build()
-    .namespace(metricsNamespace)
-    .name("event_error_total")
-    .help("Total event errors.")
-    .labelNames("result")
-    .register()
+  def createCounter(namespace: String, name: String, help: String, labelNames: String) = {
+    PrometheusCounter.build()
+      .namespace(namespace)
+      .name(name)
+      .help(help)
+      .labelNames(labelNames)
+  }
+
+}
+
+@Singleton
+class DefaultConsumerRecordsManagerCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
+
+  final val counter: PrometheusCounter =
+    createCounter(
+      namespace = metricsNamespace,
+      name = "event_error_total",
+      help = "Total event errors.",
+      labelNames = "result"
+    ).register()
 
 }
 
@@ -33,14 +46,15 @@ object DefaultConsumerRecordsManagerCounter {
 }
 
 @Singleton
-class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter {
+class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
 
-  final val counter: PrometheusCounter = PrometheusCounter.build()
-    .namespace(metricsNamespace)
-    .name("events_total")
-    .help("Total events.")
-    .labelNames("result")
-    .register()
+  final val counter: PrometheusCounter =
+    createCounter(
+      namespace = metricsNamespace,
+      name = "events_total",
+      help = "Total events.",
+      labelNames = "result"
+    ).register()
 
 }
 
