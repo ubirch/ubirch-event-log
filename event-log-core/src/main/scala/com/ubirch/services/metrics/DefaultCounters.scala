@@ -28,6 +28,10 @@ class DefaultConsumerRecordsManagerCounter @Inject() (val config: Config) extend
 
 }
 
+object DefaultConsumerRecordsManagerCounter {
+  final val name = "DefaultConsumerRecordsManagerCounter"
+}
+
 @Singleton
 class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter {
 
@@ -38,4 +42,8 @@ class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter
     .labelNames("result")
     .register()
 
+}
+
+object DefaultMetricsLoggerCounter {
+  final val name = "DefaultMetricsLoggerCounter"
 }

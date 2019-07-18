@@ -484,16 +484,18 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val config = mock[Config]
       val basicCommit = mock[BasicCommit]
 
+      val metricsLoggerBasic = mock[MetricsLoggerBasic]
+
       val family = DefaultExecutorFamily(
         new FilterEmpty(),
         new EventLogParser(),
         new EventLogSigner(config),
         new EventsStore(events),
         new DiscoveryExecutor(basicCommit, config),
-        new MetricsLogger(new DefaultMetricsLoggerCounter)
+        new MetricsLogger(metricsLoggerBasic)
       )
 
-      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter)
+      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter(config))
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
