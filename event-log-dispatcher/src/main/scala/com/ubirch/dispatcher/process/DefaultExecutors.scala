@@ -9,7 +9,7 @@ import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommit, Executor }
+import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util._
 import javax.inject._
@@ -137,7 +137,7 @@ class CreateProducerRecords @Inject() (
 }
 
 @Singleton
-class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
   with LazyLogging {
 
@@ -146,7 +146,14 @@ class Commit @Inject() (basicCommitter: BasicCommit)(implicit ec: ExecutionConte
     val futureMetadata = v1.map(_.producerRecords)
       .flatMap { prs =>
         Future.sequence {
-          prs.map(x => basicCommitter(x))
+          prs.map { x =>
+            val futureResp = basicCommitter(x)
+            futureResp.map {
+              case Some(_) => metricsLoggerBasic.incSuccess
+              case None => metricsLoggerBasic.incFailure
+            }
+            futureResp
+          }
         }
       }.map { x =>
         x.flatMap(_.toVector)
