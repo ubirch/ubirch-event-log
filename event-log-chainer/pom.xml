@@ -35,12 +35,13 @@
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>2.6.0</quill.cassandra.version>
         <joda-time.version>2.10</joda-time.version>
-        <kafka-clients.version>2.0.0</kafka-clients.version>
+        <kafka-clients.version>2.3.0</kafka-clients.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
-        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
+        <embedded-kafka>2.3.0</embedded-kafka>
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <roundeights-hasher.version>1.2.0</roundeights-hasher.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -97,8 +98,8 @@
         <!-- https://mvnrepository.com/artifact/com.roundeights/hasher -->
         <dependency>
             <groupId>com.roundeights</groupId>
-            <artifactId>hasher_2.12</artifactId>
-            <version>1.2.0</version>
+            <artifactId>hasher_${scala.compat.version}</artifactId>
+            <version>${roundeights-hasher.version}</version>
         </dependency>
 
 
@@ -123,10 +124,9 @@
         <!-- Test -->
 
         <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${scalatest-embedded-kafka}</version>
-            <scope>test</scope>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${embedded-kafka}</version>
         </dependency>
 
         <dependency>

@@ -128,7 +128,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -207,7 +207,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -286,7 +286,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> category))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -375,7 +375,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> category))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -437,7 +437,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e1s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(5000)
+        Thread.sleep(7000)
 
         val numberOfPauses = consumer.getPausedHistory
 
@@ -445,7 +445,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(5000)
+        Thread.sleep(7000)
 
         val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
@@ -464,7 +464,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(LookupKey(

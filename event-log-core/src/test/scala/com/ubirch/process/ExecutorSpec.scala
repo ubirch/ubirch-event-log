@@ -99,7 +99,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
 
     "parse successfully" in {
 
-      val data = Entities.Events.eventExample()
+      val data = Entities.Events.eventExample().addTraceHeader(Values.EVENT_LOG_SYSTEM)
       val dataAsString = data.toJson
 
       val consumerRecord = mock[ConsumerRecord[String, String]]

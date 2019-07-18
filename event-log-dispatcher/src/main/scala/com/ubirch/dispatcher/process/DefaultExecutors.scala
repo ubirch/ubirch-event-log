@@ -5,9 +5,9 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
-import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.dispatcher.util.Exceptions._
-import com.ubirch.models.EventLog
+import com.ubirch.models.EnrichedEventLog.enrichedEventLog
+import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.process.{ BasicCommit, Executor }
 import com.ubirch.util._
 import javax.inject._
@@ -51,7 +51,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
         logger.debug("EventLogParser:" + x.value())
         EventLogJsonSupport.FromString[EventLog](x.value()).get
       }.headOption
-      v1.copy(eventLog = eventLog.map(_.addTraceHeader("DISPATCHER")))
+      v1.copy(eventLog = eventLog.map(_.addTraceHeader(Values.DISPATCHER_SYSTEM)))
     } catch {
       case e: Exception =>
         logger.error("Error Parsing Event: " + e.getMessage)

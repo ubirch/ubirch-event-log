@@ -34,7 +34,7 @@ class Reporter @Inject() (producerManager: StringProducer, config: Config)(impli
 
   val futureHelper = new FutureHelper()
 
-  val topic: String = "com.ubirch.eventlog.error"//config.getString(ERROR_TOPIC_PATH)
+  val topic: String = config.getString(ERROR_TOPIC_PATH)
 
   object Types {
 

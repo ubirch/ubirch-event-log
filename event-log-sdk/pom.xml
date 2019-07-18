@@ -36,7 +36,7 @@
         <build.number>${timestamp}-dev</build.number>
 
         <event-log-core.version>1.2.3</event-log-core.version>
-        <scalatest-embedded-kafka>2.0.0</scalatest-embedded-kafka>
+        <embedded-kafka>2.3.0</embedded-kafka>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -61,10 +61,9 @@
         </dependency>
 
         <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${scalatest-embedded-kafka}</version>
-            <scope>test</scope>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${embedded-kafka}</version>
         </dependency>
 
     </dependencies>
