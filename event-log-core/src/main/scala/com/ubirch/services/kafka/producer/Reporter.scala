@@ -3,11 +3,10 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.BasicCommit
-import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, Go, ProducerRecordHelper }
+import com.ubirch.util.{ EventLogJsonSupport, Go, ProducerRecordHelper }
 import javax.inject._
 import org.apache.kafka.clients.producer.RecordMetadata
 
