@@ -5,10 +5,12 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
+import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.process.{ BasicCommit, Executor }
+import com.ubirch.services.metrics.Counter
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -70,7 +72,11 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   * @param ec     Represents an execution context
   */
 @Singleton
-class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInfo)(implicit ec: ExecutionContext)
+class CreateProducerRecords @Inject() (
+    config: Config,
+    dispatchInfo: DispatchInfo,
+    @Named(DefaultDispatchingCounter.name) counter: Counter
+)(implicit ec: ExecutionContext)
   extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -99,7 +105,9 @@ class CreateProducerRecords @Inject() (config: Config, dispatchInfo: DispatchInf
                   val dataFromEventLog = eventLogJson \ dts
                   dataFromEventLog.extractOpt[String]
                 }.orElse {
-                  Option(x.toJson)
+                  val data = Option(x.toJson)
+                  counter.counter.labels(t.name).inc()
+                  data
                 }.getOrElse(throw CreateProducerRecordException("Empty Materials 2: No data field extracted.", v1))
 
                 logger.debug(s"Dispatching to $t: " + dataToSend)
