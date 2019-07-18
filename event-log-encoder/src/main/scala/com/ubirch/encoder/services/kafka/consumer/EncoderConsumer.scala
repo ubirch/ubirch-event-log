@@ -10,6 +10,7 @@ import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.{ ConsumerCreator, ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
+import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import com.ubirch.util.Decision
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -50,7 +51,11 @@ trait EncoderConsumerRecordsManager extends ConsumerRecordsManager[String, Array
   * @param ec Represents an execution context
   */
 @Singleton
-class DefaultEncoderManager @Inject() (val reporter: Reporter, val executorFamily: ExecutorFamily)(implicit ec: ExecutionContext)
+class DefaultEncoderManager @Inject() (
+    val reporter: Reporter,
+    val executorFamily: ExecutorFamily,
+    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter
+)(implicit ec: ExecutionContext)
   extends EncoderConsumerRecordsManager
   with LazyLogging {
 
@@ -69,23 +74,28 @@ class DefaultEncoderManager @Inject() (val reporter: Reporter, val executorFamil
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
     case e @ JValueFromConsumerRecordException(_, pipeData) =>
-      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
+      counter.counter.labels("JValueFromConsumerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.toString))
       Future.successful(pipeData)
     case e @ EventLogFromConsumerRecordException(_, pipeData) =>
-      logger.debug("EventLogFromConsumerRecordException: " + e.getMessage)
+      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
+      counter.counter.labels("EventLogFromConsumerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = compact(pipeData.messageJValue.getOrElse(JString("No JValue")))))
       Future.successful(pipeData)
     case e @ SigningEventLogException(_, pipeData) =>
-      logger.debug("SigningEventLogException: " + e.getMessage)
+      logger.error("SigningEventLogException: " + e.getMessage)
+      counter.counter.labels("SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
-      logger.debug("CreateProducerRecordException: " + e.getMessage)
+      logger.error("CreateProducerRecordException: " + e.getMessage)
+      counter.counter.labels("CreateProducerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
-      logger.debug("CommitException: " + e.getMessage)
+      logger.error("CommitException: " + e.getMessage)
+      counter.counter.labels("CommitException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
       Future.successful(pipeData)
   }

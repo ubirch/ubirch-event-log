@@ -104,7 +104,9 @@ class JsonHelper(val all: Iterable[Serializer[_]]) extends JsonHelperBase {
     */
   case class FromString[T: Manifest](v1: String) {
 
-    def get: T = getCamelized(getJValue(v1).camelizeKeys)
+    lazy val json = getJValue(v1).camelizeKeys
+
+    def get: T = getCamelized(json)
 
     def getFromBase64: T = FromString[T](Strings.fromUTF8ByteArray(Base64.decode(v1))).get
 

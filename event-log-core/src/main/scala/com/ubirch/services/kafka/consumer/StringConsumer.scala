@@ -13,7 +13,7 @@ import com.ubirch.models.{ Error, EventLog, Relation }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.Counter
+import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import com.ubirch.util.Exceptions._
 import javax.inject._
 import org.apache.kafka.clients.consumer._
@@ -55,7 +55,7 @@ trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String
 class DefaultConsumerRecordsManager @Inject() (
     val reporter: Reporter,
     val executorFamily: ExecutorFamily,
-    @Named("DefaultConsumerRecordsManagerCounter") counter: Counter
+    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter
 )(implicit ec: ExecutionContext)
   extends StringConsumerRecordsManager
   with LazyLogging {
