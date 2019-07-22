@@ -15,4 +15,9 @@ spec:
     matchNames:
     - {{ .Release.Namespace }}
   selector:
-    name: "event-log-kafka-lookup"
+    matchLabels:
+      app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
+      helm.sh/chart: {{ include "event-log-kafka-lookup.chart" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/managed-by: {{ .Release.Service }}
+
