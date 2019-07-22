@@ -39,8 +39,10 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
 
   private def toDispatch(data: String): List[Dispatch] = {
     try {
-      val di = EventLogJsonSupport.FromString[List[Dispatch]](data).get
-      logger.debug("Dispatching Info Found: {}", data)
+      val fromStringData = EventLogJsonSupport.FromString[List[Dispatch]](data)
+      val compacted = EventLogJsonSupport.stringify(fromStringData.json)
+      val di = fromStringData.get
+      logger.debug("Dispatching Info Found: {}", compacted)
       di
     } catch {
       case e: Exception =>

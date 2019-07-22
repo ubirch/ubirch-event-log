@@ -32,7 +32,8 @@ import scala.language.{ implicitConversions, postfixOps }
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
-  val counter = new DefaultConsumerRecordsManagerCounter
+  val config = ConfigFactory.load()
+  val counter = new DefaultConsumerRecordsManagerCounter(config)
 
   def spawn(kafkaPort: Int): StringConsumer = {
     val lifeCycle = mock[DefaultLifecycle]
@@ -41,7 +42,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
     val family = mock[ExecutorFamily]
 
     val consumerBuilder = new DefaultStringConsumer(
-      ConfigFactory.load(),
+      config,
       lifeCycle,
       new DefaultConsumerRecordsManager(reporter, family, counter)
     ) {
@@ -395,7 +396,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         publishStringMessageToKafka("com.ubirch.eventlog", entityAsString)
 
-        val promiseTestSuccess = Promise[RecordMetadata]()
+        val promiseTestSuccess = Promise[Option[RecordMetadata]]()
 
         val lifeCycle = mock[DefaultLifecycle]
 
@@ -405,7 +406,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
         import reporter.Types._
 
         when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
-          promiseTestSuccess.completeWith(Future.successful(recordData))
+          promiseTestSuccess.completeWith(Future.successful(Some(recordData)))
           promiseTestSuccess.future
         }
 
@@ -441,7 +442,9 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         consumer.startPolling()
 
-        assert(await(promiseTestSuccess.future, 2 seconds) == recordData)
+        val response = await(promiseTestSuccess.future, 2 seconds)
+        assert(response == Option(recordData))
+        assert(response.isDefined)
 
       }
 
@@ -469,14 +472,16 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
           Future.successful(
-            new RecordMetadata(
-              new TopicPartition("topic", 1),
-              1,
-              1,
-              new Date().getTime,
-              1L,
-              1,
-              1
+            Option(
+              new RecordMetadata(
+                new TopicPartition("topic", 1),
+                1,
+                1,
+                new Date().getTime,
+                1L,
+                1,
+                1
+              )
             )
           )
         }
@@ -556,14 +561,16 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
 
         when(reporter.report(any[com.ubirch.models.Error]())).thenReturn {
           Future.successful(
-            new RecordMetadata(
-              new TopicPartition("topic", 1),
-              1,
-              1,
-              new Date().getTime,
-              1L,
-              1,
-              1
+            Option(
+              new RecordMetadata(
+                new TopicPartition("topic", 1),
+                1,
+                1,
+                new Date().getTime,
+                1L,
+                1,
+                1
+              )
             )
           )
         }
