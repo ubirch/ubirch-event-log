@@ -31,8 +31,8 @@
     </appender>
 
     <logger name="kafka" level="WARN"/>
-    <logger name="org.apache.kafka" level="WARN"/>
-    <logger name="org.apache.zookeeper" level="WARN"/>
+    <logger name="org.apache.kafka" level="INFO"/>
+    <logger name="org.apache.zookeeper" level="INFO"/>
     <logger name="com.github.nosan.embedded.cassandra" level="WARN"/>
     <logger name="com.datastax.driver" level="WARN"/>
     <logger name="io.netty" level="WARN"/>

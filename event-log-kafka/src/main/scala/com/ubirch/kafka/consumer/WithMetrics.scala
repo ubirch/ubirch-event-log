@@ -2,9 +2,15 @@ package com.ubirch.kafka.consumer
 
 import java.util.concurrent.atomic.AtomicReference
 
+import com.ubirch.models.Values
 import com.ubirch.util.Implicits.enrichedInstant
 import io.prometheus.client.{ Counter, Summary }
 import org.joda.time.Instant
+
+trait WithNamespace {
+  def metricsSubNamespaceLabel: String
+  def metricsNamespace: String = Values.UBIRCH + "_" + metricsSubNamespaceLabel
+}
 
 /**
   * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
@@ -12,13 +18,9 @@ import org.joda.time.Instant
   * @tparam K Represents the type of the Key for the consumer.
   * @tparam V Represents the type of the Value for the consumer.
   */
-trait WithMetrics[K, V] {
+trait WithMetrics[K, V] extends WithNamespace {
 
   cr: ConsumerRunner[K, V] =>
-
-  def metricsNamespace: String = "ubirch_" + metricsSubNamespaceLabel
-
-  def metricsSubNamespaceLabel: String
 
   def metricsName(name: String): String = s"consumer_${version.get()}_$name"
 
@@ -60,8 +62,8 @@ trait WithMetrics[K, V] {
   //Metrics Def Start
   final val pausesCounter: Counter = Counter.build()
     .namespace(metricsNamespace)
-    .name(metricsName("event_error_total"))
-    .help("Total event errors.")
+    .name(metricsName("pauses_total"))
+    .help("Total pauses/unpauses.")
     .labelNames("result")
     .register()
 
