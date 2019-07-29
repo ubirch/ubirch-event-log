@@ -8,7 +8,7 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
-import com.ubirch.services.metrics.Counter
+import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions._
 import com.ubirch.util._
 import javax.inject._
@@ -184,15 +184,24 @@ class DiscoveryExecutor @Inject() (basicCommit: BasicCommit, config: Config)(imp
 
 }
 
-class MetricsLogger @Inject() (@Named("DefaultMetricsLoggerCounter") counter: Counter)(implicit ec: ExecutionContext)
+@Singleton
+class MetricsLoggerBasic @Inject() (@Named(DefaultMetricsLoggerCounter.name) counter: Counter) extends LazyLogging {
+
+  def incSuccess: Unit = counter.counter.labels("success").inc()
+
+  def incFailure: Unit = counter.counter.labels("failure").inc()
+
+}
+
+class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]] {
 
   override def apply(v1: Future[PipeData]): Future[PipeData] = {
     v1.onComplete {
       case Success(_) =>
-        counter.counter.labels("success").inc()
+        logger.incSuccess
       case Failure(_) =>
-        counter.counter.labels("failure").inc()
+        logger.incFailure
     }
 
     v1

@@ -4,18 +4,17 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models.GenericResponse
-import com.ubirch.process.Executor
+import com.ubirch.process.{ BasicCommit, Executor }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -67,7 +66,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
     }
 
     maybeFutureRes
-      .getOrElse(throw LookupExecutorException("No key or value were found", LookupPipeData(v1, maybeKey, maybeQueryType, None, None, None), ""))
+      .getOrElse(throw LookupExecutorException("No key or value was found", LookupPipeData(v1, maybeKey, maybeQueryType, None, None, None), ""))
 
   }
 
@@ -124,23 +123,11 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 /**
   * Represents an executor that commits a producer record
   *
-  * @param stringProducer Represents a producer.
+  * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommit: BasicCommit)(implicit ec: ExecutionContext)
   extends Executor[Future[LookupPipeData], Future[LookupPipeData]] {
-
-  val futureHelper = new FutureHelper()
-
-  def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
-    value match {
-      case Go(record) =>
-        val javaFuture = stringProducer.getProducerOrCreate.send(record)
-        futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
-      case Ignore() =>
-        Future.successful(None)
-    }
-  }
 
   override def apply(v1: Future[LookupPipeData]): Future[LookupPipeData] = {
 
@@ -149,7 +136,7 @@ class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionCo
       try {
 
         v1.producerRecord
-          .map(x => commit(x))
+          .map(x => basicCommit(x))
           .map(x => x.map(y => v1.copy(recordMetadata = y)))
           .getOrElse(throw CommitException("No Producer Record Found", v1))
 

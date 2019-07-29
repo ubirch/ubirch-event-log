@@ -28,7 +28,9 @@ object PrometheusMetricsHelper extends LazyLogging {
       }
     }
 
-    go(0, port)
+    val server = go(0, port)
+    logger.debug(s"You can visit http://localhost:${server.getPort}/ to check the metrics.")
+    server
   }
 
 }

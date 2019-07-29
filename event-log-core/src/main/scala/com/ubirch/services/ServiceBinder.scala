@@ -75,10 +75,10 @@ class ServiceBinder
 
   //Counters
   def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named("DefaultConsumerRecordsManagerCounter"))
+    .annotatedWith(Names.named(DefaultConsumerRecordsManagerCounter.name))
     .to(classOf[DefaultConsumerRecordsManagerCounter])
   def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named("DefaultMetricsLoggerCounter"))
+    .annotatedWith(Names.named(DefaultMetricsLoggerCounter.name))
     .to(classOf[DefaultMetricsLoggerCounter])
   //Counters
 
