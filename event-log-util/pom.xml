@@ -3,17 +3,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- parent pom -->
-    <parent>
-        <groupId>com.ubirch</groupId>
-        <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
-    </parent>
-
     <!-- basic info -->
     <artifactId>event-log-util</artifactId>
     <version>1.2.2-SNAPSHOT</version>
-    <name>${project.artifactId}</name>
+    <groupId>com.ubirch</groupId>
     <description>Event logger util for the ubirch Platform</description>
     <url>https://ubirch.com</url>
     <inceptionYear>2018</inceptionYear>
