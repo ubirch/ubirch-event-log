@@ -28,22 +28,13 @@
         </repository>
     </distributionManagement>
 
-    <dependencies>
-
-        <!-- Core -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>event-log-core</artifactId>
-            <version>1.2.3</version>
-        </dependency>
-
-    </dependencies>
-
     <properties>
 
         <!-- versions -->
 
         <build.number>${timestamp}-dev</build.number>
+
+        <event-log-core.version>1.2.4</event-log-core.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -58,6 +49,17 @@
         <!-- versions -->
 
     </properties>
+
+    <dependencies>
+
+        <!-- Core -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-core</artifactId>
+            <version>${event-log-core.version}</version>
+        </dependency>
+
+    </dependencies>
 
     <build>
 
