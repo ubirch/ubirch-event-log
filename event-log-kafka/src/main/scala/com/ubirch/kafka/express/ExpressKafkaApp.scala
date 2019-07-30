@@ -18,22 +18,21 @@ trait Controller[K, V] {
 
   thiz =>
 
+  def simpleProcessResult[R](result: R, consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
+    override val id: UUID = UUID.randomUUID()
+    override val consumerRecords: Vector[ConsumerRecord[K, V]] = consumerRecord
+  }
+
   val controller = new ConsumerRecordsController[K, V] {
-
-    def simpleProcessResult(consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
-      override val id: UUID = UUID.randomUUID()
-      override val consumerRecords: Vector[ConsumerRecord[K, V]] = consumerRecord
-    }
-
     override type A = ProcessResult[K, V]
-
     override def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
-      thiz.process(consumerRecord)
-      Future.successful(simpleProcessResult(consumerRecord))
+      thiz.process(consumerRecord).map(x => simpleProcessResult(x, consumerRecord))
     }
   }
 
-  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Unit
+  type R
+
+  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
 
 }
 

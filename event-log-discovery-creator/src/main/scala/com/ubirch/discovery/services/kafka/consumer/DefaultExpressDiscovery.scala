@@ -1,15 +1,18 @@
 package com.ubirch.discovery.services.kafka.consumer
 
 import com.typesafe.config.Config
-import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
+import com.ubirch.ConfPaths.{ConsumerConfPaths, ProducerConfPaths}
 import com.ubirch.kafka.express.ExpressKafka
+import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.services.kafka.producer.ProducerShutdownHook
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.URLsHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
+import org.apache.kafka.common.serialization.{Deserializer, Serializer, StringDeserializer, StringSerializer}
+
+import scala.concurrent.Future
 
 @Singleton
 class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycle)
@@ -35,13 +38,16 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def valueSerializer: Serializer[String] = new StringSerializer
 
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Unit = {
-    println(consumerRecords)
-  }
-
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),
     ProducerShutdownHook.hookFunc(production)
   )
+
+  override type R = Unit
+
+  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
+    Future.successful(println(consumerRecords))
+    Future.failed(NeedForPauseException("Hello", "holla"))
+  }
 
 }
