@@ -17,54 +17,11 @@
     <description>Event Log Dispatcher Service for the ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
 
-    <dependencies>
-
-        <!-- Core -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>event-log-core</artifactId>
-            <version>1.2.3</version>
-        </dependency>
-
-        <!-- Json -->
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-native_${scala.compat.version}</artifactId>
-            <version>${json4s-native.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
-            <version>${json4s-jackson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.json4s</groupId>
-            <artifactId>json4s-ext_${scala.compat.version}</artifactId>
-            <version>${json4s-ext}</version>
-        </dependency>
-        
-        <!-- Test -->
-
-        <dependency>
-            <groupId>io.github.embeddedkafka</groupId>
-            <artifactId>embedded-kafka_${scala.compat.version}</artifactId>
-            <version>${embedded-kafka}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.nosan</groupId>
-            <artifactId>embedded-cassandra-test</artifactId>
-            <version>${embedded-cassandra-test}</version>
-        </dependency>
-
-    </dependencies>
-
     <properties>
 
         <!-- versions -->
 
+        <event-log-core.version>1.2.4</event-log-core.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
@@ -86,6 +43,50 @@
         <!-- versions -->
 
     </properties>
+
+    <dependencies>
+
+        <!-- Core -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-core</artifactId>
+            <version>${event-log-core.version}</version>
+        </dependency>
+
+        <!-- Json -->
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.compat.version}</artifactId>
+            <version>${json4s-native.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
+            <version>${json4s-jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-ext_${scala.compat.version}</artifactId>
+            <version>${json4s-ext}</version>
+        </dependency>
+
+        <!-- Test -->
+
+        <dependency>
+            <groupId>io.github.embeddedkafka</groupId>
+            <artifactId>embedded-kafka_${scala.compat.version}</artifactId>
+            <version>${embedded-kafka}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.nosan</groupId>
+            <artifactId>embedded-cassandra-test</artifactId>
+            <version>${embedded-cassandra-test}</version>
+        </dependency>
+
+    </dependencies>
 
     <build>
 

@@ -14,7 +14,7 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V]  {
+trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
 
   def controller: ConsumerRecordsController[K, V]
 

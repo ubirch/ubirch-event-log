@@ -12,7 +12,7 @@
 
     <!-- basic info -->
     <artifactId>event-log-core</artifactId>
-    <version>1.2.3</version>
+    <version>1.2.4</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Core for the ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
