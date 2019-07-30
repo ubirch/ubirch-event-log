@@ -49,7 +49,7 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
         pd
       } else {
         logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
-        throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(1 seconds))
+        throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(5 millis))
       }
 
     } else {
