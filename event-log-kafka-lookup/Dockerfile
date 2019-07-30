@@ -14,6 +14,7 @@ EXPOSE 9020
 EXPOSE 4321
 
 COPY certs/truststore-prod.jks /usr/share/service/lib/truststore-prod.jks
+COPY certs/truststore-devtest.jks /usr/share/service/lib/truststore-devtest.jks
 
 ENV _JAVA_OPTIONS "-Xms128m -Xmx256m -Djava.awt.headless=true"
 
