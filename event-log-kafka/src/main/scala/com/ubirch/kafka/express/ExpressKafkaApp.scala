@@ -5,53 +5,14 @@ import java.util.concurrent.CountDownLatch
 
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.{ ConsumerRecordsController, ConsumerRunner, ProcessResult, Configs => ConsumerConfigs }
-import com.ubirch.kafka.producer.{ ProducerRunner, Configs => ProducerrConfigs }
+import com.ubirch.kafka.consumer.{ ConsumerBasicConfigs, ConsumerRecordsController, ConsumerRunner, ProcessResult }
+import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner }
 import com.ubirch.util.FutureHelper
-import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
-import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-trait ConsumerBasicConfigs[K, V] {
-
-  def consumerTopics: Set[String]
-
-  def consumerBootstrapServers: String
-
-  def consumerGroupId: String
-
-  def consumerMaxPollRecords: Int
-
-  def consumerGracefulTimeout: Int
-
-  def keyDeserializer: Deserializer[K]
-
-  def valueDeserializer: Deserializer[V]
-
-  def consumerConfigs = ConsumerConfigs(
-    bootstrapServers = consumerBootstrapServers,
-    groupId = consumerGroupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = consumerMaxPollRecords
-  )
-
-}
-
-trait ProducerBasicConfigs[K, V] {
-
-  def producerBootstrapServers: String
-
-  def keySerializer: Serializer[K]
-
-  def valueSerializer: Serializer[V]
-
-  def producerConfigs = ProducerrConfigs(producerBootstrapServers)
-
-}
 
 trait Controller[K, V] {
 
@@ -76,10 +37,6 @@ trait Controller[K, V] {
 
 }
 
-trait ConfigBase {
-  def conf: Config = ConfigFactory.load()
-}
-
 trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] with Controller[K, V] {
   lazy val consumption = {
     val consumerImp = ConsumerRunner.empty[K, V]
@@ -96,7 +53,7 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] with Controller[K
 trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
   lazy val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
-  val futureHelper = new FutureHelper()
+  lazy val futureHelper = new FutureHelper()
 
   def send(topic: String, value: V): Future[RecordMetadata] = {
     val javaFutureSend = production.getProducerOrCreate.send(new ProducerRecord[K, V](topic, value))
@@ -105,14 +62,8 @@ trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
 }
 
-trait WithMain[K, V] {
+trait WithShutdownHook[K, V] {
   ek: ExpressKafkaApp[K, V] =>
-
-  def main(args: Array[String]): Unit = {
-    consumption.startPolling()
-    val cd = new CountDownLatch(1)
-    cd.await()
-  }
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
@@ -127,8 +78,29 @@ trait WithMain[K, V] {
       logger.info("Bye bye, see you later...")
     }
   })
+}
+
+trait WithMain[K, V] {
+  ek: ExpressKafkaApp[K, V] =>
+
+  def main(args: Array[String]): Unit = {
+    consumption.startPolling()
+    val cd = new CountDownLatch(1)
+    cd.await()
+  }
 
 }
 
-trait ExpressKafkaApp[K, V] extends ExpressConsumer[K, V] with ExpressProducer[K, V] with WithMain[K, V] with ConfigBase with LazyLogging
+trait ConfigBase {
+  def conf: Config = ConfigFactory.load()
+}
+
+trait ExpressKafka[K, V] extends ExpressConsumer[K, V] with ExpressProducer[K, V]
+
+trait ExpressKafkaApp[K, V]
+  extends ExpressKafka[K, V]
+  with WithShutdownHook[K, V]
+  with WithMain[K, V]
+  with ConfigBase
+  with LazyLogging
 
