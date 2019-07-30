@@ -14,29 +14,10 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait Controller[K, V] {
+trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V]  {
 
-  thiz =>
+  def controller: ConsumerRecordsController[K, V]
 
-  def simpleProcessResult[R](result: R, consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
-    override val id: UUID = UUID.randomUUID()
-    override val consumerRecords: Vector[ConsumerRecord[K, V]] = consumerRecord
-  }
-
-  val controller = new ConsumerRecordsController[K, V] {
-    override type A = ProcessResult[K, V]
-    override def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
-      thiz.process(consumerRecord).map(x => simpleProcessResult(x, consumerRecord))
-    }
-  }
-
-  type R
-
-  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
-
-}
-
-trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] with Controller[K, V] {
   lazy val consumption = {
     val consumerImp = ConsumerRunner.empty[K, V]
     consumerImp.setUseAutoCommit(false)
@@ -61,8 +42,8 @@ trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
 }
 
-trait WithShutdownHook[K, V] {
-  ek: ExpressKafkaApp[K, V] =>
+trait WithShutdownHook {
+  ek: ExpressKafkaApp[_, _, _] =>
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
@@ -79,8 +60,8 @@ trait WithShutdownHook[K, V] {
   })
 }
 
-trait WithMain[K, V] {
-  ek: ExpressKafkaApp[K, V] =>
+trait WithMain {
+  ek: ExpressKafkaApp[_, _, _] =>
 
   def main(args: Array[String]): Unit = {
     consumption.startPolling()
@@ -94,12 +75,29 @@ trait ConfigBase {
   def conf: Config = ConfigFactory.load()
 }
 
-trait ExpressKafka[K, V] extends ExpressConsumer[K, V] with ExpressProducer[K, V]
+trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K, V] {
+  thiz =>
 
-trait ExpressKafkaApp[K, V]
-  extends ExpressKafka[K, V]
-  with WithShutdownHook[K, V]
-  with WithMain[K, V]
+  val controller = new ConsumerRecordsController[K, V] {
+
+    def simpleProcessResult[R](result: R, consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
+      override val id: UUID = UUID.randomUUID()
+      override val consumerRecords: Vector[ConsumerRecord[K, V]] = consumerRecord
+    }
+
+    override type A = ProcessResult[K, V]
+    override def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
+      thiz.process(consumerRecord).map(x => simpleProcessResult(x, consumerRecord))
+    }
+  }
+
+  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
+}
+
+trait ExpressKafkaApp[K, V, R]
+  extends ExpressKafka[K, V, R]
+  with WithShutdownHook
+  with WithMain
   with ConfigBase
   with LazyLogging
 

@@ -13,7 +13,7 @@ object Service extends Boot(DiscoveryServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
 
-    val expressKafka = get[ExpressKafka[String, String]]
+    val expressKafka = get[ExpressKafka[String, String, Unit]]
 
     expressKafka.consumption.startPolling()
 
