@@ -171,7 +171,7 @@ class DefaultStringConsumer @Inject() (
 )(implicit ec: ExecutionContext)
   extends Provider[StringConsumer]
   with ConsumerCreator
-  with LazyLogging {
+  with WithConsumerShutdownHook {
 
   lazy val consumerConfigured = {
     val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
@@ -189,10 +189,7 @@ class DefaultStringConsumer @Inject() (
 
   override def get(): StringConsumer = consumerConfigured
 
-  lifecycle.addStopHook { () =>
-    logger.info("Shutting down Consumer: " + consumerConfigured.getName)
-    Future.successful(consumerConfigured.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
-  }
+  lifecycle.addStopHook(hookFunc(gracefulTimeout, consumerConfigured))
 
 }
 
