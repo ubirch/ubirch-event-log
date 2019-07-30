@@ -25,7 +25,7 @@ class DiscoveryServiceBinder
   //def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultRecordsManager])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
 
-  def expressKafka: ScopedBindingBuilder = bind(classOf[ExpressKafka[String, String]]).to(classOf[DefaultExpressDiscovery])
+  def expressKafka: ScopedBindingBuilder = bind(classOf[ExpressKafka[String, String, Unit]]).to(classOf[DefaultExpressDiscovery])
 
   override def configure(): Unit = {
     lifecycle

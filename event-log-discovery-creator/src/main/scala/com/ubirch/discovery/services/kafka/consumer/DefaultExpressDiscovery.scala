@@ -16,7 +16,7 @@ import scala.concurrent.Future
 
 @Singleton
 class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycle)
-  extends ExpressKafka[String, String] {
+  extends ExpressKafka[String, String, Unit] {
 
   def consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
@@ -38,16 +38,13 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def valueSerializer: Serializer[String] = new StringSerializer
 
+  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
+    Future.successful(println(consumerRecords))
+  }
+
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),
     ProducerShutdownHook.hookFunc(production)
   )
-
-  override type R = Unit
-
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
-    Future.successful(println(consumerRecords))
-    Future.failed(NeedForPauseException("Hello", "holla"))
-  }
 
 }
