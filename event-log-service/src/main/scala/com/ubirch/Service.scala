@@ -24,8 +24,9 @@ object Service extends Boot {
     //
     //if both are 0 millis, no delay is applied.
 
-    consumer.setDelaySingleRecord(500 micro)
-    consumer.setDelayRecords(10 millis)
+    //* cosmosdb related settings
+    //  consumer.setDelaySingleRecord(500 micro)
+    //  consumer.setDelayRecords(10 millis)
 
     consumer.start()
 
