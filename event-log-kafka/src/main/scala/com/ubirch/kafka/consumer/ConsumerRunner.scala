@@ -1,7 +1,7 @@
 package com.ubirch.kafka.consumer
 
 import java.util
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
 import java.util.{ Collections, UUID }
 
@@ -54,8 +54,12 @@ trait WithProcessRecords[K, V] {
 
     def start(): Unit
 
-    //TODO: probably we should add a timeout
-    def aggregate(): Unit = batchCountDown.await()
+    def aggregate(): Unit = {
+      val aggRes = batchCountDown.await(20, TimeUnit.SECONDS)
+      if (!aggRes) {
+        logger.warn("Taking tooo much time aggregating ..")
+      }
+    }
 
     def commitFunc(): Vector[Unit]
 
