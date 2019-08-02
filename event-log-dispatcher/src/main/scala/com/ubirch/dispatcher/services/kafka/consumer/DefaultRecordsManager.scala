@@ -1,14 +1,17 @@
 package com.ubirch.dispatcher.services.kafka.consumer
 
+import java.util.UUID
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.process.ExecutorFamily
 import com.ubirch.dispatcher.util.Exceptions.{ CommitException, CreateProducerRecordException, EmptyValueException, ParsingIntoEventLogException }
+import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.{ EventLogPipeData, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
-import com.ubirch.util.Decision
+import com.ubirch.util.{ Decision, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
@@ -17,10 +20,13 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 case class DispatcherPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
-    eventLog: Option[EventLog],
+    eventLog: Vector[EventLog],
     producerRecords: Vector[Decision[ProducerRecord[String, String]]],
     recordsMetadata: Vector[RecordMetadata]
-) extends EventLogPipeData[String]
+) extends ProcessResult[String, String] {
+  override val id: UUID = UUIDHelper.randomUUID
+
+}
 
 @Singleton
 class DefaultRecordsManager @Inject() (

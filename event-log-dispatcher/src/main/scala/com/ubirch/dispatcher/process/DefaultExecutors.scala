@@ -24,14 +24,7 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   with LazyLogging {
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
-
-    val pd = DispatcherPipeData(v1, None, Vector.empty, Vector.empty)
-    if (v1.headOption.exists(_.value().nonEmpty)) {
-      pd
-    } else {
-      //logger.error("Record is empty")
-      throw EmptyValueException("Record is empty", pd)
-    }
+    DispatcherPipeData(v1, Vector.empty, Vector.empty, Vector.empty)
   }
 
   def apply(v1: ConsumerRecord[String, String]): Future[DispatcherPipeData] = apply(Vector(v1))
@@ -52,7 +45,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
       val eventLog = v1.consumerRecords.map { x =>
         logger.debug("EventLogParser:" + x.value())
         EventLogJsonSupport.FromString[EventLog](x.value()).get
-      }.headOption
+      }
       v1.copy(eventLog = eventLog.map(_.addTraceHeader(Values.DISPATCHER_SYSTEM)))
     } catch {
       case e: Exception =>
@@ -90,7 +83,8 @@ class CreateProducerRecords @Inject() (
 
         val output = v1.eventLog
           .flatMap(x => dispatchInfo.info.find(_.category == x.category).map(y => (x, y)))
-          .map { case (x, y) =>
+          .flatMap { case (x, y) =>
+
             val commitDecision: Vector[Decision[ProducerRecord[String, String]]] = {
 
               import org.json4s._
@@ -112,7 +106,7 @@ class CreateProducerRecords @Inject() (
 
                 logger.debug(s"Dispatching to $t: " + dataToSend)
 
-                Go(ProducerRecordHelper.toRecord(t.name, v1.id.toString, dataToSend, Map.empty))
+                Go(ProducerRecordHelper.toRecord(t.name, x.id.toString, dataToSend, Map.empty))
 
               }.toVector
 
@@ -120,10 +114,10 @@ class CreateProducerRecords @Inject() (
 
             commitDecision
           }
-          .map(x => v1.copy(producerRecords = x))
-          .getOrElse(throw CreateProducerRecordException("Empty Materials 1", v1))
 
-        output
+        //.getOrElse(throw CreateProducerRecordException("Empty Materials 1", v1))
+
+        v1.copy(producerRecords = output)
 
       } catch {
 

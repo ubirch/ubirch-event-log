@@ -215,8 +215,10 @@ class BasicCommitUnit @Inject() (stringProducer: StringProducer)(implicit ec: Ex
   extends Executor[Decision[ProducerRecord[String, String]], Unit]
   with LazyLogging {
 
+  def producer = stringProducer.getProducerOrCreate
+
   def send(pr: ProducerRecord[String, String]): Unit = {
-    stringProducer.getProducerOrCreate.send(pr)
+    producer.send(pr).get()
   }
 
   def commit(value: Decision[ProducerRecord[String, String]]): Unit = {
