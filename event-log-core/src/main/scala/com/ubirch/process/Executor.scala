@@ -8,6 +8,8 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
+import com.ubirch.services.kafka.producer.DefaultStringProducer
+import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions._
 import com.ubirch.util._
@@ -205,6 +207,35 @@ class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: Executio
     }
 
     v1
+  }
+}
+
+@Singleton
+class BasicCommitUnit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+  extends Executor[Decision[ProducerRecord[String, String]], Unit]
+  with LazyLogging {
+
+  def send(pr: ProducerRecord[String, String]): Unit = {
+    stringProducer.getProducerOrCreate.send(pr)
+  }
+
+  def commit(value: Decision[ProducerRecord[String, String]]): Unit = {
+    value match {
+      case Go(record) => send(record)
+      case Ignore() => ()
+    }
+  }
+
+  override def apply(v1: Decision[ProducerRecord[String, String]]): Unit = {
+
+    try {
+      commit(v1)
+    } catch {
+      case e: Exception =>
+        logger.error("Error Committing: ", e)
+        Future.failed(BasicCommitException(e.getMessage))
+    }
+
   }
 }
 

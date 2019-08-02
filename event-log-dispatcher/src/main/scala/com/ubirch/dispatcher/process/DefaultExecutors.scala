@@ -9,7 +9,7 @@ import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
+import com.ubirch.process.{ BasicCommit, BasicCommitUnit, Executor, MetricsLoggerBasic }
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util._
 import javax.inject._
@@ -137,47 +137,63 @@ class CreateProducerRecords @Inject() (
 }
 
 @Singleton
-class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommitter: BasicCommitUnit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
   with LazyLogging {
 
   override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = {
 
-    val futureMetadata = v1.map(_.producerRecords)
-      .flatMap { prs =>
-        Future.sequence {
-          prs.map { x =>
-            val futureResp = basicCommitter(x)
-            futureResp.map {
-              case Some(_) => metricsLoggerBasic.incSuccess
-              case None => metricsLoggerBasic.incFailure
-            }
-            futureResp
-          }
-        }
-      }.map { x =>
-        x.flatMap(_.toVector)
+    v1.map(_.producerRecords).foreach { prs =>
+      prs.foreach { x =>
+        basicCommitter(x)
       }
-
-    val futureResp = for {
-      md <- futureMetadata
-      v <- v1
-    } yield {
-      v.copy(recordsMetadata = md)
     }
-
-    futureResp.recoverWith {
-      case e: Exception =>
-        logger.error("Error committing: {} ", e.getMessage)
-        v1.flatMap { x =>
-          Future.failed {
-            CommitException(e.getMessage, x)
-          }
-        }
-    }
-
+    v1
   }
 }
+
+//@Singleton
+//class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+//  extends Executor[Future[DispatcherPipeData], Future[DispatcherPipeData]]
+//  with LazyLogging {
+//
+//  override def apply(v1: Future[DispatcherPipeData]): Future[DispatcherPipeData] = {
+//
+//    val futureMetadata = v1.map(_.producerRecords)
+//      .flatMap { prs =>
+//        Future.sequence {
+//          prs.map { x =>
+//            val futureResp = basicCommitter(x)
+//            futureResp.map {
+//              case Some(_) => metricsLoggerBasic.incSuccess
+//              case None => metricsLoggerBasic.incFailure
+//            }
+//            futureResp
+//          }
+//        }
+//      }.map { x =>
+//        x.flatMap(_.toVector)
+//      }
+//
+//    val futureResp = for {
+//      md <- futureMetadata
+//      v <- v1
+//    } yield {
+//      v.copy(recordsMetadata = md)
+//    }
+//
+//    futureResp.recoverWith {
+//      case e: Exception =>
+//        logger.error("Error committing: {} ", e.getMessage)
+//        v1.flatMap { x =>
+//          Future.failed {
+//            CommitException(e.getMessage, x)
+//          }
+//        }
+//    }
+//
+//  }
+//}
 
 /**
   * Represents a description of a family of executors that can be composed.
