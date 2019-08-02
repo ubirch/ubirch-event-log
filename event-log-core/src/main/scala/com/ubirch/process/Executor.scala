@@ -216,7 +216,7 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
   val futureHelper = new FutureHelper()
 
   def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
-    logger.debug("BasicCommit:" + pr.value())
+    //logger.debug("BasicPublish:" + pr.value())
     val javaFuture = stringProducer.getProducerOrCreate.send(pr)
     futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
   }
@@ -234,7 +234,7 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
       commit(v1)
     } catch {
       case e: Exception =>
-        logger.error("Error Committing: ", e)
+        logger.error("Error Publishing: ", e)
         Future.failed(BasicCommitException(e.getMessage))
     }
 
