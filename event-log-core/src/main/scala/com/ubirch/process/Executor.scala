@@ -210,30 +210,30 @@ class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: Executio
 
 @Singleton
 class BasicCommitUnit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
-  extends Executor[Decision[ProducerRecord[String, String]], Unit]
+  extends Executor[Decision[ProducerRecord[String, String]], Option[RecordMetadata]]
   with LazyLogging {
 
   def producer = stringProducer.getProducerOrCreate
 
-  def send(pr: ProducerRecord[String, String]): Unit = {
+  def send(pr: ProducerRecord[String, String]) = {
     producer.send(pr).get()
   }
 
-  def commit(value: Decision[ProducerRecord[String, String]]): Unit = {
+  def commit(value: Decision[ProducerRecord[String, String]]) = {
     value match {
-      case Go(record) => send(record)
-      case Ignore() => ()
+      case Go(record) => Option(send(record))
+      case Ignore() => None
     }
   }
 
-  override def apply(v1: Decision[ProducerRecord[String, String]]): Unit = {
+  override def apply(v1: Decision[ProducerRecord[String, String]]): Option[RecordMetadata] = {
 
     try {
       commit(v1)
     } catch {
       case e: Exception =>
-        logger.error("Error Committing: ", e)
-        Future.failed(BasicCommitException(e.getMessage))
+        logger.error("Error Publishing: ", e)
+        throw BasicCommitException(e.getMessage)
     }
 
   }
