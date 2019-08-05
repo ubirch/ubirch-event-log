@@ -9,9 +9,11 @@ LABEL "com.ubirch.service"="${SERVICE_NAME}"
 LABEL "com.ubirch.version"="${VERSION}"
 LABEL "com.ubirch.build"="${BUILD}"
 
+EXPOSE 8080
 EXPOSE 9010
 EXPOSE 9020
 EXPOSE ${EVTL_PROM_HTTP_PORT}
+
 
 COPY certs/truststore-prod.jks /usr/share/service/lib/truststore-prod.jks
 COPY certs/truststore-devtest.jks /usr/share/service/lib/truststore-devtest.jks
