@@ -32,7 +32,7 @@ class DispatchSpec extends TestBase with LazyLogging {
 
   "Dispatch Spec" must {
 
-    "consume and dispatch successfully 500 X 2 topics" in {
+    "consume and dispatch successfully 3000" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
