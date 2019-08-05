@@ -5,9 +5,12 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
+import com.ubirch.services.kafka.producer.DefaultStringProducer
+import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions._
 import com.ubirch.util._
@@ -209,11 +212,24 @@ class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: Executio
 }
 
 @Singleton
-class BasicCommitUnit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
+class BasicCommitUnit @Inject() (
+    config: Config,
+    lifecycle: Lifecycle
+)(implicit ec: ExecutionContext)
   extends Executor[Decision[ProducerRecord[String, String]], Option[RecordMetadata]]
   with LazyLogging {
 
-  def producer = stringProducer.getProducerOrCreate
+  import com.ubirch.kafka.producer.Configs
+
+  val stringProducer = new DefaultStringProducer(config, lifecycle) {
+    override def configs: ConfigProperties = Configs(
+      bootstrapServers = bootstrapServers,
+      enableIdempotence = true,
+      transactionalIdConfig = Some("event-log-dispatcher-basic-publish")
+    )
+  }
+
+  def producer = stringProducer.get().getProducerOrCreate
 
   def send(pr: ProducerRecord[String, String]) = {
     producer.send(pr).get()
