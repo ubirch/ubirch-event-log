@@ -21,7 +21,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class DispatcherPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
     eventLog: Vector[EventLog],
-    producerRecords: Vector[ProducerRecord[String, String]],
+    producerRecords: Vector[Decision[ProducerRecord[String, String]]],
     recordsMetadata: Vector[RecordMetadata]
 ) extends ProcessResult[String, String] {
   override val id: UUID = UUIDHelper.randomUUID
@@ -32,10 +32,6 @@ case class DispatcherPipeData(
 
   def withConsumerRecords(newConsumerRecords: Vector[ConsumerRecord[String, String]]): DispatcherPipeData = {
     copy(consumerRecords = newConsumerRecords)
-  }
-
-  def withProducerRecords(newProducerRecords: Vector[ProducerRecord[String, String]]): DispatcherPipeData = {
-    copy(producerRecords = newProducerRecords)
   }
 
   def withRecordsMetadata(newRecordMetaData: Vector[RecordMetadata]): DispatcherPipeData = {
@@ -63,7 +59,10 @@ class DefaultRecordsManager @Inject() (
 
   override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]] = {
 
-    executorFamily.dispatch
+    executorFamily.filterEmpty andThen
+      executorFamily.eventLogParser andThen
+      executorFamily.createProducerRecords andThen
+      executorFamily.commit
 
   }
 
