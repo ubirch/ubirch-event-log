@@ -1,14 +1,17 @@
 package com.ubirch.dispatcher.services.kafka.consumer
 
+import java.util.UUID
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.process.ExecutorFamily
 import com.ubirch.dispatcher.util.Exceptions.{ CommitException, CreateProducerRecordException, EmptyValueException, ParsingIntoEventLogException }
+import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ EventLogPipeData, StringConsumerRecordsManager }
+import com.ubirch.services.kafka.consumer.StringConsumerRecordsManager
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
-import com.ubirch.util.Decision
+import com.ubirch.util.{ Decision, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
@@ -17,10 +20,33 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 case class DispatcherPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
-    eventLog: Option[EventLog],
-    producerRecords: Vector[Decision[ProducerRecord[String, String]]],
+    eventLog: Vector[EventLog],
+    producerRecords: Vector[ProducerRecord[String, String]],
     recordsMetadata: Vector[RecordMetadata]
-) extends EventLogPipeData[String]
+) extends ProcessResult[String, String] {
+  override val id: UUID = UUIDHelper.randomUUID
+
+  def withEventLogs(newEventLogs: Vector[EventLog]): DispatcherPipeData = {
+    copy(eventLog = eventLog)
+  }
+
+  def withConsumerRecords(newConsumerRecords: Vector[ConsumerRecord[String, String]]): DispatcherPipeData = {
+    copy(consumerRecords = newConsumerRecords)
+  }
+
+  def withProducerRecords(newProducerRecords: Vector[ProducerRecord[String, String]]): DispatcherPipeData = {
+    copy(producerRecords = newProducerRecords)
+  }
+
+  def withRecordsMetadata(newRecordMetaData: Vector[RecordMetadata]): DispatcherPipeData = {
+    copy(recordsMetadata = newRecordMetaData)
+  }
+
+}
+
+object DispatcherPipeData {
+  def empty: DispatcherPipeData = DispatcherPipeData(Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+}
 
 @Singleton
 class DefaultRecordsManager @Inject() (
@@ -37,10 +63,7 @@ class DefaultRecordsManager @Inject() (
 
   override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]] = {
 
-    executorFamily.filterEmpty andThen
-      executorFamily.eventLogParser andThen
-      executorFamily.createProducerRecords andThen
-      executorFamily.commit
+    executorFamily.dispatch
 
   }
 
