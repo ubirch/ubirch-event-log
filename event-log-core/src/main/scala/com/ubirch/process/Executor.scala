@@ -8,8 +8,6 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
-import com.ubirch.services.kafka.producer.DefaultStringProducer
-import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions._
 import com.ubirch.util._

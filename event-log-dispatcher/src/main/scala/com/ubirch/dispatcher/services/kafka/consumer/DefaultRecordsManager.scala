@@ -8,7 +8,7 @@ import com.ubirch.dispatcher.util.Exceptions.{ CommitException, CreateProducerRe
 import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ EventLogPipeData, StringConsumerRecordsManager }
+import com.ubirch.services.kafka.consumer.StringConsumerRecordsManager
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import com.ubirch.util.{ Decision, UUIDHelper }
@@ -26,6 +26,14 @@ case class DispatcherPipeData(
 ) extends ProcessResult[String, String] {
   override val id: UUID = UUIDHelper.randomUUID
 
+  def withConsumerRecords(newConsumerRecords: Vector[ConsumerRecord[String, String]]): DispatcherPipeData = {
+    copy(consumerRecords = newConsumerRecords)
+  }
+
+}
+
+object DispatcherPipeData {
+  def empty: DispatcherPipeData = DispatcherPipeData(Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 }
 
 @Singleton

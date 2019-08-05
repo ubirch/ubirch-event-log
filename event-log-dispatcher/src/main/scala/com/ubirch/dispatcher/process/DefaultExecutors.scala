@@ -9,7 +9,7 @@ import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommit, BasicCommitUnit, Executor, MetricsLoggerBasic }
+import com.ubirch.process.{ BasicCommitUnit, Executor, MetricsLoggerBasic }
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util._
 import javax.inject._
@@ -24,7 +24,13 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   with LazyLogging {
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
-    DispatcherPipeData(v1, Vector.empty, Vector.empty, Vector.empty)
+    val dispatcherData = DispatcherPipeData.empty.withConsumerRecords(v1)
+    if (v1.nonEmpty) {
+      dispatcherData
+    } else {
+      throw EmptyValueException("No Consumer Records Found", dispatcherData)
+    }
+
   }
 
   def apply(v1: ConsumerRecord[String, String]): Future[DispatcherPipeData] = apply(Vector(v1))
@@ -89,7 +95,7 @@ class CreateProducerRecords @Inject() (
 
               import org.json4s._
 
-              logger.debug(s"Creating PR for EventLog(${x.category}, ${x.id})")
+              //logger.debug(s"Creating PR for EventLog(${x.category}, ${x.id})")
 
               val eventLogJson = EventLogJsonSupport.ToJson[EventLog](x).get
 
@@ -104,7 +110,7 @@ class CreateProducerRecords @Inject() (
                   data
                 }.getOrElse(throw CreateProducerRecordException("Empty Materials 2: No data field extracted.", v1))
 
-                logger.debug(s"Dispatching to $t: " + dataToSend)
+                logger.debug(s"Dispatching to $t: ")
 
                 Go(ProducerRecordHelper.toRecord(t.name, x.id.toString, dataToSend, Map.empty))
 

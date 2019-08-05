@@ -1,8 +1,8 @@
 package com.ubirch.kafka.consumer
 
 import java.util
-import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import java.util.{ Collections, UUID }
 
 import com.ubirch.kafka.util.Exceptions._

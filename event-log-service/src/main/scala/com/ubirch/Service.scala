@@ -3,7 +3,6 @@ package com.ubirch
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.util.Boot
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
