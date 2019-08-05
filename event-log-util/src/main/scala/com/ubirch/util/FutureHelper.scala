@@ -1,6 +1,6 @@
 package com.ubirch.util
 
-import java.util.concurrent.{ CountDownLatch, Future => JavaFuture }
+import java.util.concurrent.{ CountDownLatch, TimeUnit, Future => JavaFuture }
 
 import monix.execution.Scheduler.{ global => scheduler }
 
@@ -22,7 +22,7 @@ class FutureHelper()(implicit ec: ExecutionContext) {
 
   def fromJavaFuture[T](javaFuture: JavaFuture[T]): Future[T] = {
     withBlock(
-      () => javaFuture.get()
+      () => javaFuture.get(3000, TimeUnit.MILLISECONDS)
     )
   }
 
