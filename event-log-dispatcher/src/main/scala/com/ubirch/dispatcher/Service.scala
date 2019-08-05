@@ -14,7 +14,7 @@ object Service extends Boot(DispatcherServiceBinder.modules) {
   def main(args: Array[String]): Unit = {
 
     val consumer = get[StringConsumer]
-    //consumer.setConsumptionStrategy(All)
+    consumer.setConsumptionStrategy(All)
 
     consumer.start()
 

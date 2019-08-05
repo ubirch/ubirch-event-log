@@ -4,7 +4,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
-import com.ubirch.kafka.consumer.StringConsumer
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
@@ -48,7 +48,7 @@ class DispatchSpec extends TestBase with LazyLogging {
 
         val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
 
-        val range = (1 to 500)
+        val range = (1 to 3000)
         val eventLogs = range.map { _ =>
           EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
         }
@@ -60,21 +60,27 @@ class DispatchSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
 
         Thread.sleep(20000)
 
+        var total = 0
+
         maybeDispatch match {
           case Some(s) =>
             s.topics.map { t =>
               val fromTopic = consumeNumberStringMessagesFrom(t.name, range.size)
+              total = total + fromTopic.size
               assert(range.size == fromTopic.size)
             }
           case None =>
             assert(1 != 1)
         }
+
+        assert(total == range.size * maybeDispatch.map(_.topics.size).getOrElse(0))
 
       }
 
@@ -105,6 +111,7 @@ class DispatchSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
