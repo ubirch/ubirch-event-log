@@ -9,7 +9,7 @@ import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
-import com.ubirch.process.{BasicCommitUnit, Executor}
+import com.ubirch.process.{ BasicCommitUnit, Executor }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
@@ -17,11 +17,11 @@ import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
+import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.KafkaException
 import org.json4s.JValue
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
 @Singleton
@@ -76,8 +76,8 @@ class Dispatch @Inject() (
     val stringProducer = new DefaultStringProducer(config, lifecycle) {
       override def configs: ConfigProperties = Configs(
         bootstrapServers = bootstrapServers
-        //,enableIdempotence = true
-        //,transactionalIdConfig = Some("event-log-dispatcher-basic-publish")
+      //,enableIdempotence = true
+      //,transactionalIdConfig = Some("event-log-dispatcher-basic-publish")
       )
     }.get()
 
@@ -86,8 +86,7 @@ class Dispatch @Inject() (
     try {
 
       // stringProducer.getProducerOrCreate.beginTransaction()
-
-      logger.debug("Starting transaction")
+      //logger.debug("Starting transaction")
 
       val pipeData = DispatcherPipeData.empty.withConsumerRecords(v1)
 
@@ -99,10 +98,10 @@ class Dispatch @Inject() (
 
         val (eventLog, eventLogJson) = Try {
           val fsEventLog = parse(cr)
-          val eventLog = fsEventLog.get
-          val eventLogJson = fsEventLog.json
-          (eventLog, eventLogJson)
-        }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData.withEventLogs(Vector(eventLog))))
+          val el = fsEventLog.get
+          val elj = fsEventLog.json
+          (el, elj)
+        }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
 
         val prs = Try(createProducerRecords(eventLog, eventLogJson))
           .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
@@ -113,7 +112,7 @@ class Dispatch @Inject() (
 
       //stringProducer.getProducerOrCreate.commitTransaction()
       stringProducer.getProducerOrCreate.close()
-      logger.debug("Committing transaction")
+      //logger.debug("Committing transaction")
       DispatcherPipeData.empty.withConsumerRecords(v1)
 
     } catch {
