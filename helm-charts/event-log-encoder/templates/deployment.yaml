@@ -56,7 +56,7 @@ spec:
                       - name: UPA_KFC_MAX_POLL_RECORDS
                         value: "{{ .Values.eventLogEncoder.kafkaConsumer.maxpoll}}"
                       - name: UPA_KFP_LINGER_MS
-                        value: "{{ .Values.eventLogEncoder.kafka.producer.linger }}"
+                        value: "{{ .Values.eventLogEncoder.kafkaProducer.linger }}"
                       - name: UPA_EXEC_THREAD_POOL_SIZE
                         value: "{{ .Values.eventLogEncoder.exec.threadpoolsize }}"
 

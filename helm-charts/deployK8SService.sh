@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set +e
+
 function usage {
     echo "$0 {dev|demo|prod} {servicename} {docker image tag} {values file}"
     echo "e.g. $0 dev event-log-service 201905052200-dev ~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-dev.yaml"
