@@ -30,7 +30,7 @@ class ExecutionProvider @Inject() (config: Config) extends Provider[ExecutionCon
 
   def threadPoolSize: Int = config.getInt(THREAD_POOL_SIZE)
 
-  override implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize))
+  override implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
 
   override def get(): ExecutionContext = ec
 
