@@ -121,7 +121,7 @@ class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter
           .withRandomNonce
           .withNewId(payloadHash)
 
-        logger.debug(s"Encoded Message: ${el.toJson}")
+        //logger.debug(s"Encoded Message: ${el.toJson}")
 
         (el, None)
 

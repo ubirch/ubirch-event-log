@@ -21,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
   with LazyLogging {
@@ -51,6 +52,8 @@ class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   *
   * @param ec Represents an execution context
   */
+
+@Singleton
 class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
@@ -66,7 +69,7 @@ class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: E
       val decoded = decode(v1)(jValue)
 
       val withTrace = decoded.copy(eventLog = decoded.eventLog.map(_.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)))
-      logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
+      //logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
 
       withTrace
 
@@ -89,6 +92,8 @@ class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: E
   * @param config Represents a config object
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
@@ -118,6 +123,7 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param config Represents a config object to read config values from
   * @param ec     Represents an execution context
   */
+@Singleton
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging
@@ -164,6 +170,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   *
   * @param ec             Represents an execution context
   */
+@Singleton
 class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
@@ -176,7 +183,7 @@ class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: Metr
 
         v1.producerRecord match {
           case Some(Go(value)) => stringProducer.getProducerOrCreate.send(value)
-          case None =>
+          case _ =>
         }
 
         v1

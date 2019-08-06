@@ -3,6 +3,7 @@ package com.ubirch.dispatcher
 import com.ubirch.dispatcher.services.DispatcherServiceBinder
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.util.Boot
+import scala.concurrent.duration._
 
 import scala.language.postfixOps
 
@@ -15,6 +16,7 @@ object Service extends Boot(DispatcherServiceBinder.modules) {
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
+    consumer.setDelayRecords(1000 millis)
 
     consumer.start()
 
