@@ -6,11 +6,9 @@ import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
-import com.ubirch.kafka.producer.Configs
-import com.ubirch.kafka.util.ConfigProperties
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Exceptions.ExecutionException
@@ -29,7 +27,8 @@ class Dispatch @Inject() (
     @Named(DefaultDispatchingCounter.name) counter: Counter,
     dispatchInfo: DispatchInfo,
     config: Config,
-    lifecycle: Lifecycle
+    lifecycle: Lifecycle,
+    stringProducer: StringProducer
 )(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
@@ -73,14 +72,6 @@ class Dispatch @Inject() (
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
 
-    val stringProducer = new DefaultStringProducer(config, lifecycle) {
-      override def configs: ConfigProperties = Configs(
-        bootstrapServers = bootstrapServers
-      //,enableIdempotence = true
-      //,transactionalIdConfig = Some("event-log-dispatcher-basic-publish")
-      )
-    }.get()
-
     //stringProducer.getProducerOrCreate.initTransactions()
 
     try {
@@ -111,7 +102,7 @@ class Dispatch @Inject() (
       }
 
       //stringProducer.getProducerOrCreate.commitTransaction()
-      stringProducer.getProducerOrCreate.close()
+      //stringProducer.getProducerOrCreate.close()
       //logger.debug("Committing transaction")
       DispatcherPipeData.empty.withConsumerRecords(v1)
 
