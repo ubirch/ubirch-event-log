@@ -5,6 +5,10 @@ package com.ubirch
   */
 object ConfPaths {
 
+  trait ExecutionContextConfPaths {
+    val THREAD_POOL_SIZE = "eventLog.executionContext.threadPoolSize"
+  }
+
   trait CassandraClusterConfPaths {
     val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
     val CONSISTENCY_LEVEL = "eventLog.cassandra.cluster.consistencyLevel"
