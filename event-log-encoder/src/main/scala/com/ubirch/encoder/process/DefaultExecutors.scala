@@ -162,7 +162,6 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 /**
   * Represents an executor that commits a producer record
   *
-  * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
 class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
