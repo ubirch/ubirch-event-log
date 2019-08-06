@@ -70,7 +70,7 @@ class DefaultConsumerRecordsManager @Inject() (
       eventLogParser andThen
       eventLogSigner andThen
       eventsStore andThen
-      discoveryExecutor andThen
+      //discoveryExecutor andThen
       metricsLogger
   }
 

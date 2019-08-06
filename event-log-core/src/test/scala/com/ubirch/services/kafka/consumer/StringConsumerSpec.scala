@@ -9,6 +9,7 @@ import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ Executor, ExecutorFamily }
+import com.ubirch.services.execution.Execution
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
@@ -25,12 +26,11 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
 
-class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
+class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with Execution {
 
   val config = ConfigFactory.load()
   val counter = new DefaultConsumerRecordsManagerCounter(config)
@@ -280,8 +280,6 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging {
     }
 
     "run Executors successfully and complete expected list of 500 entities" in {
-
-      import scala.concurrent.ExecutionContext.Implicits.global
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
