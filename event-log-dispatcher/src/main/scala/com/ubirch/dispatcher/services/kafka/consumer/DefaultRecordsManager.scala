@@ -14,15 +14,12 @@ import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCount
 import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 case class DispatcherPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
-    eventLog: Vector[EventLog],
-    producerRecords: Vector[ProducerRecord[String, String]],
-    recordsMetadata: Vector[RecordMetadata]
+    eventLog: Vector[EventLog]
 ) extends ProcessResult[String, String] {
   override val id: UUID = UUIDHelper.randomUUID
 
@@ -34,18 +31,10 @@ case class DispatcherPipeData(
     copy(consumerRecords = newConsumerRecords)
   }
 
-  def withProducerRecords(newProducerRecords: Vector[ProducerRecord[String, String]]): DispatcherPipeData = {
-    copy(producerRecords = newProducerRecords)
-  }
-
-  def withRecordsMetadata(newRecordMetaData: Vector[RecordMetadata]): DispatcherPipeData = {
-    copy(recordsMetadata = newRecordMetaData)
-  }
-
 }
 
 object DispatcherPipeData {
-  def empty: DispatcherPipeData = DispatcherPipeData(Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+  def empty: DispatcherPipeData = DispatcherPipeData(Vector.empty, Vector.empty)
 }
 
 @Singleton

@@ -6,14 +6,15 @@ import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.kafka.consumer.BytesConsumer
-import com.ubirch.kafka.producer.{Configs, ProducerRunner, StringProducer}
+import com.ubirch.kafka.consumer.{ All, BytesConsumer }
+import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.util.{Boot, URLsHelper}
+import com.ubirch.util.{ Boot, URLsHelper }
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{Deserializer, Serializer, StringSerializer}
-import org.json4s.JsonAST.{JObject, JString}
+import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringSerializer }
+import org.json4s.JsonAST.{ JObject, JString }
 
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
@@ -24,6 +25,8 @@ object Service extends Boot(EncoderServiceBinder.modules) {
   def main(args: Array[String]): Unit = {
 
     val consumer = get[BytesConsumer]
+    consumer.setConsumptionStrategy(All)
+    consumer.setDelayRecords(600 millis)
 
     consumer.start()
 
@@ -31,8 +34,7 @@ object Service extends Boot(EncoderServiceBinder.modules) {
 
 }
 
-object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfPaths{
-
+object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfPaths {
 
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
@@ -68,8 +70,6 @@ object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfP
 
     }
 
-
   }
-
 
 }

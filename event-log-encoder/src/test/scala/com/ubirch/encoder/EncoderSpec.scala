@@ -9,7 +9,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.kafka.consumer.BytesConsumer
+import com.ubirch.kafka.consumer.{ All, BytesConsumer }
 import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
@@ -41,6 +41,10 @@ class EncoderSpec extends TestBase with LazyLogging {
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
 
+  val messageEnvelopeTopic = "json.to.sign"
+  val eventLogTopic = "com.ubirch.eventlog.dispatch_request"
+  val errorTopic = "com.ubirch.eventlog.error"
+
   "Encoder Spec for MessageEnvelope" must {
 
     "consume message envelope and publish event log with hint = 0 with lookup key a lot of messages" in {
@@ -52,9 +56,6 @@ class EncoderSpec extends TestBase with LazyLogging {
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
       withRunningKafka {
-
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
 
         val range = (1 to 3000)
         range.foreach { x =>
@@ -71,6 +72,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -78,7 +80,6 @@ class EncoderSpec extends TestBase with LazyLogging {
         Thread.sleep(10000)
 
         assert(consumeNumberStringMessagesFrom(eventLogTopic, range.size).size == range.size)
-
 
       }
 
@@ -94,9 +95,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val pmId = 3
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
@@ -109,6 +107,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -163,9 +162,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
@@ -176,6 +172,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -207,9 +204,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
@@ -220,6 +214,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -242,9 +237,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val errorTopic = "com.ubirch.eventlog.error"
-
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
 
         val ctxt = JObject("customerId" -> JString(""))
@@ -255,6 +247,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -265,9 +258,9 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
         //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
@@ -288,9 +281,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val errorTopic = "com.ubirch.eventlog.error"
-
         val pm = new ProtocolMessage(1, UUIDHelper.randomUUID, 0, null)
 
         val ctxt = JObject("customerId" -> JString("my customer id"))
@@ -301,6 +291,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -311,9 +302,9 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "Error Parsing Into Event Log")
+        assert(error.message == "Error in the Encoding Process: Payload not found or is empty")
 
-        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
         //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
@@ -334,9 +325,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val errorTopic = "com.ubirch.eventlog.error"
-
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
 
         val ctxt = JObject("otherValue" -> JString("what!"))
@@ -347,6 +335,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -357,9 +346,9 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
         //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
@@ -380,9 +369,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val errorTopic = "com.ubirch.eventlog.error"
-
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
 
         val ctxt = JObject()
@@ -393,6 +379,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -403,9 +390,9 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No CustomerId found")
 
-        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
         //ubirch Packet is not with underscores.
         assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
@@ -426,9 +413,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val pmId = 3
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
@@ -441,6 +425,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -495,9 +480,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val pmId = 3
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
@@ -512,6 +494,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -581,9 +564,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-        val eventLogTopic = "com.ubirch.eventlog"
-
         val blockchainResp =
           """
             |{
@@ -602,6 +582,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -637,15 +618,11 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val errorTopic = "com.ubirch.eventlog.error"
-
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
       withRunningKafka {
-
-        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
 
         val blockchainResp = """{"hello": "hola"}"""
 
@@ -654,6 +631,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer
@@ -665,9 +643,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "Error Parsing Into Event Log")
-        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EventLogFromConsumerRecordException")
-        //        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(blockchainResp)))
+        assert(error.message == "Error in the Encoding Process: {\"hello\":\"hola\"}")
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
       }
     }
@@ -681,8 +658,6 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-
       val topic2 = "topic2"
 
       val topics = List(messageEnvelopeTopic, topic2)
@@ -690,8 +665,6 @@ class EncoderSpec extends TestBase with LazyLogging {
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
       withRunningKafka {
-
-        val eventLogTopic = "com.ubirch.eventlog"
 
         val pmId = 3
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
@@ -706,6 +679,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[BytesConsumer]
         consumer.setTopics(topics.toSet)
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer

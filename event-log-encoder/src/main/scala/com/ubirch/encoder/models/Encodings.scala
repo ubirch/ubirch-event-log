@@ -9,9 +9,7 @@ import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
-import com.ubirch.util.Ignore
 import javax.inject._
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.json4s.JValue
 
 import scala.util.{ Failure, Success, Try }
@@ -24,7 +22,7 @@ class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter
 
   val CUSTOMER_ID_FIELD = "customerId"
 
-  def UPP(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
+  def UPP(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
 
     case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
@@ -43,13 +41,15 @@ class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter
 
       val payload = payloadToJson.get
 
-      val (eventLog, pr) = if (messageEnvelope.ubirchPacket.getHint == 0) {
+      val maybeEventLog = if (messageEnvelope.ubirchPacket.getHint == 0) {
 
-        val payloadHash = fromJsonNode(messageEnvelope.ubirchPacket.getPayload)
+        val payloadJsNode = Option(messageEnvelope).flatMap(x => Option(x.ubirchPacket)).flatMap(x => Option(x.getPayload)).getOrElse(throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData))
+
+        val payloadHash = fromJsonNode(payloadJsNode)
           .extractOpt[String]
           .filter(_.nonEmpty)
           .getOrElse {
-            throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData)
+            throw EventLogFromConsumerRecordException("Error building payload", encoderPipeData)
           }
 
         val maybeSignature = Option(messageEnvelope.ubirchPacket)
@@ -121,20 +121,16 @@ class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter
           .withRandomNonce
           .withNewId(payloadHash)
 
-        //logger.debug(s"Encoded Message: ${el.toJson}")
-
-        (el, None)
+        Some(el)
 
       } else {
-        val el = EventLog("EventLogFromConsumerRecord", Values.UPP_CATEGORY, payload).withCustomerId(customerId)
-        (el, Some(Ignore[ProducerRecord[String, String]]()))
+        None
       }
 
-      encoderPipeData.copy(eventLog = Some(eventLog), producerRecord = pr)
-
+      maybeEventLog
   }
 
-  def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, EncoderPipeData] = {
+  def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
 
       counter.counter.labels(Values.PUBLIC_CHAIN_CATEGORY).inc()
@@ -155,7 +151,16 @@ class Encodings @Inject() (@Named(DefaultEncodingsCounter.name) counter: Counter
             .addValueLabelForAll(Values.MASTER_TREE_CATEGORY)
         ))
 
-      encoderPipeData.copy(eventLog = Some(eventLog), producerRecord = None)
+      Option(eventLog)
+
+  }
+
+  def OrElse(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
+    case jv =>
+
+      val data = compact(jv)
+      logger.error("No supported: " + data)
+      throw EventLogFromConsumerRecordException(s"$data", encoderPipeData)
 
   }
 

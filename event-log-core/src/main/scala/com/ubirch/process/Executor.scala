@@ -1,6 +1,6 @@
 package com.ubirch.process
 
-import com.datastax.driver.core.exceptions.InvalidQueryException
+import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
@@ -138,6 +138,9 @@ class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
         //logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
         v1
       }.recover {
+        case e: NoHostAvailableException =>
+          logger.error("Error connecting to host: " + e)
+          throw e
         case e: InvalidQueryException =>
           logger.error("Error storing data: " + e)
           throw e

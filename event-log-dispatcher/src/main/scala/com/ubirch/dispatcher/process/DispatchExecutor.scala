@@ -23,7 +23,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
 @Singleton
-class Dispatch @Inject() (
+class DispatchExecutor @Inject() (
     @Named(DefaultDispatchingCounter.name) counter: Counter,
     dispatchInfo: DispatchInfo,
     config: Config,
@@ -72,12 +72,7 @@ class Dispatch @Inject() (
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
 
-    //stringProducer.getProducerOrCreate.initTransactions()
-
     try {
-
-      // stringProducer.getProducerOrCreate.beginTransaction()
-      //logger.debug("Starting transaction")
 
       val pipeData = DispatcherPipeData.empty.withConsumerRecords(v1)
 
@@ -101,16 +96,12 @@ class Dispatch @Inject() (
 
       }
 
-      //stringProducer.getProducerOrCreate.commitTransaction()
-      //stringProducer.getProducerOrCreate.close()
-      //logger.debug("Committing transaction")
       DispatcherPipeData.empty.withConsumerRecords(v1)
 
     } catch {
       case e: ExecutionException =>
         throw e
       case e: KafkaException =>
-        //stringProducer.getProducerOrCreate.abortTransaction()
         logger.error("Error: " + e.getMessage)
         DispatcherPipeData.empty.withConsumerRecords(v1)
     }
@@ -118,3 +109,10 @@ class Dispatch @Inject() (
   }
 
 }
+
+trait ExecutorFamily {
+  def dispatch: DispatchExecutor
+}
+
+@Singleton
+class DefaultExecutorFamily @Inject() (val dispatch: DispatchExecutor) extends ExecutorFamily

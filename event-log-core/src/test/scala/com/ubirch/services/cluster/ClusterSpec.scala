@@ -3,7 +3,7 @@ package com.ubirch.services.cluster
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.Guice
 import com.ubirch.services.ServiceBinder
-import com.ubirch.services.execution.{ Execution, ExecutionImpl, ExecutionProvider }
+import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.{ EmbeddedCassandra, TestBase }
 
 class ClusterSpec extends TestBase with EmbeddedCassandra with ExecutionImpl {

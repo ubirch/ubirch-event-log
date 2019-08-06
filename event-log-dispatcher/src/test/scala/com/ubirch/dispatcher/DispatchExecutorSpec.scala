@@ -28,7 +28,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
   })
 }))
 
-class DispatchSpec extends TestBase with LazyLogging {
+class DispatchExecutorSpec extends TestBase with LazyLogging {
 
   "Dispatch Spec" must {
 
