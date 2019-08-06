@@ -9,7 +9,7 @@ import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ Executor, ExecutorFamily }
-import com.ubirch.services.execution.{ Execution, ExecutionImpl }
+import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter

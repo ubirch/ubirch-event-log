@@ -1,8 +1,8 @@
 package com.ubirch.kafka.consumer
 
 import java.util.UUID
-import java.util.concurrent.{ CountDownLatch, Executors }
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ CountDownLatch, Executors }
 
 import com.ubirch.TestBase
 import com.ubirch.kafka.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }

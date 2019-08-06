@@ -9,7 +9,6 @@ import com.ubirch.util.URLsHelper
 import javax.inject._
 
 import scala.concurrent.Future
-import scala.util.Try
 
 /**
   * Class that represents a String Producer Factory with specific values from the config files
