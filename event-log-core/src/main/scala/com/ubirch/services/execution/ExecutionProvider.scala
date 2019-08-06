@@ -15,6 +15,11 @@ trait Execution {
   implicit def ec: ExecutionContextExecutor
 }
 
+trait ExecutionImpl extends Execution {
+
+  override implicit def ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5))
+}
+
 /**
   * Represents the Execution Context provider.
   * Whenever someone injects an ExecutionContext, this provider defines what will
@@ -25,7 +30,7 @@ class ExecutionProvider @Inject() (config: Config) extends Provider[ExecutionCon
 
   def threadPoolSize: Int = config.getInt(THREAD_POOL_SIZE)
 
-  override implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize))
+  override implicit val ec: ExecutionContextExecutor = scala.concurrent.ExecutionContext.global
 
   override def get(): ExecutionContext = ec
 

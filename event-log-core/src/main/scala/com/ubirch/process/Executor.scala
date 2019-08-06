@@ -42,7 +42,7 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * Executor that filters ConsumerRecords values.
   * @param ec Represent the execution context for asynchronous processing.
   */
-
+@Singleton
 class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]]
   with LazyLogging {
@@ -66,6 +66,8 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   * Executor that transforms a ConsumerRecord into an EventLog
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogParser @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -73,7 +75,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
       val eventLog = v1.consumerRecords.map { x =>
-        logger.debug("EventLogParser:" + x.value())
+        //logger.debug("EventLogParser:" + x.value())
         EventLogJsonSupport.FromString[EventLog](x.value()).get
       }.headOption
       v1.copy(eventLog = eventLog.map(_.addTraceHeader(Values.EVENT_LOG_SYSTEM)))
@@ -96,6 +98,8 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   * @param config Represents a config object
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -121,6 +125,8 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param events Represents the DAO for the Events type.
   * @param ec     Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -128,8 +134,8 @@ class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
       events.insertFromEventLog(el).map { x =>
-        val expectedNumber = 1 + el.lookupKeys.flatMap(_.value).size
-        logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
+        //val expectedNumber = 1 + el.lookupKeys.flatMap(_.value).size
+        //logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
         v1
       }.recover {
         case e: InvalidQueryException =>
@@ -196,6 +202,7 @@ class MetricsLoggerBasic @Inject() (@Named(DefaultMetricsLoggerCounter.name) cou
 
 }
 
+@Singleton
 class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]] {
 

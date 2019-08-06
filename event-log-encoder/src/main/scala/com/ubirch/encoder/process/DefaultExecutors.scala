@@ -9,9 +9,10 @@ import com.ubirch.encoder.models.Encodings
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions._
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
+import com.ubirch.process.{ BasicCommit, BasicCommitUnit, Executor, MetricsLoggerBasic }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -20,6 +21,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
   with LazyLogging {
@@ -50,6 +52,8 @@ class JValueFromConsumerRecord @Inject() (implicit ec: ExecutionContext)
   *
   * @param ec Represents an execution context
   */
+
+@Singleton
 class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
@@ -65,7 +69,7 @@ class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: E
       val decoded = decode(v1)(jValue)
 
       val withTrace = decoded.copy(eventLog = decoded.eventLog.map(_.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)))
-      logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
+      //logger.debug("EventLogFromConsumerRecord:" + withTrace.eventLog.map(_.toJson).getOrElse("No Data decoded"))
 
       withTrace
 
@@ -88,6 +92,8 @@ class EventLogFromConsumerRecord @Inject() (encodings: Encodings)(implicit ec: E
   * @param config Represents a config object
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
@@ -117,6 +123,7 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param config Represents a config object to read config values from
   * @param ec     Represents an execution context
   */
+@Singleton
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging
@@ -161,38 +168,30 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 /**
   * Represents an executor that commits a producer record
   *
-  * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (basicCommit: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+@Singleton
+class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
   override def apply(v1: Future[EncoderPipeData]): Future[EncoderPipeData] = {
 
-    v1.flatMap { v1 =>
+    v1.map { v1 =>
 
       try {
 
-        v1.producerRecord
-          .map(x => basicCommit(x))
-          .map { x =>
-            x.map { y =>
+        v1.producerRecord match {
+          case Some(Go(value)) => stringProducer.getProducerOrCreate.send(value)
+          case _ =>
+        }
 
-              y match {
-                case Some(_) => metricsLoggerBasic.incSuccess
-                case None => metricsLoggerBasic.incFailure
-              }
-
-              v1.copy(recordMetadata = y)
-            }
-          }
-          .getOrElse(throw CommitException("No Producer Record Found", v1))
+        v1
 
       } catch {
 
         case e: Exception =>
-          Future.failed(CommitException(e.getMessage, v1))
+          throw CommitException(e.getMessage, v1)
 
       }
     }
