@@ -9,7 +9,7 @@ import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.Configs
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
-import com.ubirch.process.{ BasicCommitUnit, Executor }
+import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.Counter
@@ -17,7 +17,7 @@ import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.KafkaException
 import org.json4s.JValue
 

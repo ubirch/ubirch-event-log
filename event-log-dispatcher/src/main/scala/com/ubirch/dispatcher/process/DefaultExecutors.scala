@@ -1,22 +1,6 @@
 package com.ubirch.dispatcher.process
 
-import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.dispatcher.services.DispatchInfo
-import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
-import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
-import com.ubirch.dispatcher.util.Exceptions._
-import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommitUnit, Executor, MetricsLoggerBasic }
-import com.ubirch.services.metrics.Counter
-import com.ubirch.util._
 import javax.inject._
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.ProducerRecord
-
-import scala.concurrent.{ ExecutionContext, Future }
 
 //@Singleton
 //class FilterEmpty @Inject() (implicit ec: ExecutionContext)
