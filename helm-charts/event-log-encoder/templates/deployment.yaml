@@ -55,8 +55,13 @@ spec:
                         value: "{{ .Values.eventLogEncoder.prometheus.port}}"
                       - name: UPA_KFC_MAX_POLL_RECORDS
                         value: "{{ .Values.eventLogEncoder.kafkaConsumer.maxpoll}}"
+                      - name: UPA_KFP_LINGER_MS
+                        value: "{{ .Values.eventLogEncoder.kafka.producer.linger }}"
+                      - name: UPA_EXEC_THREAD_POOL_SIZE
+                        value: "{{ .Values.eventLogEncoder.exec.threadpoolsize }}"
+
                   resources:
-                    {{- toYaml .Values.resources | nindent 12 }}
+                    {{- toYaml .Values.resources | nindent 20 }}
                 {{- with .Values.nodeSelector }}
             nodeSelector:
                 {{- toYaml . | nindent 8 }}

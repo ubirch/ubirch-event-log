@@ -73,6 +73,11 @@ spec:
               value: "{{ .Values.eventLogLookup.prometheus.port}}"
             - name: EVTL_JAVA_OPTS
               value: "{{ .Values.eventLogLookup.javaopts}}"
+            - name: LU_KFP_LINGER_MS
+              value: "{{ .Values.eventLogLookup.kafka.producer.linger }}"
+            - name: LU_EXEC_THREAD_POOL_SIZE
+              value: "{{ .Values.eventLogLookup.exec.threadpoolsize }}"
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
