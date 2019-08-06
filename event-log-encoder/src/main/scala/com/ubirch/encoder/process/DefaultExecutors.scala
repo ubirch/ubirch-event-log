@@ -11,7 +11,7 @@ import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
+import com.ubirch.process.{ BasicCommit, BasicCommitUnit, Executor, MetricsLoggerBasic }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -164,7 +164,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
-class Commit @Inject() (basicCommit: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+class Commit @Inject() (basicCommit: BasicCommitUnit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[EncoderPipeData], Future[EncoderPipeData]]
   with LazyLogging {
 
@@ -174,20 +174,10 @@ class Commit @Inject() (basicCommit: BasicCommit, metricsLoggerBasic: MetricsLog
 
       try {
 
-        v1.producerRecord
-          .map(x => basicCommit(x))
-          .map { x =>
-            x.map { y =>
+        val resp = v1.producerRecord
+          .flatMap(x => basicCommit(x))
 
-              y match {
-                case Some(_) => metricsLoggerBasic.incSuccess
-                case None => metricsLoggerBasic.incFailure
-              }
-
-              v1.copy(recordMetadata = y)
-            }
-          }
-          .getOrElse(throw CommitException("No Producer Record Found", v1))
+        Future.successful(v1.copy(recordMetadata = resp))
 
       } catch {
 
