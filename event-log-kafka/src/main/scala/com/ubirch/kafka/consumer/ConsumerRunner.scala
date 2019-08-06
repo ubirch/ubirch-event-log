@@ -57,7 +57,7 @@ trait WithProcessRecords[K, V] {
     def aggregate(): Unit = {
       val aggRes = batchCountDown.await(20, TimeUnit.SECONDS)
       if (!aggRes) {
-        logger.warn("Taking tooo much time aggregating ..")
+        logger.warn("Taking too much time aggregating ..")
       }
     }
 

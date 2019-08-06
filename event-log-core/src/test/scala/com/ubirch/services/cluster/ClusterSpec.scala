@@ -3,11 +3,10 @@ package com.ubirch.services.cluster
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.Guice
 import com.ubirch.services.ServiceBinder
+import com.ubirch.services.execution.{ Execution, ExecutionProvider }
 import com.ubirch.{ EmbeddedCassandra, TestBase }
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class ClusterSpec extends TestBase with EmbeddedCassandra {
+class ClusterSpec extends TestBase with EmbeddedCassandra with Execution {
 
   val serviceInjector = Guice.createInjector(new ServiceBinder())
 
