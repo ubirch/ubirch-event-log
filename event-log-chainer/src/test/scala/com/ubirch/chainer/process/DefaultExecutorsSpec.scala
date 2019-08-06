@@ -23,8 +23,9 @@ import scala.language.postfixOps
 
 class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
-  implicit val ec: ExecutionContext = new ExecutionProvider {} get ()
   val config: Config = new ConfigProvider {} get ()
+
+  implicit val ec: ExecutionContext = new ExecutionProvider(config) {} get ()
 
   "FilterEmpty" must {
 

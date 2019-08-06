@@ -43,6 +43,47 @@ class EncoderSpec extends TestBase with LazyLogging {
 
   "Encoder Spec for MessageEnvelope" must {
 
+    "consume message envelope and publish event log with hint = 0 with lookup key a lot of messages" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+        val eventLogTopic = "com.ubirch.eventlog"
+
+        val range = (1 to 3000)
+        range.foreach { x =>
+          val pmId = x
+          val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
+          pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+          val customerId = UUID.randomUUID().toString
+          val ctxt = JObject("customerId" -> JString(customerId))
+          val entity1 = MessageEnvelope(pm, ctxt)
+
+          publishToKafka(messageEnvelopeTopic, entity1)
+        }
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(10000)
+
+        assert(consumeNumberStringMessagesFrom(eventLogTopic, range.size).size == range.size)
+
+
+      }
+
+    }
+
     "consume message envelope and publish event log with hint = 0 with lookup key" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -72,7 +113,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(5000)
+        Thread.sleep(7000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
         val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
