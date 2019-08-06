@@ -9,7 +9,7 @@ import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.ConfigProperties
 import com.ubirch.models.EventLog
 import com.ubirch.process.{ Executor, ExecutorFamily }
-import com.ubirch.services.execution.Execution
+import com.ubirch.services.execution.{ Execution, ExecutionImpl }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
 
-class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with Execution {
+class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with ExecutionImpl {
 
   val config = ConfigFactory.load()
   val counter = new DefaultConsumerRecordsManagerCounter(config)

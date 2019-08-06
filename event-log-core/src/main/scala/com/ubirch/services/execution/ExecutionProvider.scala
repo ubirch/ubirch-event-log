@@ -15,6 +15,11 @@ trait Execution {
   implicit def ec: ExecutionContextExecutor
 }
 
+trait ExecutionImpl extends Execution {
+
+  override implicit def ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5))
+}
+
 /**
   * Represents the Execution Context provider.
   * Whenever someone injects an ExecutionContext, this provider defines what will
