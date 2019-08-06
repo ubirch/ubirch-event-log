@@ -73,6 +73,10 @@ spec:
                         value: "{{ .Values.eventLog.javaopts}}"
                       - name: EVTL_KFC_MAX_POLL_RECORDS
                         value: "{{ .Values.eventLog.kafkaConsumer.maxpoll}}"
+                      - name: EVTL_KFP_LINGER_MS
+                        value: "{{ .Values.eventLog.kafka.producer.linger }}"
+                      - name: EVTL_EXEC_THREAD_POOL_SIZE
+                        value: "{{ .Values.eventLog.exec.threadpoolsize }}"
                   resources:
                     {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}

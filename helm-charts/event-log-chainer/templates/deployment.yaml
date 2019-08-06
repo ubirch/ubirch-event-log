@@ -61,6 +61,10 @@ spec:
               value: "{{ .Values.eventLogChainer.mode }}"
             - name: CHAINER_KFC_MAX_POLL_RECORDS
               value: "{{ .Values.eventLogChainer.kafka.consumer.maxpoll }}"
+            - name: CHAINER_KFP_LINGER_MS
+              value: "{{ .Values.eventLogChainer.kafka.producer.linger }}"
+            - name: CHAINER_EXEC_THREAD_POOL_SIZE
+              value: "{{ .Values.eventLogChainer.exec.threadpoolsize }}"
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
