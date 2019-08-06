@@ -3,7 +3,7 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.{Configs, StringProducer}
+import com.ubirch.kafka.producer.{ Configs, StringProducer }
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.URLsHelper
 import javax.inject._
@@ -24,7 +24,7 @@ class DefaultStringProducer @Inject() (
 
   def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
-  def lingerMs: Int = Try(config.getInt(LINGER_MS)).getOrElse(600)
+  def lingerMs: Int = config.getInt(LINGER_MS)
 
   def configs = Configs(bootstrapServers, lingerMs = lingerMs)
 
