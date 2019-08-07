@@ -5,7 +5,6 @@ import java.io.ByteArrayInputStream
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.encoder.EncodingExecutionProvider
 import com.ubirch.encoder.models.BlockchainResponse
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
@@ -195,8 +194,6 @@ class EncoderExecutor @Inject() (
     def run(x: ConsumerRecord[String, Array[Byte]]) = {
       Future {
 
-        //val startInstant = new Instant()
-
         var jValue: JValue = JNull
         try {
 
@@ -212,8 +209,6 @@ class EncoderExecutor @Inject() (
             stringProducer.getProducerOrCreate.send(x)
           }
 
-          //logger.info("Interprocessed: " + startInstant.millisBetween(new Instant()) + " millis")
-
           sent.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
 
         } catch {
@@ -224,9 +219,7 @@ class EncoderExecutor @Inject() (
       }
     }
 
-    //val startInstant = new Instant()
     v1.map(run)
-    //logger.info("Outerprocessed: " + startInstant.millisBetween(new Instant()) + " millis")
 
     EncoderPipeData(v1, Vector.empty)
   }

@@ -14,7 +14,7 @@ class EncodingExecutionProvider @Inject() (config: Config) extends Provider[Exec
 
   def threadPoolSize: Int = config.getInt(THREAD_POOL_SIZE)
 
-  override implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newCachedThreadPool())
+  override implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize))
 
   override def get(): ExecutionContext = ec
 
