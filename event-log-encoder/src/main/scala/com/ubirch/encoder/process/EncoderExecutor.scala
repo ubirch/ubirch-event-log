@@ -42,44 +42,49 @@ class EncoderExecutor @Inject() (
 
     val jValuesBuff = scala.collection.mutable.ListBuffer.empty[JValue]
 
-    v1.foreach { x =>
+    val res = v1.map { x =>
 
-      try {
+      Future {
+        try {
 
-        val bytes = new ByteArrayInputStream(x.value())
-        val jValue = parse(bytes)
+          val bytes = new ByteArrayInputStream(x.value())
+          val jValue = parse(bytes)
 
-        jValuesBuff += jValue
+          jValuesBuff += jValue
 
-        val ldp = EncoderPipeData(Vector(x), Vector(jValue))
+          val ldp = EncoderPipeData(Vector(x), Vector(jValue))
 
-        val maybePR = encodings.UPP(ldp).orElse(encodings.PublichBlockchain(ldp)).orElse(encodings.OrElse(ldp))(jValue).map { el =>
-          val elSigned = el.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM).sign(config)
-          EncoderJsonSupport.ToJson[EventLog](elSigned)
-          ProducerRecordHelper.toRecord(topic, elSigned.id, elSigned.toJson, Map.empty)
+          val maybePR = encodings.UPP(ldp).orElse(encodings.PublichBlockchain(ldp)).orElse(encodings.OrElse(ldp))(jValue).map { el =>
+            val elSigned = el.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM).sign(config)
+            EncoderJsonSupport.ToJson[EventLog](elSigned)
+            ProducerRecordHelper.toRecord(topic, elSigned.id, elSigned.toJson, Map.empty)
+          }
+
+          val sent = maybePR.map { x =>
+            stringProducer.getProducerOrCreate.send(x)
+          }
+
+          sent.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), jValuesBuff.toVector)))
+
+        } catch {
+          case e: Exception =>
+            throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), jValuesBuff.toVector))
         }
 
-        val sent = maybePR.map { x =>
-          stringProducer.getProducerOrCreate.send(x)
-        }
-
-        sent
-
-      } catch {
-        case e: Exception =>
-          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), jValuesBuff.toVector))
       }
 
     }
 
-    EncoderPipeData(v1, jValuesBuff.toVector)
+    Future.sequence(res).map { _ =>
+      EncoderPipeData(v1, jValuesBuff.toVector)
+    }
 
-  }
+  }.flatten
 
 }
 
 trait ExecutorFamily {
-  def encoderExecutor: EncoderExecutor
+  val encoderExecutor: EncoderExecutor
 }
 
 @Singleton
