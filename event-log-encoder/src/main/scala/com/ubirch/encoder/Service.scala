@@ -26,7 +26,6 @@ object Service extends Boot(EncoderServiceBinder.modules) {
 
     val consumer = get[BytesConsumer]
     consumer.setConsumptionStrategy(All)
-    consumer.setDelayRecords(600 millis)
 
     consumer.start()
 
