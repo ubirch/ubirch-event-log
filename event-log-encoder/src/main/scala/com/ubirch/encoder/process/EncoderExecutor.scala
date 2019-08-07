@@ -42,7 +42,7 @@ class EncoderExecutor @Inject() (
 
     val jValuesBuff = scala.collection.mutable.ListBuffer.empty[JValue]
 
-     val res = v1.map { x =>
+    val res = v1.map { x =>
 
       Future {
         try {
@@ -75,11 +75,9 @@ class EncoderExecutor @Inject() (
 
     }
 
-    Future.sequence(res).map{ _ =>
+    Future.sequence(res).map { _ =>
       EncoderPipeData(v1, jValuesBuff.toVector)
     }
-
-
 
   }.flatten
 
