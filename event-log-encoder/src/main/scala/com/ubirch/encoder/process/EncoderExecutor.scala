@@ -1,6 +1,7 @@
 package com.ubirch.encoder.process
 
 import java.io.ByteArrayInputStream
+import java.util.concurrent.atomic.AtomicReference
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -12,16 +13,19 @@ import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, Values }
+import com.ubirch.models.{EventLog, Values}
 import com.ubirch.process.Executor
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.joda.time.Instant
 import org.json4s.JValue
+import org.json4s.JsonAST.JNull
+import com.ubirch.util.Implicits.enrichedInstant
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class EncoderExecutor @Inject() (
@@ -40,22 +44,20 @@ class EncoderExecutor @Inject() (
 
   override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
 
-    val jValuesBuff = scala.collection.mutable.ListBuffer.empty[JValue]
 
-    val res = v1.map { x =>
-
+    def run(x: ConsumerRecord[String, Array[Byte]]) = {
       Future {
+
+        val startInstant = new Instant()
+
+        var jValue: JValue = JNull
         try {
 
           val bytes = new ByteArrayInputStream(x.value())
-          val jValue = parse(bytes)
-
-          jValuesBuff += jValue
-
+          jValue = parse(bytes)
           val ldp = EncoderPipeData(Vector(x), Vector(jValue))
-
           val maybePR = encodings.UPP(ldp).orElse(encodings.PublichBlockchain(ldp)).orElse(encodings.OrElse(ldp))(jValue).map { el =>
-            val elSigned = el.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM).sign(config)
+            val elSigned = el.addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
             EncoderJsonSupport.ToJson[EventLog](elSigned)
             ProducerRecordHelper.toRecord(topic, elSigned.id, elSigned.toJson, Map.empty)
           }
@@ -64,22 +66,25 @@ class EncoderExecutor @Inject() (
             stringProducer.getProducerOrCreate.send(x)
           }
 
-          sent.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), jValuesBuff.toVector)))
+          //logger.info("Interprocessed: " + startInstant.millisBetween(new Instant()) + " millis")
+
+          sent.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
 
         } catch {
           case e: Exception =>
-            throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), jValuesBuff.toVector))
+            throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
         }
 
       }
-
     }
 
-    Future.sequence(res).map { _ =>
-      EncoderPipeData(v1, jValuesBuff.toVector)
-    }
+    val startInstant = new Instant()
+    v1.map(run)
+    //logger.info("Outerprocessed: " + startInstant.millisBetween(new Instant()) + " millis")
 
-  }.flatten
+
+    EncoderPipeData(v1, Vector.empty)
+  }
 
 }
 
