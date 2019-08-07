@@ -4,6 +4,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
+import com.ubirch.encoder.EncodingExecutionProvider
 import com.ubirch.encoder.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.encoder.services.kafka.consumer.{ DefaultEncoderConsumer, DefaultEncoderManager, EncoderConsumerRecordsManager }
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
@@ -45,6 +46,9 @@ class EncoderServiceBinder
   def encodingsCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultEncodingsCounter.name))
     .to(classOf[DefaultEncodingsCounter])
+  def encodingExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
+    .annotatedWith(Names.named("encoding"))
+    .toProvider(classOf[EncodingExecutionProvider])
 
   override def configure(): Unit = {
     lifecycle
@@ -58,6 +62,7 @@ class EncoderServiceBinder
     consumer
     consumerRecordsManager
     producer
+    encodingExecutionContext
   }
 
 }
