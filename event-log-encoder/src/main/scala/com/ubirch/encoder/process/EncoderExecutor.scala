@@ -5,41 +5,37 @@ import java.io.ByteArrayInputStream
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.encoder.EncodingExecutionProvider
 import com.ubirch.encoder.models.BlockchainResponse
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.encoder.util.EncoderJsonSupport
+import com.ubirch.encoder.util.EncoderJsonSupport._
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
+import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.process.Executor
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.joda.time.Instant
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
-import com.ubirch.util.Implicits.enrichedInstant
-
-import scala.concurrent.{ExecutionContext, Future}
-import com.ubirch.models.{EventLog, LookupKey, Values}
-
-import scala.util.{Failure, Success, Try}
-import EncoderJsonSupport._
-import com.ubirch.protocol.ProtocolMessage
 import org.json4s.jackson.JsonMethods._
 
-
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class EncoderExecutor @Inject() (
     @Named(DefaultEncodingsCounter.name) counter: Counter,
     config: Config,
     stringProducer: StringProducer
-)(implicit ec: ExecutionContext)
+)(@Named("encoding") implicit val executionContext: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -196,7 +192,6 @@ class EncoderExecutor @Inject() (
 
   override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
 
-
     def run(x: ConsumerRecord[String, Array[Byte]]) = {
       Future {
 
@@ -232,7 +227,6 @@ class EncoderExecutor @Inject() (
     //val startInstant = new Instant()
     v1.map(run)
     //logger.info("Outerprocessed: " + startInstant.millisBetween(new Instant()) + " millis")
-
 
     EncoderPipeData(v1, Vector.empty)
   }
