@@ -70,6 +70,21 @@ class DispatchExecutor @Inject() (
 
   }
 
+  def run(consumerRecord: ConsumerRecord[String, String]) = Future {
+    val pipeData = DispatcherPipeData.empty.withConsumerRecords(Vector(consumerRecord))
+    val (eventLog, eventLogJson) = Try {
+      val fsEventLog = parse(consumerRecord)
+      val el = fsEventLog.get
+      val elj = fsEventLog.json
+      (el, elj)
+    }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
+
+    val prs = Try(createProducerRecords(eventLog, eventLogJson))
+      .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
+
+    prs.map(x => stringProducer.getProducerOrCreate.send(x))
+  }
+
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
 
     try {
@@ -80,21 +95,7 @@ class DispatchExecutor @Inject() (
         throw EmptyValueException("No Records Found to be processed", pipeData)
       }
 
-      v1.foreach { cr =>
-
-        val (eventLog, eventLogJson) = Try {
-          val fsEventLog = parse(cr)
-          val el = fsEventLog.get
-          val elj = fsEventLog.json
-          (el, elj)
-        }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
-
-        val prs = Try(createProducerRecords(eventLog, eventLogJson))
-          .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
-
-        prs.map(x => stringProducer.getProducerOrCreate.send(x))
-
-      }
+      v1.foreach { cr => run(cr) }
 
       DispatcherPipeData.empty.withConsumerRecords(v1)
 
