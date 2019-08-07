@@ -14,7 +14,6 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringSerializer }
 import org.json4s.JsonAST.{ JObject, JString }
 
-import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
