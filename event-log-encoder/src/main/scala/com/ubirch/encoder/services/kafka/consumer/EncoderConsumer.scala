@@ -52,11 +52,11 @@ class DefaultEncoderManager @Inject() (
 
   type A = EncoderPipeData
 
-  def executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]] = {
+  val executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]] = {
     executorFamily.encoderExecutor
   }
 
-  def executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
+  val executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
     case e @ EncodingException(_, pipeData) =>
       logger.error("EncodingException: " + e.getMessage)
       counter.counter.labels("EncodingException").inc()
