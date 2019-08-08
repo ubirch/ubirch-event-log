@@ -22,6 +22,7 @@ import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods._
@@ -189,38 +190,40 @@ class EncoderExecutor @Inject() (
 
   }
 
-  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
+  def simpleCallback: PartialFunction[Try[RecordMetadata], Unit] = {
+    case Success(_) =>
+    case Failure(e) =>
+      logger.error("Error publishing [{}]", e.getMessage)
+  }
 
-    def run(x: ConsumerRecord[String, Array[Byte]]) = {
-      Future {
+  def run(x: ConsumerRecord[String, Array[Byte]]) = {
+    Future {
+      var jValue: JValue = JNull
+      try {
 
-        var jValue: JValue = JNull
-        try {
-
-          val bytes = new ByteArrayInputStream(x.value())
-          jValue = parse(bytes)
-          val ldp = EncoderPipeData(Vector(x), Vector(jValue))
-          val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
-            EncoderJsonSupport.ToJson[EventLog](el)
-            ProducerRecordHelper.toRecord(topic, el.id, el.toJson, Map.empty)
-          }
-
-          val sent = maybePR.map { x =>
-            stringProducer.getProducerOrCreate.send(x)
-          }
-
-          sent.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
-
-        } catch {
-          case e: Exception =>
-            throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
+        val bytes = new ByteArrayInputStream(x.value())
+        jValue = parse(bytes)
+        val ldp = EncoderPipeData(Vector(x), Vector(jValue))
+        val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
+          EncoderJsonSupport.ToJson[EventLog](el)
+          ProducerRecordHelper.toRecord(topic, el.id, el.toJson, Map.empty)
         }
 
+        val pr = maybePR.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
+
+        stringProducer.sendWithCallback(pr)(simpleCallback)
+
+      } catch {
+        case e: Exception =>
+          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
       }
+
     }
 
-    v1.map(run)
+  }
 
+  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
+    v1.foreach(run)
     EncoderPipeData(v1, Vector.empty)
   }
 

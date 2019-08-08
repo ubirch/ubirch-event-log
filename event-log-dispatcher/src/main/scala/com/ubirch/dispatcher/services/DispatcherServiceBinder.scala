@@ -5,6 +5,7 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.dispatcher.process.{ DefaultExecutorFamily, ExecutorFamily }
+import com.ubirch.dispatcher.services.execution.DispatcherExecutionProvider
 import com.ubirch.dispatcher.services.kafka.consumer.DefaultRecordsManager
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.kafka.consumer.StringConsumer
@@ -42,6 +43,9 @@ class DispatcherServiceBinder
   def dispatchCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultDispatchingCounter.name))
     .to(classOf[DefaultDispatchingCounter])
+  def dispatchingExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
+    .annotatedWith(Names.named("dispatcher"))
+    .toProvider(classOf[DispatcherExecutionProvider])
 
   override def configure(): Unit = {
     lifecycle
@@ -55,6 +59,7 @@ class DispatcherServiceBinder
     consumerRecordsManagerCounter
     metricsLoggerCounter
     dispatchCounter
+    dispatchingExecutionContext
   }
 
 }
