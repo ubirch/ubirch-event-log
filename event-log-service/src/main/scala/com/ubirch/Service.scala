@@ -1,6 +1,6 @@
 package com.ubirch
 
-import com.ubirch.kafka.consumer.StringConsumer
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.util.Boot
 
 import scala.language.postfixOps
@@ -15,6 +15,7 @@ object Service extends Boot {
   def main(args: Array[String]): Unit = {
 
     val consumer = get[StringConsumer]
+    consumer.setConsumptionStrategy(All)
 
     //Adding these configs to the consumer makes it add a back-off/back-pressure
     //strategy to the storage functions

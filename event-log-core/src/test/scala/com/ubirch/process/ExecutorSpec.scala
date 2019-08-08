@@ -487,12 +487,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with ExecutionImpl {
       val metricsLoggerBasic = mock[MetricsLoggerBasic]
 
       val family = DefaultExecutorFamily(
-        new FilterEmpty(),
-        new EventLogParser(),
-        new EventLogSigner(config),
-        new EventsStore(events),
-        new DiscoveryExecutor(basicCommit, config),
-        new MetricsLogger(metricsLoggerBasic)
+        new LoggerExecutor(events)
       )
 
       val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter(config))
