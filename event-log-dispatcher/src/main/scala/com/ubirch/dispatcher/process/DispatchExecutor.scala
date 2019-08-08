@@ -29,13 +29,9 @@ class DispatchExecutor @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     stringProducer: StringProducer
-)(implicit ec: ExecutionContext)
+)(@Named("dispatcher") implicit val executionContext: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
-
-  def parse(consumerRecord: ConsumerRecord[String, String]) = {
-    EventLogJsonSupport.FromString[EventLog](consumerRecord.value())
-  }
 
   def createProducerRecords(eventLog: EventLog, eventLogJson: JValue): Vector[ProducerRecord[String, String]] = {
 
@@ -73,7 +69,7 @@ class DispatchExecutor @Inject() (
   def run(consumerRecord: ConsumerRecord[String, String]) = Future {
     val pipeData = DispatcherPipeData.empty.withConsumerRecords(Vector(consumerRecord))
     val (eventLog, eventLogJson) = Try {
-      val fsEventLog = parse(consumerRecord)
+      val fsEventLog = EventLogJsonSupport.FromString[EventLog](consumerRecord.value())
       val el = fsEventLog.get
       val elj = fsEventLog.json
       (el, elj)
@@ -82,7 +78,7 @@ class DispatchExecutor @Inject() (
     val prs = Try(createProducerRecords(eventLog, eventLogJson))
       .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
 
-    prs.map(x => stringProducer.getProducerOrCreate.send(x))
+    prs.map(stringProducer.send)
   }
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
@@ -95,7 +91,7 @@ class DispatchExecutor @Inject() (
         throw EmptyValueException("No Records Found to be processed", pipeData)
       }
 
-      v1.foreach { cr => run(cr) }
+      v1.foreach(run)
 
       DispatcherPipeData.empty.withConsumerRecords(v1)
 

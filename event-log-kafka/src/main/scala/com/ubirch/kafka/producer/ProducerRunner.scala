@@ -4,11 +4,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import com.ubirch.kafka.util.Exceptions.{ ProducerCreationException, ProducerNotStartedException }
 import com.ubirch.kafka.util.{ Callback, Callback0, VersionedLazyLogging }
-import org.apache.kafka.clients.producer.{ KafkaProducer, Producer }
+import org.apache.kafka.clients.producer.{ KafkaProducer, Producer, ProducerRecord, RecordMetadata, Callback => KafkaCallback }
 import org.apache.kafka.common.serialization.Serializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
+import scala.concurrent.{ Future, Promise }
+import scala.util.control.NonFatal
+import scala.util.{ Failure, Success, Try }
 
 /**
   * Represents a simple definition for a kafka producer
@@ -80,6 +83,35 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
   }
 
   def getProducerAsOpt: Option[Producer[K, V]] = producer
+
+  private def producerCallback(promise: Promise[RecordMetadata]): KafkaCallback = {
+    producerCallback(result => promise.complete(result))
+  }
+
+  private def producerCallback(callback: Try[RecordMetadata] => Unit): KafkaCallback =
+    new KafkaCallback {
+      override def onCompletion(metadata: RecordMetadata, exception: Exception): Unit = {
+        val result =
+          if (exception == null) Success(metadata)
+          else Failure(exception)
+        callback(result)
+      }
+    }
+
+  def send(record: ProducerRecord[K, V]): Future[RecordMetadata] = {
+    val promise = Promise[RecordMetadata]()
+    try {
+      getProducerOrCreate.send(record, producerCallback(promise))
+    } catch {
+      case NonFatal(e) => promise.failure(e)
+    }
+
+    promise.future
+  }
+
+  def sendWithCallback(record: ProducerRecord[K, V])(callback: Try[RecordMetadata] => Unit): Unit = {
+    getProducerOrCreate.send(record, producerCallback(callback))
+  }
 
 }
 

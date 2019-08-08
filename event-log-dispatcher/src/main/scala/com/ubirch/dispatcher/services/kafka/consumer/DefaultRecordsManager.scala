@@ -50,13 +50,11 @@ class DefaultRecordsManager @Inject() (
 
   override type A = DispatcherPipeData
 
-  override def executor: Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]] = {
-
+  override val executor: Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]] = {
     executorFamily.dispatch
-
   }
 
-  override def executorExceptionHandler: PartialFunction[Throwable, Future[DispatcherPipeData]] = {
+  override val executorExceptionHandler: PartialFunction[Throwable, Future[DispatcherPipeData]] = {
 
     case e @ EmptyValueException(_, pipeData) =>
       logger.error(s"EmptyValueException: ${e.getMessage}", e)

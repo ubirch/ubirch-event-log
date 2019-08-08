@@ -4,8 +4,8 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
-import com.ubirch.encoder.EncodingExecutionProvider
 import com.ubirch.encoder.process.{ DefaultExecutorFamily, ExecutorFamily }
+import com.ubirch.encoder.services.execution.EncodingExecutionProvider
 import com.ubirch.encoder.services.kafka.consumer.{ DefaultEncoderConsumer, DefaultEncoderManager, EncoderConsumerRecordsManager }
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.kafka.consumer.BytesConsumer

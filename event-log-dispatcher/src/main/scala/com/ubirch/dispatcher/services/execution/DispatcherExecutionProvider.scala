@@ -1,4 +1,4 @@
-package com.ubirch.encoder
+package com.ubirch.dispatcher.services.execution
 
 import java.util.concurrent.Executors
 
@@ -10,7 +10,7 @@ import javax.inject._
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor }
 
 @Singleton
-class EncodingExecutionProvider @Inject() (config: Config) extends Provider[ExecutionContext] with Execution with ExecutionContextConfPaths {
+class DispatcherExecutionProvider @Inject() (config: Config) extends Provider[ExecutionContext] with Execution with ExecutionContextConfPaths {
 
   def threadPoolSize: Int = config.getInt(THREAD_POOL_SIZE)
 
