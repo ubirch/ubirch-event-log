@@ -274,8 +274,7 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
 
   def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
     //logger.debug("BasicPublish:" + pr.value())
-    val javaFuture = stringProducer.getProducerOrCreate.send(pr)
-    futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
+    stringProducer.send(pr).map(x => Option(x))
   }
 
   def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
@@ -304,32 +303,9 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
 
 trait ExecutorFamily {
 
-  def filterEmpty: FilterEmpty
-
-  def eventsStore: EventsStore
-
-  def eventLogParser: EventLogParser
-
-  def eventLogSigner: EventLogSigner
-
-  def discoveryExecutor: DiscoveryExecutor
-
-  def metricsLogger: MetricsLogger
+  def loggerExecutor: LoggerExecutor
 
 }
 
-/**
-  * Default materialization of the family of executors
-  * @param filterEmpty Executor that filters ConsumerRecords
-  * @param eventLogParser Executor that parses a ConsumerRecord into an Event Log
-  * @param eventsStore Executor that stores an EventLog into Cassandra
-  */
 @Singleton
-case class DefaultExecutorFamily @Inject() (
-    filterEmpty: FilterEmpty,
-    eventLogParser: EventLogParser,
-    eventLogSigner: EventLogSigner,
-    eventsStore: EventsStore,
-    discoveryExecutor: DiscoveryExecutor,
-    metricsLogger: MetricsLogger
-) extends ExecutorFamily
+case class DefaultExecutorFamily @Inject() (loggerExecutor: LoggerExecutor) extends ExecutorFamily

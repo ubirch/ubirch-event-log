@@ -63,6 +63,7 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
   val password: String = config.getString(PASSWORD)
 
   val poolingOptions = new PoolingOptions
+  poolingOptions.setMaxQueueSize(512)
 
   val queryOptions = new QueryOptions
 

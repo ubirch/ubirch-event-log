@@ -1,7 +1,6 @@
 package com.ubirch.services.kafka.consumer
 
 import java.util
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
@@ -60,18 +59,12 @@ class DefaultConsumerRecordsManager @Inject() (
   extends StringConsumerRecordsManager
   with LazyLogging {
 
-  import executorFamily._
   import reporter.Types._
 
   type A = PipeData
 
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] = {
-    filterEmpty andThen
-      eventLogParser andThen
-      eventLogSigner andThen
-      eventsStore andThen
-      //discoveryExecutor andThen
-      metricsLogger
+    executorFamily.loggerExecutor
   }
 
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
@@ -95,7 +88,7 @@ class DefaultConsumerRecordsManager @Inject() (
       counter.counter.labels("StoringIntoEventLogException").inc()
       reporter.report(
         Error(
-          id = UUID.fromString(e.pipeData.eventLog.map(_.id).getOrElse(uuid.toString)),
+          id = e.pipeData.eventLog.map(_.id).getOrElse(uuid.toString),
           message = e.getMessage,
           exceptionName = e.name,
           value = e.pipeData.eventLog.toString
