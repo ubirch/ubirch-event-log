@@ -11,7 +11,8 @@ import javax.inject._
 import monix.eval.TaskCircuitBreaker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success}
 
 @Singleton
 class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val ec: ExecutionContext)
@@ -54,9 +55,14 @@ class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val
 
   }
 
-  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = Future {
-    v1.map(x => circuitBreaker.protect(run(x)))
-    PipeData(v1, None)
+  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
+    import monix.execution.Scheduler.{ global => scheduler }
+    val promise = Promise[PipeData]()
+    Task.sequence(v1.map(x => circuitBreaker.protect(run(x)))).map(_ => PipeData(v1, None)).runOnComplete{
+      case Success(v) => promise.success(v)
+      case Failure(exception) => promise.failure(exception)
+    }(scheduler)
+    promise.future
   }
 
 }
