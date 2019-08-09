@@ -19,6 +19,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[LookupPipeData]]
   with LazyLogging {
@@ -78,6 +79,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
   * @param config Represents a config object to read config values from
   * @param ec     Represents an execution context
   */
+@Singleton
 class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[LookupPipeData], Future[LookupPipeData]]
   with ProducerConfPaths {
@@ -126,6 +128,7 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   * @param basicCommit Simple entity for committing to kafka
   * @param ec             Represents an execution context
   */
+@Singleton
 class Commit @Inject() (basicCommit: BasicCommit)(implicit ec: ExecutionContext)
   extends Executor[Future[LookupPipeData], Future[LookupPipeData]] {
 
