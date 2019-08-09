@@ -35,7 +35,7 @@ class DefaultChainerManager @Inject() (
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]] = {
     executorFamily.filterEmpty andThen
       executorFamily.eventLogParser andThen
-      executorFamily.eventLogSigner andThen
+      //executorFamily.eventLogSigner andThen
       executorFamily.treeCreatorExecutor andThen
       executorFamily.treeEventLogCreation andThen
       executorFamily.createTreeProducerRecord andThen
