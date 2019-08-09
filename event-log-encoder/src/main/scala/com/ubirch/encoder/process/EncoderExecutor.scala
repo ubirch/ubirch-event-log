@@ -14,21 +14,23 @@ import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, LookupKey, Values }
+import com.ubirch.models.{EventLog, LookupKey, Values}
 import com.ubirch.process.Executor
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
+import monix.eval.Task
+import monix.reactive.Observable
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods._
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class EncoderExecutor @Inject() (
@@ -197,7 +199,7 @@ class EncoderExecutor @Inject() (
   }
 
   def run(x: ConsumerRecord[String, Array[Byte]]) = {
-    Future {
+    Task.defer {
       var jValue: JValue = JNull
       try {
 
@@ -210,8 +212,7 @@ class EncoderExecutor @Inject() (
         }
 
         val pr = maybePR.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
-
-        stringProducer.sendWithCallback(pr)(simpleCallback)
+        Task.fromFuture(stringProducer.send(pr))
 
       } catch {
         case e: Exception =>
@@ -223,7 +224,8 @@ class EncoderExecutor @Inject() (
   }
 
   override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
-    v1.foreach(run)
+    import monix.execution.Scheduler.{ global => scheduler }
+    v1.foreach(x => Task.fork(run(x)).runAsync(scheduler))
     EncoderPipeData(v1, Vector.empty)
   }
 
