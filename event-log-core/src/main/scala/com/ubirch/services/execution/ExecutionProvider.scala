@@ -39,7 +39,7 @@ class ExecutionProvider @Inject() (config: Config) extends Provider[ExecutionCon
 @Singleton
 class LoggerExecutionProvider @Inject() (config: Config) extends Provider[ExecutionContext] with Execution with ExecutionContextConfPaths {
 
-  def threadPoolSize: Int = 5
+  def threadPoolSize: Int = config.getInt(THREAD_POOL_SIZE)
 
   override implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(threadPoolSize))
 

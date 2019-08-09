@@ -39,8 +39,9 @@ class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val
       }
   }
 
-  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
-    Future.sequence(v1.map(run)).map(x => PipeData(v1, None))
+  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = Future {
+    v1.map(run)
+    PipeData(v1, None)
   }
 
 }
