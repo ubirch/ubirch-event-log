@@ -138,6 +138,20 @@ trait WithProcessRecords[K, V] {
       }
     }
 
+    def commitFunc2(): Vector[Unit] = {
+
+      try {
+        consumer.commitSync()
+        postCommitCallback.run(consumerRecords.count())
+      } catch {
+        case e: TimeoutException =>
+          throw CommitTimeoutException("Commit timed out", () => this.commitFunc(), e)
+        case e: Throwable =>
+          throw e
+      }
+
+    }
+
     def commitFunc(): Vector[Unit] = {
 
       try {
@@ -167,7 +181,7 @@ trait WithProcessRecords[K, V] {
         failed.set(None)
         throw error.get
       } else {
-        commitFunc()
+        commitFunc2()
       }
 
     }
