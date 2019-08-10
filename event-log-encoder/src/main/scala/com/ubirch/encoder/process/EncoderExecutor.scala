@@ -223,8 +223,9 @@ class EncoderExecutor @Inject() (
 
   }
 
+  val scheduler = monix.execution.Scheduler(executionContext)
+
   override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
-    import monix.execution.Scheduler.{ global => scheduler }
     v1.foreach(x => Task.fork(run(x)).runAsync(scheduler))
     EncoderPipeData(v1, Vector.empty)
   }
