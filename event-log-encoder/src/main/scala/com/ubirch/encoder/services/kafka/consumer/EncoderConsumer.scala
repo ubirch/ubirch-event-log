@@ -78,7 +78,7 @@ class DefaultEncoderConsumer @Inject() (
     val config: Config,
     lifecycle: Lifecycle,
     controller: EncoderConsumerRecordsManager
-)(implicit ec: ExecutionContext)
+)(@Named("encoding") implicit val executionContext: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerCreator
   with LazyLogging {
