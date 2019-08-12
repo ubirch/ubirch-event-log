@@ -38,9 +38,6 @@ class LookupServiceBinder
   def clusterService: ScopedBindingBuilder = bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   //Cassandra Cluster
-  def loggerExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
-    .annotatedWith(Names.named("logger"))
-    .toProvider(classOf[LoggerExecutionProvider])
 
   override def configure(): Unit = {
     lifecycle
@@ -53,8 +50,6 @@ class LookupServiceBinder
     consumer
     consumerRecordsManager
     producer
-    loggerExecutionContext
-
   }
 
 }

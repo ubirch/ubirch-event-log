@@ -15,7 +15,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success }
 
 @Singleton
-class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val ec: ExecutionContext)
+class LoggerExecutor @Inject() (events: EventsDAO)(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] with LazyLogging {
 
   import monix.eval._

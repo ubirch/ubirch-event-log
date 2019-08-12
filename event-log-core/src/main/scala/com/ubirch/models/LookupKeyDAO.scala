@@ -36,7 +36,7 @@ trait LookupKeyQueries extends TablePointer[LookupKeyRow] with CustomEncodings[L
 }
 
 @Singleton
-class Lookups @Inject() (val connectionService: ConnectionService)(@Named("logger") implicit val ec: ExecutionContext) extends LookupKeyQueries {
+class Lookups @Inject() (val connectionService: ConnectionService)(implicit val ec: ExecutionContext) extends LookupKeyQueries {
 
   val db: CassandraAsyncContext[SnakeCase.type] = connectionService.context
 
