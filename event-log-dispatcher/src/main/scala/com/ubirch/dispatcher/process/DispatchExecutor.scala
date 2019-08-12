@@ -29,7 +29,7 @@ class DispatchExecutor @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     stringProducer: StringProducer
-)(@Named("dispatcher") implicit val executionContext: ExecutionContext)
+)(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
 
