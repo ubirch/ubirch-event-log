@@ -92,10 +92,6 @@ class ServiceBinder
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
   //Kafka
 
-  def loggerExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
-    .annotatedWith(Names.named("logger"))
-    .toProvider(classOf[LoggerExecutionProvider])
-
   def configure(): Unit = {
 
     //Basic Components
@@ -124,8 +120,6 @@ class ServiceBinder
     consumerRecordsManager
     producer
     //Kafka
-
-    loggerExecutionContext
   }
 
 }
