@@ -13,7 +13,7 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
+import com.ubirch.services.metrics.{ DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions._
 import com.ubirch.{ Entities, TestBase }
@@ -487,7 +487,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with ExecutionImpl {
       val metricsLoggerBasic = mock[MetricsLoggerBasic]
 
       val family = DefaultExecutorFamily(
-        new LoggerExecutor(events)
+        new LoggerExecutor(events, new DefaultMetricsLoggerCounter(config))
       )
 
       val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter(config))
