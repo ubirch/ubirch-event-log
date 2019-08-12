@@ -12,19 +12,18 @@ import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.encoder.util.EncoderJsonSupport._
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
+import com.ubirch.kafka.consumer.ConsumerRecordsController
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, LookupKey, Values }
-import com.ubirch.process.Executor
+import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.services.metrics.Counter
+import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import monix.eval.Task
-import monix.reactive.Observable
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.RecordMetadata
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods._
@@ -34,23 +33,63 @@ import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class EncoderExecutor @Inject() (
-    @Named(DefaultEncodingsCounter.name) counter: Counter,
+    reporter: Reporter,
+    @Named(DefaultEncodingsCounter.name) encodingsCounter: Counter,
+    @Named(DefaultMetricsLoggerCounter.name) results: Counter,
     config: Config,
     stringProducer: StringProducer
-)(implicit ec: ExecutionContext)
-  extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
+)(implicit ec: ExecutionContext) extends ConsumerRecordsController[String, Array[Byte]]
   with ProducerConfPaths
   with LazyLogging {
+
+  override type A = EncoderPipeData
 
   val CUSTOMER_ID_FIELD = "customerId"
 
   val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
+  val scheduler = monix.execution.Scheduler(ec)
+
+  override def process(consumerRecord: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
+    Task(consumerRecord.foreach(x => run(x).runOnComplete {
+      case Success(_) =>
+        results.counter.labels("success").inc()
+      case Failure(e: EncodingException) =>
+        import reporter.Types._
+        logger.error("EncodingException: " + e.getMessage)
+        results.counter.labels("failure").inc()
+        val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
+        reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
+
+    }(scheduler))).runAsync(scheduler)
+
+    EncoderPipeData(consumerRecord, Vector.empty)
+  }
+
+  def run(x: ConsumerRecord[String, Array[Byte]]) = {
+    Task.defer {
+      var jValue: JValue = JNull
+      try {
+        val bytes = new ByteArrayInputStream(x.value())
+        jValue = parse(bytes)
+        val ldp = EncoderPipeData(Vector(x), Vector(jValue))
+        val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
+          EncoderJsonSupport.ToJson[EventLog](el)
+          ProducerRecordHelper.toRecord(topic, el.id, el.toJson, Map.empty)
+        }
+        val pr = maybePR.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
+        Task.fromFuture(stringProducer.send(pr))
+      } catch {
+        case e: Exception =>
+          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
+      }
+    }
+  }
 
   def UPP(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
 
     case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
-      counter.counter.labels(Values.UPP_CATEGORY).inc()
+      encodingsCounter.counter.labels(Values.UPP_CATEGORY).inc()
 
       val messageEnvelope: MessageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
 
@@ -161,7 +200,7 @@ class EncoderExecutor @Inject() (
   def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
 
-      counter.counter.labels(Values.PUBLIC_CHAIN_CATEGORY).inc()
+      encodingsCounter.counter.labels(Values.PUBLIC_CHAIN_CATEGORY).inc()
 
       val blockchainResponse: BlockchainResponse = EncoderJsonSupport.FromJson[BlockchainResponse](jv).get
 
@@ -192,48 +231,4 @@ class EncoderExecutor @Inject() (
 
   }
 
-  def simpleCallback: PartialFunction[Try[RecordMetadata], Unit] = {
-    case Success(_) =>
-    case Failure(e) =>
-      logger.error("Error publishing [{}]", e.getMessage)
-  }
-
-  def run(x: ConsumerRecord[String, Array[Byte]]) = {
-    Task.defer {
-      var jValue: JValue = JNull
-      try {
-
-        val bytes = new ByteArrayInputStream(x.value())
-        jValue = parse(bytes)
-        val ldp = EncoderPipeData(Vector(x), Vector(jValue))
-        val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
-          EncoderJsonSupport.ToJson[EventLog](el)
-          ProducerRecordHelper.toRecord(topic, el.id, el.toJson, Map.empty)
-        }
-
-        val pr = maybePR.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
-        Task.fromFuture(stringProducer.send(pr))
-
-      } catch {
-        case e: Exception =>
-          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
-      }
-
-    }
-
-  }
-  val scheduler = monix.execution.Scheduler(ec)
-
-  override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
-    Task(v1.foreach(x => run(x).runAsync(scheduler))).runAsync(scheduler)
-    EncoderPipeData(v1, Vector.empty)
-  }
-
 }
-
-trait ExecutorFamily {
-  val encoderExecutor: EncoderExecutor
-}
-
-@Singleton
-class DefaultExecutorFamily @Inject() (val encoderExecutor: EncoderExecutor) extends ExecutorFamily
