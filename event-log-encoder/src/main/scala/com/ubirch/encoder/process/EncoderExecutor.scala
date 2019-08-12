@@ -14,7 +14,7 @@ import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{EventLog, LookupKey, Values}
+import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.process.Executor
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
@@ -29,15 +29,15 @@ import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class EncoderExecutor @Inject() (
     @Named(DefaultEncodingsCounter.name) counter: Counter,
     config: Config,
     stringProducer: StringProducer
-)(@Named("encoding") implicit val executionContext: ExecutionContext)
+)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -222,7 +222,7 @@ class EncoderExecutor @Inject() (
     }
 
   }
-  val scheduler = monix.execution.Scheduler(executionContext)
+  val scheduler = monix.execution.Scheduler(ec)
 
   override def apply(v1: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
     Task(v1.foreach(x => run(x).runAsync(scheduler))).runAsync(scheduler)

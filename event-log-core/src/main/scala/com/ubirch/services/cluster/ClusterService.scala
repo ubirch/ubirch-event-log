@@ -75,7 +75,7 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
     queryOptions.setSerialConsistencyLevel(cl)
   }
 
-  override val cluster: Cluster =  {
+  override val cluster: Cluster = {
     val builder = Cluster.builder
       .addContactPointsWithPorts(contactPoints: _*)
       .withPoolingOptions(poolingOptions)
