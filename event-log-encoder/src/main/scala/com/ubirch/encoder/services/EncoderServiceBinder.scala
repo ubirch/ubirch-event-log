@@ -34,7 +34,7 @@ class EncoderServiceBinder
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
   def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
   def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[EncoderConsumerRecordsManager]).to(classOf[DefaultEncoderManager])
-  def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[EncodingExecutionProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultEncoderConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
   def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
@@ -46,9 +46,6 @@ class EncoderServiceBinder
   def encodingsCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultEncodingsCounter.name))
     .to(classOf[DefaultEncodingsCounter])
-  def encodingExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
-    .annotatedWith(Names.named("encoding"))
-    .toProvider(classOf[EncodingExecutionProvider])
 
   override def configure(): Unit = {
     lifecycle
@@ -62,7 +59,6 @@ class EncoderServiceBinder
     consumer
     consumerRecordsManager
     producer
-    encodingExecutionContext
   }
 
 }

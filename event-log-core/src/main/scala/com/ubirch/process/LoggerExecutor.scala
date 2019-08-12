@@ -1,18 +1,18 @@
 package com.ubirch.process
 
-import com.datastax.driver.core.exceptions.{InvalidQueryException, NoHostAvailableException}
+import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{EventLog, EventsDAO, Values}
+import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.{ParsingIntoEventLogException, StoringIntoEventLogException}
+import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import javax.inject._
 import monix.eval.TaskCircuitBreaker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Failure, Success }
 
 @Singleton
 class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val ec: ExecutionContext)
@@ -34,31 +34,30 @@ class LoggerExecutor @Inject() (events: EventsDAO)(@Named("logger") implicit val
           case e: Exception =>
             throw ParsingIntoEventLogException("Error Parsing Into Event Log", PipeData(consumerRecord, None))
         }.flatMap { el =>
-        val insertedRes = events.insertFromEventLog(el).recover {
-          case e: NoHostAvailableException =>
-            logger.error("Error connecting to host: " + e)
-            throw e
-          case e: InvalidQueryException =>
-            logger.error("Error storing data (invalid query): " + e)
-            throw e
-          case e: Exception =>
-            logger.error("Error storing data (other): " + e)
-            throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
-        }
+          val insertedRes = events.insertFromEventLog(el).recover {
+            case e: NoHostAvailableException =>
+              logger.error("Error connecting to host: " + e)
+              throw e
+            case e: InvalidQueryException =>
+              logger.error("Error storing data (invalid query): " + e)
+              throw e
+            case e: Exception =>
+              logger.error("Error storing data (other): " + e)
+              throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
+          }
 
-        insertedRes
-      }
+          insertedRes
+        }
 
       Task.fromFuture(future)
     }
-
 
   }
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
     import monix.execution.Scheduler.{ global => scheduler }
     val promise = Promise[PipeData]()
-    Task.sequence(v1.map(x => circuitBreaker.protect(run(x)))).map(_ => PipeData(v1, None)).runOnComplete{
+    Task.sequence(v1.map(x => circuitBreaker.protect(run(x)))).map(_ => PipeData(v1, None)).runOnComplete {
       case Success(v) => promise.success(v)
       case Failure(exception) => promise.failure(exception)
     }(scheduler)

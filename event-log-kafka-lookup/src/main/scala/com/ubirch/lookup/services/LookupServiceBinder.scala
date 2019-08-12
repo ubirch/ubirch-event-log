@@ -2,19 +2,19 @@ package com.ubirch.lookup.services
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
-import com.google.inject.{AbstractModule, Module}
+import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.process.{DefaultExecutorFamily, ExecutorFamily}
+import com.ubirch.lookup.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.lookup.services.kafka.consumer.DefaultRecordsManager
 import com.ubirch.services._
-import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService}
+import com.ubirch.services.cluster.{ ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService }
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.{ExecutionProvider, LoggerExecutionProvider}
-import com.ubirch.services.kafka.consumer.{DefaultStringConsumer, StringConsumerRecordsManager}
+import com.ubirch.services.execution.{ ExecutionProvider, LoggerExecutionProvider }
+import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
-import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle}
+import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 
 import scala.concurrent.ExecutionContext
 
