@@ -35,12 +35,12 @@ trait CounterServices {
 }
 
 trait ExecutionServices {
-  def executorFamily: ScopedBindingBuilder
+  //def executorFamily: ScopedBindingBuilder
 }
 
 trait Consumer {
   def consumer: ScopedBindingBuilder
-  def consumerRecordsManager: ScopedBindingBuilder
+  //def consumerRecordsManager: ScopedBindingBuilder
 }
 
 trait Producer {

@@ -4,15 +4,10 @@ import java.util.UUID
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.encoder.process.ExecutorFamily
-import com.ubirch.encoder.util.Exceptions._
+import com.ubirch.encoder.process.EncoderExecutor
 import com.ubirch.kafka.consumer._
-import com.ubirch.models.Error
-import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ ConsumerCreator, ConsumerRecordsManager }
-import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -26,48 +21,6 @@ case class EncoderPipeData(consumerRecords: Vector[ConsumerRecord[String, Array[
 }
 
 /**
-  * Represents the Message Envelope Manager Description
-  */
-trait EncoderConsumerRecordsManager extends ConsumerRecordsManager[String, Array[Byte]] {
-  val executorFamily: ExecutorFamily
-}
-
-/***
-  * Represents an Concrete Message Envelope Manager
-  * @param reporter Represents a reporter to send  errors to.
-  * @param executorFamily Represents a group of executors that accomplish the global task
-  * @param ec Represents an execution context
-  */
-@Singleton
-class DefaultEncoderManager @Inject() (
-    val reporter: Reporter,
-    val executorFamily: ExecutorFamily,
-    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter
-)(implicit ec: ExecutionContext)
-  extends EncoderConsumerRecordsManager
-  with LazyLogging {
-
-  import org.json4s.jackson.JsonMethods._
-  import reporter.Types._
-
-  type A = EncoderPipeData
-
-  val executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]] = {
-    executorFamily.encoderExecutor
-  }
-
-  val executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
-    case e @ EncodingException(_, pipeData) =>
-      logger.error("EncodingException: " + e.getMessage)
-      counter.counter.labels("EncodingException").inc()
-      val value = pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = value))
-      Future.successful(pipeData)
-  }
-
-}
-
-/**
   * Represents a Message Envelope Consumer Configurator
   * @param config Represents a config object to read config values from
   * @param lifecycle Represents a lifecycle object to plug in shutdown routines
@@ -77,7 +30,7 @@ class DefaultEncoderManager @Inject() (
 class DefaultEncoderConsumer @Inject() (
     val config: Config,
     lifecycle: Lifecycle,
-    controller: EncoderConsumerRecordsManager
+    controller: EncoderExecutor
 )(implicit val ec: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerCreator
