@@ -43,9 +43,6 @@ class DispatcherServiceBinder
   def dispatchCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultDispatchingCounter.name))
     .to(classOf[DefaultDispatchingCounter])
-  def dispatchingExecutionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext])
-    .annotatedWith(Names.named("dispatcher"))
-    .toProvider(classOf[DispatcherExecutionProvider])
 
   override def configure(): Unit = {
     lifecycle
@@ -59,7 +56,6 @@ class DispatcherServiceBinder
     consumerRecordsManagerCounter
     metricsLoggerCounter
     dispatchCounter
-    dispatchingExecutionContext
   }
 
 }
