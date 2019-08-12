@@ -8,10 +8,10 @@ import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import javax.inject._
-import monix.eval.TaskCircuitBreaker
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 @Singleton
@@ -19,12 +19,21 @@ class LoggerExecutor @Inject() (events: EventsDAO)(implicit val ec: ExecutionCon
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] with LazyLogging {
 
   import monix.eval._
-  import scala.concurrent.duration._
 
   val circuitBreaker = TaskCircuitBreaker(
     maxFailures = 5,
     resetTimeout = 10.seconds
   )
+  val scheduler = monix.execution.Scheduler(ec)
+
+  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
+    val promise = Promise[PipeData]()
+    Task.sequence(v1.map(x => circuitBreaker.protect(run(x)))).map(_ => PipeData(v1, None)).runOnComplete {
+      case Success(v) => promise.success(v)
+      case Failure(exception) => promise.failure(exception)
+    }(scheduler)
+    promise.future
+  }
 
   def run(consumerRecord: ConsumerRecord[String, String]) = {
 
@@ -52,16 +61,6 @@ class LoggerExecutor @Inject() (events: EventsDAO)(implicit val ec: ExecutionCon
       Task.fromFuture(future)
     }
 
-  }
-
-  override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
-    import monix.execution.Scheduler.{ global => scheduler }
-    val promise = Promise[PipeData]()
-    Task.sequence(v1.map(x => circuitBreaker.protect(run(x)))).map(_ => PipeData(v1, None)).runOnComplete {
-      case Success(v) => promise.success(v)
-      case Failure(exception) => promise.failure(exception)
-    }(scheduler)
-    promise.future
   }
 
 }

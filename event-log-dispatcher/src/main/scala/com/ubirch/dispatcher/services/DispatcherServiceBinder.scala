@@ -5,7 +5,6 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.dispatcher.process.{ DefaultExecutorFamily, ExecutorFamily }
-import com.ubirch.dispatcher.services.execution.DispatcherExecutionProvider
 import com.ubirch.dispatcher.services.kafka.consumer.DefaultRecordsManager
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.kafka.consumer.StringConsumer
