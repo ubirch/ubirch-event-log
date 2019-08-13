@@ -6,7 +6,7 @@ import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.chainer.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.chainer.services.kafka.consumer.DefaultChainerManager
-import com.ubirch.chainer.services.metrics.DefaultTreeCounter
+import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services.config.ConfigProvider
@@ -47,6 +47,10 @@ class ChainerServiceBinder extends AbstractModule
     .annotatedWith(Names.named(DefaultTreeCounter.name))
     .to(classOf[DefaultTreeCounter])
 
+  def leavesCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultLeavesCounter.name))
+    .to(classOf[DefaultLeavesCounter])
+
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -60,6 +64,7 @@ class ChainerServiceBinder extends AbstractModule
     consumerRecordsManagerCounter
     metricsLoggerCounter
     treesCounter
+    leavesCounter
   }
 
 }

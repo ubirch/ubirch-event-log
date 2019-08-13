@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
+import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
 import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
@@ -315,7 +316,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config)
+      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -369,7 +370,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config) {
+      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config)) {
         override def modeFromConfig: String = Master.value
       }
 
