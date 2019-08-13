@@ -33,28 +33,35 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
 
   val minTreeRecords: Int = config.getInt("eventLog.minTreeRecords")
   val every: Int = config.getInt("eventLog.treeEvery")
+  val pause: Int = config.getInt("eventLog.pause")
 
-  logger.info("Min Tree Records [{}]  every [{}] seconds ", minTreeRecords, every)
+  logger.info("Min Tree Records [{}]  every [{}] seconds with [{}] pause millis", minTreeRecords, every, pause)
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[ChainerPipeData] = Future {
     val records = v1.filter(_.value().nonEmpty)
     lazy val pd = ChainerPipeData(records, Vector.empty, None, None, Vector.empty, Vector.empty)
-    if (records.nonEmpty) {
 
-      val currentRecordsSize = records.size
-      val currentElapsedSeconds = instantMonitor.elapsedSeconds
-      if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
-        logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
-        instantMonitor.registerNewInstant
-        pd
+    if (pause > 0) {
+      if (records.nonEmpty) {
+
+        val currentRecordsSize = records.size
+        val currentElapsedSeconds = instantMonitor.elapsedSeconds
+        if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
+          logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+          instantMonitor.registerNewInstant
+          pd
+        } else {
+          //logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+          throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(pause millis))
+        }
+
       } else {
-        //logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
-        throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(5 millis))
+        logger.error("No Records Found")
+        throw EmptyValueException("No Records Found", pd)
       }
-
     } else {
-      logger.error("No Records Found")
-      throw EmptyValueException("No Records Found", pd)
+      logger.error("Wrong params")
+      throw WrongParamsException("Wrong params", pd)
     }
   }
 
@@ -182,7 +189,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 
           Try(EventLogJsonSupport.ToJson(node).get).map {
 
-            logger.debug(s"New [${mode.value}] tree(${els.size}) created, root hash is: $rootHash")
+            logger.info(s"New [${mode.value}] tree(${els.size}) created, root hash is: $rootHash")
 
             val category = mode.category
             val serviceClass = mode.serviceClass
