@@ -3,6 +3,8 @@ package com.ubirch.chainer.util
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.util.Exceptions.ExecutionException
 
+case class WrongParamsException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
+
 /**
   * Represents an exception thrown when the value of the consumer record is empty.
   *
