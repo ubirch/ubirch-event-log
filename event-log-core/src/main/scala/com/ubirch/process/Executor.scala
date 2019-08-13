@@ -222,55 +222,9 @@ class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: Executio
 }
 
 @Singleton
-class BasicCommitUnit @Inject() (
-    config: Config,
-    lifecycle: Lifecycle
-)(implicit ec: ExecutionContext)
-  extends Executor[Decision[ProducerRecord[String, String]], Option[RecordMetadata]]
-  with LazyLogging {
-
-  import com.ubirch.kafka.producer.Configs
-
-  val stringProducer = new DefaultStringProducer(config, lifecycle) {
-    override def configs: ConfigProperties = Configs(
-      bootstrapServers = bootstrapServers,
-      enableIdempotence = true,
-      transactionalIdConfig = Some("event-log-dispatcher-basic-publish")
-    )
-  }
-
-  def producer = stringProducer.get().getProducerOrCreate
-
-  def send(pr: ProducerRecord[String, String]) = {
-    producer.send(pr).get()
-  }
-
-  def commit(value: Decision[ProducerRecord[String, String]]) = {
-    value match {
-      case Go(record) => Option(send(record))
-      case Ignore() => None
-    }
-  }
-
-  override def apply(v1: Decision[ProducerRecord[String, String]]): Option[RecordMetadata] = {
-
-    try {
-      commit(v1)
-    } catch {
-      case e: Exception =>
-        logger.error("Error Publishing: ", e)
-        throw BasicCommitException(e.getMessage)
-    }
-
-  }
-}
-
-@Singleton
 class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
   extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]]
   with LazyLogging {
-
-  val futureHelper = new FutureHelper()
 
   def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
     //logger.debug("BasicPublish:" + pr.value())

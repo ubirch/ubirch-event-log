@@ -8,7 +8,7 @@ import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Mode }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.metrics.DefaultTreeCounter
+import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -167,7 +167,11 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
 }
 
 @Singleton
-class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionContext)
+class TreeEventLogCreation @Inject() (
+    config: Config,
+    @Named(DefaultTreeCounter.name) treeCounter: Counter,
+    @Named(DefaultLeavesCounter.name) leavesCounter: Counter
+)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -186,17 +190,18 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
         .map { case (node, els) =>
 
           val rootHash = node.value
+          val leavesSize = els.size
 
-          Try(EventLogJsonSupport.ToJson(node).get).map {
+          Try(EventLogJsonSupport.ToJson(node).get).map { data =>
 
-            logger.info(s"New [${mode.value}] tree(${els.size}) created, root hash is: $rootHash")
+            logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: $rootHash")
 
             val category = mode.category
             val serviceClass = mode.serviceClass
             val lookupName = mode.lookupName
             val customerId = mode.customerId
 
-            EventLog(_)
+            val treeEl = EventLog(data)
               .withNewId(rootHash)
               .withCategory(category)
               .withCustomerId(customerId)
@@ -214,6 +219,8 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
               .addTraceHeader(mode.value)
               .sign(config)
 
+            (treeEl, leavesSize)
+
           }
         }
         .getOrElse {
@@ -221,8 +228,10 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
         }
 
       chainerEventLog match {
-        case Success(value) =>
-          v1.copy(treeEventLog = Some(value))
+        case Success((tree, size)) =>
+          treeCounter.counter.labels(tree.category).inc()
+          leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
+          v1.copy(treeEventLog = Some(tree))
         case Failure(e) =>
           logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
           throw TreeEventLogCreationException(e.getMessage, v1)
@@ -235,10 +244,7 @@ class TreeEventLogCreation @Inject() (config: Config)(implicit ec: ExecutionCont
 }
 
 @Singleton
-class CreateProducerRecords @Inject() (
-    config: Config,
-    @Named(DefaultTreeCounter.name) counter: Counter
-)(implicit ec: ExecutionContext)
+class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -252,7 +258,6 @@ class CreateProducerRecords @Inject() (
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
         lazy val treeEventLogProducerRecord = v1.treeEventLog.map { treeEl =>
-          counter.counter.labels(treeEl.category).inc()
           Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl))
         }.toVector
 
