@@ -65,6 +65,8 @@ spec:
               value: "{{ .Values.eventLogChainer.kafka.producer.linger }}"
             - name: CHAINER_EXEC_THREAD_POOL_SIZE
               value: "{{ .Values.eventLogChainer.exec.threadpoolsize }}"
+            - name: CHAINER_PAUSE
+              value: "{{ .Values.eventLogChainer.chainerpause }}"
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
