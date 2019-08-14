@@ -343,10 +343,6 @@ abstract class ConsumerRunner[K, V](name: String)
             import monix.execution.Scheduler.{ global => scheduler }
             val partitions = consumer.assignment()
             consumer.pause(partitions)
-            partitions.asScala.foreach { p =>
-              val offset = Option(consumer.committed(p)).map(_.offset()).getOrElse(0L)
-              consumer.seek(p, offset)
-            }
             getIsPaused.set(true)
             getPausedHistory.set(getPausedHistory.get() + 1)
             val currentPauses = pauses.get()
