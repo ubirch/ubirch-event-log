@@ -27,6 +27,8 @@ object ConfPaths {
     val GROUP_ID_PATH = "eventLog.kafkaConsumer.groupId"
     val GRACEFUL_TIMEOUT_PATH = "eventLog.kafkaConsumer.gracefulTimeout"
     val METRICS_SUB_NAMESPACE = "eventLog.kafkaConsumer.metricsSubNamespace"
+    val FETCH_MAX_BYTES_CONFIG = "eventLog.kafkaConsumer.fetchMaxBytesConfig"
+    val MAX_PARTITION_FETCH_BYTES_CONFIG = "eventLog.kafkaConsumer.maxPartitionFetchBytesConfig"
   }
 
   trait ProducerConfPaths {

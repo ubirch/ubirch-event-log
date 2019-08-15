@@ -167,6 +167,7 @@ class DefaultStringConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
+    logger.info(configs.props.toString)
     val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(topics)
