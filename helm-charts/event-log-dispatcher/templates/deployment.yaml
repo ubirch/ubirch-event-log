@@ -9,6 +9,12 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.eventLogDispatcher.replicaCount }}
+{{- if .Values.eventLogDispatcher.strategy }}
+  strategy:
+{{ with .Values.eventLogDispatcher.strategy }}
+{{ toYaml . | indent 4 }}
+{{ end }}
+{{ end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "event-log-dispatcher.name" . }}

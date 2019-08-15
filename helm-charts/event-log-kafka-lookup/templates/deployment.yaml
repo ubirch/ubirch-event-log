@@ -9,6 +9,12 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.eventLogLookup.replicaCount }}
+{{- if .Values.eventLogLookup.strategy }}
+  strategy:
+{{ with .Values.eventLogLookup.strategy }}
+{{ toYaml . | indent 4 }}
+{{ end }}
+{{ end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "event-log-kafka-lookup.name" . }}
