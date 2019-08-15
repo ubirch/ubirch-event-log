@@ -9,6 +9,12 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   replicas: {{ .Values.eventLogChainer.replicaCount }}
+{{- if .Values.eventLogChainer.strategy }}
+  strategy:
+{{ with .Values.eventLogChainer.strategy }}
+{{ toYaml . | indent 4 }}
+{{ end }}
+{{ end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "event-log-chainer.name" . }}
