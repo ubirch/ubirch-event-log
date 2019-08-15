@@ -73,6 +73,10 @@ spec:
               value: "{{ .Values.eventLogChainer.exec.threadpoolsize }}"
             - name: CHAINER_PAUSE
               value: "{{ .Values.eventLogChainer.chainerpause }}"
+            - name: CHAINER_KFC_FETCH_MAX_BYTES_CONFIG
+              value: "{{ .Values.eventLogChainer.kafka.consumer.fetchMaxBytes }}"
+            - name: CHAINER_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
+              value: "{{ .Values.eventLogChainer.kafka.consumer.partitionFetchMaxBytes }}"
 
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
