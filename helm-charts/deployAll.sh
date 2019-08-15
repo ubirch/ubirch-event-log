@@ -30,8 +30,10 @@ CUR_EVENT_ENCODER_TAG=${CUR_TAG}
 
 #if [[ "dev" == "$ENV" ]]; then
 #     Insta
+
 ./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-service-$ENV-insta.yaml"
 ./deployK8SService.sh $ENV event-log-kafka-lookup $CUR_EVENT_LOOKUP_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-kafka-lookup-$ENV-insta.yaml"
+
 #else
 #     CosmoDB
 #    ./deployK8SService.sh $ENV event-log-service $CUR_EVENT_LOG_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-service-log-$ENV.yaml"
