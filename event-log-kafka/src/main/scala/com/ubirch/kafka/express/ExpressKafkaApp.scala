@@ -66,9 +66,9 @@ trait Controller[K, V] {
 
     override type A = ProcessResult[K, V]
 
-    override def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
-      thiz.process(consumerRecord)
-      Future.successful(simpleProcessResult(consumerRecord))
+    override def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
+      thiz.process(consumerRecords)
+      Future.successful(simpleProcessResult(consumerRecords))
     }
   }
 

@@ -16,7 +16,7 @@ trait ConsumerRecordsController[K, V] {
 
   type A <: ProcessResult[K, V]
 
-  def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[A]
+  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[A]
 
 }
 
