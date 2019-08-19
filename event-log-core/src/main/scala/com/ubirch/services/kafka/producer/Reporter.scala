@@ -62,8 +62,8 @@ class Reporter @Inject() (basicCommit: BasicCommit, config: Config)(implicit ec:
 
         futureResp.recover {
           case e: Exception =>
-            logger.error("Error Reporting Error 0: ", topic)
-            logger.error("Error Reporting Error 1: ", error)
+            logger.error("Error Reporting Error 0: {}", topic)
+            logger.error("Error Reporting Error 1: {}", error)
             logger.error("Error Reporting Error 2: ", e)
             throw e
         }
