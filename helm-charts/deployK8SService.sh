@@ -33,8 +33,15 @@ SERVICENAME=$2
 IMAGETAG=$3
 VALUES=$4
 
-/keybase/team/ubirchdevops/bin/helm.sh $ENV delete $SERVICENAME --purge
-/keybase/team/ubirchdevops/bin/helm.sh $ENV install \
+if [[ -f /keybase/team/ubirchdevops/bin/helm.sh ]];
+then
+    HELM=/keybase/team/ubirchdevops/bin/helm.sh
+else
+    HELM=/keybase/team/ubirch_developer/devkube/bin/helm.sh
+fi
+
+$HELM $ENV delete $SERVICENAME --purge
+$HELM $ENV install \
     $SERVICENAME --namespace core-$ENV \
     --name $SERVICENAME --debug \
     --set image.tag=$IMAGETAG \
