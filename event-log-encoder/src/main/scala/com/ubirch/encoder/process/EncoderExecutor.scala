@@ -49,8 +49,8 @@ class EncoderExecutor @Inject() (
   val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
   val scheduler = monix.execution.Scheduler(ec)
 
-  override def process(consumerRecord: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = Future {
-    Task(consumerRecord.foreach { x =>
+  override def process(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = {
+    consumerRecords.map { x =>
       run(x).runOnComplete {
         case Success(_) =>
           results.counter.labels("success").inc()
@@ -67,9 +67,9 @@ class EncoderExecutor @Inject() (
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
 
       }(scheduler)
-    }).runAsync(scheduler)
+    }
 
-    EncoderPipeData(consumerRecord, Vector.empty)
+    Future.successful(EncoderPipeData(consumerRecords, Vector.empty))
   }
 
   def run(x: ConsumerRecord[String, Array[Byte]]) = {
