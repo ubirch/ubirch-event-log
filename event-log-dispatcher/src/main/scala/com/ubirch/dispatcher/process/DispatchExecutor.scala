@@ -34,6 +34,8 @@ class DispatchExecutor @Inject() (
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
 
+  val scheduler = monix.execution.Scheduler(ec)
+
   def createProducerRecords(eventLog: EventLog, eventLogJson: JValue): Vector[ProducerRecord[String, String]] = {
 
     import EventLogJsonSupport._
@@ -92,7 +94,7 @@ class DispatchExecutor @Inject() (
         throw EmptyValueException("No Records Found to be processed", pipeData)
       }
 
-      v1.foreach(run)
+      v1.foreach(x => run(x).runAsync(scheduler))
 
       DispatcherPipeData.empty.withConsumerRecords(v1)
 
