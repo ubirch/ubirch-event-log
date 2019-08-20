@@ -10,6 +10,7 @@ import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.util._
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey }
@@ -153,7 +154,7 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
 
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
+  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
 
     import com.ubirch.chainer.models.Chainables.eventLogChainable
 
@@ -166,16 +167,18 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
       }
     }
 
-    val chainers = subEventLogs.toVector.map { eventLogs =>
-      new Chainer(eventLogs.toList) {
-        override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
-      }.createGroups
-        .createSeedHashes
-        .createSeedNodes(keepOrder = true)
-        .createNode
+    val futureChainers = subEventLogs.toVector.map { eventLogs =>
+      Future {
+        new Chainer(eventLogs.toList) {
+          override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
+        }.createGroups
+          .createSeedHashes
+          .createSeedNodes(keepOrder = true)
+          .createNode
+      }
     }
 
-    v1.copy(chainers = chainers)
+    Future.sequence(futureChainers).map(chainers => v1.copy(chainers = chainers))
 
   }
 }
@@ -197,59 +200,66 @@ class TreeEventLogCreation @Inject() (
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
-    v1.map { v1 =>
+    v1.flatMap { v1 =>
 
-      val chainerEventLogs = v1.chainers
+      val futureChainerEventLogs = v1.chainers
         .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
         .map { case (node, els) =>
 
-          val rootHash = node.value
-          val leavesSize = els.size
+          Future {
 
-          Try(EventLogJsonSupport.ToJson(node).get).map { data =>
+            val rootHash = node.value
+            val leavesSize = els.size
 
-            logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: $rootHash")
+            Try(EventLogJsonSupport.ToJson(node).get).map { data =>
 
-            val category = mode.category
-            val serviceClass = mode.serviceClass
-            val lookupName = mode.lookupName
-            val customerId = mode.customerId
+              logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: $rootHash")
 
-            val treeEl = EventLog(data)
-              .withNewId(rootHash)
-              .withCategory(category)
-              .withCustomerId(customerId)
-              .withServiceClass(serviceClass)
-              .withRandomNonce
-              .addLookupKeys(
-                LookupKey(
-                  lookupName,
-                  category,
-                  (rootHash, category),
-                  els.map(x => (x.id, x.category))
+              val category = mode.category
+              val serviceClass = mode.serviceClass
+              val lookupName = mode.lookupName
+              val customerId = mode.customerId
+
+              val treeEl = EventLog(data)
+                .withNewId(rootHash)
+                .withCategory(category)
+                .withCustomerId(customerId)
+                .withServiceClass(serviceClass)
+                .withRandomNonce
+                .addLookupKeys(
+                  LookupKey(
+                    lookupName,
+                    category,
+                    (rootHash, category),
+                    els.map(x => (x.id, x.category))
+                  )
                 )
-              )
-              .addOriginHeader(category)
-              .addTraceHeader(mode.value)
-              .sign(config)
+                .addOriginHeader(category)
+                .addTraceHeader(mode.value)
+                .sign(config)
 
-            (treeEl, leavesSize)
+              (treeEl, leavesSize)
 
-          } match {
-            case Success((tree, size)) =>
-              treeCounter.counter.labels(tree.category).inc()
-              leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
-              tree
-            case Failure(e) =>
-              logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
-              throw TreeEventLogCreationException(e.getMessage, v1)
+            } match {
+              case Success((tree, size)) =>
+                treeCounter.counter.labels(tree.category).inc()
+                leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
+                tree
+              case Failure(e) =>
+                logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
+                throw TreeEventLogCreationException(e.getMessage, v1)
+            }
+
           }
+
         }
 
-      if (chainerEventLogs.nonEmpty) {
-        v1.copy(treeEventLogs = chainerEventLogs)
-      } else {
-        throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
+      Future.sequence(futureChainerEventLogs).map { trees =>
+        if (trees.nonEmpty) {
+          v1.copy(treeEventLogs = trees)
+        } else {
+          throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
+        }
       }
 
     }
@@ -263,17 +273,17 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
   with ProducerConfPaths
   with LazyLogging {
 
+  val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
+
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
     v1.map { v1 =>
 
       try {
 
-        val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
-
         lazy val treeEventLogProducerRecord = v1.treeEventLogs.map { treeEl =>
-          Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl))
-        }.toVector
+          ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl)
+        }
 
         if (treeEventLogProducerRecord.nonEmpty) {
           v1.copy(producerRecords = treeEventLogProducerRecord)
@@ -293,8 +303,8 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 }
 
 @Singleton
-class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
-  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] {
+class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with LazyLogging {
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
@@ -302,16 +312,16 @@ class Commit @Inject() (basicCommitter: BasicCommit, metricsLoggerBasic: Metrics
       .flatMap { prs =>
         Future.sequence {
           prs.map { x =>
-            val futureResp = basicCommitter(x)
-            futureResp.map {
-              case Some(_) => metricsLoggerBasic.incSuccess
-              case None => metricsLoggerBasic.incFailure
+            val futureResp = stringProducer.send(x)
+            futureResp.onComplete {
+              case Success(_) => metricsLoggerBasic.incSuccess
+              case Failure(exception) =>
+                logger.error("Error publishing ", exception)
+                metricsLoggerBasic.incFailure
             }
             futureResp
           }
         }
-      }.map { x =>
-        x.flatMap(_.toVector)
       }
 
     val futureResp = for {

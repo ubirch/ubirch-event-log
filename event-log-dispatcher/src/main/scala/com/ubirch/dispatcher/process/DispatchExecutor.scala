@@ -14,6 +14,7 @@ import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
+import monix.eval.Task
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.KafkaException
@@ -66,7 +67,7 @@ class DispatchExecutor @Inject() (
 
   }
 
-  def run(consumerRecord: ConsumerRecord[String, String]) = Future {
+  def run(consumerRecord: ConsumerRecord[String, String]) = Task.defer {
     val pipeData = DispatcherPipeData.empty.withConsumerRecords(Vector(consumerRecord))
     val (eventLog, eventLogJson) = Try {
       val fsEventLog = EventLogJsonSupport.FromString[EventLog](consumerRecord.value())
@@ -78,7 +79,7 @@ class DispatchExecutor @Inject() (
     val prs = Try(createProducerRecords(eventLog, eventLogJson))
       .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
 
-    prs.map(stringProducer.send)
+    Task.gather(prs.map(x => Task.fromFuture(stringProducer.send(x))))
   }
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[DispatcherPipeData] = Future {
