@@ -5,7 +5,7 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{ Chainer, Mode }
+import com.ubirch.chainer.models.{ Chainer, Mode, Slave }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
@@ -39,7 +39,7 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[ChainerPipeData] = Future {
     val records = v1.filter(_.value().nonEmpty)
-    lazy val pd = ChainerPipeData(records, Vector.empty, None, None, Vector.empty, Vector.empty)
+    lazy val pd = ChainerPipeData(records, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
     if (pause > 0) {
       if (records.nonEmpty) {
@@ -150,18 +150,32 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
 
   def outerBalancingHash: Option[String] = None
 
+  def modeFromConfig: String = config.getString("eventLog.mode")
+  def mode: Mode = Mode.getMode(modeFromConfig)
+
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
 
     import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-    val eventLogChainer = new Chainer(v1.eventLogs.toList) {
-      override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
-    }.createGroups
-      .createSeedHashes
-      .createSeedNodes(keepOrder = true)
-      .createNode
+    val subEventLogs: Iterator[Vector[EventLog]] = {
+      if (mode.value == Slave.value && v1.eventLogs.size >= 100) {
+        logger.info("Splitting Slaves")
+        v1.eventLogs.sliding(50, 50)
+      } else {
+        Iterator(v1.eventLogs)
+      }
+    }
 
-    v1.copy(chainer = Some(eventLogChainer))
+    val chainers = subEventLogs.toVector.map { eventLogs =>
+      new Chainer(eventLogs.toList) {
+        override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
+      }.createGroups
+        .createSeedHashes
+        .createSeedNodes(keepOrder = true)
+        .createNode
+    }
+
+    v1.copy(chainers = chainers)
 
   }
 }
@@ -185,7 +199,7 @@ class TreeEventLogCreation @Inject() (
 
     v1.map { v1 =>
 
-      val chainerEventLog = v1.chainer
+      val chainerEventLogs = v1.chainers
         .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
         .map { case (node, els) =>
 
@@ -221,21 +235,21 @@ class TreeEventLogCreation @Inject() (
 
             (treeEl, leavesSize)
 
+          } match {
+            case Success((tree, size)) =>
+              treeCounter.counter.labels(tree.category).inc()
+              leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
+              tree
+            case Failure(e) =>
+              logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
+              throw TreeEventLogCreationException(e.getMessage, v1)
           }
         }
-        .getOrElse {
-          Failure(TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1))
-        }
 
-      chainerEventLog match {
-        case Success((tree, size)) =>
-          treeCounter.counter.labels(tree.category).inc()
-          leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
-          v1.copy(treeEventLog = Some(tree))
-        case Failure(e) =>
-          logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
-          throw TreeEventLogCreationException(e.getMessage, v1)
-
+      if (chainerEventLogs.nonEmpty) {
+        v1.copy(treeEventLogs = chainerEventLogs)
+      } else {
+        throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
       }
 
     }
@@ -257,7 +271,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 
         val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
-        lazy val treeEventLogProducerRecord = v1.treeEventLog.map { treeEl =>
+        lazy val treeEventLogProducerRecord = v1.treeEventLogs.map { treeEl =>
           Go(ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl))
         }.toVector
 
