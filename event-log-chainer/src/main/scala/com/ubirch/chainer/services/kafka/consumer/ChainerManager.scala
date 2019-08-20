@@ -16,7 +16,7 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainer: Option[Chainer[EventLog]], treeEventLog: Option[EventLog], producerRecords: Vector[Decision[ProducerRecord[String, String]]], recordsMetadata: Vector[RecordMetadata])
+case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainers: Vector[Chainer[EventLog]], treeEventLogs: Vector[EventLog], producerRecords: Vector[Decision[ProducerRecord[String, String]]], recordsMetadata: Vector[RecordMetadata])
   extends EventLogsPipeData[String]
 
 @Singleton
