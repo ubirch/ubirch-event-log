@@ -36,49 +36,46 @@ class DispatchExecutor @Inject() (
 
   val scheduler = monix.execution.Scheduler(ec)
 
-  def createProducerRecords(eventLog: EventLog, eventLogJson: JValue): Vector[ProducerRecord[String, String]] = {
+  val dispatchingInfo = dispatchInfo.info
+
+  def createProducerRecords(eventLog: EventLog, eventLogJValue: JValue, eventLogAsString: String): Vector[ProducerRecord[String, String]] = {
 
     import EventLogJsonSupport._
+    import org.json4s._
 
-    dispatchInfo.info.find(_.category == eventLog.category)
-      .map { y =>
+    dispatchingInfo.find(_.category == eventLog.category)
+      .map { dispatch =>
 
-        val commitDecisions = {
+        dispatch.topics.toVector.map { topic =>
 
-          import org.json4s._
+          val dataToSend: String = topic.dataToSend.filter(_.nonEmpty).flatMap { dts =>
+            val dataFromEventLog = eventLogJValue \ dts
+            dataFromEventLog.extractOpt[String]
+          }.orElse {
+            Option(eventLogAsString)
+          }.map { x =>
+            counter.counter.labels(topic.name).inc()
+            x
+          }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
 
-          y.topics.map { t =>
-
-            val dataToSend: String = t.dataToSend.filter(_.nonEmpty).flatMap { dts =>
-              val dataFromEventLog = eventLogJson \ dts
-              dataFromEventLog.extractOpt[String]
-            }.orElse {
-              val data = Option(eventLog.toJson)
-              counter.counter.labels(t.name).inc()
-              data
-            }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
-
-            ProducerRecordHelper.toRecord(t.name, eventLog.id, dataToSend, Map.empty)
-
-          }.toVector
+          ProducerRecordHelper.toRecord(topic.name, eventLog.id, dataToSend, Map.empty)
 
         }
 
-        commitDecisions
       }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 1: No Dispatching Info", eventLog.toJson))
 
   }
 
   def run(consumerRecord: ConsumerRecord[String, String]) = Task.defer {
     val pipeData = DispatcherPipeData.empty.withConsumerRecords(Vector(consumerRecord))
-    val (eventLog, eventLogJson) = Try {
+    val (eventLog, eventLogJValue, eventLogAsString) = Try {
       val fsEventLog = EventLogJsonSupport.FromString[EventLog](consumerRecord.value())
       val el = fsEventLog.get
       val elj = fsEventLog.json
-      (el, elj)
+      (el, elj, consumerRecord.value())
     }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
 
-    val prs = Try(createProducerRecords(eventLog, eventLogJson))
+    val prs = Try(createProducerRecords(eventLog, eventLogJValue, eventLogAsString))
       .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
 
     Task.gather(prs.map(x => Task.fromFuture(stringProducer.send(x))))

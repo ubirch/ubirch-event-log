@@ -42,6 +42,8 @@ class EncoderExecutor @Inject() (
   with ProducerConfPaths
   with LazyLogging {
 
+  import reporter.Types._
+
   override type A = EncoderPipeData
 
   val CUSTOMER_ID_FIELD = "customerId"
@@ -55,13 +57,11 @@ class EncoderExecutor @Inject() (
         case Success(_) =>
           results.counter.labels("success").inc()
         case Failure(e: EncodingException) =>
-          import reporter.Types._
           logger.error("EncodingException: " + e.getMessage)
           results.counter.labels("failure").inc()
           val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
         case Failure(e) =>
-          import reporter.Types._
           logger.error("EncodingException (other): " + e.getMessage)
           results.counter.labels("failure").inc()
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
