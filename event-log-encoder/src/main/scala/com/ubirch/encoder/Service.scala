@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringS
 import org.json4s.JsonAST.{ JObject, JString }
 
 import scala.language.postfixOps
+import scala.util.Random
 
 /**
   * Represents an Encoder boot object.
@@ -48,24 +49,23 @@ object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfP
 
     val producer = ProducerRunner[String, MessageEnvelope](configs, Some(new StringSerializer()), Some(se))
 
-    val range = (0 to 100000)
+    def go = {
+      val pmId = Random.nextInt()
+      val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
+      pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+      val customerId = UUID.randomUUID().toString
+      val ctxt = JObject("customerId" -> JString(customerId))
+      val entity1 = MessageEnvelope(pm, ctxt)
+      producer.getProducerOrCreate.send(new ProducerRecord[String, MessageEnvelope]("json.to.sign", entity1))
+    }
+
+    val iterator = Iterator.continually(go)
 
     try {
-
-      range.map { x =>
-        val pmId = x
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
-        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
-        val customerId = UUID.randomUUID().toString
-        val ctxt = JObject("customerId" -> JString(customerId))
-        val entity1 = MessageEnvelope(pm, ctxt)
-        producer.getProducerOrCreate.send(new ProducerRecord[String, MessageEnvelope]("json.to.sign", entity1))
-
-      }
+      iterator.take(1000000).foreach(x => x)
     } finally {
       producer.getProducerOrCreate.close()
       System.exit(0)
-
     }
 
   }
