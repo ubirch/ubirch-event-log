@@ -151,16 +151,14 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
 
   def outerBalancingHash: Option[String] = None
 
-  def modeFromConfig: String = config.getString("eventLog.mode")
-  def mode: Mode = Mode.getMode(modeFromConfig)
+  val splitTrees: Boolean = config.getBoolean("eventLog.split")
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
 
     import com.ubirch.chainer.models.Chainables.eventLogChainable
 
     val subEventLogs: Iterator[Vector[EventLog]] = {
-      if (mode.value == Slave.value && v1.eventLogs.size >= 100) {
-        logger.info("Splitting Slaves")
+      if (splitTrees && v1.eventLogs.size >= 100) {
         v1.eventLogs.sliding(50, 50)
       } else {
         Iterator(v1.eventLogs)
