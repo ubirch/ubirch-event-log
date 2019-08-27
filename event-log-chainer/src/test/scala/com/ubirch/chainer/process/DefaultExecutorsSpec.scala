@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
+import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
 import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
@@ -13,6 +14,7 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.{ EventLogJsonSupport, SigningHelper, UUIDHelper }
+import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JValue
 import org.scalatest.mockito.MockitoSugar
@@ -23,8 +25,9 @@ import scala.language.postfixOps
 
 class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
-  implicit val ec: ExecutionContext = new ExecutionProvider {} get ()
   val config: Config = new ConfigProvider {} get ()
+
+  implicit val ec: ExecutionContext = new ExecutionProvider(config) {} get ()
 
   "FilterEmpty" must {
 
@@ -128,7 +131,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsParser(Future.successful(cp))
 
@@ -137,8 +140,8 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(res.eventLogs.nonEmpty)
       assert(consumerRecords.size == res.eventLogs.size)
       assert(consumerRecords == res.consumerRecords)
-      assert(res.treeEventLog.isEmpty)
-      assert(res.chainer.isEmpty)
+      assert(res.treeEventLogs.isEmpty)
+      assert(res.chainers.isEmpty)
       assert(res.producerRecords.isEmpty)
       assert(res.recordsMetadata.isEmpty)
 
@@ -154,7 +157,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", "")
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsParser(Future.successful(cp))
 
@@ -185,7 +188,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsSigner(eventLogsParser(Future.successful(cp)))
 
@@ -195,8 +198,8 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(res.eventLogs.exists(x => x.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(eventData.toString))))
       assert(consumerRecords.size == res.eventLogs.size)
       assert(consumerRecords == res.consumerRecords)
-      assert(res.treeEventLog.isEmpty)
-      assert(res.chainer.isEmpty)
+      assert(res.treeEventLogs.isEmpty)
+      assert(res.chainers.isEmpty)
       assert(res.producerRecords.isEmpty)
       assert(res.recordsMetadata.isEmpty)
 
@@ -217,7 +220,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsSigner(Future.successful(cp))
 
@@ -250,7 +253,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 
@@ -268,9 +271,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      assert(res.chainer.isDefined)
-      assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
-      assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
+      assert(res.chainers.nonEmpty)
+      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
 
     }
   }
@@ -296,7 +299,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 
@@ -314,18 +317,18 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config)
+      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
-      assert(res.chainer.isDefined)
-      assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
-      assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
-      assert(treeEventLogRes.treeEventLog.isDefined)
-      assert(treeEventLogRes.treeEventLog.map(_.category).forall(x => x == Slave.category))
-      assert(treeEventLogRes.treeEventLog.map(_.serviceClass).forall(x => x == Slave.serviceClass))
-      assert(treeEventLogRes.treeEventLog.map(_.customerId).forall(x => x == Slave.customerId))
-      assert(treeEventLogRes.treeEventLog.map(_.lookupKeys).getOrElse(Nil).forall(_.name == Slave.lookupName))
+      assert(res.chainers.nonEmpty)
+      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
+      assert(treeEventLogRes.treeEventLogs.nonEmpty)
+      assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Slave.category))
+      assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Slave.serviceClass))
+      assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Slave.customerId))
+      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Slave.lookupName))
       assert(treeEventLogCreation.mode == Slave)
 
     }
@@ -350,7 +353,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, None, None, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 
@@ -368,23 +371,27 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config) {
+      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config)) {
         override def modeFromConfig: String = Master.value
       }
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
-      assert(res.chainer.isDefined)
-      assert(res.chainer.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Option(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
-      assert(res.chainer.flatMap(_.getNode) == eventLogChainer.getNode)
-      assert(treeEventLogRes.treeEventLog.isDefined)
-      assert(treeEventLogRes.treeEventLog.map(_.category).forall(x => x == Master.category))
-      assert(treeEventLogRes.treeEventLog.map(_.serviceClass).forall(x => x == Master.serviceClass))
-      assert(treeEventLogRes.treeEventLog.map(_.customerId).forall(x => x == Master.customerId))
-      assert(treeEventLogRes.treeEventLog.map(_.lookupKeys).getOrElse(Nil).forall(_.name == Master.lookupName))
+      assert(res.chainers.nonEmpty)
+      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
+      assert(treeEventLogRes.treeEventLogs.nonEmpty)
+      assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Master.category))
+      assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Master.serviceClass))
+      assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Master.customerId))
+      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Master.lookupName))
       assert(treeEventLogCreation.mode == Master)
 
     }
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }

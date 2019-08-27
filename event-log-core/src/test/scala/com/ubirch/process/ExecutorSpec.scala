@@ -10,10 +10,10 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.Execution
+import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.consumer.{ DefaultConsumerRecordsManager, PipeData }
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
+import com.ubirch.services.metrics.{ DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions._
 import com.ubirch.{ Entities, TestBase }
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
 import scala.language.{ implicitConversions, postfixOps }
 
-class ExecutorSpec extends TestBase with MockitoSugar with Execution {
+class ExecutorSpec extends TestBase with MockitoSugar with ExecutionImpl {
 
   "Executor Function" must {
 
@@ -487,12 +487,7 @@ class ExecutorSpec extends TestBase with MockitoSugar with Execution {
       val metricsLoggerBasic = mock[MetricsLoggerBasic]
 
       val family = DefaultExecutorFamily(
-        new FilterEmpty(),
-        new EventLogParser(),
-        new EventLogSigner(config),
-        new EventsStore(events),
-        new DiscoveryExecutor(basicCommit, config),
-        new MetricsLogger(metricsLoggerBasic)
+        new LoggerExecutor(events, new DefaultMetricsLoggerCounter(config))
       )
 
       val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter(config))

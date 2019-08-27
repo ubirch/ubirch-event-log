@@ -1,105 +1,23 @@
 package com.ubirch.encoder.services.kafka.consumer
 
+import java.util.UUID
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.encoder.process.ExecutorFamily
-import com.ubirch.encoder.util.Exceptions._
+import com.ubirch.encoder.process.EncoderExecutor
 import com.ubirch.kafka.consumer._
-import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.process.Executor
-import com.ubirch.services.kafka.consumer.{ ConsumerCreator, ConsumerRecordsManager, EventLogPipeData, WithPublishingData }
-import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
-import com.ubirch.util.Decision
+import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
 import org.json4s.JValue
-import org.json4s.JsonAST.JString
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-/**
-  * Represents a convenience for handling and keeping data through the pipeline
-  * @param consumerRecords Represents the consumer record read from kafka
-  * @param eventLog Represents the EventLog created from the consumer record.
-  * @param producerRecord Represents the Producer Record that is published back to kafka
-  * @param recordMetadata Represents the response gotten from the publishing of the producer record.
-  */
-case class EncoderPipeData(
-    consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]],
-    messageJValue: Option[JValue],
-    eventLog: Option[EventLog],
-    producerRecord: Option[Decision[ProducerRecord[String, String]]],
-    recordMetadata: Option[RecordMetadata]
-)
-  extends EventLogPipeData[Array[Byte]] with WithPublishingData[String]
-
-/**
-  * Represents the Message Envelope Manager Description
-  */
-trait EncoderConsumerRecordsManager extends ConsumerRecordsManager[String, Array[Byte]] {
-  val executorFamily: ExecutorFamily
-}
-
-/***
-  * Represents an Concrete Message Envelope Manager
-  * @param reporter Represents a reporter to send  errors to.
-  * @param executorFamily Represents a group of executors that accomplish the global task
-  * @param ec Represents an execution context
-  */
-@Singleton
-class DefaultEncoderManager @Inject() (
-    val reporter: Reporter,
-    val executorFamily: ExecutorFamily,
-    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter
-)(implicit ec: ExecutionContext)
-  extends EncoderConsumerRecordsManager
-  with LazyLogging {
-
-  import org.json4s.jackson.JsonMethods._
-  import reporter.Types._
-
-  type A = EncoderPipeData
-
-  def executor: Executor[Vector[ConsumerRecord[String, Array[Byte]]], Future[EncoderPipeData]] = {
-    executorFamily.jValueFromConsumerRecord andThen
-      executorFamily.eventLogFromConsumerRecord andThen
-      executorFamily.eventLogSigner andThen
-      executorFamily.createProducerRecord andThen
-      executorFamily.commit
-  }
-
-  def executorExceptionHandler: PartialFunction[Throwable, Future[EncoderPipeData]] = {
-    case e @ JValueFromConsumerRecordException(_, pipeData) =>
-      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
-      counter.counter.labels("JValueFromConsumerRecordException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.toString))
-      Future.successful(pipeData)
-    case e @ EventLogFromConsumerRecordException(_, pipeData) =>
-      logger.error("EventLogFromConsumerRecordException: " + e.getMessage)
-      counter.counter.labels("EventLogFromConsumerRecordException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = compact(pipeData.messageJValue.getOrElse(JString("No JValue")))))
-      Future.successful(pipeData)
-    case e @ SigningEventLogException(_, pipeData) =>
-      logger.error("SigningEventLogException: " + e.getMessage)
-      counter.counter.labels("SigningEventLogException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
-      Future.successful(pipeData)
-    case e @ CreateProducerRecordException(_, pipeData) =>
-      logger.error("CreateProducerRecordException: " + e.getMessage)
-      counter.counter.labels("CreateProducerRecordException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
-      Future.successful(pipeData)
-    case e @ CommitException(_, pipeData) =>
-      logger.error("CommitException: " + e.getMessage)
-      counter.counter.labels("CommitException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.eventLog.map(x => x.toJson).getOrElse("No EventLog")))
-      Future.successful(pipeData)
-  }
-
+case class EncoderPipeData(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]], jValues: Vector[JValue]) extends ProcessResult[String, Array[Byte]] {
+  override val id: UUID = UUIDHelper.randomUUID
 }
 
 /**
@@ -112,13 +30,14 @@ class DefaultEncoderManager @Inject() (
 class DefaultEncoderConsumer @Inject() (
     val config: Config,
     lifecycle: Lifecycle,
-    controller: EncoderConsumerRecordsManager
-)(implicit ec: ExecutionContext)
+    controller: EncoderExecutor
+)(implicit val ec: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerCreator
   with LazyLogging {
 
   lazy val consumerConfigured = {
+    logger.info(configs.props.toString)
     val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(topics)

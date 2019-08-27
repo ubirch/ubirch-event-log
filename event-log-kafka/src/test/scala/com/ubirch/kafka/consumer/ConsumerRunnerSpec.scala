@@ -1,8 +1,8 @@
 package com.ubirch.kafka.consumer
 
 import java.util.UUID
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ CountDownLatch, Executors }
 
 import com.ubirch.TestBase
 import com.ubirch.kafka.util.Exceptions.{ CommitTimeoutException, NeedForPauseException }
@@ -18,6 +18,8 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.{ implicitConversions, postfixOps }
 
 class ConsumerRunnerSpec extends TestBase {
+
+  implicit def executionContext = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5))
 
   def processResult(_consumerRecords: Vector[ConsumerRecord[String, String]]) = new ProcessResult[String, String] {
     override val id: UUID = UUID.randomUUID()
@@ -36,7 +38,7 @@ class ConsumerRunnerSpec extends TestBase {
       )
 
       val consumer = new ConsumerRunner[String, String]("cr-1") {
-        override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+        override implicit def ec: ExecutionContext = executionContext
 
         override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
           Future.successful(processResult(consumerRecords))
@@ -65,7 +67,7 @@ class ConsumerRunnerSpec extends TestBase {
       )
 
       val consumer = new ConsumerRunner[String, String]("cr-2") {
-        override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+        override implicit def ec: ExecutionContext = executionContext
 
         override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
           Future.successful(processResult(consumerRecords))
@@ -85,7 +87,7 @@ class ConsumerRunnerSpec extends TestBase {
     "fail if props are empty" in {
 
       val consumer = new ConsumerRunner[String, String]("cr-3") {
-        override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+        override implicit def ec: ExecutionContext = executionContext
 
         override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
           Future.successful(processResult(consumerRecords))
@@ -127,7 +129,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer = new ConsumerRunner[String, String]("cr-4") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             consumerRecords.headOption.foreach(x => futureMessages += x.value())
@@ -178,7 +180,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer = new ConsumerRunner[String, String]("cr-5") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             consumerRecords.foreach(x => futureMessages += x.value())
@@ -234,7 +236,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumerA = new ConsumerRunner[String, String]("cr-A") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             if (successCounterA.getAndIncrement() == maxEntities / 2) {
@@ -255,7 +257,7 @@ class ConsumerRunnerSpec extends TestBase {
         consumerA.startPolling()
 
         val consumerB = new ConsumerRunner[String, String]("cr-B") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             if (successCounterB.getAndIncrement() == maxEntities / 2) {
@@ -314,7 +316,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer = new ConsumerRunner[String, String]("cr-5") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             if (successCounter.getAndIncrement() == maxEntities / 2) {
@@ -367,7 +369,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer = new ConsumerRunner[String, String]("cr-5") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             consumerRecords.headOption.foreach(x => futureMessages += x.value())
@@ -421,7 +423,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer = new ConsumerRunner[String, String]("cr-6") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             consumerRecords.headOption.foreach(x => futureMessages += x.value())
@@ -488,7 +490,7 @@ class ConsumerRunnerSpec extends TestBase {
         var current = 1
 
         val consumer = new ConsumerRunner[String, String]("cr-7") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             current = current + 1
@@ -541,7 +543,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-8") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             Future.successful(processResult(consumerRecords))
@@ -592,7 +594,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             Future.successful(processResult(consumerRecords))
@@ -651,7 +653,7 @@ class ConsumerRunnerSpec extends TestBase {
         )
 
         val consumer: ConsumerRunner[String, String] = new ConsumerRunner[String, String]("cr-9") {
-          override implicit def ec: ExecutionContext = scala.concurrent.ExecutionContext.global
+          override implicit def ec: ExecutionContext = executionContext
 
           override def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[ProcessResult[String, String]] = {
             Future.successful(processResult(consumerRecords))

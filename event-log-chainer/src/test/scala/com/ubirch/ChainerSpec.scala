@@ -18,11 +18,15 @@ import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
 
-class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave) extends InjectorHelper(List(new ChainerServiceBinder {
+class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave, split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
 
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
+        .withValue(
+          "eventLog.split",
+          ConfigValueFactory.fromAnyRef(split)
+        )
         .withValue(
           "eventLog.mode",
           ConfigValueFactory.fromAnyRef(mode.value)
@@ -478,6 +482,86 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(maxNumberToRead == messages.size)
         assert(chainer.getNodes.map(_.value).size == customerIds.size)
         assert(chainer.getHashes.flatten.size == events.size)
+
+      }
+
+    }
+
+    "consume, process and publish tree and event logs in Slave splitting" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+      val eventLogTopic = "com.ubirch.eventlog"
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true)
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 400
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(JString(UUIDHelper.randomUUID.toString))
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.UPP_CATEGORY)
+              .sign(config))
+        }
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(7000)
+
+        val maxNumberToRead = events.sliding(50, 50).size /* tree */
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+
+        assert(messages.size == events.sliding(50, 50).size)
+        //        val treeEventLogAsString = messages.headOption.getOrElse("")
+        //        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        //        val chainer = ChainerSpec.getChainer(events)
+        //        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        //
+        //        val mode = Slave
+        //
+        //        assert(treeEventLogAsString.nonEmpty)
+        //        assert(treeEventLog.id.nonEmpty)
+        //        assert(treeEventLog.customerId == mode.customerId)
+        //        assert(treeEventLog.serviceClass == mode.serviceClass)
+        //        assert(treeEventLog.category == mode.category)
+        //        assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
+        //        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        //        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
+        //        assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
+        //        assert(treeEventLog.lookupKeys ==
+        //          Seq(
+        //            LookupKey(
+        //              mode.lookupName,
+        //              mode.category,
+        //              (treeEventLog.id, mode.category),
+        //              chainer.es.map(x => (x.id, x.category))
+        //            )
+        //          ))
+        //        assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
+        //        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
+        //        assert(events.size == chainer.es.size)
+        //        assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
+        //        assert(maxNumberToRead == messages.size)
+        //        assert(chainer.getNodes.map(_.value).size == customerIds.size)
+        //        assert(chainer.getHashes.flatten.size == events.size)
 
       }
 

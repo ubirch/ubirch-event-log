@@ -16,7 +16,8 @@ object Configs {
       batchSize: Int = 16384,
       lingerMs: Int = 1,
       bufferMemory: Int = 33554432,
-      enableIdempotence: Boolean = false
+      enableIdempotence: Boolean = false,
+      transactionalIdConfig: Option[String] = None
   ): ConfigProperties = {
 
     val configProperties = new ConfigProperties {
@@ -35,7 +36,9 @@ object Configs {
       configProperties
     }
 
-    properties
+    transactionalIdConfig
+      .map(x =>
+        properties.withProperty(ProducerConfig.TRANSACTIONAL_ID_CONFIG, x)).getOrElse(properties)
 
   }
 }

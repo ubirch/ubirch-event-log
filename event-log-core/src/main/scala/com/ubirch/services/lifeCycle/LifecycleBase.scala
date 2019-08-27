@@ -6,8 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import javax.inject._
 
 import scala.annotation.tailrec
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Basic definition for a Life CyCle Component.
@@ -29,7 +28,7 @@ trait Lifecycle {
   */
 
 @Singleton
-class DefaultLifecycle
+class DefaultLifecycle @Inject() (implicit ec: ExecutionContext)
   extends Lifecycle
   with LazyLogging {
 

@@ -17,6 +17,8 @@ object Exceptions {
 
   case class CreateProducerRecordException(message: String, pipeData: DispatcherPipeData) extends ExecutionException(message)
 
+  case class DispatcherProducerRecordException(message: String, data: String) extends ExecutionException(message)
+
   case class CommitException(message: String, pipeData: DispatcherPipeData) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS

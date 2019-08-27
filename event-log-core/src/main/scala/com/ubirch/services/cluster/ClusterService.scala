@@ -2,7 +2,8 @@ package com.ubirch.services.cluster
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.{ Cluster, ConsistencyLevel, PoolingOptions, QueryOptions }
+import com.datastax.driver.core.policies.RoundRobinPolicy
+import com.datastax.driver.core._
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.util.Exceptions.InvalidConsistencyLevel
@@ -62,7 +63,9 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
   val username: String = config.getString(USERNAME)
   val password: String = config.getString(PASSWORD)
 
-  val poolingOptions = new PoolingOptions
+  val poolingOptions = new PoolingOptions().setMaxQueueSize(1024)
+    .setMaxRequestsPerConnection(HostDistance.LOCAL, 32768)
+    .setMaxRequestsPerConnection(HostDistance.REMOTE, 2000);
 
   val queryOptions = new QueryOptions
 
@@ -77,9 +80,13 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
   override val cluster: Cluster = {
     val builder = Cluster.builder
       .addContactPointsWithPorts(contactPoints: _*)
+      .withLoadBalancingPolicy(new RoundRobinPolicy())
+      .withCompression(ProtocolOptions.Compression.LZ4)
       .withPoolingOptions(poolingOptions)
       .withCredentials(username, password)
       .withQueryOptions(queryOptions)
+      .withProtocolVersion(ProtocolVersion.V3)
+      .withClusterName("event-log")
 
     if (withSSL) {
       builder.withSSL()

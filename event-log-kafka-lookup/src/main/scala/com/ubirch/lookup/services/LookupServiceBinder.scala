@@ -49,7 +49,6 @@ class LookupServiceBinder
     consumer
     consumerRecordsManager
     producer
-
   }
 
 }

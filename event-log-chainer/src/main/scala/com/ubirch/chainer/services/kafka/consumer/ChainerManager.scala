@@ -9,14 +9,13 @@ import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.{ EventLogsPipeData, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
-import com.ubirch.util.Decision
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainer: Option[Chainer[EventLog]], treeEventLog: Option[EventLog], producerRecords: Vector[Decision[ProducerRecord[String, String]]], recordsMetadata: Vector[RecordMetadata])
+case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainers: Vector[Chainer[EventLog]], treeEventLogs: Vector[EventLog], producerRecords: Vector[ProducerRecord[String, String]], recordsMetadata: Vector[RecordMetadata])
   extends EventLogsPipeData[String]
 
 @Singleton
@@ -35,7 +34,7 @@ class DefaultChainerManager @Inject() (
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]] = {
     executorFamily.filterEmpty andThen
       executorFamily.eventLogParser andThen
-      executorFamily.eventLogSigner andThen
+      //executorFamily.eventLogSigner andThen
       executorFamily.treeCreatorExecutor andThen
       executorFamily.treeEventLogCreation andThen
       executorFamily.createTreeProducerRecord andThen

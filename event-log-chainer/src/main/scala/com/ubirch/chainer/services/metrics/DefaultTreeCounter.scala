@@ -22,3 +22,20 @@ object DefaultTreeCounter {
   final val name = "DefaultTreeCounter"
 }
 
+@Singleton
+class DefaultLeavesCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
+
+  final val counter: PrometheusCounter =
+    createCounter(
+      namespace = metricsNamespace,
+      name = "leaves_total",
+      help = "Total Leaves",
+      labelNames = "result"
+    ).register()
+
+}
+
+object DefaultLeavesCounter {
+  final val name = "DefaultLeavesCounter"
+}
+

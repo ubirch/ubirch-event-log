@@ -1,8 +1,8 @@
 package com.ubirch.kafka.consumer
 
 import java.util
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicInteger, AtomicReference }
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import java.util.{ Collections, UUID }
 
 import com.ubirch.kafka.util.Exceptions._
@@ -54,8 +54,12 @@ trait WithProcessRecords[K, V] {
 
     def start(): Unit
 
-    //TODO: probably we should add a timeout
-    def aggregate(): Unit = batchCountDown.await()
+    def aggregate(): Unit = {
+      val aggRes = batchCountDown.await(20, TimeUnit.SECONDS)
+      if (!aggRes) {
+        logger.warn("Taking too much time aggregating ..")
+      }
+    }
 
     def commitFunc(): Vector[Unit]
 
@@ -134,6 +138,20 @@ trait WithProcessRecords[K, V] {
       }
     }
 
+    def commitFunc2(): Vector[Unit] = {
+
+      try {
+        consumer.commitSync()
+        postCommitCallback.run(consumerRecords.count())
+      } catch {
+        case e: TimeoutException =>
+          throw CommitTimeoutException("Commit timed out", () => this.commitFunc(), e)
+        case e: Throwable =>
+          throw e
+      }
+
+    }
+
     def commitFunc(): Vector[Unit] = {
 
       try {
@@ -163,7 +181,7 @@ trait WithProcessRecords[K, V] {
         failed.set(None)
         throw error.get
       } else {
-        commitFunc()
+        commitFunc2()
       }
 
     }

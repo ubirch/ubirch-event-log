@@ -11,6 +11,8 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
+  case class EncodingException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
+
   case class JValueFromConsumerRecordException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**
