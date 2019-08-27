@@ -7,9 +7,8 @@ import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
 import com.ubirch.models.EventLog
 import com.ubirch.util.{ Boot, URLsHelper }
-import kafka.admin.AdminUtils
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringSerializer }
+import org.apache.kafka.common.serialization.StringSerializer
 import org.json4s.JsonAST.JInt
 
 import scala.language.postfixOps

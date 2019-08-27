@@ -11,8 +11,8 @@ import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEve
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
 @Singleton

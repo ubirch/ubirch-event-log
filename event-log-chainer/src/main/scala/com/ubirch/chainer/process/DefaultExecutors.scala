@@ -5,7 +5,7 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{ Chainer, Mode, Slave }
+import com.ubirch.chainer.models.{ Chainer, Mode }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
@@ -14,7 +14,7 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey }
-import com.ubirch.process.{ BasicCommit, Executor, MetricsLoggerBasic }
+import com.ubirch.process.{ Executor, MetricsLoggerBasic }
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.Counter
 import com.ubirch.util.Implicits.enrichedConfig
