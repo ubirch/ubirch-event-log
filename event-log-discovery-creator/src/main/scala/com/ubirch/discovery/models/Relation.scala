@@ -11,15 +11,15 @@ object RelationElem {
   def empty: RelationElem = RelationElem(None, Map.empty[String, String])
 }
 
-case class Relation(v1: RelationElem, v2: RelationElem, edge: RelationElem) {
+case class Relation(vFrom: RelationElem, vTo: RelationElem, edge: RelationElem) {
   def addProperty(key: String, value: String): Relation = copy(edge = RelationElem(edge.label, edge.properties ++ Map(key -> value)))
   def withProperties(newProps: Map[String, String]): Relation = copy(edge = RelationElem(edge.label, newProps))
   def addRelationLabel(label: String): Relation = copy(edge = edge.copy(label = Some(label)))
   def addRelationLabel(label: Option[String]): Relation = copy(edge = edge.copy(label = label))
-  def addOriginLabel(label: String): Relation = copy(v1 = v1.copy(label = Some(label)))
-  def addOriginLabel(label: Option[String]): Relation = copy(v1 = v1.copy(label = label))
-  def addTargetLabel(label: String): Relation = copy(v2 = v2.copy(label = Some(label)))
-  def addTargetLabel(label: Option[String]): Relation = copy(v2 = v2.copy(label = label))
+  def addOriginLabel(label: String): Relation = copy(vFrom = vFrom.copy(label = Some(label)))
+  def addOriginLabel(label: Option[String]): Relation = copy(vFrom = vFrom.copy(label = label))
+  def addTargetLabel(label: String): Relation = copy(vTo = vTo.copy(label = Some(label)))
+  def addTargetLabel(label: Option[String]): Relation = copy(vTo = vTo.copy(label = label))
 
 }
 
