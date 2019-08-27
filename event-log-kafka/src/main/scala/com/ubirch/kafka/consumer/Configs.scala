@@ -21,7 +21,9 @@ object Configs {
       maxPollInterval: Int = 300000,
       maxMetaDataAge: Long = 300000,
       autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,
-      isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED
+      isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED,
+      fetchMaxBytesConfig: Int = ConsumerConfig.DEFAULT_FETCH_MAX_BYTES,
+      maxPartitionFetchBytesConfig: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES
   ): ConfigProperties = {
 
     new ConfigProperties {
@@ -37,7 +39,9 @@ object Configs {
           ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG -> maxPollInterval.toString,
           ConsumerConfig.METADATA_MAX_AGE_CONFIG -> maxMetaDataAge.toString,
           ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> autoOffsetReset.toString.toLowerCase,
-          ConsumerConfig.ISOLATION_LEVEL_CONFIG -> isolationLevel.toString.toLowerCase()
+          ConsumerConfig.ISOLATION_LEVEL_CONFIG -> isolationLevel.toString.toLowerCase(),
+          ConsumerConfig.FETCH_MAX_BYTES_CONFIG -> fetchMaxBytesConfig.toString,
+          ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG -> maxPartitionFetchBytesConfig.toString
         )
       }
     }

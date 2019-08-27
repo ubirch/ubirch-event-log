@@ -32,7 +32,7 @@ trait WithMetrics[K, V] extends WithNamespace {
     if (count > 0) {
       val finishTime = new Instant()
       val seconds = startInstant.get().map(x => x.millisBetween(finishTime))
-      logger.debug("Processed [{} records] in [{} millis]", count, seconds.map(_.toString).getOrElse("UNKNOWN"))
+      logger.info("Processed [{} records] in [{} millis]", count, seconds.map(_.toString).getOrElse("UNKNOWN"))
     }
   }
   //Metrics Def End

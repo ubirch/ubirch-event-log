@@ -9,11 +9,15 @@ import scala.language.implicitConversions
   */
 trait ConfigProperties {
 
+  thiz =>
+
   val props: Map[String, AnyRef]
 
   def withProperty(key: String, value: AnyRef): ConfigProperties = {
     new ConfigProperties {
-      override val props: Map[String, AnyRef] = props + (key -> value)
+      override val props: Map[String, AnyRef] = {
+        thiz.props + (key -> value)
+      }
     }
 
   }

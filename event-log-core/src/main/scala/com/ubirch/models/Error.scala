@@ -24,15 +24,30 @@ import com.ubirch.util.EventLogJsonSupport
   */
 
 case class Error(
-    id: UUID,
+    id: String,
     message: String,
     exceptionName: String,
-    value: String = "",
-    errorTime: Date = new Date(),
-    serviceName: String = "event-log-service"
+    value: String,
+    errorTime: Date,
+    serviceName: String
 ) {
 
   override def toString: String = {
     EventLogJsonSupport.ToJson[this.type](this).toString
+  }
+}
+
+object Error {
+
+  def apply(id: UUID, message: String, exceptionName: String, value: String): Error = new Error(id.toString, message, exceptionName, value, new Date(), "event-log-service")
+
+  def apply(id: UUID, message: String, exceptionName: String): Error = new Error(id.toString, message, exceptionName, "", new Date(), "event-log-service")
+
+  def apply(id: UUID, message: String, exceptionName: String, value: String, errorTime: Date, serviceName: String): Error = {
+    new Error(id.toString, message, exceptionName, value, errorTime, serviceName)
+  }
+
+  def apply(id: String, message: String, exceptionName: String, value: String): Error = {
+    new Error(id, message, exceptionName, value, new Date, "event-log")
   }
 }

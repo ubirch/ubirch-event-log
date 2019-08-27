@@ -21,12 +21,18 @@ trait ConsumerCreator extends ConsumerConfPaths {
 
   def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
+  def fetchMaxBytesConfig: Int = config.getInt(FETCH_MAX_BYTES_CONFIG)
+
+  def maxPartitionFetchBytesConfig: Int = config.getInt(MAX_PARTITION_FETCH_BYTES_CONFIG)
+
   def configs: ConfigProperties = Configs(
     bootstrapServers = bootstrapServers,
     groupId = groupId,
     enableAutoCommit = false,
     autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = maxPollRecords
+    maxPollRecords = maxPollRecords,
+    fetchMaxBytesConfig = fetchMaxBytesConfig,
+    maxPartitionFetchBytesConfig = maxPartitionFetchBytesConfig
   )
 
   def groupId: String = {

@@ -5,6 +5,10 @@ package com.ubirch
   */
 object ConfPaths {
 
+  trait ExecutionContextConfPaths {
+    val THREAD_POOL_SIZE = "eventLog.executionContext.threadPoolSize"
+  }
+
   trait CassandraClusterConfPaths {
     val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
     val CONSISTENCY_LEVEL = "eventLog.cassandra.cluster.consistencyLevel"
@@ -23,9 +27,12 @@ object ConfPaths {
     val GROUP_ID_PATH = "eventLog.kafkaConsumer.groupId"
     val GRACEFUL_TIMEOUT_PATH = "eventLog.kafkaConsumer.gracefulTimeout"
     val METRICS_SUB_NAMESPACE = "eventLog.kafkaConsumer.metricsSubNamespace"
+    val FETCH_MAX_BYTES_CONFIG = "eventLog.kafkaConsumer.fetchMaxBytesConfig"
+    val MAX_PARTITION_FETCH_BYTES_CONFIG = "eventLog.kafkaConsumer.maxPartitionFetchBytesConfig"
   }
 
   trait ProducerConfPaths {
+    val LINGER_MS = "eventLog.kafkaProducer.lingerMS"
     val BOOTSTRAP_SERVERS = "eventLog.kafkaProducer.bootstrapServers"
     val ERROR_TOPIC_PATH = "eventLog.kafkaProducer.errorTopic"
     val TOPIC_PATH = "eventLog.kafkaProducer.topic"

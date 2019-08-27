@@ -1,6 +1,6 @@
 package com.ubirch.process
 
-import com.datastax.driver.core.exceptions.InvalidQueryException
+import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
@@ -39,7 +39,7 @@ trait Executor[-T1, +R] extends (T1 => R) {
   * Executor that filters ConsumerRecords values.
   * @param ec Represent the execution context for asynchronous processing.
   */
-
+@Singleton
 class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]]
   with LazyLogging {
@@ -63,6 +63,8 @@ class FilterEmpty @Inject() (implicit ec: ExecutionContext)
   * Executor that transforms a ConsumerRecord into an EventLog
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogParser @Inject() (implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -70,7 +72,7 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.map { v1 =>
     val result: PipeData = try {
       val eventLog = v1.consumerRecords.map { x =>
-        logger.debug("EventLogParser:" + x.value())
+        //logger.debug("EventLogParser:" + x.value())
         EventLogJsonSupport.FromString[EventLog](x.value()).get
       }.headOption
       v1.copy(eventLog = eventLog.map(_.addTraceHeader(Values.EVENT_LOG_SYSTEM)))
@@ -93,6 +95,8 @@ class EventLogParser @Inject() (implicit ec: ExecutionContext)
   * @param config Represents a config object
   * @param ec Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -118,6 +122,8 @@ class EventLogSigner @Inject() (config: Config)(implicit ec: ExecutionContext)
   * @param events Represents the DAO for the Events type.
   * @param ec     Represent the execution context for asynchronous processing.
   */
+
+@Singleton
 class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]]
   with LazyLogging {
@@ -125,10 +131,13 @@ class EventsStore @Inject() (events: EventsDAO)(implicit ec: ExecutionContext)
   override def apply(v1: Future[PipeData]): Future[PipeData] = v1.flatMap { v1 =>
     v1.eventLog.map { el =>
       events.insertFromEventLog(el).map { x =>
-        val expectedNumber = 1 + el.lookupKeys.flatMap(_.value).size
-        logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
+        //val expectedNumber = 1 + el.lookupKeys.flatMap(_.value).size
+        //logger.debug(s"EventLog(${el.category}, ${el.id}) with $expectedNumber items, $x were stored")
         v1
       }.recover {
+        case e: NoHostAvailableException =>
+          logger.error("Error connecting to host: " + e)
+          throw e
         case e: InvalidQueryException =>
           logger.error("Error storing data: " + e)
           throw e
@@ -193,6 +202,7 @@ class MetricsLoggerBasic @Inject() (@Named(DefaultMetricsLoggerCounter.name) cou
 
 }
 
+@Singleton
 class MetricsLogger @Inject() (logger: MetricsLoggerBasic)(implicit ec: ExecutionContext)
   extends Executor[Future[PipeData], Future[PipeData]] {
 
@@ -213,12 +223,9 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
   extends Executor[Decision[ProducerRecord[String, String]], Future[Option[RecordMetadata]]]
   with LazyLogging {
 
-  val futureHelper = new FutureHelper()
-
   def send(pr: ProducerRecord[String, String]): Future[Option[RecordMetadata]] = {
-    logger.debug("BasicCommit:" + pr.value())
-    val javaFuture = stringProducer.getProducerOrCreate.send(pr)
-    futureHelper.fromJavaFuture(javaFuture).map(x => Option(x))
+    //logger.debug("BasicPublish:" + pr.value())
+    stringProducer.send(pr).map(x => Option(x))
   }
 
   def commit(value: Decision[ProducerRecord[String, String]]): Future[Option[RecordMetadata]] = {
@@ -234,7 +241,7 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
       commit(v1)
     } catch {
       case e: Exception =>
-        logger.error("Error Committing: ", e)
+        logger.error("Error Publishing: ", e)
         Future.failed(BasicCommitException(e.getMessage))
     }
 
@@ -247,32 +254,9 @@ class BasicCommit @Inject() (stringProducer: StringProducer)(implicit ec: Execut
 
 trait ExecutorFamily {
 
-  def filterEmpty: FilterEmpty
-
-  def eventsStore: EventsStore
-
-  def eventLogParser: EventLogParser
-
-  def eventLogSigner: EventLogSigner
-
-  def discoveryExecutor: DiscoveryExecutor
-
-  def metricsLogger: MetricsLogger
+  def loggerExecutor: LoggerExecutor
 
 }
 
-/**
-  * Default materialization of the family of executors
-  * @param filterEmpty Executor that filters ConsumerRecords
-  * @param eventLogParser Executor that parses a ConsumerRecord into an Event Log
-  * @param eventsStore Executor that stores an EventLog into Cassandra
-  */
 @Singleton
-case class DefaultExecutorFamily @Inject() (
-    filterEmpty: FilterEmpty,
-    eventLogParser: EventLogParser,
-    eventLogSigner: EventLogSigner,
-    eventsStore: EventsStore,
-    discoveryExecutor: DiscoveryExecutor,
-    metricsLogger: MetricsLogger
-) extends ExecutorFamily
+case class DefaultExecutorFamily @Inject() (loggerExecutor: LoggerExecutor) extends ExecutorFamily

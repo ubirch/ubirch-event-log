@@ -4,8 +4,8 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
-import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.models.EventLog
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
@@ -28,9 +28,63 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
   })
 }))
 
-class DispatchSpec extends TestBase with LazyLogging {
+class DispatchExecutorSpec extends TestBase with LazyLogging {
 
   "Dispatch Spec" must {
+
+    "consume and dispatch successfully 3000" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+
+        val dispatchInfo = InjectorHelper.get[DispatchInfo].info
+
+        val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
+
+        val range = (1 to 3000)
+        val eventLogs = range.map { _ =>
+          EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
+        }
+
+        eventLogs.foreach { x =>
+          publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
+        }
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(20000)
+
+        var total = 0
+
+        maybeDispatch match {
+          case Some(s) =>
+            s.topics.map { t =>
+              val fromTopic = consumeNumberStringMessagesFrom(t.name, range.size)
+              total = total + fromTopic.size
+              assert(range.size == fromTopic.size)
+            }
+          case None =>
+            assert(1 != 1)
+        }
+
+        assert(total == range.size * maybeDispatch.map(_.topics.size).getOrElse(0))
+
+      }
+
+    }
 
     "consume and dispatch successfully" in {
 
@@ -57,6 +111,7 @@ class DispatchSpec extends TestBase with LazyLogging {
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
 
         consumer.startPolling()
         //Consumer

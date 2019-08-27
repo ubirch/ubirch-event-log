@@ -4,14 +4,13 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
-import com.ubirch.encoder.process.{ DefaultExecutorFamily, ExecutorFamily }
-import com.ubirch.encoder.services.kafka.consumer.{ DefaultEncoderConsumer, DefaultEncoderManager, EncoderConsumerRecordsManager }
+import com.ubirch.encoder.services.execution.EncodingExecutionProvider
+import com.ubirch.encoder.services.kafka.consumer.DefaultEncoderConsumer
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.kafka.consumer.BytesConsumer
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services._
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
@@ -31,9 +30,7 @@ class EncoderServiceBinder
   def lifecycle: ScopedBindingBuilder = bind(classOf[Lifecycle]).to(classOf[DefaultLifecycle])
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
-  def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
-  def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[EncoderConsumerRecordsManager]).to(classOf[DefaultEncoderManager])
-  def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[EncodingExecutionProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultEncoderConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
   def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
@@ -54,9 +51,8 @@ class EncoderServiceBinder
     consumerRecordsManagerCounter
     encodingsCounter
     executionContext
-    executorFamily
     consumer
-    consumerRecordsManager
+    //consumerRecordsManager
     producer
   }
 

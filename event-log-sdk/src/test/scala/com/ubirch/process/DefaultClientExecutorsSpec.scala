@@ -4,13 +4,14 @@ import java.util
 import java.util.Date
 import java.util.concurrent.{ ExecutionException, Future => JavaFuture }
 
+import com.typesafe.config.Config
 import com.ubirch.TestBase
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
 import com.ubirch.sdk.process._
 import com.ubirch.sdk.util.Exceptions.{ CommitException, CommitHandlerASyncException, CommitHandlerSyncException }
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.{ Execution, ExecutionProvider }
+import com.ubirch.services.execution.{ ExecutionImpl, ExecutionProvider }
 import com.ubirch.util.EventLogJsonSupport
 import org.apache.kafka.clients.producer.{ Producer, ProducerRecord, RecordMetadata }
 import org.apache.kafka.common.TopicPartition
@@ -25,7 +26,7 @@ import scala.language.postfixOps
 
 case class Hello(name: String)
 
-class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Execution {
+class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with ExecutionImpl {
 
   "CreateEventFrom" must {
 
@@ -248,7 +249,9 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
   "Future Logger" must {
     "do local log" in {
 
-      implicit val ec: ExecutionContext = new ExecutionProvider().get()
+      val config: Config = new ConfigProvider {} get ()
+
+      implicit val ec: ExecutionContext = new ExecutionProvider(config).get()
 
       val data = EventLogJsonSupport.ToJson[Hello](Hello("Hola")).get
 
