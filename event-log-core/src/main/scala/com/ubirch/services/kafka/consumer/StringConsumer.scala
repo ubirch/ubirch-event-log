@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.kafka.util.VersionedLazyLogging
-import com.ubirch.models.{ Error, EventLog, Relation }
+import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -29,9 +29,7 @@ import scala.language.postfixOps
   * @param consumerRecords Represents the data received in the poll from Kafka
   * @param eventLog        Represents the event log type. It is here for informative purposes.
   */
-case class PipeData private (consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String] {
-  val discoveryData: Seq[Relation] = eventLog.map(Relation.fromEventLog).getOrElse(Nil)
-}
+case class PipeData private (consumerRecords: Vector[ConsumerRecord[String, String]], eventLog: Option[EventLog]) extends EventLogPipeData[String]
 
 object PipeData {
   def apply(consumerRecord: ConsumerRecord[String, String], eventLog: Option[EventLog]): PipeData = PipeData(Vector(consumerRecord), eventLog)
@@ -102,12 +100,6 @@ class DefaultConsumerRecordsManager @Inject() (
       }
 
       res
-    case e: DiscoveryException =>
-      logger.error("DiscoveryException: ", e)
-      counter.counter.labels("DiscoveryException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
-      Future.successful(e.pipeData)
-
   }
 
 }

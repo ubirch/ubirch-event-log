@@ -33,6 +33,8 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def producerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ProducerConfPaths.BOOTSTRAP_SERVERS))
 
+  def lingerMs: Int = config.getInt(ProducerConfPaths.LINGER_MS)
+
   def keySerializer: Serializer[String] = new StringSerializer
 
   def valueSerializer: Serializer[String] = new StringSerializer

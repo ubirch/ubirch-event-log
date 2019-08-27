@@ -1,4 +1,6 @@
-package com.ubirch.models
+package com.ubirch.discovery.models
+
+import com.ubirch.models.{ EventLog, Values }
 
 case class RelationElem(label: Option[String], properties: Map[String, String]) {
   def addLabel(newLabel: String): RelationElem = copy(label = Some(newLabel))

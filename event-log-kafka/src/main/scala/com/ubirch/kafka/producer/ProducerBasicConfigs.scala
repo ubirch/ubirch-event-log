@@ -6,10 +6,12 @@ trait ProducerBasicConfigs[K, V] {
 
   def producerBootstrapServers: String
 
+  def lingerMs: Int
+
   def keySerializer: Serializer[K]
 
   def valueSerializer: Serializer[V]
 
-  def producerConfigs = Configs(producerBootstrapServers)
+  def producerConfigs = Configs(producerBootstrapServers, lingerMs = lingerMs)
 
 }

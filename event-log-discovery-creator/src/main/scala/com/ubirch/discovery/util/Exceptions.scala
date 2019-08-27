@@ -1,5 +1,7 @@
 package com.ubirch.discovery.util
 
+import com.ubirch.util.Exceptions.ExecutionException
+
 /**
   * Namespace that contains the exceptions of the SDK.
   */
@@ -7,6 +9,7 @@ package com.ubirch.discovery.util
 object Exceptions {
 
   //EXECUTION EXCEPTIONS
+  case class DiscoveryException(message: String, reason: String) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
 
