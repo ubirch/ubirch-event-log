@@ -18,11 +18,15 @@ import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
 
-class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave) extends InjectorHelper(List(new ChainerServiceBinder {
+class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave, split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
 
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
+        .withValue(
+          "eventLog.split",
+          ConfigValueFactory.fromAnyRef(split)
+        )
         .withValue(
           "eventLog.mode",
           ConfigValueFactory.fromAnyRef(mode.value)
@@ -491,7 +495,7 @@ class ChainerSpec extends TestBase with LazyLogging {
       val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true)
       val config = InjectorHelper.get[Config]
 
       withRunningKafka {
