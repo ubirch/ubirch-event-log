@@ -65,6 +65,8 @@ spec:
               value: "{{ .Values.eventLogChainerMaster.treeEvery }}"
             - name: CHAINER_MODE
               value: "{{ .Values.eventLogChainerMaster.mode }}"
+            - name: CHAINER_SPLIT
+              value: "{{ .Values.eventLogChainerMaster.split }}"
             - name: CHAINER_KFC_MAX_POLL_RECORDS
               value: "{{ .Values.eventLogChainerMaster.kafka.consumer.maxpoll }}"
             - name: CHAINER_KFP_LINGER_MS
