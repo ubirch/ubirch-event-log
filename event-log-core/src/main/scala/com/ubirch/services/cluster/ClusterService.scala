@@ -2,8 +2,8 @@ package com.ubirch.services.cluster
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.policies.{ LoadBalancingPolicy, RoundRobinPolicy }
-import com.datastax.driver.core.{ Cluster, ConsistencyLevel, HostDistance, NettyOptions, PoolingOptions, ProtocolOptions, ProtocolVersion, QueryOptions }
+import com.datastax.driver.core.policies.RoundRobinPolicy
+import com.datastax.driver.core._
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.util.Exceptions.InvalidConsistencyLevel
