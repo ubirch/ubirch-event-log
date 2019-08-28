@@ -370,6 +370,8 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
     "check constructors (4)" in {
 
+      import LookupKey._
+
       val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
       val time = new Date()
 
@@ -377,7 +379,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
       val headers = Headers.create("HOLA" -> "HOLA")
 
-      val lookupKeys = Seq(LookupKey("name", "category", "key", Seq("value")))
+      val lookupKeys = Seq(LookupKey("name", "category", "key".asKey, Seq("value".asValue)))
 
       val el = EventLog(
         headers,

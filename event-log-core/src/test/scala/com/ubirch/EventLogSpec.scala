@@ -103,6 +103,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume message and store it in cassandra with lookup key" in {
 
+      import LookupKey._
+
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
@@ -115,7 +117,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val entity1 = Entities.Events.eventExample()
           .sign(config)
           .withCustomerId(UUIDHelper.randomUUID)
-          .withLookupKeys(Seq(LookupKey("name", "category", "key", Seq("value", "value1"))))
+          .withLookupKeys(Seq(LookupKey("name", "category", "key".asKey, Seq("value".asValue, "value1".asValue))))
 
         val entityAsString1 = entity1.toJson
 

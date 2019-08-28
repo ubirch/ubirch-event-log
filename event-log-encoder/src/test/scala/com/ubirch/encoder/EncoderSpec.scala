@@ -38,6 +38,8 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class EncoderSpec extends TestBase with LazyLogging {
 
+  import LookupKey._
+
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
 
@@ -124,19 +126,19 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString,
+            pmId.toString.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
-              }
+              }.asValue
             }
           ).categoryAsKeyLabel
             .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
-            key = pm.getUUID.toString,
-            value = Seq(pmId.toString)
+            key = pm.getUUID.toString.asKey,
+            value = Seq(pmId.toString.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -442,19 +444,19 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString,
+            pmId.toString.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
-              }
+              }.asValue
             }
           ).categoryAsKeyLabel
             .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
-            key = pm.getUUID.toString,
-            value = Seq(pmId.toString)
+            key = pm.getUUID.toString.asKey,
+            value = Seq(pmId.toString.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -511,30 +513,30 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString,
+            pmId.toString.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
-              }
+              }.asValue
             }
           ).categoryAsKeyLabel
             .nameAsValueLabelForAll,
           LookupKey(
             Values.UPP_CHAIN,
             Values.CHAIN_CATEGORY,
-            pmId.toString,
+            pmId.toString.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("this is my chain")
-              }
+              }.asValue
             }
           ).withKeyLabel(Values.UPP_CATEGORY)
             .categoryAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
-            key = pm.getUUID.toString,
-            value = Seq(pmId.toString)
+            key = pm.getUUID.toString.asKey,
+            value = Seq(pmId.toString.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -599,8 +601,8 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK,
             Values.PUBLIC_CHAIN_CATEGORY,
-            "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
-            Seq("e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19")
+            "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0".asKey,
+            Seq("e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19".asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.MASTER_TREE_CATEGORY)
         ))
@@ -692,19 +694,19 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString,
+            pmId.toString.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
-              }
+              }.asValue
             }
           ).categoryAsKeyLabel
             .nameAsValueLabelForAll,
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
-            key = pm.getUUID.toString,
-            value = Seq(pmId.toString)
+            key = pm.getUUID.toString.asKey,
+            value = Seq(pmId.toString.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )

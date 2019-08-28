@@ -72,6 +72,8 @@ object ChainerSpec {
 
 class ChainerSpec extends TestBase with LazyLogging {
 
+  import LookupKey._
+
   "Chainer Spec" must {
 
     "consume, process and publish tree and event logs in Slave mode" in {
@@ -137,8 +139,8 @@ class ChainerSpec extends TestBase with LazyLogging {
             LookupKey(
               mode.lookupName,
               mode.category,
-              (treeEventLog.id, mode.category),
-              chainer.es.map(x => (x.id, x.category))
+              treeEventLog.id.asKeyWithLabel(mode.category),
+              chainer.es.map(x => x.id.asValueWithLabel(x.category))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -216,8 +218,8 @@ class ChainerSpec extends TestBase with LazyLogging {
             LookupKey(
               mode.lookupName,
               mode.category,
-              (treeEventLog.id, mode.category),
-              chainer.es.map(x => (x.id, x.category))
+              treeEventLog.id.asKeyWithLabel(mode.category),
+              chainer.es.map(x => x.id.asValueWithLabel(x.category))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -295,8 +297,8 @@ class ChainerSpec extends TestBase with LazyLogging {
             LookupKey(
               Values.SLAVE_TREE_ID,
               category,
-              (treeEventLog.id, category),
-              chainer.es.map(x => (x.id, x.category))
+              treeEventLog.id.asKeyWithLabel(category),
+              chainer.es.map(x => x.id.asValueWithLabel(x.category))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -384,8 +386,8 @@ class ChainerSpec extends TestBase with LazyLogging {
             LookupKey(
               Values.SLAVE_TREE_ID,
               category,
-              (treeEventLog.id, category),
-              chainer.es.map(x => (x.id, x.category))
+              treeEventLog.id.asKeyWithLabel(category),
+              chainer.es.map(x => x.id.asValueWithLabel(x.category))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -472,8 +474,8 @@ class ChainerSpec extends TestBase with LazyLogging {
           Seq(LookupKey(
             mode.lookupName,
             mode.category,
-            (treeEventLog.id, mode.category),
-            chainer.es.map(x => (x.id, x.category))
+            treeEventLog.id.asKeyWithLabel(mode.category),
+            chainer.es.map(x => x.id.asValueWithLabel(x.category))
           )))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
         assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
@@ -530,38 +532,6 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         assert(messages.size == events.sliding(50, 50).size)
-        //        val treeEventLogAsString = messages.headOption.getOrElse("")
-        //        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        //        val chainer = ChainerSpec.getChainer(events)
-        //        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
-        //
-        //        val mode = Slave
-        //
-        //        assert(treeEventLogAsString.nonEmpty)
-        //        assert(treeEventLog.id.nonEmpty)
-        //        assert(treeEventLog.customerId == mode.customerId)
-        //        assert(treeEventLog.serviceClass == mode.serviceClass)
-        //        assert(treeEventLog.category == mode.category)
-        //        assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        //        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        //        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
-        //        assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
-        //        assert(treeEventLog.lookupKeys ==
-        //          Seq(
-        //            LookupKey(
-        //              mode.lookupName,
-        //              mode.category,
-        //              (treeEventLog.id, mode.category),
-        //              chainer.es.map(x => (x.id, x.category))
-        //            )
-        //          ))
-        //        assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        //        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        //        assert(events.size == chainer.es.size)
-        //        assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
-        //        assert(maxNumberToRead == messages.size)
-        //        assert(chainer.getNodes.map(_.value).size == customerIds.size)
-        //        assert(chainer.getHashes.flatten.size == events.size)
 
       }
 
