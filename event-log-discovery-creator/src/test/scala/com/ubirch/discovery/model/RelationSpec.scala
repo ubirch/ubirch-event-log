@@ -62,7 +62,8 @@ class RelationSpec extends TestBase {
     }
 
     "fromEventLog" in {
-      val el = EventLog(JString("Hola")).addLookupKeys(LookupKey("name", "category", "key", Seq("value")))
+      import LookupKey._
+      val el = EventLog(JString("Hola")).addLookupKeys(LookupKey("name", "category", "key".asKey, Seq("value".asValue)))
       val relations = Relation.fromEventLog(el)
 
       val expectedRelations = el.lookupKeys.flatMap { x =>

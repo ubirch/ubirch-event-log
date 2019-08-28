@@ -4,8 +4,10 @@ case class Key(name: String, label: Option[String]) {
   def withLabel(newLabel: String): Key = copy(label = Option(newLabel))
 }
 
-case class Value(name: String, label: Option[String]) {
+case class Value(name: String, label: Option[String], extra: Map[String, String] = Map.empty) {
   def withLabel(newLabel: String): Value = copy(label = Option(newLabel))
+  def withExtra(newExtra: Map[String, String]): Value = copy(extra = newExtra)
+  def addExtra(extras: (String, String)*): Value = copy(extra = extra ++ extras.toMap[String, String])
 }
 
 case class LookupKey(name: String, category: String, key: Key, value: Seq[Value]) {
@@ -24,12 +26,12 @@ case class LookupKey(name: String, category: String, key: Key, value: Seq[Value]
 }
 
 object LookupKey {
-  def apply(name: String, category: String, key: String, value: Seq[String]): LookupKey = {
-    new LookupKey(name, category, Key(key, None), value.map(Value(_, None)))
-  }
 
-  def apply(name: String, category: String, key: (String, String), value: Seq[(String, String)]): LookupKey = {
-    new LookupKey(name, category, Key(key._1, Some(key._2)), value.map(x => Value(x._1, Some(x._2))))
+  implicit class Helpers(name: String) {
+    def asKey: Key = Key(name, None)
+    def asKeyWithLabel(label: String): Key = Key(name, Option(label))
+    def asValue: Value = Value(name, None, Map.empty)
+    def asValueWithLabel(label: String): Value = Value(name, Option(label), Map.empty)
   }
 
 }

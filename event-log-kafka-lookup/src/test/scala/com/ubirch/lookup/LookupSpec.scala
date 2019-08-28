@@ -334,6 +334,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     "consume and process successfully when Found with Anchors" in {
 
+      import LookupKey._
+
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
@@ -356,8 +358,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         LookupKey(
           Values.SIGNATURE,
           Values.UPP_CATEGORY,
-          pmId,
-          Seq(x)
+          pmId.asKey,
+          Seq(x.asValue)
         )
       }.toSeq
 
@@ -383,7 +385,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         .withServiceClass("ubirchChainerSlave")
         .withNewId(slaveRootId)
         .withRandomNonce
-        .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, slaveCategory, slaveRootId, Seq(el.id)))
+        .addLookupKeys(LookupKey(Values.SLAVE_TREE_ID, slaveCategory, slaveRootId.asKey, Seq(el.id.asValue)))
 
       //Master Tree
       val masterRootId = UUIDHelper.randomUUID.toString
@@ -394,7 +396,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         .withServiceClass("ubirchChainerMaster")
         .withNewId(masterRootId)
         .withRandomNonce
-        .addLookupKeys(LookupKey(Values.MASTER_TREE_ID, masterCategory, masterRootId, Seq(slaveTree.id)))
+        .addLookupKeys(LookupKey(Values.MASTER_TREE_ID, masterCategory, masterRootId.asKey, Seq(slaveTree.id.asValue)))
       //
 
       //Blockchain TX
@@ -419,8 +421,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           LookupKey(
             "blockchain_tx_id",
             Values.PUBLIC_CHAIN_CATEGORY,
-            txid,
-            Seq(masterTree.id)
+            txid.asKey,
+            Seq(masterTree.id.asValue)
           )
         ))
 

@@ -191,6 +191,8 @@ class TreeEventLogCreation @Inject() (
   with ProducerConfPaths
   with LazyLogging {
 
+  import LookupKey._
+
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
 
@@ -218,20 +220,22 @@ class TreeEventLogCreation @Inject() (
               val lookupName = mode.lookupName
               val customerId = mode.customerId
 
+              val lookupKeys = {
+                LookupKey(
+                  lookupName,
+                  category,
+                  rootHash.asKeyWithLabel(category),
+                  els.map(x => x.id.asValueWithLabel(x.category))
+                )
+              }
+
               val treeEl = EventLog(data)
                 .withNewId(rootHash)
                 .withCategory(category)
                 .withCustomerId(customerId)
                 .withServiceClass(serviceClass)
                 .withRandomNonce
-                .addLookupKeys(
-                  LookupKey(
-                    lookupName,
-                    category,
-                    (rootHash, category),
-                    els.map(x => (x.id, x.category))
-                  )
-                )
+                .addLookupKeys(lookupKeys)
                 .addOriginHeader(category)
                 .addTraceHeader(mode.value)
                 .sign(config)
