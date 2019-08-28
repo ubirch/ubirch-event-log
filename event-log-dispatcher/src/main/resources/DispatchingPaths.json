@@ -20,7 +20,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.chainer.master.onep",
+        "name": "com.ubirch.chainer.master",
         "data_to_send": null
       }
     ]
