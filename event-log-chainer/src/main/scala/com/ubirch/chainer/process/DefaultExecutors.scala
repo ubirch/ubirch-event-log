@@ -61,8 +61,8 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
         throw EmptyValueException("No Records Found", pd)
       }
     } else {
-      logger.error("Wrong params")
-      throw WrongParamsException("Wrong params", pd)
+      logger.error(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis")
+      throw WrongParamsException(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis", pd)
     }
   }
 
