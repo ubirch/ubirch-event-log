@@ -238,7 +238,6 @@ class TreeEventLogCreation @Inject() (
                 .addLookupKeys(lookupKeys)
                 .addOriginHeader(category)
                 .addTraceHeader(mode.value)
-                .sign(config)
 
               (treeEl, leavesSize)
 
