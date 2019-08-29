@@ -1,7 +1,7 @@
 package com.ubirch.models
 
 import java.text.SimpleDateFormat
-import java.util.{ Date, UUID }
+import java.util.Date
 
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.services.config.ConfigProvider

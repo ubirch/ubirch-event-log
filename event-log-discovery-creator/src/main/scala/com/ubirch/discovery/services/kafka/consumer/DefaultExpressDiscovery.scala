@@ -9,9 +9,9 @@ import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.models.EventLog
 import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
-import com.ubirch.services.kafka.producer.{ ProducerShutdownHook, Reporter }
+import com.ubirch.services.kafka.producer.ProducerShutdownHook
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ EventLogJsonSupport, URLsHelper, UUIDHelper }
+import com.ubirch.util.URLsHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
@@ -23,7 +23,9 @@ import scala.util.control.NonFatal
 class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycle)(implicit ec: ExecutionContext)
   extends ExpressKafka[String, String, Unit] with LazyLogging {
 
-  override def metricsSubNamespace: String = "CarloS"
+  final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
+
+  def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   def consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
@@ -41,8 +43,6 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def producerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ProducerConfPaths.BOOTSTRAP_SERVERS))
 
-  def producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
-
   def lingerMs: Int = config.getInt(ProducerConfPaths.LINGER_MS)
 
   def keySerializer: Serializer[String] = new StringSerializer
@@ -55,14 +55,6 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def getRelationsAsJson(relations: Seq[Relation]) = DiscoveryJsonSupport.ToJson[Seq[Relation]](relations).toString
 
-  final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
-
-  def run(consumerRecord: ConsumerRecord[String, String]) = {
-    Future(composed(consumerRecord)).flatMap { json =>
-      send(producerTopic, json)
-    }
-  }
-
   def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
     consumerRecords.foreach(x => run(x).recover {
       case NonFatal(e) =>
@@ -71,6 +63,14 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
     })
     Future.unit
   }
+
+  def run(consumerRecord: ConsumerRecord[String, String]) = {
+    Future(composed(consumerRecord)).flatMap { json =>
+      send(producerTopic, json)
+    }
+  }
+
+  def producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),
