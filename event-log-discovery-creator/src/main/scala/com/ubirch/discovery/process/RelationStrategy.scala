@@ -3,7 +3,7 @@ package com.ubirch.discovery.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.{ Relation, RelationElem }
 import com.ubirch.discovery.util.DiscoveryJsonSupport
-import com.ubirch.discovery.util.Exceptions.{ SlaveTreeStrategyException, UPPStrategyException }
+import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException }
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 
@@ -103,29 +103,29 @@ case class UPPStrategy(eventLog: EventLog) extends RelationStrategy with LazyLog
 }
 
 case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
-  override def create: Seq[Relation] = {
 
-    def relation(hash: String, signature: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY),
-        Map("hash" -> eventLog.id, "type" -> Values.SLAVE_TREE_CATEGORY)
-      ),
-      vTo = RelationElem(
-        Option(Values.UPP_CATEGORY),
-        Map("hash" -> hash, "signature" -> signature, "type" -> Values.UPP_CATEGORY)
-      ),
-      edge = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY),
-        Map.empty
-      )
+  def relation(hash: String, signature: String) = Relation(
+    vFrom = RelationElem(
+      Option(Values.SLAVE_TREE_CATEGORY),
+      Map("hash" -> eventLog.id, "type" -> Values.SLAVE_TREE_CATEGORY)
+    ),
+    vTo = RelationElem(
+      Option(Values.UPP_CATEGORY),
+      Map("hash" -> hash, "signature" -> signature, "type" -> Values.UPP_CATEGORY)
+    ),
+    edge = RelationElem(
+      Option(Values.SLAVE_TREE_CATEGORY),
+      Map.empty
     )
+  )
 
-    def get = eventLog.lookupKeys
-      .find(_.category == Values.SLAVE_TREE_CATEGORY)
-      .map(_.value)
-      .getOrElse(Nil)
-      .map(x => relation(x.name, x.extra("signature")))
+  def get = eventLog.lookupKeys
+    .find(_.category == Values.SLAVE_TREE_CATEGORY)
+    .map(_.value)
+    .getOrElse(Nil)
+    .map(x => relation(x.name, x.extra("signature")))
 
+  override def create: Seq[Relation] = {
     try {
       get
     } catch {
@@ -137,12 +137,55 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
   }
 }
 
-case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy {
-  override def create: Seq[Relation] = Relation.fromEventLog(eventLog)
+case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
+
+  def relation(hash: String) =
+    Relation(
+      vFrom = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map("hash" -> eventLog.id, "type" -> Values.MASTER_TREE_CATEGORY)),
+      vTo = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map("hash" -> hash, "type" -> Values.MASTER_TREE_CATEGORY)),
+      edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
+    )
+
+  def get = eventLog.lookupKeys
+    .find(_.category == Values.MASTER_TREE_CATEGORY)
+    .map(_.value)
+    .getOrElse(Nil)
+    .map(x => relation(x.name))
+
+  override def create: Seq[Relation] = {
+    try {
+      get
+    } catch {
+      case e: Exception =>
+        logger.error("Relation Creation Error: ", e)
+        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage)
+    }
+  }
 }
 
-case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy {
-  override def create: Seq[Relation] = Relation.fromEventLog(eventLog)
+case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
+  def relation(hash: String) =
+    Relation(
+      vFrom = RelationElem(Option(Values.PUBLIC_CHAIN_CATEGORY), Map("hash" -> eventLog.id, "type" -> eventLog.category)),
+      vTo = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map("hash" -> hash, "type" -> Values.MASTER_TREE_CATEGORY)),
+      edge = RelationElem(Option(Values.PUBLIC_CHAIN_CATEGORY), Map.empty)
+    )
+
+  def get = eventLog.lookupKeys
+    .find(_.category == Values.PUBLIC_CHAIN_CATEGORY)
+    .map(_.value)
+    .getOrElse(Nil)
+    .map(x => relation(x.name))
+
+  override def create: Seq[Relation] = {
+    try {
+      get
+    } catch {
+      case e: Exception =>
+        logger.error("Relation Creation Error: ", e)
+        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage)
+    }
+  }
 }
 
 case class UnknownStrategy(eventLog: EventLog) extends RelationStrategy {

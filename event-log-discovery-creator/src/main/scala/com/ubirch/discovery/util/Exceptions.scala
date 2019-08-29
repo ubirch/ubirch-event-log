@@ -14,6 +14,8 @@ object Exceptions {
 
   case class SlaveTreeStrategyException(message: String, reason: String) extends ExecutionException(message)
 
+  case class MasterTreeStrategyException(message: String, reason: String) extends ExecutionException(message)
+
   case class UPPStrategyException(message: String, reason: String) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
