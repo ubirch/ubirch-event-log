@@ -15,10 +15,12 @@ import scala.concurrent.Future
 
 trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
 
+  def metricsSubNamespace: String
+
   def controller: ConsumerRecordsController[K, V]
 
   lazy val consumption = {
-    val consumerImp = ConsumerRunner.empty[K, V]
+    val consumerImp = ConsumerRunner.emptyWithMetrics[K, V](metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)
     consumerImp.setProps(consumerConfigs)

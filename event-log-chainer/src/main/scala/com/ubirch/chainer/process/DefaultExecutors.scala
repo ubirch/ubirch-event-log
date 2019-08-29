@@ -5,7 +5,7 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{ Chainer, Mode, Node }
+import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
@@ -83,7 +83,7 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
     val errors = scala.collection.mutable.ListBuffer.empty[Error]
 
     v1.consumerRecords.filter(_.value().nonEmpty).foreach { x =>
-      Try(EventLogJsonSupport.FromString[EventLog](x.value()).get) match {
+      Try(ChainerJsonSupport.FromString[EventLog](x.value()).get) match {
         case Success(value) =>
           successfulEventLogs += value
         case Failure(exception) =>
@@ -198,9 +198,11 @@ class TreeEventLogCreation @Inject() (
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
-  def createEventLog(node: Node[String], els: Seq[EventLog]) = {
+  lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
+
+  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
     val rootHash = node.value
-    val data = EventLogJsonSupport.ToJson(node).get
+    val data = ChainerJsonSupport.ToJson(node).get
 
     val category = mode.category
     val serviceClass = mode.serviceClass
@@ -212,7 +214,7 @@ class TreeEventLogCreation @Inject() (
         lookupName,
         category,
         rootHash.asKeyWithLabel(category),
-        els.map(x => x.id.asValueWithLabel(x.category))
+        els.flatMap(x => valuesStrategy.create(x))
       )
     }
 
@@ -225,6 +227,7 @@ class TreeEventLogCreation @Inject() (
       .addLookupKeys(lookupKeys)
       .addOriginHeader(category)
       .addTraceHeader(mode.value)
+      .sign(config)
 
     treeEl
 
@@ -245,7 +248,7 @@ class TreeEventLogCreation @Inject() (
               leavesCounter.counter.labels(tree.category + "_LEAVES").inc(leavesSize)
               tree
             case Failure(e) =>
-              logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
+              logger.error(s"Error creating EventLog from [${mode.value}] (2): ", e)
               throw TreeEventLogCreationException(e.getMessage, v1)
           }
         }
