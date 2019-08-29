@@ -42,8 +42,8 @@ class EncoderExecutor @Inject() (
   with ProducerConfPaths
   with LazyLogging {
 
-  import reporter.Types._
   import LookupKey._
+  import reporter.Types._
 
   override type A = EncoderPipeData
 

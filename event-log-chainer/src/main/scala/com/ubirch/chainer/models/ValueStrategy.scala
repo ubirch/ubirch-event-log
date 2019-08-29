@@ -2,7 +2,7 @@ package com.ubirch.chainer.models
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.chainer.util.ChainerJsonSupport
-import com.ubirch.models.{ EventLog, Value, Values }
+import com.ubirch.models.{ EventLog, Value }
 import com.ubirch.protocol.ProtocolMessage
 
 import scala.util.{ Failure, Success, Try }

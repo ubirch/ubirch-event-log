@@ -20,8 +20,6 @@ import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
 
-import scala.util.Random
-
 class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave, split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
 
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
