@@ -15,12 +15,10 @@ trait WithNamespace {
 /**
   * Decorates a ConsumerRunner with prometheus metrics added to the prepoll and post commit callbacks
   * The corresponding scrapper must be started.
-  * @tparam K Represents the type of the Key for the consumer.
-  * @tparam V Represents the type of the Value for the consumer.
   */
-trait WithMetrics[K, V] extends WithNamespace {
+trait WithMetrics extends WithNamespace {
 
-  cr: ConsumerRunner[K, V] =>
+  cr: ConsumerRunner[_, _] =>
 
   def metricsName(name: String): String = s"consumer_${version.get()}_$name"
 

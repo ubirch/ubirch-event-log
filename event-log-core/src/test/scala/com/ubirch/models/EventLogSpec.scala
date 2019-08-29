@@ -1,7 +1,7 @@
 package com.ubirch.models
 
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{ Date, UUID }
 
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.services.config.ConfigProvider
@@ -514,6 +514,49 @@ class EventLogSpec extends TestBase with MockitoSugar {
         .addTraceHeader("System TWO")
 
       assert(el.toJson == """{"headers":{"trace":["System ONE","System TWO"]},"id":"my id","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T15:00:00.000Z","signature":"my signature","nonce":"","lookup_keys":[]}""")
+
+    }
+
+    "check constructors with lookups with extra" in {
+
+      import LookupKey._
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+      val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
+      val time = sdf.parse("02-03-1986 16:00:00")
+
+      val id = "05918330-ca69-11e9-8a09-a924db2e4689"
+
+      val headers = Headers.create("HOLA" -> "HOLA")
+
+      val lookupKeys = Seq(LookupKey("name", "category", "key".asKey, Seq("value".asValue.addExtra("extra1" -> "extra-data", "extra2" -> "extra-data"))))
+
+      val el = EventLog(
+        headers,
+        id,
+        "my customer id",
+        "my service class",
+        "my category",
+        data,
+        time,
+        "my signature",
+        "my nonce",
+        lookupKeys
+      )
+
+      assert(el.headers == headers)
+      assert(el.id == id)
+      assert(el.customerId == "my customer id")
+      assert(el.serviceClass == "my service class")
+      assert(el.category == "my category")
+      assert(el.event == data)
+      assert(el.eventTime == time)
+      assert(el.signature == "my signature")
+      assert(el.nonce == "my nonce")
+      assert(el.lookupKeys == lookupKeys)
+      assert(el.lookupKeys == Seq(LookupKey("name", "category", "key".asKey, Seq("value".asValue.addExtra("extra1" -> "extra-data", "extra2" -> "extra-data")))))
+
+      assert(el.toJson == """{"headers":{"hola":["HOLA"]},"id":"05918330-ca69-11e9-8a09-a924db2e4689","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T15:00:00.000Z","signature":"my signature","nonce":"my nonce","lookup_keys":[{"name":"name","category":"category","key":{"name":"key"},"value":[{"name":"value","extra":{"extra1":"extra-data","extra2":"extra-data"}}]}]}""".stripMargin)
 
     }
 

@@ -32,7 +32,7 @@ case class Error(
     serviceName: String
 ) {
 
-  override def toString: String = {
+  def toJson: String = {
     EventLogJsonSupport.ToJson[this.type](this).toString
   }
 }

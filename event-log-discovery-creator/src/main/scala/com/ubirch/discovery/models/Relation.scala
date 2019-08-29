@@ -25,8 +25,8 @@ case class Relation(vFrom: RelationElem, vTo: RelationElem, edge: RelationElem) 
 
 object Relation {
 
-  def apply(v1: RelationElem, v2: RelationElem): Relation = new Relation(v1, v2, RelationElem.empty)
-  def apply(label: String, v1: RelationElem, v2: RelationElem): Relation = new Relation(v1, v2, RelationElem.empty.addLabel(label))
+  def apply(vFrom: RelationElem, vTo: RelationElem): Relation = new Relation(vFrom, vTo, RelationElem.empty)
+  def apply(label: String, vFrom: RelationElem, vTo: RelationElem): Relation = new Relation(vFrom, vTo, RelationElem.empty.addLabel(label))
 
   def fromEventLog(eventLog: EventLog): Seq[Relation] = {
     eventLog.lookupKeys.flatMap { x =>

@@ -9,7 +9,12 @@ import com.ubirch.util.Exceptions.ExecutionException
 object Exceptions {
 
   //EXECUTION EXCEPTIONS
-  case class DiscoveryException(message: String, reason: String) extends ExecutionException(message)
+
+  case class ParsingError(message: String, reason: String) extends ExecutionException(message)
+
+  case class SlaveTreeStrategyException(message: String, reason: String) extends ExecutionException(message)
+
+  case class UPPStrategyException(message: String, reason: String) extends ExecutionException(message)
 
   //EXECUTION EXCEPTIONS
 

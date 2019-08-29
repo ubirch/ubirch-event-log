@@ -9,14 +9,18 @@ import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.chainer.services.ChainerServiceBinder
+import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
+
+import scala.util.Random
 
 class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave, split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
 
@@ -95,7 +99,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val events = customerIds.flatMap { x =>
           customerRange.map(_ =>
 
-            EventLog(JString(UUIDHelper.randomUUID.toString))
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
               .withEventTime(new Date())
               .withRandomNonce
               .withCustomerId(x)
@@ -119,9 +123,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
-        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
 
         val mode = Slave
 
@@ -131,7 +135,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
@@ -179,7 +183,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               .withRandomNonce
               .withCustomerId(x)
               .withNewId
-              .withCategory(Values.UPP_CATEGORY)
+              .withCategory(Values.SLAVE_TREE_CATEGORY)
               .sign(config))
         }
 
@@ -198,9 +202,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
-        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
 
         val mode = Master
 
@@ -210,7 +214,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
@@ -253,7 +257,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val events = customerIds.flatMap { x =>
           customerRange.map(_ =>
 
-            EventLog(JString(UUIDHelper.randomUUID.toString))
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
               .withEventTime(new Date())
               .withRandomNonce
               .withCustomerId(x)
@@ -277,9 +281,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
-        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -289,7 +293,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == "ubirchChainerSlave")
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
@@ -332,7 +336,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val events = customerIds.flatMap { x =>
           customerRange.map(_ =>
 
-            EventLog(JString(UUIDHelper.randomUUID.toString))
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
               .withEventTime(new Date())
               .withRandomNonce
               .withCustomerId(x)
@@ -366,9 +370,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
-        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -378,7 +382,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == "ubirchChainerSlave")
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
@@ -426,7 +430,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               .withRandomNonce
               .withCustomerId(x)
               .withNewId
-              .withCategory(Values.UPP_CATEGORY)
+              .withCategory(Values.SLAVE_TREE_CATEGORY)
               .sign(config))
         }
 
@@ -455,9 +459,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
-        val treeEventLog = EventLogJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = EventLogJsonSupport.ToJson(chainer.getNode).get
+        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
 
         val mode = Master
 
@@ -467,7 +471,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(EventLogJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
         assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
@@ -508,7 +512,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val events = customerIds.flatMap { x =>
           customerRange.map(_ =>
 
-            EventLog(JString(UUIDHelper.randomUUID.toString))
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
               .withEventTime(new Date())
               .withRandomNonce
               .withCustomerId(x)

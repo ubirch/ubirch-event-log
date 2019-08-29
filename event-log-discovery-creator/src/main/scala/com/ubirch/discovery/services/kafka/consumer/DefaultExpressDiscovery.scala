@@ -1,6 +1,7 @@
 package com.ubirch.discovery.services.kafka.consumer
 
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.process.RelationStrategy
@@ -8,18 +9,21 @@ import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.models.EventLog
 import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
-import com.ubirch.services.kafka.producer.ProducerShutdownHook
+import com.ubirch.services.kafka.producer.{ ProducerShutdownHook, Reporter }
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ EventLogJsonSupport, URLsHelper }
+import com.ubirch.util.{ EventLogJsonSupport, URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
 
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.control.NonFatal
 
 @Singleton
-class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycle)
-  extends ExpressKafka[String, String, Unit] {
+class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycle)(implicit ec: ExecutionContext)
+  extends ExpressKafka[String, String, Unit] with LazyLogging {
+
+  override def metricsSubNamespace: String = "CarloS"
 
   def consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
@@ -45,16 +49,26 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def valueSerializer: Serializer[String] = new StringSerializer
 
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
-    consumerRecords.foreach { x =>
-      println(x.value())
-      val eventLog = DiscoveryJsonSupport.FromString[EventLog](x.value()).get
-      val relations = RelationStrategy.getStrategy(eventLog).create
-      val relationsAsJson = DiscoveryJsonSupport.ToJson[Seq[Relation]](relations).toString
-      println("RELATION: " + relationsAsJson)
-      send(producerTopic, relationsAsJson)
-    }
+  def getEventLog(consumerRecord: ConsumerRecord[String, String]) = DiscoveryJsonSupport.FromString[EventLog](consumerRecord.value()).get
 
+  def getRelations(eventLog: EventLog) = RelationStrategy.getStrategy(eventLog).create
+
+  def getRelationsAsJson(relations: Seq[Relation]) = DiscoveryJsonSupport.ToJson[Seq[Relation]](relations).toString
+
+  final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
+
+  def run(consumerRecord: ConsumerRecord[String, String]) = {
+    Future(composed(consumerRecord)).flatMap { json =>
+      send(producerTopic, json)
+    }
+  }
+
+  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
+    consumerRecords.foreach(x => run(x).recover {
+      case NonFatal(e) =>
+        logger.error("Error Creating Relation, ", e)
+      case e => throw e
+    })
     Future.unit
   }
 
