@@ -27,6 +27,8 @@ CUR_EVENT_DISPATCHER_TAG=${CUR_TAG}
 CUR_EVENT_CHAINER_TAG=${CUR_TAG}
 CUR_EVENT_CHAINER_MASTER_TAG=${CUR_EVENT_CHAINER_TAG}
 CUR_EVENT_ENCODER_TAG=${CUR_TAG}
+CUR_EVENT_DISCOVERY_CREATOR_TAG=${CUR_TAG}
+
 
 #if [[ "dev" == "$ENV" ]]; then
 #     Insta
@@ -44,3 +46,4 @@ CUR_EVENT_ENCODER_TAG=${CUR_TAG}
 ./deployK8SService.sh $ENV event-log-dispatcher $CUR_EVENT_DISPATCHER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-dispatcher-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-chainer $CUR_EVENT_CHAINER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-chainer-master $CUR_EVENT_CHAINER_MASTER_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-master-$ENV.yaml"
+./deployK8SService.sh $ENV event-log-discovery-creator $CUR_EVENT_DISCOVERY_CREATOR_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-discovery-creator-$ENV.yaml"
