@@ -2,7 +2,7 @@ package com.ubirch.chainer.models
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.chainer.util.ChainerJsonSupport
-import com.ubirch.models.{ EventLog, Value }
+import com.ubirch.models.{ EventLog, Value, Values }
 import com.ubirch.protocol.ProtocolMessage
 
 import scala.util.{ Failure, Success, Try }
@@ -36,7 +36,7 @@ case class SlaveTreeStrategy() extends ValueStrategy with LazyLogging {
           throw new Exception(s"Error parsing signature [${e.getMessage}] ")
       }.getOrElse(throw new Exception("No signature found"))
 
-    val res = Seq(Value(eventLog.id, Option(eventLog.category), Map("signature" -> signature)))
+    val res = Seq(Value(eventLog.id, Option(eventLog.category), Map(Values.SIGNATURE -> signature)))
 
     res
   }
