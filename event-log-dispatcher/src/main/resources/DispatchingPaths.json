@@ -9,6 +9,10 @@
       {
         "name": "com.ubirch.chainer.slave",
         "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
+        "data_to_send": null
       }
     ]
   },
@@ -20,7 +24,11 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.chainer.master.onep",
+        "name": "com.ubirch.chainer.master",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
         "data_to_send": null
       }
     ]
@@ -43,6 +51,10 @@
       {
         "name": "com.ubirch.iota",
         "data_to_send": "id"
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
+        "data_to_send": null
       }
     ]
   },
@@ -51,6 +63,10 @@
     "topics": [
       {
         "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
         "data_to_send": null
       }
     ]
@@ -61,6 +77,10 @@
       {
         "name": "com.ubirch.eventlog",
         "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
+        "data_to_send": null
       }
     ]
   },
@@ -69,6 +89,10 @@
     "topics": [
       {
         "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
         "data_to_send": null
       }
     ]
@@ -79,6 +103,10 @@
       {
         "name": "com.ubirch.eventlog",
         "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
+        "data_to_send": null
       }
     ]
   },
@@ -88,6 +116,10 @@
       {
         "name": "com.ubirch.eventlog",
         "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
+        "data_to_send": null
       }
     ]
   },
@@ -96,6 +128,10 @@
     "topics": [
       {
         "name": "com.ubirch.eventlog",
+        "data_to_send": null
+      },
+      {
+        "name": "com.ubirch.eventlog.discovery-creator",
         "data_to_send": null
       }
     ]
