@@ -1,4 +1,4 @@
-package com.ubirch.lookup
+package com.ubirch.discovery
 
 import net.manub.embeddedkafka.EmbeddedKafka
 import org.scalatest.concurrent.ScalaFutures

@@ -14,15 +14,11 @@ import scala.concurrent.ExecutionContext
 
 class DiscoveryServiceBinder
   extends AbstractModule
-  with BasicServices //with ExecutionServices
-  //with Kafka
-  {
+  with BasicServices {
 
   def lifecycle: ScopedBindingBuilder = bind(classOf[Lifecycle]).to(classOf[DefaultLifecycle])
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
-  //def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
-  //def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultRecordsManager])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
 
   def expressKafka: ScopedBindingBuilder = bind(classOf[ExpressKafka[String, String, Unit]]).to(classOf[DefaultExpressDiscovery])
@@ -33,11 +29,6 @@ class DiscoveryServiceBinder
     config
     executionContext
     expressKafka
-
-    //consumer
-    //consumerRecordsManager
-    //producer
-
   }
 
 }
