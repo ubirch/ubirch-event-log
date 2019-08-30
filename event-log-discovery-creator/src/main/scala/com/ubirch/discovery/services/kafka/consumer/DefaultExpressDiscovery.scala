@@ -51,7 +51,13 @@ class DefaultExpressDiscovery @Inject() (val config: Config, lifecycle: Lifecycl
 
   def getEventLog(consumerRecord: ConsumerRecord[String, String]) = DiscoveryJsonSupport.FromString[EventLog](consumerRecord.value()).get
 
-  def getRelations(eventLog: EventLog) = RelationStrategy.getStrategy(eventLog).create
+  def getRelations(eventLog: EventLog) = {
+    val rs = RelationStrategy.getStrategy(eventLog).create
+    if(rs.isEmpty){
+      logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values.")
+    }
+    rs
+  }
 
   def getRelationsAsJson(relations: Seq[Relation]) = DiscoveryJsonSupport.ToJson[Seq[Relation]](relations).toString
 

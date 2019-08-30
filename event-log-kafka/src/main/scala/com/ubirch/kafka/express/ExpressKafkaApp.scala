@@ -62,7 +62,7 @@ trait WithMain {
   ek: ExpressKafkaApp[_, _, _] =>
 
   def main(args: Array[String]): Unit = {
-    consumption.startPolling()
+    start
     val cd = new CountDownLatch(1)
     cd.await()
   }
@@ -90,6 +90,8 @@ trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K
   }
 
   def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
+
+  def start = consumption.startPolling()
 
 }
 
