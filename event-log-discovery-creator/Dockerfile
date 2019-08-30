@@ -9,6 +9,7 @@ LABEL "com.ubirch.service"="${SERVICE_NAME}"
 LABEL "com.ubirch.version"="${VERSION}"
 LABEL "com.ubirch.build"="${BUILD}"
 
+EXPOSE 8080
 EXPOSE 9010
 EXPOSE 9020
 EXPOSE 4321
@@ -22,7 +23,7 @@ ENTRYPOINT [ \
    -XX:MaxRAM=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) - 254*1024*1024 )) \
    -Djava.awt.headless=true \
    -Djava.security.egd=file:/dev/./urandom \
-   -Djava.rmi.server.hostname=localhFROM ubirch/javaost \
+   -Djava.rmi.server.hostname=localhost \
    -Dcom.sun.management.jmxremote \
    -Dcom.sun.management.jmxremote.port=9010 \
    -Dcom.sun.management.jmxremote.rmi.port=9010 \
