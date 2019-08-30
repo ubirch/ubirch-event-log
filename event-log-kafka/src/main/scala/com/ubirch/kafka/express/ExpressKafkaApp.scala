@@ -34,7 +34,7 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
 
 trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
-  val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
+  lazy val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
 
   def send(topic: String, value: V): Future[RecordMetadata] = production.send(new ProducerRecord[K, V](topic, value))
 
@@ -70,13 +70,13 @@ trait WithMain {
 }
 
 trait ConfigBase {
-  def conf: Config = ConfigFactory.load()
+  lazy val conf: Config = ConfigFactory.load()
 }
 
 trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K, V] {
   thiz =>
 
-  val controller = new ConsumerRecordsController[K, V] {
+  lazy val controller = new ConsumerRecordsController[K, V] {
 
     def simpleProcessResult(result: R, consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
       override val id: UUID = UUID.randomUUID()
