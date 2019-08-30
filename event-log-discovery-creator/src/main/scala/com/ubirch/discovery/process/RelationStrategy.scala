@@ -20,7 +20,7 @@ object RelationStrategy {
       case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el)
       case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy(el)
       case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy(el)
-      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY)  => PublicBlockchainStrategy(el)
+      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy(el)
       case el => UnknownStrategy(el)
     }
   }

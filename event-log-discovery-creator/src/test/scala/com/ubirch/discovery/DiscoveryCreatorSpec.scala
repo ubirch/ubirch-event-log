@@ -2,19 +2,19 @@ package com.ubirch.discovery
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ConsumerConfPaths, ProducerConfPaths}
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
-import com.ubirch.discovery.util.{DiscoveryJsonSupport, PMHelper}
+import com.ubirch.discovery.util.{ DiscoveryJsonSupport, PMHelper }
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.models.{EventLog, LookupKey, Value, Values}
+import com.ubirch.models.{ EventLog, LookupKey, Value, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.lifeCycle.{DefaultLifecycle, Lifecycle}
-import com.ubirch.util.{PortGiver, UUIDHelper}
+import com.ubirch.services.lifeCycle.{ DefaultLifecycle, Lifecycle }
+import com.ubirch.util.{ PortGiver, UUIDHelper }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.common.serialization.{Deserializer, Serializer}
+import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST.JInt
 
 class DiscoveryCreatorSpec extends TestBase with LazyLogging {
@@ -94,7 +94,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val id = UUIDHelper.randomUUID
         val range = (1 to 1)
-        val eventLogs = range.map{ x =>
+        val eventLogs = range.map { x =>
           EventLog(JInt(x))
             .withNewId(id)
             .withCurrentEventTime
@@ -105,8 +105,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
                 Values.SLAVE_TREE_ID, Values.SLAVE_TREE_CATEGORY,
                 id.toString.asKeyWithLabel(Values.SLAVE_TREE_CATEGORY),
                 Seq(Value(x.toString, Option(Values.SLAVE_TREE_CATEGORY),
-                  Map(Values.SIGNATURE -> x.toString))
-                )
+                  Map(Values.SIGNATURE -> x.toString)))
               )
             )
             .toJson
@@ -157,7 +156,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val id = UUIDHelper.randomUUID
         val range = (1 to 1)
-        val eventLogs = range.map{ x =>
+        val eventLogs = range.map { x =>
           EventLog(JInt(x))
             .withNewId(id)
             .withCurrentEventTime
@@ -168,8 +167,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
                 Values.SLAVE_TREE_ID, Values.MASTER_TREE_CATEGORY,
                 id.toString.asKeyWithLabel(Values.MASTER_TREE_CATEGORY),
                 Seq(Value(x.toString, Option(Values.MASTER_TREE_CATEGORY),
-                  Map(Values.SIGNATURE -> x.toString))
-                )
+                  Map(Values.SIGNATURE -> x.toString)))
               )
             )
             .toJson
@@ -221,10 +219,9 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         val txId = UUIDHelper.randomUUID
         val masterRootHash = UUIDHelper.randomUUID
 
-
         val id = UUIDHelper.randomUUID
         val range = (1 to 1)
-        val eventLogs = range.map{ x =>
+        val eventLogs = range.map { x =>
           EventLog("EventLogFromConsumerRecord", "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK", JInt(x))
             .withCustomerId(Values.UBIRCH)
             .withNewId(txId)
