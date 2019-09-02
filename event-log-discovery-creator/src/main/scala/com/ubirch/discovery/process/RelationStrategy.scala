@@ -3,7 +3,7 @@ package com.ubirch.discovery.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.{ Relation, RelationElem }
 import com.ubirch.discovery.util.DiscoveryJsonSupport
-import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException }
+import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 
@@ -98,7 +98,7 @@ case class UPPStrategy(eventLog: EventLog) extends RelationStrategy with LazyLog
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
-        throw UPPStrategyException("Relation Creation Error", e.getMessage)
+        throw UPPStrategyException("Relation Creation Error", e.getMessage, eventLog)
 
     }
 
@@ -136,7 +136,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
-        throw SlaveTreeStrategyException("Relation Creation Error", e.getMessage)
+        throw SlaveTreeStrategyException("Relation Creation Error", e.getMessage, eventLog)
     }
 
   }
@@ -169,7 +169,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
-        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage)
+        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage, eventLog)
     }
   }
 }
@@ -201,12 +201,13 @@ case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
-        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage)
+        throw MasterTreeStrategyException("Relation Creation Error", e.getMessage, eventLog)
     }
   }
 }
 
 case class UnknownStrategy(eventLog: EventLog) extends RelationStrategy {
-  override def create: Seq[Relation] = throw new Exception("There's no strategy for category " + eventLog.category)
+  override def create: Seq[Relation] =
+    throw UnknownStrategyException("UnknownStrategyException", "There's no strategy for category " + eventLog.category, eventLog)
 }
 
