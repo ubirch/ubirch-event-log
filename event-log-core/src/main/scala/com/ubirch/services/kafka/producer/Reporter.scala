@@ -5,8 +5,8 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.{ EventLogJsonSupport, ProducerRecordHelper }
+import com.ubirch.models.Error
+import com.ubirch.util.ProducerRecordHelper
 import javax.inject._
 import org.apache.kafka.clients.producer.RecordMetadata
 
@@ -29,6 +29,8 @@ class Reporter @Inject() (stringProducer: StringProducer, config: Config)(implic
 
   val topic: String = config.getString(ERROR_TOPIC_PATH)
 
+  import com.ubirch.models.EnrichedError._
+
   object Types {
 
     implicit def fromError(error: Error) = new ReporterMagnet {
@@ -38,11 +40,7 @@ class Reporter @Inject() (stringProducer: StringProducer, config: Config)(implic
       override def apply(): Result = {
         //logger.debug("Reporting error [{}]", error.toString)
 
-        val payload = EventLogJsonSupport.ToJson[Error](error).get
-
-        val eventLog = EventLog(getClass.getName, topic, payload)
-          .withIdAsCustomerId
-          .sign(config)
+        val eventLog = error.toEventLog(topic).sign(config)
 
         val record = ProducerRecordHelper.toRecord(
           topic,

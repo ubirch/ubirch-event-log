@@ -1,7 +1,7 @@
 package com.ubirch.discovery.model
 
-import com.ubirch.discovery.models.{ Relation, RelationElem }
 import com.ubirch.discovery.TestBase
+import com.ubirch.discovery.models.{ Relation, RelationElem }
 import com.ubirch.models.{ EventLog, LookupKey, Values }
 import org.json4s.JsonAST.JString
 
