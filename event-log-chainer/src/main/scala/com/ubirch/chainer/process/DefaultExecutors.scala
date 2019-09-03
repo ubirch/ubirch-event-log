@@ -14,9 +14,9 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey }
-import com.ubirch.process.{ Executor, MetricsLoggerBasic }
+import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.Counter
+import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -302,7 +302,7 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 }
 
 @Singleton
-class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: MetricsLoggerBasic)(implicit ec: ExecutionContext)
+class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLoggerCounter.name) counter: Counter)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with LazyLogging {
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
@@ -313,10 +313,11 @@ class Commit @Inject() (stringProducer: StringProducer, metricsLoggerBasic: Metr
           prs.map { x =>
             val futureResp = stringProducer.send(x)
             futureResp.onComplete {
-              case Success(_) => metricsLoggerBasic.incSuccess
+              case Success(_) =>
+                counter.counter.labels("success").inc()
               case Failure(exception) =>
                 logger.error("Error publishing ", exception)
-                metricsLoggerBasic.incFailure
+                counter.counter.labels("failure").inc()
             }
             futureResp
           }
