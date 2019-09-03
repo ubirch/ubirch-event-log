@@ -13,7 +13,7 @@ import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey }
+import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
@@ -314,10 +314,10 @@ class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLog
             val futureResp = stringProducer.send(x)
             futureResp.onComplete {
               case Success(_) =>
-                counter.counter.labels("success").inc()
+                counter.counter.labels(Values.SUCCESS).inc()
               case Failure(exception) =>
                 logger.error("Error publishing ", exception)
-                counter.counter.labels("failure").inc()
+                counter.counter.labels(Values.FAILURE).inc()
             }
             futureResp
           }

@@ -56,15 +56,15 @@ class EncoderExecutor @Inject() (
     consumerRecords.map { x =>
       run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels("success").inc()
+          results.counter.labels(Values.SUCCESS).inc()
         case Failure(e: EncodingException) =>
           logger.error("EncodingException: " + e.getMessage)
-          results.counter.labels("failure").inc()
+          results.counter.labels(Values.FAILURE).inc()
           val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
         case Failure(e) =>
           logger.error("EncodingException (other): " + e.getMessage)
-          results.counter.labels("failure").inc()
+          results.counter.labels(Values.FAILURE).inc()
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
 
       }(scheduler)
