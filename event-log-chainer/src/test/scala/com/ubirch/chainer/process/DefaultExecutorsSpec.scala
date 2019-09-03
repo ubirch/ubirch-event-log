@@ -7,13 +7,13 @@ import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
-import com.ubirch.chainer.util.{ EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
+import com.ubirch.chainer.util.{ ChainerJsonSupport, EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EventLog
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.util.{ EventLogJsonSupport, SigningHelper, UUIDHelper }
+import com.ubirch.util.{ SigningHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JValue
@@ -272,7 +272,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createNode
 
       assert(res.chainers.nonEmpty)
-      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.map(x => ChainerJsonSupport.ToJson(x.getNode).get) == Vector(ChainerJsonSupport.ToJson(eventLogChainer.getNode).get))
       assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
 
     }
@@ -322,7 +322,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
       assert(res.chainers.nonEmpty)
-      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.map(x => ChainerJsonSupport.ToJson(x.getNode).get) == Vector(ChainerJsonSupport.ToJson(eventLogChainer.getNode).get))
       assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
       assert(treeEventLogRes.treeEventLogs.nonEmpty)
       assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Slave.category))
@@ -378,7 +378,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
       assert(res.chainers.nonEmpty)
-      assert(res.chainers.map(x => EventLogJsonSupport.ToJson(x.getNode).get) == Vector(EventLogJsonSupport.ToJson(eventLogChainer.getNode).get))
+      assert(res.chainers.map(x => ChainerJsonSupport.ToJson(x.getNode).get) == Vector(ChainerJsonSupport.ToJson(eventLogChainer.getNode).get))
       assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
       assert(treeEventLogRes.treeEventLogs.nonEmpty)
       assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Master.category))

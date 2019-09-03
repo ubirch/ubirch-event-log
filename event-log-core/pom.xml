@@ -12,7 +12,7 @@
 
     <!-- basic info -->
     <artifactId>event-log-core</artifactId>
-    <version>1.2.3</version>
+    <version>1.2.4</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Core for the ubirch Platform</description>
     <inceptionYear>2018</inceptionYear>
@@ -32,7 +32,7 @@
 
         <!-- versions -->
 
-        <event-log-kafka.version>1.2.3-SNAPSHOT</event-log-kafka.version>
+        <event-log-kafka.version>1.2.4-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>3.4.1</quill.cassandra.version>

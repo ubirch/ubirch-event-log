@@ -35,6 +35,7 @@ object EventLogSerializer {
   val LOOKUP_KEYS_KEY = "key"
   val LOOKUP_KEYS_VALUE = "value"
   val LOOKUP_KEYS_LABEL = "label"
+  val LOOKUP_KEYS_VALUE_EXTRA = "extra"
 
 }
 
@@ -95,7 +96,8 @@ class EventLogSerializer extends CustomSerializer[EventLog](_ =>
               )) ~
                 (LOOKUP_KEYS_VALUE -> x.value.map { v =>
                   (LOOKUP_KEYS_NAME -> v.name) ~
-                    (LOOKUP_KEYS_LABEL -> v.label)
+                    (LOOKUP_KEYS_LABEL -> v.label) ~
+                    (LOOKUP_KEYS_VALUE_EXTRA -> v.extra)
                 })
           })
 
