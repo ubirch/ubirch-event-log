@@ -196,6 +196,8 @@ class TreeEventLogCreation @Inject() (
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
 
+  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
+
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
   lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
@@ -227,9 +229,9 @@ class TreeEventLogCreation @Inject() (
       .addLookupKeys(lookupKeys)
       .addOriginHeader(category)
       .addTraceHeader(mode.value)
-      .sign(config)
 
-    treeEl
+    if (sign) treeEl.sign(config)
+    else treeEl
 
   }
 
