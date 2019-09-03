@@ -35,7 +35,7 @@
 
         <build.number>${timestamp}-dev</build.number>
 
-        <event-log-core.version>1.2.3</event-log-core.version>
+        <event-log-core.version>1.2.4</event-log-core.version>
         <embedded-kafka>2.3.0</embedded-kafka>
 
         <!-- plugins -->

@@ -2,10 +2,10 @@ package com.ubirch.util
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
-import com.ubirch.process.EventLogParser
 import com.ubirch.util.Exceptions.{ InjectionException, InjectorCreationException }
 import org.scalatest.mockito.MockitoSugar
 
+import scala.concurrent.ExecutionContext
 import scala.util.Failure
 
 trait NotReal
@@ -32,27 +32,27 @@ class InjectionSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "get correct Type" in {
 
-      def inject = InjectorHelper.get[EventLogParser]
+      def inject = InjectorHelper.get[ExecutionContext]
 
-      assert(inject.isInstanceOf[EventLogParser])
+      assert(inject.isInstanceOf[ExecutionContext])
 
     }
 
     "get correct Type As Option" in {
 
-      def inject = InjectorHelper.getAsOption[EventLogParser]
+      def inject = InjectorHelper.getAsOption[ExecutionContext]
 
       assert(inject.isDefined)
-      assert(inject.exists(_.isInstanceOf[EventLogParser]))
+      assert(inject.exists(_.isInstanceOf[ExecutionContext]))
 
     }
 
     "get correct Type As Try" in {
 
-      def inject = InjectorHelper.getAsTry[EventLogParser]
+      def inject = InjectorHelper.getAsTry[ExecutionContext]
 
       assert(inject.isSuccess)
-      assert(inject.map(_.isInstanceOf[EventLogParser]).getOrElse(false))
+      assert(inject.map(_.isInstanceOf[ExecutionContext]).getOrElse(false))
 
     }
 

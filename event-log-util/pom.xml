@@ -5,7 +5,7 @@
 
     <!-- basic info -->
     <artifactId>event-log-util</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.2.3-SNAPSHOT</version>
     <groupId>com.ubirch</groupId>
     <description>Event logger util for the ubirch Platform</description>
     <url>https://ubirch.com</url>

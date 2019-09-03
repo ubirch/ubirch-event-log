@@ -2,8 +2,8 @@ package com.ubirch.services.cluster
 
 import java.net.InetSocketAddress
 
-import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.datastax.driver.core._
+import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.util.Exceptions.InvalidConsistencyLevel
@@ -65,7 +65,7 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
 
   val poolingOptions = new PoolingOptions().setMaxQueueSize(1024)
     .setMaxRequestsPerConnection(HostDistance.LOCAL, 32768)
-    .setMaxRequestsPerConnection(HostDistance.REMOTE, 2000);
+    .setMaxRequestsPerConnection(HostDistance.REMOTE, 2000)
 
   val queryOptions = new QueryOptions
 
