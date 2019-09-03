@@ -5,7 +5,7 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{ Chainer, Mode }
+import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
@@ -61,8 +61,8 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
         throw EmptyValueException("No Records Found", pd)
       }
     } else {
-      logger.error("Wrong params")
-      throw WrongParamsException("Wrong params", pd)
+      logger.error(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis")
+      throw WrongParamsException(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis", pd)
     }
   }
 
@@ -83,7 +83,7 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
     val errors = scala.collection.mutable.ListBuffer.empty[Error]
 
     v1.consumerRecords.filter(_.value().nonEmpty).foreach { x =>
-      Try(EventLogJsonSupport.FromString[EventLog](x.value()).get) match {
+      Try(ChainerJsonSupport.FromString[EventLog](x.value()).get) match {
         case Success(value) =>
           successfulEventLogs += value
         case Failure(exception) =>
@@ -191,73 +191,72 @@ class TreeEventLogCreation @Inject() (
   with ProducerConfPaths
   with LazyLogging {
 
+  import LookupKey._
+
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
+  lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
+
+  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
+    val rootHash = node.value
+    val data = ChainerJsonSupport.ToJson(node).get
+
+    val category = mode.category
+    val serviceClass = mode.serviceClass
+    val lookupName = mode.lookupName
+    val customerId = mode.customerId
+
+    val lookupKeys = {
+      LookupKey(
+        lookupName,
+        category,
+        rootHash.asKeyWithLabel(category),
+        els.flatMap(x => valuesStrategy.create(x))
+      )
+    }
+
+    val treeEl = EventLog(data)
+      .withNewId(rootHash)
+      .withCategory(category)
+      .withCustomerId(customerId)
+      .withServiceClass(serviceClass)
+      .withRandomNonce
+      .addLookupKeys(lookupKeys)
+      .addOriginHeader(category)
+      .addTraceHeader(mode.value)
+      .sign(config)
+
+    treeEl
+
+  }
+
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
-    v1.flatMap { v1 =>
+    v1.map { v1 =>
 
-      val futureChainerEventLogs = v1.chainers
+      val eventLogTrees = v1.chainers
         .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
         .map { case (node, els) =>
-
-          Future {
-
-            val rootHash = node.value
-            val leavesSize = els.size
-
-            Try(EventLogJsonSupport.ToJson(node).get).map { data =>
-
-              logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: $rootHash")
-
-              val category = mode.category
-              val serviceClass = mode.serviceClass
-              val lookupName = mode.lookupName
-              val customerId = mode.customerId
-
-              val treeEl = EventLog(data)
-                .withNewId(rootHash)
-                .withCategory(category)
-                .withCustomerId(customerId)
-                .withServiceClass(serviceClass)
-                .withRandomNonce
-                .addLookupKeys(
-                  LookupKey(
-                    lookupName,
-                    category,
-                    (rootHash, category),
-                    els.map(x => (x.id, x.category))
-                  )
-                )
-                .addOriginHeader(category)
-                .addTraceHeader(mode.value)
-                .sign(config)
-
-              (treeEl, leavesSize)
-
-            } match {
-              case Success((tree, size)) =>
-                treeCounter.counter.labels(tree.category).inc()
-                leavesCounter.counter.labels(tree.category + "_LEAVES").inc(size)
-                tree
-              case Failure(e) =>
-                logger.error(s"Error creating EventLog from [${mode.value}] (2): " + e.getMessage)
-                throw TreeEventLogCreationException(e.getMessage, v1)
-            }
-
+          Try(createEventLog(node, els)) match {
+            case Success(tree) =>
+              val leavesSize = els.size
+              logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
+              treeCounter.counter.labels(tree.category).inc()
+              leavesCounter.counter.labels(tree.category + "_LEAVES").inc(leavesSize)
+              tree
+            case Failure(e) =>
+              logger.error(s"Error creating EventLog from [${mode.value}] (2): ", e)
+              throw TreeEventLogCreationException(e.getMessage, v1)
           }
-
         }
 
-      Future.sequence(futureChainerEventLogs).map { trees =>
-        if (trees.nonEmpty) {
-          v1.copy(treeEventLogs = trees)
-        } else {
-          throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
-        }
+      if (eventLogTrees.nonEmpty) {
+        v1.copy(treeEventLogs = eventLogTrees)
+      } else {
+        throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
       }
 
     }

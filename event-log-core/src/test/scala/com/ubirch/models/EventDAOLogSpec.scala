@@ -15,6 +15,8 @@ import scala.language.postfixOps
 
 class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
+  import LookupKey._
+
   "Event Log Model" must {
 
     "insert and get all and find one and check lookup keys" in {
@@ -39,7 +41,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey("lookupname", category, key, Seq(_id)))
+          .addLookupKeys(LookupKey("lookupname", category, key.asKey, Seq(_id.asValue)))
       }
 
       val eventsDAO = InjectorHelper.get[EventsDAO]
@@ -86,7 +88,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey(lookupName, category, key, Seq(value)))
+          .addLookupKeys(LookupKey(lookupName, category, key.asKey, Seq(value.asValue)))
       }
 
       val eventsDAO = InjectorHelper.get[EventsDAO]
@@ -131,7 +133,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey(lookupName, category, event2Id, Seq(event1.id)))
+          .addLookupKeys(LookupKey(lookupName, category, event2Id.asKey, Seq(event1.id.asValue)))
 
       }
 
@@ -147,7 +149,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey(lookupName, category, event3Id, Seq(event1.id)))
+          .addLookupKeys(LookupKey(lookupName, category, event3Id.asKey, Seq(event1.id.asValue)))
 
       }
 
@@ -207,7 +209,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey("Ethereum", genericCategory, event3Id, Seq(event1.id, event2.id)))
+          .addLookupKeys(LookupKey("Ethereum", genericCategory, event3Id.asKey, Seq(event1.id.asValue, event2.id.asValue)))
 
       }
 
@@ -258,7 +260,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey("tree_id", "TREE", treeId, Seq(event.id)))
+          .addLookupKeys(LookupKey("tree_id", "TREE", treeId.asKey, Seq(event.id.asValue)))
       }
 
       val tx1 = {
@@ -272,7 +274,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey("Ethereum", "PUBLIC_CHAIN", txId, Seq(tree.id)))
+          .addLookupKeys(LookupKey("Ethereum", "PUBLIC_CHAIN", txId.asKey, Seq(tree.id.asValue)))
       }
 
       val tx2 = {
@@ -286,7 +288,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           .withSignature("my signature")
           .withNonce("my nonce")
           .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey("EthereumClassic", "PUBLIC_CHAIN", txId, Seq(tree.id)))
+          .addLookupKeys(LookupKey("EthereumClassic", "PUBLIC_CHAIN", txId.asKey, Seq(tree.id.asValue)))
       }
 
       val eventsDAO = InjectorHelper.get[EventsDAO]

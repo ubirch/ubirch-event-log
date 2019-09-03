@@ -552,6 +552,13 @@ object ConsumerRunner {
 
   }
 
+  def emptyWithMetrics[K, V](metricsSubNamespace: String)(implicit executionContext: ExecutionContext): ConsumerRunner[K, V] = {
+    new ConsumerRunner[K, V](name) with WithMetrics {
+      override implicit def ec: ExecutionContext = executionContext
+      override def metricsSubNamespaceLabel: String = metricsSubNamespace
+    }
+  }
+
   def name: String = "consumer_runner_thread" + "_" + UUID.randomUUID()
 
 }

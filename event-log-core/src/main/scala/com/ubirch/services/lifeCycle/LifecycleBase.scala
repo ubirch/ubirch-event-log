@@ -16,6 +16,8 @@ trait Lifecycle {
 
   def addStopHook(hook: () => Future[_]): Unit
 
+  def addStopHooks(hooks: (() => Future[_])*): Unit = hooks.foreach(addStopHook)
+
   def stop(): Future[_]
 
 }

@@ -53,6 +53,7 @@ object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfP
       val pmId = Random.nextInt()
       val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
       pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+      pm.setChain(org.bouncycastle.util.Strings.toByteArray("2222"))
       val customerId = UUID.randomUUID().toString
       val ctxt = JObject("customerId" -> JString(customerId))
       val entity1 = MessageEnvelope(pm, ctxt)
@@ -62,7 +63,7 @@ object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfP
     val iterator = Iterator.continually(go)
 
     try {
-      iterator.take(1000000).foreach(x => x)
+      iterator.take(1).foreach(x => x)
     } finally {
       producer.getProducerOrCreate.close()
       System.exit(0)

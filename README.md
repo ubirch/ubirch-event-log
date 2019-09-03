@@ -2,7 +2,7 @@
 
 The Event Log System is a collection of services that allow the chaining
 
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/FastChainer-Eventlog-Overview.png "Event Log System")
+![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/event_log_pipeline_architecture.png "Event Log System")
 
 * [Event Log Service](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-service)
 
