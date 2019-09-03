@@ -49,20 +49,20 @@ class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCo
       Task.fromFuture {
         events.insertFromEventLog(el)
           .map { x =>
-            counter.counter.labels("success").inc()
+            counter.counter.labels(Values.SUCCESS).inc()
             x
           }
           .recover {
             case e: NoHostAvailableException =>
-              counter.counter.labels("failure").inc()
+              counter.counter.labels(Values.FAILURE).inc()
               logger.error("Error connecting to host: " + e)
               throw e
             case e: InvalidQueryException =>
-              counter.counter.labels("failure").inc()
+              counter.counter.labels(Values.FAILURE).inc()
               logger.error("Error storing data (invalid query): " + e)
               throw e
             case e: Exception =>
-              counter.counter.labels("failure").inc()
+              counter.counter.labels(Values.FAILURE).inc()
               logger.error("Error storing data (other): " + e)
               throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
           }

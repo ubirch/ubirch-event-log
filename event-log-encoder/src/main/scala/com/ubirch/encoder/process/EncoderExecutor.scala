@@ -42,6 +42,7 @@ class EncoderExecutor @Inject() (
   with ProducerConfPaths
   with LazyLogging {
 
+  import LookupKey._
   import reporter.Types._
 
   override type A = EncoderPipeData
@@ -55,15 +56,15 @@ class EncoderExecutor @Inject() (
     consumerRecords.map { x =>
       run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels("success").inc()
+          results.counter.labels(Values.SUCCESS).inc()
         case Failure(e: EncodingException) =>
           logger.error("EncodingException: " + e.getMessage)
-          results.counter.labels("failure").inc()
+          results.counter.labels(Values.FAILURE).inc()
           val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
         case Failure(e) =>
           logger.error("EncodingException (other): " + e.getMessage)
-          results.counter.labels("failure").inc()
+          results.counter.labels(Values.FAILURE).inc()
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
 
       }(scheduler)
@@ -140,8 +141,8 @@ class EncoderExecutor @Inject() (
           LookupKey(
             name = Values.SIGNATURE,
             category = Values.UPP_CATEGORY,
-            key = payloadHash,
-            value = Seq(x)
+            key = payloadHash.asKey,
+            value = Seq(x.asValue)
           ).categoryAsKeyLabel
             .nameAsValueLabelForAll
         }.toSeq
@@ -161,8 +162,8 @@ class EncoderExecutor @Inject() (
           LookupKey(
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
-            key = x,
-            value = Seq(payloadHash)
+            key = x.asKey,
+            value = Seq(payloadHash.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         }.toSeq
@@ -182,8 +183,8 @@ class EncoderExecutor @Inject() (
           LookupKey(
             name = Values.UPP_CHAIN,
             category = Values.CHAIN_CATEGORY,
-            key = payloadHash,
-            value = Seq(x)
+            key = payloadHash.asKey,
+            value = Seq(x.asValue)
           ).withKeyLabel(Values.UPP_CATEGORY)
             .categoryAsValueLabelForAll
         }.toSeq
@@ -219,8 +220,8 @@ class EncoderExecutor @Inject() (
           LookupKey(
             name = blockchainResponse.category,
             category = Values.PUBLIC_CHAIN_CATEGORY,
-            key = blockchainResponse.txid,
-            value = Seq(blockchainResponse.message)
+            key = blockchainResponse.txid.asKey,
+            value = Seq(blockchainResponse.message.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.MASTER_TREE_CATEGORY)
         ))
@@ -232,6 +233,9 @@ class EncoderExecutor @Inject() (
 
   def OrElse(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv =>
+
+      encodingsCounter.counter.labels(Values.UNKNOWN_CATEGORY).inc()
+
       val data = compact(jv)
       logger.error("No supported: " + data)
       throw EventLogFromConsumerRecordException(s"$data", encoderPipeData)

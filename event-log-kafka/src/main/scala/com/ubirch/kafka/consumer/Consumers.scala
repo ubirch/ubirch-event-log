@@ -17,7 +17,7 @@ object StringConsumer {
 
   def empty(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() {}
 
-  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() with WithMetrics[String, String] {
+  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): StringConsumer = new StringConsumer() with WithMetrics {
     override def metricsSubNamespaceLabel: String = metricsSubNamespace
   }
 
@@ -50,7 +50,7 @@ object BytesConsumer {
 
   def empty(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() {}
 
-  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() with WithMetrics[String, Array[Byte]] {
+  def emptyWithMetrics(metricsSubNamespace: String)(implicit ec: ExecutionContext): BytesConsumer = new BytesConsumer() with WithMetrics {
     override def metricsSubNamespaceLabel: String = metricsSubNamespace
   }
 

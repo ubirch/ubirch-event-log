@@ -30,16 +30,14 @@
         </encoder>
     </appender>
 
-    <logger name="kafka" level="WARN"/>
-    <logger name="org.apache.kafka" level="INFO"/>
-    <logger name="org.apache.zookeeper" level="INFO"/>
+    <logger name="org.apache.kafka" level="OFF"/>
+    <logger name="org.apache.zookeeper" level="OFF"/>
     <logger name="com.github.nosan.embedded.cassandra" level="WARN"/>
-    <logger name="com.datastax.driver" level="WARN"/>
-    <logger name="io.netty" level="WARN"/>
+    <logger name="io.netty" level="OFF"/>
 
     <logger name="com.ubirch" level="DEBUG"/>
 
-    <root level="INFO">
+    <root level="OFF">
         <appender-ref ref="STDERR"/>
     </root>
 

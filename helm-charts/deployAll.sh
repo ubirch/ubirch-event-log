@@ -35,3 +35,4 @@ fi
 ./deployK8SService.sh $ENV event-log-dispatcher $CUR_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-dispatcher-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-chainer $CUR_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-$ENV.yaml"
 ./deployK8SService.sh $ENV event-log-chainer-master $CUR_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-chainer-master-$ENV.yaml"
+./deployK8SService.sh $ENV event-log-discovery-creator $CUR_TAG "~/workspace/ubirch/_k8s/ubirch-kubernetes/19_event-log/values-event-log-discovery-creator-$ENV.yaml"
