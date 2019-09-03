@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: event-log-service
-  namespace: prometheus
   labels:
     app: event-log-service
     release: prometheus-operator

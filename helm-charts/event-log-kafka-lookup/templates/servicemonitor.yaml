@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: event-log-kafka-lookup
-  namespace: prometheus
   labels:
     app: event-log-kafka-lookup
     release: prometheus-operator
