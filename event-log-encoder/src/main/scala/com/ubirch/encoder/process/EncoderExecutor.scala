@@ -233,6 +233,9 @@ class EncoderExecutor @Inject() (
 
   def OrElse(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv =>
+
+      encodingsCounter.counter.labels(Values.UNKNOWN_CATEGORY).inc()
+
       val data = compact(jv)
       logger.error("No supported: " + data)
       throw EventLogFromConsumerRecordException(s"$data", encoderPipeData)
