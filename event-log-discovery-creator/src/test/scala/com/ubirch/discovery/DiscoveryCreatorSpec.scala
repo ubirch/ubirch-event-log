@@ -6,7 +6,7 @@ import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
 import com.ubirch.discovery.util.{ DiscoveryJsonSupport, PMHelper }
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.models.{ EventLog, LookupKey, Value, Values, Error }
+import com.ubirch.models.{ Error, EventLog, LookupKey, Value, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider

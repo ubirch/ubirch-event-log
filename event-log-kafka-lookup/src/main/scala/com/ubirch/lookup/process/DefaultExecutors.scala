@@ -4,12 +4,13 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models.GenericResponse
-import com.ubirch.process.{ BasicCommit, Executor }
+import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -99,8 +100,8 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
             (x, LookupJsonSupport.ToJson[GenericResponse](gr))
           }
           .map { case (x, y) =>
-            val commitDecision: Decision[ProducerRecord[String, String]] = {
-              Go(ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.QUERY_TYPE_HEADER -> x.queryType)))
+            val commitDecision: ProducerRecord[String, String] = {
+              ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.QUERY_TYPE_HEADER -> x.queryType))
             }
 
             commitDecision
@@ -122,14 +123,8 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
   }
 }
 
-/**
-  * Represents an executor that commits a producer record
-  *
-  * @param basicCommit Simple entity for committing to kafka
-  * @param ec             Represents an execution context
-  */
 @Singleton
-class Commit @Inject() (basicCommit: BasicCommit)(implicit ec: ExecutionContext)
+class Commit @Inject() (stringProducer: StringProducer)(implicit ec: ExecutionContext)
   extends Executor[Future[LookupPipeData], Future[LookupPipeData]] {
 
   override def apply(v1: Future[LookupPipeData]): Future[LookupPipeData] = {
@@ -139,8 +134,8 @@ class Commit @Inject() (basicCommit: BasicCommit)(implicit ec: ExecutionContext)
       try {
 
         v1.producerRecord
-          .map(x => basicCommit(x))
-          .map(x => x.map(y => v1.copy(recordMetadata = y)))
+          .map(x => stringProducer.send(x))
+          .map(x => x.map(y => v1.copy(recordMetadata = Some(y))))
           .getOrElse(throw CommitException("No Producer Record Found", v1))
 
       } catch {
