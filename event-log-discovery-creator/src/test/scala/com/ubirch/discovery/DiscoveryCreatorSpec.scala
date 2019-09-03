@@ -6,7 +6,7 @@ import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
 import com.ubirch.discovery.util.{ DiscoveryJsonSupport, PMHelper }
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.models.{ EventLog, LookupKey, Value, Values, Error}
+import com.ubirch.models.{ EventLog, LookupKey, Value, Values, Error }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
@@ -45,7 +45,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         }
         creator.start
 
-        val range = (1 to 2)
+        val range = 1 to 2
         val pms = range.map(_ => DiscoveryJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
         val eventLogs = pms.map(EventLog(_).withNewId.withCurrentEventTime.withRandomNonce.withCategory(Values.UPP_CATEGORY).toJson)
 
@@ -137,7 +137,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         import LookupKey._
 
         val id = UUIDHelper.randomUUID
-        val range = (1 to 1)
+        val range = 1 to 1
         val eventLogs = range.map { x =>
           EventLog(JInt(x))
             .withNewId(id)
@@ -199,7 +199,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         import LookupKey._
 
         val id = UUIDHelper.randomUUID
-        val range = (1 to 1)
+        val range = 1 to 1
         val eventLogs = range.map { x =>
           EventLog(JInt(x))
             .withNewId(id)
@@ -264,7 +264,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         val masterRootHash = UUIDHelper.randomUUID
 
         val id = UUIDHelper.randomUUID
-        val range = (1 to 1)
+        val range = 1 to 1
         val eventLogs = range.map { x =>
           EventLog("EventLogFromConsumerRecord", "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK", JInt(x))
             .withCustomerId(Values.UBIRCH)
