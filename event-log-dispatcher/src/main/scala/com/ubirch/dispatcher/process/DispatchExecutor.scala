@@ -7,10 +7,11 @@ import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.process.Executor
+import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.Counter
+import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
@@ -21,11 +22,13 @@ import org.apache.kafka.common.KafkaException
 import org.json4s.JValue
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class DispatchExecutor @Inject() (
-    @Named(DefaultDispatchingCounter.name) counter: Counter,
+    reporter: Reporter,
+    @Named(DefaultDispatchingCounter.name) counterPerTopic: Counter,
+    @Named(DefaultMetricsLoggerCounter.name) results: Counter,
     dispatchInfo: DispatchInfo,
     config: Config,
     lifecycle: Lifecycle,
@@ -34,7 +37,7 @@ class DispatchExecutor @Inject() (
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
   with LazyLogging {
 
-  val scheduler = monix.execution.Scheduler(ec)
+  implicit val scheduler = monix.execution.Scheduler(ec)
 
   val dispatchingInfo = dispatchInfo.info
 
@@ -54,7 +57,7 @@ class DispatchExecutor @Inject() (
           }.orElse {
             Option(eventLogAsString)
           }.map { x =>
-            counter.counter.labels(topic.name).inc()
+            counterPerTopic.counter.labels(topic.name).inc()
             x
           }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
 
@@ -91,7 +94,19 @@ class DispatchExecutor @Inject() (
         throw EmptyValueException("No Records Found to be processed", pipeData)
       }
 
-      v1.foreach(x => run(x).runAsync(scheduler))
+      v1.foreach(x => run(x).runOnComplete {
+        case Success(_) =>
+          results.counter.labels(Values.SUCCESS).inc()
+        case Failure(e: ParsingIntoEventLogException) =>
+          logger.error("ParsingIntoEventLogException: " + e.getMessage)
+          results.counter.labels(Values.FAILURE).inc()
+        case Failure(e: CreateProducerRecordException) =>
+          logger.error("CreateProducerRecordException: " + e.getMessage)
+          results.counter.labels(Values.FAILURE).inc()
+        case Failure(e) =>
+          logger.error(s"${e.getClass.getName}: " + e.getMessage)
+          results.counter.labels(Values.FAILURE).inc()
+      })
 
       DispatcherPipeData.empty.withConsumerRecords(v1)
 

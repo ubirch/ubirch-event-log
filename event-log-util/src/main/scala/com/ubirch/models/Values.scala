@@ -8,6 +8,7 @@ object Values {
   val CHAIN_CATEGORY = "CHAIN"
   val DEVICE_CATEGORY = "DEVICE"
   val PUBLIC_CHAIN_CATEGORY = "PUBLIC_CHAIN"
+  val UNKNOWN_CATEGORY = "UNKNOW_CATEGORY"
   val MASTER_TREE_ID = "master-tree-id"
   val SLAVE_TREE_ID = "slave-tree-id"
   val PAYLOAD = "payload"
