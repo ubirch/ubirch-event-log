@@ -11,7 +11,7 @@ import com.ubirch.models.Error
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.StringConsumerRecordsManager
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.util.{ Decision, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
@@ -23,7 +23,7 @@ case class LookupPipeData(
     key: Option[String],
     queryType: Option[QueryType],
     lookupResult: Option[LookupResult],
-    producerRecord: Option[Decision[ProducerRecord[String, String]]],
+    producerRecord: Option[ProducerRecord[String, String]],
     recordMetadata: Option[RecordMetadata]
 ) extends ProcessResult[String, String] {
   override val id: UUID = UUIDHelper.randomUUID

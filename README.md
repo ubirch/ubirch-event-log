@@ -16,6 +16,8 @@ The Event Log System is a collection of services that allow the chaining
 
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
+* [Event Log Discovery Creator](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-discovery-creator)
+
 ## Helper Libs
 
 * [Event Log Core](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
