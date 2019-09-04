@@ -2,7 +2,9 @@ package com.ubirch.dispatcher.services.kafka.consumer
 
 import java.util.UUID
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.dispatcher.process.ExecutorFamily
 import com.ubirch.dispatcher.util.Exceptions.{ CommitException, CreateProducerRecordException, EmptyValueException, ParsingIntoEventLogException }
 import com.ubirch.kafka.consumer.ProcessResult
@@ -41,12 +43,15 @@ object DispatcherPipeData {
 class DefaultRecordsManager @Inject() (
     val reporter: Reporter,
     val executorFamily: ExecutorFamily,
-    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter
+    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter,
+    config: Config
 )(implicit ec: ExecutionContext)
   extends StringConsumerRecordsManager
   with LazyLogging {
 
   import reporter.Types._
+
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   override type A = DispatcherPipeData
 
@@ -58,22 +63,22 @@ class DefaultRecordsManager @Inject() (
 
     case e @ EmptyValueException(_, pipeData) =>
       logger.error(s"EmptyValueException: ${e.getMessage}", e)
-      counter.counter.labels("EmptyValueException").inc()
+      counter.counter.labels(metricsSubNamespace, "EmptyValueException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ ParsingIntoEventLogException(_, pipeData) =>
       logger.error(s"ParsingIntoEventLogException: ${e.getMessage}", e)
-      counter.counter.labels("ParsingIntoEventLogException").inc()
+      counter.counter.labels(metricsSubNamespace, "ParsingIntoEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
       logger.error(s"CreateProducerRecordException: ${e.getMessage}", e)
-      counter.counter.labels("CreateProducerRecordException").inc()
+      counter.counter.labels(metricsSubNamespace, "CreateProducerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
       logger.error(s"CommitException: ${e.getMessage}", e)
-      counter.counter.labels("CommitException").inc()
+      counter.counter.labels(metricsSubNamespace, "CommitException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
       Future.successful(pipeData)
   }

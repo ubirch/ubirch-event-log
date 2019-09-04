@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
 import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
@@ -193,6 +193,8 @@ class TreeEventLogCreation @Inject() (
 
   import LookupKey._
 
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
 
@@ -246,8 +248,8 @@ class TreeEventLogCreation @Inject() (
             case Success(tree) =>
               val leavesSize = els.size
               logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
-              treeCounter.counter.labels(tree.category).inc()
-              leavesCounter.counter.labels(tree.category + "_LEAVES").inc(leavesSize)
+              treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
+              leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)
               tree
             case Failure(e) =>
               logger.error(s"Error creating EventLog from [${mode.value}] (2): ", e)
@@ -302,8 +304,10 @@ class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionCon
 }
 
 @Singleton
-class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLoggerCounter.name) counter: Counter)(implicit ec: ExecutionContext)
+class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLoggerCounter.name) counter: Counter, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with LazyLogging {
+
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
@@ -314,10 +318,10 @@ class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLog
             val futureResp = stringProducer.send(x)
             futureResp.onComplete {
               case Success(_) =>
-                counter.counter.labels(Values.SUCCESS).inc()
+                counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
               case Failure(exception) =>
                 logger.error("Error publishing ", exception)
-                counter.counter.labels(Values.FAILURE).inc()
+                counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
             }
             futureResp
           }

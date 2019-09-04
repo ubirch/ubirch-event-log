@@ -13,7 +13,7 @@ class DefaultDispatchingCounter @Inject() (val config: Config) extends Counter w
       namespace = metricsNamespace,
       name = "dispatch_total",
       help = "Total Dispatches",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }

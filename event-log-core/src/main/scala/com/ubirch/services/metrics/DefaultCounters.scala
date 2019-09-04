@@ -18,12 +18,12 @@ trait Counter extends WithNamespace {
 
 trait BasicPrometheusCounter {
 
-  def createCounter(namespace: String, name: String, help: String, labelNames: String) = {
+  def createCounter(namespace: String, name: String, help: String, labelNames: List[String]) = {
     PrometheusCounter.build()
       .namespace(namespace)
       .name(name)
       .help(help)
-      .labelNames(labelNames)
+      .labelNames(labelNames: _*)
   }
 
 }
@@ -36,7 +36,7 @@ class DefaultConsumerRecordsManagerCounter @Inject() (val config: Config) extend
       namespace = metricsNamespace,
       name = "event_error_total",
       help = "Total event errors.",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }
@@ -53,7 +53,7 @@ class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter
       namespace = metricsNamespace,
       name = "events_total",
       help = "Total events.",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }

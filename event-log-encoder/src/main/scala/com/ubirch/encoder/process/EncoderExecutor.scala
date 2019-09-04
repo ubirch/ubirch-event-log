@@ -4,7 +4,7 @@ import java.io.ByteArrayInputStream
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ProducerConfPaths
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.encoder.models.BlockchainResponse
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
@@ -45,6 +45,10 @@ class EncoderExecutor @Inject() (
   import LookupKey._
   import reporter.Types._
 
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+
+  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
+
   override type A = EncoderPipeData
 
   val CUSTOMER_ID_FIELD = "customerId"
@@ -56,15 +60,15 @@ class EncoderExecutor @Inject() (
     consumerRecords.map { x =>
       run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels(Values.SUCCESS).inc()
+          results.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
         case Failure(e: EncodingException) =>
           logger.error("EncodingException: " + e.getMessage)
-          results.counter.labels(Values.FAILURE).inc()
+          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
           val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
         case Failure(e) =>
           logger.error("EncodingException (other): " + e.getMessage)
-          results.counter.labels(Values.FAILURE).inc()
+          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
 
       }(scheduler)
@@ -81,8 +85,9 @@ class EncoderExecutor @Inject() (
         jValue = parse(bytes)
         val ldp = EncoderPipeData(Vector(x), Vector(jValue))
         val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
-          EncoderJsonSupport.ToJson[EventLog](el)
-          ProducerRecordHelper.toRecord(topic, el.id, el.toJson, Map.empty)
+          val _el = if (sign) el.sign(config) else el
+          EncoderJsonSupport.ToJson[EventLog](_el)
+          ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
         }
         val pr = maybePR.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
         Task.fromFuture(stringProducer.send(pr))
@@ -97,7 +102,7 @@ class EncoderExecutor @Inject() (
 
     case jv if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
-      encodingsCounter.counter.labels(Values.UPP_CATEGORY).inc()
+      encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
 
       val messageEnvelope: MessageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
 
@@ -208,7 +213,7 @@ class EncoderExecutor @Inject() (
   def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
 
-      encodingsCounter.counter.labels(Values.PUBLIC_CHAIN_CATEGORY).inc()
+      encodingsCounter.counter.labels(metricsSubNamespace, Values.PUBLIC_CHAIN_CATEGORY).inc()
 
       val blockchainResponse: BlockchainResponse = EncoderJsonSupport.FromJson[BlockchainResponse](jv).get
 
@@ -234,7 +239,7 @@ class EncoderExecutor @Inject() (
   def OrElse(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv =>
 
-      encodingsCounter.counter.labels(Values.UNKNOWN_CATEGORY).inc()
+      encodingsCounter.counter.labels(metricsSubNamespace, Values.UNKNOWN_CATEGORY).inc()
 
       val data = compact(jv)
       logger.error("No supported: " + data)

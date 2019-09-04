@@ -59,7 +59,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val range = (1 to 3000)
+        val range = 1 to 3000
         range.foreach { x =>
           val pmId = x
           val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
@@ -198,9 +198,9 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     "consume message envelope and publish event log with hint != 0" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val bootstrapServers = "localhost:" + config.kafkaPort
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
@@ -231,9 +231,9 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     "consume message envelope with empty customer id and publish it to error topic" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val bootstrapServers = "localhost:" + config.kafkaPort
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
@@ -319,9 +319,9 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     "consume message envelope with no customer id and publish it to error topic" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val bootstrapServers = "localhost:" + config.kafkaPort
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 

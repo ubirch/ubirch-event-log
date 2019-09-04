@@ -13,7 +13,7 @@ class DefaultEncodingsCounter @Inject() (val config: Config) extends Counter wit
       namespace = metricsNamespace,
       name = "encodings_total",
       help = "Total encodings",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }
