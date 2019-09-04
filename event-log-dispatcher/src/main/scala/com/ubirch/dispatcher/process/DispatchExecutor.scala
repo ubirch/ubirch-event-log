@@ -2,6 +2,7 @@ package com.ubirch.dispatcher.process
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.dispatcher.services.DispatchInfo
 import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
@@ -39,6 +40,8 @@ class DispatchExecutor @Inject() (
 
   implicit val scheduler = monix.execution.Scheduler(ec)
 
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+
   val dispatchingInfo = dispatchInfo.info
 
   def createProducerRecords(eventLog: EventLog, eventLogJValue: JValue, eventLogAsString: String): Vector[ProducerRecord[String, String]] = {
@@ -57,7 +60,7 @@ class DispatchExecutor @Inject() (
           }.orElse {
             Option(eventLogAsString)
           }.map { x =>
-            counterPerTopic.counter.labels(topic.name).inc()
+            counterPerTopic.counter.labels(metricsSubNamespace, topic.name).inc()
             x
           }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
 
@@ -96,16 +99,16 @@ class DispatchExecutor @Inject() (
 
       v1.foreach(x => run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels(Values.SUCCESS).inc()
+          results.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
         case Failure(e: ParsingIntoEventLogException) =>
           logger.error("ParsingIntoEventLogException: " + e.getMessage)
-          results.counter.labels(Values.FAILURE).inc()
+          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
         case Failure(e: CreateProducerRecordException) =>
           logger.error("CreateProducerRecordException: " + e.getMessage)
-          results.counter.labels(Values.FAILURE).inc()
+          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
         case Failure(e) =>
           logger.error(s"${e.getClass.getName}: " + e.getMessage)
-          results.counter.labels(Values.FAILURE).inc()
+          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
       })
 
       DispatcherPipeData.empty.withConsumerRecords(v1)

@@ -1,7 +1,9 @@
 package com.ubirch.process
 
 import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
@@ -16,8 +18,10 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
 @Singleton
-class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCounter.name) counter: Counter)(implicit val ec: ExecutionContext)
+class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCounter.name) counter: Counter, config: Config)(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] with LazyLogging {
+
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   import monix.eval._
 
@@ -49,20 +53,20 @@ class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCo
       Task.fromFuture {
         events.insertFromEventLog(el)
           .map { x =>
-            counter.counter.labels(Values.SUCCESS).inc()
+            counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
             x
           }
           .recover {
             case e: NoHostAvailableException =>
-              counter.counter.labels(Values.FAILURE).inc()
+              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
               logger.error("Error connecting to host: " + e)
               throw e
             case e: InvalidQueryException =>
-              counter.counter.labels(Values.FAILURE).inc()
+              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
               logger.error("Error storing data (invalid query): " + e)
               throw e
             case e: Exception =>
-              counter.counter.labels(Values.FAILURE).inc()
+              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
               logger.error("Error storing data (other): " + e)
               throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
           }

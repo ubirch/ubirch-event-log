@@ -13,7 +13,7 @@ class DefaultTreeCounter @Inject() (val config: Config) extends Counter with Bas
       namespace = metricsNamespace,
       name = "tree_total",
       help = "Total Trees",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }
@@ -30,7 +30,7 @@ class DefaultLeavesCounter @Inject() (val config: Config) extends Counter with B
       namespace = metricsNamespace,
       name = "leaves_total",
       help = "Total Leaves",
-      labelNames = "result"
+      labelNames = List("service", "result")
     ).register()
 
 }

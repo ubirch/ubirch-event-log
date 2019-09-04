@@ -8,8 +8,11 @@ import io.prometheus.client.{ Counter, Summary }
 import org.joda.time.Instant
 
 trait WithNamespace {
+
+  private[consumer] def simpleName = true
+
   def metricsSubNamespaceLabel: String
-  def metricsNamespace: String = Values.UBIRCH + "_" + metricsSubNamespaceLabel
+  def metricsNamespace: String = if (simpleName) "" else Values.UBIRCH + "_" + metricsSubNamespaceLabel
 }
 
 /**
@@ -20,7 +23,7 @@ trait WithMetrics extends WithNamespace {
 
   cr: ConsumerRunner[_, _] =>
 
-  def metricsName(name: String): String = s"consumer_${version.get()}_$name"
+  def metricsName(name: String): String = if (simpleName) name else s"consumer_${version.get()}_$name"
 
   //Metrics Def Start
   val startInstant = new AtomicReference[Option[Instant]](None)
@@ -40,19 +43,21 @@ trait WithMetrics extends WithNamespace {
     .namespace(metricsNamespace)
     .name(metricsName("poll_consume_size"))
     .help("Poll consume size.")
+    .labelNames("service")
     .register
 
   final val pollConsumeLatencySummary: Summary = Summary.build
     .namespace(metricsNamespace)
     .name(metricsName("poll_consume_seconds"))
     .help("Poll consume latency in seconds.")
+    .labelNames("service")
     .register
 
   val pollConsumeTimer = new AtomicReference[Option[Summary.Timer]](None)
 
-  onPreConsume(() => pollConsumeTimer.set(Some(pollConsumeLatencySummary.startTimer)))
+  onPreConsume(() => pollConsumeTimer.set(Some(pollConsumeLatencySummary.labels(metricsSubNamespaceLabel).startTimer)))
   onPostConsume { count =>
-    pollSizeSummary.observe(count)
+    pollSizeSummary.labels(metricsSubNamespaceLabel).observe(count)
     pollConsumeTimer.get().map(x => x.observeDuration())
   }
   //Metrics Def End
@@ -62,11 +67,11 @@ trait WithMetrics extends WithNamespace {
     .namespace(metricsNamespace)
     .name(metricsName("pauses_total"))
     .help("Total pauses/unpauses.")
-    .labelNames("result")
+    .labelNames("service", "result")
     .register()
 
-  onNeedForPauseCallback(_ => pausesCounter.labels("NeedForPauseException").inc())
-  onNeedForResumeCallback(() => pausesCounter.labels("NeedForResumeException").inc())
+  onNeedForPauseCallback(_ => pausesCounter.labels(metricsSubNamespaceLabel, "NeedForPauseException").inc())
+  onNeedForResumeCallback(() => pausesCounter.labels(metricsSubNamespaceLabel, "NeedForResumeException").inc())
   //Metrics Def End
 
 }

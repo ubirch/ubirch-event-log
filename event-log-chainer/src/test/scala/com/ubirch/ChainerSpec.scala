@@ -7,7 +7,7 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
-import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
+import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave, ValueStrategy }
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
@@ -76,14 +76,14 @@ class ChainerSpec extends TestBase with LazyLogging {
 
   import LookupKey._
 
+  val messageEnvelopeTopic = "com.ubirch.messageenvelope"
+  val eventLogTopic = "com.ubirch.eventlog"
+
   "Chainer Spec" must {
 
     "consume, process and publish tree and event logs in Slave mode" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
@@ -127,6 +127,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val mode = Slave
 
+        lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
+
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
         assert(treeEventLog.customerId == mode.customerId)
@@ -142,7 +144,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               mode.lookupName,
               mode.category,
               treeEventLog.id.asKeyWithLabel(mode.category),
-              chainer.es.map(x => x.id.asValueWithLabel(x.category))
+              chainer.es.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -160,9 +162,6 @@ class ChainerSpec extends TestBase with LazyLogging {
     "consume, process and publish tree and event logs in Master mode" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, mode = Master)
@@ -240,9 +239,6 @@ class ChainerSpec extends TestBase with LazyLogging {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
-
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 10, treeEvery = 6)
       val config = InjectorHelper.get[Config]
@@ -285,6 +281,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val category = Values.SLAVE_TREE_CATEGORY
 
+        lazy val valuesStrategy = ValueStrategy.getStrategy(Slave)
+
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
         assert(treeEventLog.customerId == Values.UBIRCH)
@@ -300,7 +298,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               Values.SLAVE_TREE_ID,
               category,
               treeEventLog.id.asKeyWithLabel(category),
-              chainer.es.map(x => x.id.asValueWithLabel(x.category))
+              chainer.es.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -318,9 +316,6 @@ class ChainerSpec extends TestBase with LazyLogging {
     "consume, process and publish tree and event logs after records threshold is reached" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 10)
@@ -374,6 +369,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val category = Values.SLAVE_TREE_CATEGORY
 
+        lazy val valuesStrategy = ValueStrategy.getStrategy(Slave)
+
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
         assert(treeEventLog.customerId == Values.UBIRCH)
@@ -389,7 +386,7 @@ class ChainerSpec extends TestBase with LazyLogging {
               Values.SLAVE_TREE_ID,
               category,
               treeEventLog.id.asKeyWithLabel(category),
-              chainer.es.map(x => x.id.asValueWithLabel(x.category))
+              chainer.es.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
@@ -407,9 +404,6 @@ class ChainerSpec extends TestBase with LazyLogging {
     "consume, process and publish tree and event logs after records threshold is reached in Master mode" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 11, mode = Master)
@@ -494,9 +488,6 @@ class ChainerSpec extends TestBase with LazyLogging {
     "consume, process and publish tree and event logs in Slave splitting" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val messageEnvelopeTopic = "com.ubirch.messageenvelope"
-      val eventLogTopic = "com.ubirch.eventlog"
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true)

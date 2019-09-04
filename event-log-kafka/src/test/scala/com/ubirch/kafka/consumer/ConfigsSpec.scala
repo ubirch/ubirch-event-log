@@ -21,7 +21,8 @@ class ConfigsSpec extends TestBase {
         ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG,
         ConsumerConfig.METADATA_MAX_AGE_CONFIG,
         ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-        ConsumerConfig.ISOLATION_LEVEL_CONFIG
+        ConsumerConfig.ISOLATION_LEVEL_CONFIG,
+        ConsumerConfig.FETCH_MAX_BYTES_CONFIG
       )
 
       assert(configs.props.keys.toList.sortBy(x => x) == basicConfigs.sortBy(x => x))
