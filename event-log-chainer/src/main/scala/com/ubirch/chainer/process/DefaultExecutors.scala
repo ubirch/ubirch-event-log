@@ -149,31 +149,31 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
 
+  import com.ubirch.chainer.models.Chainables.eventLogChainable
+
   def outerBalancingHash: Option[String] = None
 
-  val splitTrees: Boolean = config.getBoolean("eventLog.split")
+  lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
+
+  def split(eventLogs: Vector[EventLog]): Iterator[Vector[EventLog]] = {
+    if (splitTrees && eventLogs.size >= 100)
+      eventLogs.sliding(50, 50)
+    else
+      Iterator(eventLogs)
+  }
+
+  def createTree(eventLogs: Vector[EventLog]) = {
+    new Chainer(eventLogs.toList) {
+      override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
+    }.createGroups
+      .createSeedHashes
+      .createSeedNodes(keepOrder = true)
+      .createNode
+  }
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
-
-    import com.ubirch.chainer.models.Chainables.eventLogChainable
-
-    val subEventLogs: Iterator[Vector[EventLog]] = {
-      if (splitTrees && v1.eventLogs.size >= 100) {
-        v1.eventLogs.sliding(50, 50)
-      } else {
-        Iterator(v1.eventLogs)
-      }
-    }
-
-    val futureChainers = subEventLogs.toVector.map { eventLogs =>
-      Future {
-        new Chainer(eventLogs.toList) {
-          override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
-        }.createGroups
-          .createSeedHashes
-          .createSeedNodes(keepOrder = true)
-          .createNode
-      }
+    val futureChainers = split(v1.eventLogs).toVector.map { eventLogs =>
+      Future(createTree(eventLogs))
     }
 
     Future.sequence(futureChainers).map(chainers => v1.copy(chainers = chainers))
