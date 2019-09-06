@@ -3,11 +3,11 @@
     "category": "UPP",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.chainer.slave",
+        "name": "ubirch-svalbard-evt-foundation-json",
         "data_to_send": null
       },
       {
@@ -20,11 +20,11 @@
     "category": "SLAVE_TREE",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.chainer.master",
+        "name": "ubirch-svalbard-evt-aggregator-json",
         "data_to_send": null
       },
       {
@@ -37,15 +37,15 @@
     "category": "MASTER_TREE",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.ethereum",
+        "name": "ubirch-svalbard-evt-chain-eth-json",
         "data_to_send": "id"
       },
       {
-        "name": "com.ubirch.ethereum-classic",
+        "name": "ubirch-svalbard-evt-chain-etc-json",
         "data_to_send": "id"
       },
       {
@@ -62,7 +62,7 @@
     "category": "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
@@ -75,7 +75,7 @@
     "category": "ETHEREUM_MAINNET_FRONTIER_MAINNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
@@ -88,7 +88,7 @@
     "category": "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
@@ -101,7 +101,7 @@
     "category": "IOTA_MAINNET_IOTA_MAINNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
@@ -114,7 +114,7 @@
     "category": "ETHEREUM_TESTNNET_ETHERERUM_CLASSIC_TESTNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
@@ -127,7 +127,7 @@
     "category": "ETHEREUM_MAINNET_ETHERERUM_CLASSIC_MAINNET_NETWORK",
     "topics": [
       {
-        "name": "com.ubirch.eventlog",
+        "name": "ubirch-svalbard-evt-log-json",
         "data_to_send": null
       },
       {
