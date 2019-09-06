@@ -41,11 +41,11 @@
         "data_to_send": null
       },
       {
-        "name": "ubirch-svalbard-evt-chain-eth-json",
+        "name": "ubirch-svalbard-evt-chain-eth-string",
         "data_to_send": "id"
       },
       {
-        "name": "ubirch-svalbard-evt-chain-etc-json",
+        "name": "ubirch-svalbard-evt-chain-etc-string",
         "data_to_send": "id"
       },
       {
