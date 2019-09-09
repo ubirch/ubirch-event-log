@@ -11,7 +11,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -28,7 +28,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -49,11 +49,11 @@
         "data_to_send": "id"
       },
       {
-        "name": "com.ubirch.iota",
+        "name": "ubirch-svalbard-evt-chain-iota-string",
         "data_to_send": "id"
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -66,7 +66,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -79,7 +79,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -92,7 +92,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -105,7 +105,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -118,7 +118,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
@@ -131,7 +131,7 @@
         "data_to_send": null
       },
       {
-        "name": "com.ubirch.eventlog.discovery-creator",
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
         "data_to_send": null
       }
     ]
