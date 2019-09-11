@@ -171,13 +171,9 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
       .createNode
   }
 
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
-    val futureChainers = split(v1.eventLogs).toVector.map { eventLogs =>
-      Future(createTree(eventLogs))
-    }
-
-    Future.sequence(futureChainers).map(chainers => v1.copy(chainers = chainers))
-
+  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
+    val trees = split(v1.eventLogs).toVector.map(createTree)
+    v1.copy(chainers = trees)
   }
 }
 
