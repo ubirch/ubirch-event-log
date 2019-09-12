@@ -6,9 +6,9 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
-import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
+import com.ubirch.chainer.services.{ InstantMonitor, TreeCache }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
@@ -22,6 +22,7 @@ import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
+import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
@@ -145,7 +146,7 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
 }
 
 @Singleton
-class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionContext)
+class TreeCreatorExecutor @Inject() (config: Config, treeCache: TreeCache)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
 
@@ -155,25 +156,46 @@ class TreeCreatorExecutor @Inject() (config: Config)(implicit ec: ExecutionConte
 
   lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
 
-  def split(eventLogs: Vector[EventLog]): Iterator[Vector[EventLog]] = {
+  def split(eventLogs: List[EventLog]): List[List[EventLog]] = {
     if (splitTrees && eventLogs.size >= 100)
-      eventLogs.sliding(50, 50)
+      eventLogs.sliding(50, 50).toList
     else
-      Iterator(eventLogs)
+      Iterator(eventLogs).toList
   }
 
-  def createTree(eventLogs: Vector[EventLog]) = {
-    new Chainer(eventLogs.toList) {
-      override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
-    }.createGroups
-      .createSeedHashes
-      .createSeedNodes(keepOrder = true)
-      .createNode
+  @tailrec
+  final def createTrees(splits: List[List[EventLog]], chainers: List[Chainer[EventLog]], latest: String): (List[Chainer[EventLog]], String) = {
+    splits match {
+      case Nil => (chainers, latest)
+      case xs :: xss =>
+        val chainer = new Chainer(xs) {
+          override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
+        }
+          .withHashZero(latest)
+          .withGeneralGrouping
+          .createSeedHashes
+          .createSeedNodes(keepOrder = true)
+          .createNode
+
+        createTrees(xss, chainers ++ List(chainer), chainer.getNode.map(x => x.value).getOrElse(""))
+
+    }
   }
 
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
-    val trees = split(v1.eventLogs).toVector.map(createTree)
-    v1.copy(chainers = trees)
+  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
+    val splits = split(v1.eventLogs.toList)
+
+    lazy val futureChainers = treeCache.latest.map { ox =>
+      createTrees(splits, Nil, ox.getOrElse(""))
+    }
+
+    for {
+      (chainers, latest) <- futureChainers
+      _ <- treeCache.setLatest(latest)
+    } yield {
+      v1.copy(chainers = chainers.toVector)
+    }
+
   }
 }
 
