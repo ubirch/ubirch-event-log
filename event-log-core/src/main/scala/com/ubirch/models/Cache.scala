@@ -15,7 +15,7 @@ trait Cache {
 @Singleton
 class MemCache extends Cache {
 
-  private val map = new ConcurrentHashMap[String, String]().asScala
+  private final val map = new ConcurrentHashMap[String, String]().asScala
 
   override def get(key: String): Future[Option[String]] = Future.successful(map.get(key))
 

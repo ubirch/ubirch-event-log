@@ -177,7 +177,7 @@ class TreeCreatorExecutor @Inject() (config: Config, treeCache: TreeCache)(impli
           .createSeedNodes(keepOrder = true)
           .createNode
 
-        createTrees(xss, chainers ++ List(chainer), chainer.getNode.map(x => x.value).getOrElse(""))
+        createTrees(xss, chainers ++ List(chainer), chainer.getNode.map(x => treeCache.prefix(x.value)).getOrElse(""))
 
     }
   }
@@ -185,8 +185,8 @@ class TreeCreatorExecutor @Inject() (config: Config, treeCache: TreeCache)(impli
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
     val splits = split(v1.eventLogs.toList)
 
-    lazy val futureChainers = treeCache.latest.map { ox =>
-      createTrees(splits, Nil, ox.getOrElse(""))
+    lazy val futureChainers = treeCache.latest.map { maybeLatest =>
+      createTrees(splits, Nil, maybeLatest.getOrElse(""))
     }
 
     for {

@@ -244,7 +244,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val _balancingHash = Chainer.getEmptyNodeVal
 
       val memCache = new MemCache
-      val treeCache = new TreeCache(memCache)
+      val treeCache = new TreeCache(memCache, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
@@ -292,7 +292,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val _balancingHash = Chainer.getEmptyNodeVal
 
       val memCache = new MemCache
-      val treeCache = new TreeCache(memCache)
+      val treeCache = new TreeCache(memCache, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
@@ -349,7 +349,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val _balancingHash = Chainer.getEmptyNodeVal
 
       val memCache = new MemCache
-      val treeCache = new TreeCache(memCache)
+      val treeCache = new TreeCache(memCache, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
