@@ -6,10 +6,10 @@ import com.ubirch.TestBase
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
-import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
-import com.ubirch.chainer.util.{ ChainerJsonSupport, EmptyValueException, PMHelper, ParsingIntoEventLogException, SigningEventLogException }
+import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor, TreeCache }
+import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, MemCache }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
@@ -243,7 +243,10 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val _balancingHash = Chainer.getEmptyNodeVal
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config) {
+      val memCache = new MemCache
+      val treeCache = new TreeCache(memCache)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
 
@@ -281,7 +284,6 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
   "TreeEventLogCreation" must {
     "create slave tree" in {
-      import org.json4s.jackson.JsonMethods.parse
 
       val reporter = mock[Reporter]
 
@@ -289,7 +291,10 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val _balancingHash = Chainer.getEmptyNodeVal
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config) {
+      val memCache = new MemCache
+      val treeCache = new TreeCache(memCache)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
 
@@ -343,7 +348,10 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val _balancingHash = Chainer.getEmptyNodeVal
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config) {
+      val memCache = new MemCache
+      val treeCache = new TreeCache(memCache)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
 
