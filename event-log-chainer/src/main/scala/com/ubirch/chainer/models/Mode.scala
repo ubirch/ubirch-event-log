@@ -17,6 +17,12 @@ object Mode {
       case Master.value => Master
     }
   }
+
+  def fold[R](mode: Mode)(onSlave: => R)(onMaster: => R): R = mode match {
+    case Slave => onSlave
+    case Master => onMaster
+  }
+
 }
 
 case object Slave extends Mode {
