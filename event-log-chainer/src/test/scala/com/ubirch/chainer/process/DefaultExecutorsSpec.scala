@@ -132,7 +132,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsParser(Future.successful(cp))
 
@@ -143,7 +143,6 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(consumerRecords == res.consumerRecords)
       assert(res.treeEventLogs.isEmpty)
       assert(res.chainers.isEmpty)
-      assert(res.producerRecords.isEmpty)
       assert(res.recordsMetadata.isEmpty)
 
     }
@@ -158,7 +157,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", "")
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsParser(Future.successful(cp))
 
@@ -189,7 +188,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsSigner(eventLogsParser(Future.successful(cp)))
 
@@ -201,7 +200,6 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(consumerRecords == res.consumerRecords)
       assert(res.treeEventLogs.isEmpty)
       assert(res.chainers.isEmpty)
-      assert(res.producerRecords.isEmpty)
       assert(res.recordsMetadata.isEmpty)
 
     }
@@ -221,7 +219,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventLogsSigner(Future.successful(cp))
 
@@ -263,7 +261,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 
@@ -317,7 +315,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 
@@ -380,7 +378,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
-      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
       val els = eventPreparer(Future.successful(cp))
 

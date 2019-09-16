@@ -17,7 +17,13 @@ import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainers: Vector[Chainer[EventLog]], treeEventLogs: Vector[EventLog], producerRecords: Vector[ProducerRecord[String, String]], recordsMetadata: Vector[RecordMetadata])
+case class ChainerPipeData(
+    consumerRecords: Vector[ConsumerRecord[String, String]],
+    eventLogs: Vector[EventLog],
+    chainers: Vector[Chainer[EventLog]],
+    treeEventLogs: Vector[EventLog],
+    recordsMetadata: Vector[RecordMetadata]
+)
   extends EventLogsPipeData[String]
 
 @Singleton
@@ -39,10 +45,8 @@ class DefaultChainerManager @Inject() (
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]] = {
     executorFamily.filterEmpty andThen
       executorFamily.eventLogParser andThen
-      //executorFamily.eventLogSigner andThen
       executorFamily.treeCreatorExecutor andThen
       executorFamily.treeEventLogCreation andThen
-      executorFamily.createTreeProducerRecord andThen
       executorFamily.commit
   }
 
