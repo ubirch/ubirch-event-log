@@ -23,7 +23,7 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
       Iterator(eventLogs).toList
   }
 
-  def create(eventLogs: List[EventLog], initialTreeHash: String)(prefixer: String => String) = {
+  def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String) = {
 
     @tailrec def go(
         splits: List[List[EventLog]],
@@ -48,7 +48,7 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
     }
 
     val splits = split(eventLogs)
-    go(splits, Nil, initialTreeHash)
+    go(splits, Nil, maybeInitialTreeHash.getOrElse(""))
 
   }
 

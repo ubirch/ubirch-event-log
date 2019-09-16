@@ -13,7 +13,9 @@ import com.ubirch.models.{ EventLog, MemCache }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.kafka.producer.Reporter
+import com.ubirch.services.kafka.producer.{ DefaultStringProducer, Reporter }
+import com.ubirch.services.lifeCycle.DefaultLifecycle
+import com.ubirch.services.metrics.DefaultMetricsLoggerCounter
 import com.ubirch.util.{ SigningHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -250,7 +252,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+      val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
+
+      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -304,7 +310,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+      val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
+
+      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -333,7 +343,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeEventLogCreator, config)
+      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor, config)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -367,7 +377,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+      val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
+
+      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -396,7 +410,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeEventLogCreator, config) {
+      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor, config) {
         override def modeFromConfig: String = Master.value
       }
 
