@@ -64,7 +64,15 @@ object ChainerSpec {
 
   def getChainer(events: List[EventLog]): Chainer[EventLog] = {
     new Chainer(events)
-      .createGroups
+      .withGeneralGrouping
+      .createSeedHashes
+      .createSeedNodes(keepOrder = true)
+      .createNode
+  }
+
+  def getChainerWithGeneral(events: List[EventLog]): Chainer[EventLog] = {
+    new Chainer(events)
+      .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
       .createNode
@@ -152,7 +160,8 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(events.size == chainer.es.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
-        assert(chainer.getNodes.map(_.value).size == customerIds.size)
+        //assert(chainer.getNodes.map(_.value).size == customerIds.size) for when there's explicit grouping
+        assert(chainer.getNodes.map(_.value).size == 1)
         assert(chainer.getHashes.flatten.size == events.size)
 
       }
@@ -228,7 +237,8 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(events.size == chainer.es.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
-        assert(chainer.getNodes.map(_.value).size == customerIds.size)
+        // assert(chainer.getNodes.map(_.value).size == customerIds.size) Good for when there's explicit grouping
+        assert(chainer.getNodes.map(_.value).size == 1)
         assert(chainer.getHashes.flatten.size == events.size)
 
       }

@@ -5,15 +5,14 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
+import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
-import com.ubirch.chainer.services.{ InstantMonitor, TreeCache }
+import com.ubirch.chainer.services.{ InstantMonitor, TreeEventLogCreator, TreeMonitor }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
+import com.ubirch.models.{ Error, EventLog, Values }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
@@ -22,7 +21,6 @@ import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
-import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
@@ -145,135 +143,31 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
   }
 }
 
-@Singleton
-class TreeCreatorExecutor @Inject() (config: Config, treeCache: TreeCache)(implicit ec: ExecutionContext)
+class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
 
-  import com.ubirch.chainer.models.Chainables.eventLogChainable
-
-  def outerBalancingHash: Option[String] = None
-
-  lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
-
-  def split(eventLogs: List[EventLog]): List[List[EventLog]] = {
-    if (splitTrees && eventLogs.size >= 100)
-      eventLogs.sliding(50, 50).toList
-    else
-      Iterator(eventLogs).toList
-  }
-
-  @tailrec
-  final def createTrees(splits: List[List[EventLog]], chainers: List[Chainer[EventLog]], latest: String): (List[Chainer[EventLog]], String) = {
-    splits match {
-      case Nil => (chainers, latest)
-      case xs :: xss =>
-        val chainer = new Chainer(xs) {
-          override def balancingHash: String = outerBalancingHash.getOrElse(super.balancingHash)
-        }
-          .withHashZero(latest)
-          .withGeneralGrouping
-          .createSeedHashes
-          .createSeedNodes(keepOrder = true)
-          .createNode
-
-        createTrees(xss, chainers ++ List(chainer), chainer.getNode.map(x => treeCache.prefix(x.value)).getOrElse(""))
-
-    }
-  }
-
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
-    val splits = split(v1.eventLogs.toList)
-
-    lazy val futureChainers = treeCache.latest.map { maybeLatest =>
-      createTrees(splits, Nil, maybeLatest.getOrElse(""))
-    }
-
-    for {
-      (chainers, latest) <- futureChainers
-      _ <- treeCache.setLatest(latest)
-    } yield {
+    treeMonitor.create(v1.eventLogs.toList).map { chainers =>
       v1.copy(chainers = chainers.toVector)
     }
-
   }
 }
 
 @Singleton
-class TreeEventLogCreation @Inject() (
-    config: Config,
-    @Named(DefaultTreeCounter.name) treeCounter: Counter,
-    @Named(DefaultLeavesCounter.name) leavesCounter: Counter
-)(implicit ec: ExecutionContext)
+class TreeEventLogCreation @Inject() (treeEventLogCreator: TreeEventLogCreator, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
 
-  import LookupKey._
-
-  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
-
   def modeFromConfig: String = config.getString("eventLog.mode")
   def mode: Mode = Mode.getMode(modeFromConfig)
-
-  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
-
-  logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
-
-  lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
-
-  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
-    val rootHash = node.value
-    val data = ChainerJsonSupport.ToJson(node).get
-
-    val category = mode.category
-    val serviceClass = mode.serviceClass
-    val lookupName = mode.lookupName
-    val customerId = mode.customerId
-
-    val lookupKeys = {
-      LookupKey(
-        lookupName,
-        category,
-        rootHash.asKeyWithLabel(category),
-        els.flatMap(x => valuesStrategy.create(x))
-      )
-    }
-
-    val treeEl = EventLog(data)
-      .withNewId(rootHash)
-      .withCategory(category)
-      .withCustomerId(customerId)
-      .withServiceClass(serviceClass)
-      .withRandomNonce
-      .addLookupKeys(lookupKeys)
-      .addOriginHeader(category)
-      .addTraceHeader(mode.value)
-
-    if (sign) treeEl.sign(config)
-    else treeEl
-
-  }
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
     v1.map { v1 =>
 
-      val eventLogTrees = v1.chainers
-        .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
-        .map { case (node, els) =>
-          Try(createEventLog(node, els)) match {
-            case Success(tree) =>
-              val leavesSize = els.size
-              logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
-              treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
-              leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)
-              tree
-            case Failure(e) =>
-              logger.error(s"Error creating EventLog from [${mode.value}] (2): ", e)
-              throw TreeEventLogCreationException(e.getMessage, v1)
-          }
-        }
+      val eventLogTrees = treeEventLogCreator.create(v1.chainers)
 
       if (eventLogTrees.nonEmpty) {
         v1.copy(treeEventLogs = eventLogTrees)

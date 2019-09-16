@@ -6,7 +6,7 @@ import com.ubirch.TestBase
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
-import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor, TreeCache }
+import com.ubirch.chainer.services._
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.{ EventLog, MemCache }
@@ -246,9 +246,15 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val memCache = new MemCache
       val treeCache = new TreeCache(memCache, config)
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
+      val treeCreator = new TreeCreator(config) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
+
+      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
       val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
 
@@ -294,9 +300,15 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val memCache = new MemCache
       val treeCache = new TreeCache(memCache, config)
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
+      val treeCreator = new TreeCreator(config) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
+
+      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
       val eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
@@ -323,7 +335,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+      val treeEventLogCreation = new TreeEventLogCreation(treeEventLogCreator, config)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -351,9 +363,15 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val memCache = new MemCache
       val treeCache = new TreeCache(memCache, config)
 
-      val treeCreatorExecutor = new TreeCreatorExecutor(config, treeCache) {
+      val treeCreator = new TreeCreator(config) {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
+
+      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
       val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
 
@@ -380,7 +398,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config)) {
+      val treeEventLogCreation = new TreeEventLogCreation(treeEventLogCreator, config) {
         override def modeFromConfig: String = Master.value
       }
 
