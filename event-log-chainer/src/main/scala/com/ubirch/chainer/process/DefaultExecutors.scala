@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.{ InstantMonitor, TreeEventLogCreator, TreeMonitor, TreePublisher }
+import com.ubirch.chainer.services.{ InstantMonitor, TreeMonitor, TreePublisher }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -146,14 +146,14 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
   with LazyLogging {
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
-    treeMonitor.create(v1.eventLogs.toList).map { chainers =>
+    treeMonitor.createTrees(v1.eventLogs.toList).map { chainers =>
       v1.copy(chainers = chainers.toVector)
     }
   }
 }
 
 @Singleton
-class TreeEventLogCreation @Inject() (treeEventLogCreator: TreeEventLogCreator, config: Config)(implicit ec: ExecutionContext)
+class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
@@ -165,7 +165,7 @@ class TreeEventLogCreation @Inject() (treeEventLogCreator: TreeEventLogCreator, 
 
     v1.map { v1 =>
 
-      val eventLogTrees = treeEventLogCreator.create(v1.chainers)
+      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers)
 
       if (eventLogTrees.nonEmpty) {
         v1.copy(treeEventLogs = eventLogTrees)
