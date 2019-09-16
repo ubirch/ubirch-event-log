@@ -1,4 +1,4 @@
-package com.ubirch.chainer.services
+package com.ubirch.chainer.services.tree
 
 import com.ubirch.chainer.models.Chainer
 import com.ubirch.models.EventLog
@@ -29,5 +29,7 @@ class TreeMonitor @Inject() (
     //TODO: WE SHOULD ADD THE NEW HEADERS HERE
     treeEventLogCreator.create(chainers)
   }
+
+  def publish(topic: String, eventLog: EventLog) = treePublisher.publish(topic, eventLog)
 
 }

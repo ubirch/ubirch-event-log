@@ -7,6 +7,7 @@ import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services._
+import com.ubirch.chainer.services.tree.{ TreeCache, TreeCreator, TreeEventLogCreator, TreeMonitor, TreePublisher }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.{ EventLog, MemCache }

@@ -1,4 +1,4 @@
-package com.ubirch.chainer.services
+package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
 import com.ubirch.chainer.models.Chainer
