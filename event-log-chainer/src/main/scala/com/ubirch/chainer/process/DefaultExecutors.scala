@@ -7,15 +7,13 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.{ InstantMonitor, TreeEventLogCreator, TreeMonitor }
+import com.ubirch.chainer.services.{ InstantMonitor, TreeEventLogCreator, TreeMonitor, TreePublisher }
 import com.ubirch.chainer.util._
-import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, Values }
+import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -39,7 +37,7 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[ChainerPipeData] = Future {
     val records = v1.filter(_.value().nonEmpty)
-    lazy val pd = ChainerPipeData(records, Vector.empty, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+    lazy val pd = ChainerPipeData(records, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
 
     if (pause > 0) {
       if (records.nonEmpty) {
@@ -181,70 +179,29 @@ class TreeEventLogCreation @Inject() (treeEventLogCreator: TreeEventLogCreator, 
 }
 
 @Singleton
-class CreateProducerRecords @Inject() (config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
-  with ProducerConfPaths
-  with LazyLogging {
+class Commit @Inject() (publisher: TreePublisher, config: Config)(implicit ec: ExecutionContext)
+  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with ProducerConfPaths with LazyLogging {
+
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
-    v1.map { v1 =>
-
-      try {
-
-        lazy val treeEventLogProducerRecord = v1.treeEventLogs.map { treeEl =>
-          ProducerRecordHelper.toRecordFromEventLog(topic, v1.id.toString, treeEl)
-        }
-
-        if (treeEventLogProducerRecord.nonEmpty) {
-          v1.copy(producerRecords = treeEventLogProducerRecord)
-        } else {
-          throw CreateTreeProducerRecordException("Error creating producer records", v1)
-        }
-
-      } catch {
-        case e: Exception =>
-          throw CreateTreeProducerRecordException(e.getMessage, v1)
-
-      }
-
-    }
-
-  }
-}
-
-@Singleton
-class Commit @Inject() (stringProducer: StringProducer, @Named(DefaultMetricsLoggerCounter.name) counter: Counter, config: Config)(implicit ec: ExecutionContext)
-  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with LazyLogging {
-
-  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
-
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
-
-    val futureMetadata = v1.map(_.producerRecords)
+    val futureMetadata = v1.map(_.treeEventLogs)
       .flatMap { prs =>
         Future.sequence {
-          prs.map { x =>
-            val futureResp = stringProducer.send(x)
-            futureResp.onComplete {
-              case Success(_) =>
-                counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
-              case Failure(exception) =>
-                logger.error("Error publishing ", exception)
-                counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
-            }
-            futureResp
+          prs.map { el =>
+            publisher.publish(topic, el)
           }
         }
       }
 
     val futureResp = for {
-      md <- futureMetadata
+      mds <- futureMetadata
       v <- v1
     } yield {
-      v.copy(recordsMetadata = md)
+      v.copy(recordsMetadata = mds)
     }
 
     futureResp.recoverWith {
@@ -272,8 +229,6 @@ trait ExecutorFamily {
 
   def treeEventLogCreation: TreeEventLogCreation
 
-  def createTreeProducerRecord: CreateProducerRecords
-
   def eventLogSigner: EventLogsSigner
 
   def commit: Commit
@@ -286,7 +241,6 @@ class DefaultExecutorFamily @Inject() (
     val eventLogParser: EventLogsParser,
     val treeCreatorExecutor: TreeCreatorExecutor,
     val treeEventLogCreation: TreeEventLogCreation,
-    val createTreeProducerRecord: CreateProducerRecords,
     val eventLogSigner: EventLogsSigner,
     val commit: Commit
 ) extends ExecutorFamily

@@ -5,7 +5,6 @@ import javax.inject._
 
 import scala.concurrent.ExecutionContext
 
-@Singleton
 class TreeMonitor @Inject() (
     treeCache: TreeCache,
     treeCreator: TreeCreator,
