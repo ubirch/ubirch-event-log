@@ -7,7 +7,8 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.{ InstantMonitor, TreeMonitor, TreePublisher }
+import com.ubirch.chainer.services.tree.TreeMonitor
+import com.ubirch.chainer.services.InstantMonitor
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -179,7 +180,7 @@ class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor, config: Config)(
 }
 
 @Singleton
-class Commit @Inject() (publisher: TreePublisher, config: Config)(implicit ec: ExecutionContext)
+class Commit @Inject() (monitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with ProducerConfPaths with LazyLogging {
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
@@ -192,7 +193,7 @@ class Commit @Inject() (publisher: TreePublisher, config: Config)(implicit ec: E
       .flatMap { prs =>
         Future.sequence {
           prs.map { el =>
-            publisher.publish(topic, el)
+            monitor.publish(topic, el)
           }
         }
       }

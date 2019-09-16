@@ -1,15 +1,14 @@
-package com.ubirch.chainer.services
+package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.ProducerRecordHelper
 import javax.inject._
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
