@@ -21,6 +21,8 @@ import com.ubirch.util.{ SigningHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JValue
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
@@ -37,10 +39,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "fail if all values are empty" in {
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeMonitor = mock[TreeMonitor]
 
-      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
+      val filterEmpty = new FilterEmpty(treeMonitor, config)
       val res = filterEmpty(Vector.empty)
 
       assertThrows[EmptyValueException](await(res, 2 seconds))
@@ -57,10 +58,10 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", "")
       }
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeMonitor = mock[TreeMonitor]
+      when(treeMonitor.goodToCreate((any[Vector[ConsumerRecord[String, String]]]()))).thenReturn(true)
 
-      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
+      val filterEmpty = new FilterEmpty(treeMonitor, config)
       val fres = filterEmpty(data.toVector)
 
       lazy val res = await(fres, 2 seconds)
@@ -82,9 +83,14 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val instantMonitor: InstantMonitor = new AtomicInstantMonitor
       val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
 
+      val treeMonitor = mock[TreeMonitor]
+
+      when(treeMonitor.treeCreationTrigger).thenReturn(treeCreationTrigger)
+      when(treeMonitor.goodToCreate((any[Vector[ConsumerRecord[String, String]]]()))).thenCallRealMethod()
+
       Thread.sleep(3000)
 
-      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
+      val filterEmpty = new FilterEmpty(treeMonitor, config)
 
       val cim0 = instantMonitor.elapsedSeconds
 
@@ -108,10 +114,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", uuid.toString)
       }
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeMonitor = mock[TreeMonitor]
 
-      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
+      val filterEmpty = new FilterEmpty(treeMonitor, config)
       val fres = filterEmpty(data.toVector)
 
       lazy val res = await(fres, 2 seconds)
@@ -261,7 +266,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -319,7 +328,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -388,7 +401,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher)
+      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 

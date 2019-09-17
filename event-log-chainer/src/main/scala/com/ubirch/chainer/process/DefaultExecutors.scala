@@ -6,7 +6,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.tree.{ TreeCreationTrigger, TreeMonitor }
+import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -24,7 +24,7 @@ import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 @Singleton
-class FilterEmpty @Inject() (treeCreationTrigger: TreeCreationTrigger, config: Config)(implicit ec: ExecutionContext)
+class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]]
   with LazyLogging {
 
@@ -38,7 +38,7 @@ class FilterEmpty @Inject() (treeCreationTrigger: TreeCreationTrigger, config: C
 
     if (pause > 0) {
       if (records.nonEmpty) {
-        if (treeCreationTrigger.goodToCreate(records)) {
+        if (treeMonitor.goodToCreate(records)) {
           //logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
           pd
         } else {
