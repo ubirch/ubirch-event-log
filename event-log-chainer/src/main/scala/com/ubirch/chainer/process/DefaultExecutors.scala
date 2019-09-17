@@ -5,10 +5,8 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.tree.TreeMonitor
-import com.ubirch.chainer.services.InstantMonitor
+import com.ubirch.chainer.services.tree.{ TreeCreationTrigger, TreeMonitor }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -26,15 +24,13 @@ import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
 @Singleton
-class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(implicit ec: ExecutionContext)
+class FilterEmpty @Inject() (treeCreationTrigger: TreeCreationTrigger, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]]
   with LazyLogging {
 
-  val minTreeRecords: Int = config.getInt("eventLog.minTreeRecords")
-  val every: Int = config.getInt("eventLog.treeEvery")
   val pause: Int = config.getInt("eventLog.pause")
 
-  logger.info("Min Tree Records [{}]  every [{}] seconds with [{}] pause millis", minTreeRecords, every, pause)
+  logger.info("Pause millis [{}]", pause)
 
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[ChainerPipeData] = Future {
     val records = v1.filter(_.value().nonEmpty)
@@ -42,12 +38,8 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
 
     if (pause > 0) {
       if (records.nonEmpty) {
-
-        val currentRecordsSize = records.size
-        val currentElapsedSeconds = instantMonitor.elapsedSeconds
-        if (currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every) {
-          logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
-          instantMonitor.registerNewInstant
+        if (treeCreationTrigger.goodToCreate(records)) {
+          //logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
           pd
         } else {
           //logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
@@ -59,8 +51,8 @@ class FilterEmpty @Inject() (instantMonitor: InstantMonitor, config: Config)(imp
         throw EmptyValueException("No Records Found", pd)
       }
     } else {
-      logger.error(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis")
-      throw WrongParamsException(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis", pd)
+      //logger.error(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis")
+      throw WrongParamsException(s"Wrong params: [$pause] pause millis", pd)
     }
   }
 
@@ -154,13 +146,10 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
 }
 
 @Singleton
-class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
+class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
   with LazyLogging {
-
-  def modeFromConfig: String = config.getString("eventLog.mode")
-  def mode: Mode = Mode.getMode(modeFromConfig)
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
 
@@ -171,7 +160,7 @@ class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor, config: Config)(
       if (eventLogTrees.nonEmpty) {
         v1.copy(treeEventLogs = eventLogTrees)
       } else {
-        throw TreeEventLogCreationException(s"Error creating EventLog from [${mode.value}] Chainer", v1)
+        throw TreeEventLogCreationException(s"Error creating EventLog", v1)
       }
 
     }

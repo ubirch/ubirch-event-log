@@ -27,8 +27,8 @@ class TreeEventLogCreator @Inject() (
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
-  lazy val modeFromConfig: String = config.getString("eventLog.mode")
-  lazy val mode: Mode = Mode.getMode(modeFromConfig)
+  def modeFromConfig: String = config.getString("eventLog.mode")
+  def mode: Mode = Mode.getMode(modeFromConfig)
 
   lazy val sign: Boolean = config.getBoolean("eventLog.sign")
 
