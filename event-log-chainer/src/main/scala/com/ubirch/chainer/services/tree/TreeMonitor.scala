@@ -4,22 +4,29 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.chainer.models.Chainer
 import com.ubirch.models.EventLog
 import javax.inject._
+import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class TreeMonitor @Inject() (
     treeCache: TreeCache,
     treeCreator: TreeCreator,
     treeEventLogCreator: TreeEventLogCreator,
-    treePublisher: TreePublisher
-)(implicit ec: ExecutionContext) extends LazyLogging {
+    treePublisher: TreePublisher,
+    val treeCreationTrigger: TreeCreationTrigger)(implicit ec: ExecutionContext) extends LazyLogging {
 
   implicit val scheduler = monix.execution.Scheduler(ec)
 
   scheduler.scheduleWithFixedDelay(3.seconds, 5.seconds) {
     println("Fixed delay task")
+  }
+
+  def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
+    val good = treeCreationTrigger.goodToCreate(consumerRecords)
+    if(good) treeCreationTrigger.registerNewTreeInstant
+    good
   }
 
   def createTrees(eventLogs: List[EventLog]) = {
