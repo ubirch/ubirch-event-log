@@ -21,9 +21,13 @@ class TreeCreationTrigger @Inject() (
 
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val currentRecordsSize = consumerRecords.size
-    val currentElapsedSeconds = instantMonitor.elapsedSeconds
+    lazy val currentElapsedSeconds = instantMonitor.elapsedSeconds
     currentRecordsSize >= minTreeRecords || currentElapsedSeconds >= every
   }
+
+  def lastTree = instantMonitor.lastInstant
+
+  def elapsedSeconds = instantMonitor.elapsedSeconds
 
 
   def registerNewTreeInstant = instantMonitor.registerNewInstant

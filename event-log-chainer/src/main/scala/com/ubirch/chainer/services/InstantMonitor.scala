@@ -12,7 +12,6 @@ trait InstantMonitor {
   def elapsedSeconds: Long
 }
 
-@Singleton
 class AtomicInstantMonitor extends InstantMonitor {
 
   private val lastChainingInstant: AtomicReference[Instant] = new AtomicReference[Instant](new Instant())

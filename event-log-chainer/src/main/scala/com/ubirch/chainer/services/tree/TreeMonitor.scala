@@ -8,6 +8,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 @Singleton
 class TreeMonitor @Inject() (
@@ -19,22 +20,37 @@ class TreeMonitor @Inject() (
 
   implicit val scheduler = monix.execution.Scheduler(ec)
 
-  scheduler.scheduleWithFixedDelay(3.seconds, 5.seconds) {
-    println("Fixed delay task")
+  def start = {
+    scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
+      logger.info("Last incoming tree was at {} with current elapsed seconds {} ",  treeCreationTrigger.lastTree, treeCreationTrigger.elapsedSeconds)
+      treeCache.latestTree.onComplete{
+        case Success(Some(value)) =>
+          logger.info("Last tree is {}", value.toJson)
+        case Success(None) =>
+          logger.info("No tree found")
+        case Failure(exception) =>
+          logger.error("Error getting last tree {}" + exception.getMessage)
+      }
+    }
   }
 
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
-    if(good) treeCreationTrigger.registerNewTreeInstant
+    if(good) {
+      logger.info("Tree creation is OK to go")
+      treeCreationTrigger.registerNewTreeInstant
+    } else
+      logger.info("Tree creation is not ready yet")
+
     good
   }
 
   def createTrees(eventLogs: List[EventLog]) = {
 
     for {
-      maybeLatest <- treeCache.latest
+      maybeLatest <- treeCache.latestHash
       (chainers, latest) <- Future(treeCreator.create(eventLogs, maybeLatest)(treeCache.prefix))
-      _ <- treeCache.setLatest(latest)
+      _ <- treeCache.setLatestHash(latest)
     } yield {
       chainers
     }
@@ -46,6 +62,14 @@ class TreeMonitor @Inject() (
     treeEventLogCreator.create(chainers)
   }
 
-  def publish(topic: String, eventLog: EventLog) = treePublisher.publish(topic, eventLog)
+  def publish(topic: String, eventLog: EventLog) = {
+    for {
+      _ <- treeCache.setLatestTree(eventLog)
+      p <- treePublisher.publish(topic, eventLog)
+    } yield {
+      logger.debug("Tree sent to:" + topic)
+      p
+    }
+  }
 
 }
