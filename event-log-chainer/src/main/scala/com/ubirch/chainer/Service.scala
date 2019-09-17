@@ -26,11 +26,12 @@ object Service extends Boot(ChainerServiceBinder.modules) {
   def main(args: Array[String]): Unit = {
 
     val consumer: StringConsumer = get[StringConsumer]
-    get[TreeMonitor]
-
     consumer.setConsumptionStrategy(All)
-
     consumer.start()
+
+    val monitor = get[TreeMonitor]
+    monitor.start
+
 
   }
 
@@ -53,7 +54,7 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
     val producer = ProducerRunner[String, String](configs, Some(new StringSerializer()), Some(new StringSerializer()))
 
-    val range = (0 to 10000)
+    val range = (0 to 1)
 
     def data(index: Int) = mode match {
       case Slave =>

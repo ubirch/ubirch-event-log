@@ -39,10 +39,10 @@ class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit 
     if (pause > 0) {
       if (records.nonEmpty) {
         if (treeMonitor.goodToCreate(records)) {
-          //logger.debug("The chainer threshold HAS been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+          logger.debug("The chainer threshold HAS been reached")
           pd
         } else {
-          //logger.debug("The chainer threshold HASN'T been reached. Current Records [{}]. Current Seconds Elapsed [{}]", currentRecordsSize, currentElapsedSeconds)
+          logger.debug("The chainer threshold HASN'T been reached")
           throw NeedForPauseException("Unreached Threshold", "The chainer threshold hasn't been reached yet", Some(pause millis))
         }
 
@@ -51,7 +51,7 @@ class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit 
         throw EmptyValueException("No Records Found", pd)
       }
     } else {
-      //logger.error(s"Wrong params: Min Tree Records [$minTreeRecords]  every [$every] seconds with [$pause] pause millis")
+      logger.error(s"Wrong params: [$pause] pause millis")
       throw WrongParamsException(s"Wrong params: [$pause] pause millis", pd)
     }
   }
