@@ -4,10 +4,10 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
+import com.ubirch.chainer.services._
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
-import com.ubirch.chainer.services._
-import com.ubirch.chainer.services.tree.{ TreeCache, TreeCreator, TreeEventLogCreator, TreeMonitor, TreePublisher }
+import com.ubirch.chainer.services.tree._
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.{ EventLog, MemCache }
@@ -38,8 +38,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
     "fail if all values are empty" in {
 
       val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
 
-      val filterEmpty = new FilterEmpty(instantMonitor, config)
+      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
       val res = filterEmpty(Vector.empty)
 
       assertThrows[EmptyValueException](await(res, 2 seconds))
@@ -57,8 +58,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
       val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
 
-      val filterEmpty = new FilterEmpty(instantMonitor, config)
+      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
       val fres = filterEmpty(data.toVector)
 
       lazy val res = await(fres, 2 seconds)
@@ -78,10 +80,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
       val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
 
       Thread.sleep(3000)
 
-      val filterEmpty = new FilterEmpty(instantMonitor, config)
+      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
 
       val cim0 = instantMonitor.elapsedSeconds
 
@@ -106,8 +109,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
       val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
 
-      val filterEmpty = new FilterEmpty(instantMonitor, config)
+      val filterEmpty = new FilterEmpty(treeCreationTrigger, config)
       val fres = filterEmpty(data.toVector)
 
       lazy val res = await(fres, 2 seconds)
@@ -344,7 +348,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor, config)
+      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -356,7 +360,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Slave.serviceClass))
       assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Slave.customerId))
       assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Slave.lookupName))
-      assert(treeEventLogCreation.mode == Slave)
+      assert(treeEventLogCreator.mode == Slave)
 
     }
 
@@ -376,7 +380,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
 
-      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config)) {
+        override def modeFromConfig: String = Master.value
+      }
 
       val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
 
@@ -411,9 +417,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor, config) {
-        override def modeFromConfig: String = Master.value
-      }
+      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -425,7 +429,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Master.serviceClass))
       assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Master.customerId))
       assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Master.lookupName))
-      assert(treeEventLogCreation.mode == Master)
+      assert(treeEventLogCreator.mode == Master)
 
     }
   }

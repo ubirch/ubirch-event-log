@@ -4,6 +4,7 @@ import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Master, Mode, Slave }
 import com.ubirch.chainer.services.ChainerServiceBinder
+import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
@@ -25,6 +26,7 @@ object Service extends Boot(ChainerServiceBinder.modules) {
   def main(args: Array[String]): Unit = {
 
     val consumer: StringConsumer = get[StringConsumer]
+    get[TreeMonitor]
 
     consumer.setConsumptionStrategy(All)
 

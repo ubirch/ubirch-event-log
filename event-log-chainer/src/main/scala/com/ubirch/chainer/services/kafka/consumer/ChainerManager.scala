@@ -13,7 +13,7 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 
