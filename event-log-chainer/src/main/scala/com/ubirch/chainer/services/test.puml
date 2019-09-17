@@ -1,0 +1,38 @@
+@startuml
+
+object Consumer <<singleton>> #DDDD11
+object ConsumerRecords #DDDD11
+
+object TreeCreatorExecutor <<executor>> #DDDDDD
+object FilterExecutor <<executor>> #DDDDDD
+object EventLogsParser <<executor>> #DDDDDD
+object Commit <<executor>> #DDDDDD
+object TreeEventLogCreation <<executor>> #DDDDDD
+
+
+object TreeCreator #add8e6
+object TreeEventLogCreator #add8e6
+object TreeCache #add8e6
+object TreePublisher #add8e6
+object TreeCreationTrigger #add8e6
+object TreeMonitor #ff4000
+
+Consumer -> ConsumerRecords : polls
+FilterExecutor <-- ConsumerRecords : filtered by
+TreeMonitor <-- FilterExecutor: checks basic tree
+FilterExecutor -> EventLogsParser
+EventLogsParser -> TreeCreatorExecutor
+TreeCreator --> TreeCache: stores latest root hash
+TreeCreatorExecutor --> TreeMonitor: creates/splits trees
+TreeCreatorExecutor -> TreeEventLogCreation
+TreeMonitor --> TreeCreator: creates/splits trees
+TreeEventLogCreation --> TreeMonitor: creates tree event logs
+TreeEventLogCreation -> Commit
+TreeMonitor <-- Commit: publishes
+TreeMonitor --> TreeEventLogCreator: creates tree event logs
+TreeMonitor --> TreePublisher : publishes
+TreeMonitor --> TreeCreationTrigger: Checks treeMinSize and treeEvery
+
+
+@enduml
+

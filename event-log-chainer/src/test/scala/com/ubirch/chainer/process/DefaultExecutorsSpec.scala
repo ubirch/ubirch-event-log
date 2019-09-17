@@ -266,11 +266,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -328,11 +328,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -401,11 +401,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
 
-      val instantMonitor: InstantMonitor = new AtomicInstantMonitor
+      val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
-      val treeCreationTrigger = new TreeCreationTrigger(instantMonitor, config)
+      val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger)
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 

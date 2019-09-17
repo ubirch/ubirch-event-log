@@ -32,7 +32,6 @@ object Service extends Boot(ChainerServiceBinder.modules) {
     val monitor = get[TreeMonitor]
     monitor.start
 
-
   }
 
 }
@@ -48,6 +47,8 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
   def modeFromConfig: String = config.getString("eventLog.mode")
 
   def mode: Mode = Mode.getMode(modeFromConfig)
+
+  val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
 
   def main(args: Array[String]): Unit = {
     def configs = Configs(bootstrapServers, lingerMs = lingerMs)
@@ -67,8 +68,10 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
     try {
 
+      logger.info("Sending to " + topic)
+
       range.map { entity =>
-        producer.getProducerOrCreate.send(new ProducerRecord[String, String]("com.ubirch.chainer.slave", data(entity)))
+        producer.getProducerOrCreate.send(new ProducerRecord[String, String](topic, data(entity)))
       }
 
     } finally {

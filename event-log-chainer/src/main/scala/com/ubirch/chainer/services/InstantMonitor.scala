@@ -3,7 +3,6 @@ package com.ubirch.chainer.services
 import java.util.concurrent.atomic.AtomicReference
 
 import com.ubirch.util.Implicits.enrichedInstant
-import javax.inject._
 import org.joda.time.Instant
 
 trait InstantMonitor {

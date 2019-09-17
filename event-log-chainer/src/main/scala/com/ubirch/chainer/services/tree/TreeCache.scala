@@ -2,10 +2,10 @@ package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
 import com.ubirch.chainer.models.Mode
-import com.ubirch.models.{Cache, EventLog, MemCache}
+import com.ubirch.models.{ Cache, EventLog, MemCache }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class TreeCache @Inject() (@Named(MemCache.name) cache: Cache, config: Config)(implicit ec: ExecutionContext) {
 
@@ -30,5 +30,6 @@ class TreeCache @Inject() (@Named(MemCache.name) cache: Cache, config: Config)(i
 
   def setLatestTree(eventLog: EventLog): Future[Option[EventLog]] = cache.put(LATEST_TREE, eventLog)
 
+  def deleteLatestTree = cache.remove[EventLog](LATEST_TREE)
 
 }
