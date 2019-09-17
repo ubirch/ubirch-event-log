@@ -182,7 +182,7 @@ class Commit @Inject() (monitor: TreeMonitor, config: Config)(implicit ec: Execu
       .flatMap { prs =>
         Future.sequence {
           prs.map { el =>
-            monitor.publish(topic, el)
+            monitor.publishWithCache(topic, el)
           }
         }
       }

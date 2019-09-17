@@ -29,8 +29,6 @@ class TreeCreationTrigger @Inject() (
 
   def elapsedSeconds = instantMonitor.elapsedSeconds
 
-
   def registerNewTreeInstant = instantMonitor.registerNewInstant
-
 
 }

@@ -10,6 +10,7 @@ import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, LookupKey }
 import com.ubirch.services.metrics.Counter
 import javax.inject._
+import org.json4s.JsonAST.JValue
 
 import scala.concurrent.ExecutionContext
 import scala.util.{ Failure, Success, Try }
@@ -36,9 +37,7 @@ class TreeEventLogCreator @Inject() (
 
   lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
 
-  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
-    val rootHash = node.value
-    val data = ChainerJsonSupport.ToJson(node).get
+  def createEventLog(rootHash: String, data: JValue, leaves: Seq[EventLog]) = {
 
     val category = mode.category
     val serviceClass = mode.serviceClass
@@ -50,7 +49,7 @@ class TreeEventLogCreator @Inject() (
         lookupName,
         category,
         rootHash.asKeyWithLabel(category),
-        els.flatMap(x => valuesStrategy.create(x))
+        leaves.flatMap(x => valuesStrategy.create(x))
       )
     }
 
@@ -66,7 +65,12 @@ class TreeEventLogCreator @Inject() (
 
     if (sign) treeEl.sign(config)
     else treeEl
+  }
 
+  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
+    val rootHash = node.value
+    val data = ChainerJsonSupport.ToJson(node).get
+    createEventLog(rootHash, data, els)
   }
 
   def create(chainers: Vector[Chainer[EventLog]]): Vector[EventLog] = {

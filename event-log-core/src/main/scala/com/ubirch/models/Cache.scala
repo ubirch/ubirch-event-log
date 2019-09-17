@@ -10,6 +10,8 @@ import scala.concurrent.Future
 trait Cache {
   def get[T](key: String): Future[Option[T]]
   def put[T](key: String, value: T): Future[Option[T]]
+  def remove[T](key: String): Future[Option[T]]
+  def remove[T](key: String, value: T): Future[Boolean]
 }
 
 @Singleton
@@ -23,6 +25,14 @@ class MemCache extends Cache {
 
   override def put[T](key: String, value: T): Future[Option[T]] = {
     Future.successful(map.put(key, value).map(_.asInstanceOf[T]))
+  }
+
+  override def remove[T](key: String): Future[Option[T]] = {
+    Future.successful(map.remove(key).map(_.asInstanceOf[T]))
+  }
+
+  override def remove[T](key: String, value: T): Future[Boolean] = {
+    Future.successful(map.remove(key, value))
   }
 
 }
