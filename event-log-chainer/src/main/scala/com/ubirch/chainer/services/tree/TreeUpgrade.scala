@@ -4,7 +4,6 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.chainer.services.InstantMonitor
 import javax.inject._
-import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.ExecutionContext
 
@@ -14,7 +13,7 @@ class TreeUpgrade @Inject() (
     config: Config
 )(implicit ec: ExecutionContext) extends LazyLogging {
 
-  val every: Int = 30 //config.getInt("eventLog.treeEvery")
+  val every: Int = config.getInt("eventLog.treeUpgrade")
 
   logger.info("Tree Upgrade every [{}] seconds", every)
 
