@@ -94,10 +94,10 @@ class TreeMonitor @Inject() (
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
     if (good) {
-      logger.debug("Tree creation is OK to go")
+//      logger.debug("Tree creation is OK to go")
       treeCreationTrigger.registerNewTreeInstant
     } else {
-      logger.debug("Tree creation is not ready yet")
+//      logger.debug("Tree creation is not ready yet")
     }
 
     good

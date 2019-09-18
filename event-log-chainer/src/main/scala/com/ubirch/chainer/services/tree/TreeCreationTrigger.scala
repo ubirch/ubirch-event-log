@@ -17,7 +17,7 @@ class TreeCreationTrigger @Inject() (
   val minTreeRecords: Int = config.getInt("eventLog.minTreeRecords")
   val every: Int = config.getInt("eventLog.treeEvery")
 
-  logger.info("Min Tree Records [{}]  every [{}] seconds", minTreeRecords, every)
+  logger.info("Min Tree Records [{}] every [{}] seconds", minTreeRecords, every)
 
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val currentRecordsSize = consumerRecords.size
