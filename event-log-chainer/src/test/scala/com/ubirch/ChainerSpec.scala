@@ -20,7 +20,14 @@ import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
 
-class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, producerTopic: String, minTreeRecords: Int = 10, treeEvery: Int = 60, mode: Mode = Slave, split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
+class InjectorHelperImpl(bootstrapServers: String,
+                         consumerTopic: String,
+                         producerTopic: String,
+                         minTreeRecords: Int = 10,
+                         treeEvery: Int = 60,
+                         treeUpgrade: Int = 120,
+                         mode: Mode = Slave,
+                         split: Boolean = false) extends InjectorHelper(List(new ChainerServiceBinder {
 
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
@@ -40,6 +47,10 @@ class InjectorHelperImpl(bootstrapServers: String, consumerTopic: String, produc
         .withValue(
           "eventLog.treeEvery",
           ConfigValueFactory.fromAnyRef(treeEvery)
+        )
+        .withValue(
+          "eventLog.treeUpgrade",
+          ConfigValueFactory.fromAnyRef(treeUpgrade)
         )
         .withValue(
           ConsumerConfPaths.BOOTSTRAP_SERVERS,
