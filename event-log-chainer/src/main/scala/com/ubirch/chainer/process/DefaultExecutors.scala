@@ -138,10 +138,9 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
 
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.flatMap { v1 =>
-    treeMonitor.createTrees(v1.eventLogs.toList).map { chainers =>
-      v1.copy(chainers = chainers.toVector)
-    }
+  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
+    val chainers = treeMonitor.createTrees(v1.eventLogs.toList)
+    v1.copy(chainers = chainers.toVector)
   }
 }
 

@@ -36,54 +36,50 @@ class TreeMonitor @Inject() (
   def treeBillOfMaterialsHook = {
     val lt = treeCreationTrigger.lastTree
     val es = treeCreationTrigger.elapsedSeconds
-    logger.info("Tree Creation Trigger {} with current elapsed seconds {} ", lt, es)
+    logger.info("TreeCR_{}_{}", es, lt)
   }
 
   def treeUpgradeHook = {
     val lu = treeUpgrade.lastUpgrade
     val es = treeUpgrade.elapsedSeconds
-    logger.info("Tree Upgrade {} with current elapsed seconds {} ", lu, es)
+    logger.debug("TreeUP_{}_{}", es, lu)
+
     if (treeUpgrade.goodToUpgrade) {
+
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-      treeCache.latestTree.onComplete {
-        case Success(Some(value)) if mode == Slave =>
-          logger.info("Last stree is {}", value.toJson)
+      treeCache.latestTreeEventLog match {
+        case Some(value) if mode == Slave =>
+          logger.debug("Last FTREE is {}", value.toJson)
           //TODO WE NEED TO ADD HEADERS
           treeUpgrade.registerNewUpgrade
           publishWithNoCache(topic, value)
 
-        case Success(None) if mode == Slave =>
-          logger.info("No stree found")
-          treeUpgrade.registerNewUpgrade
-
-        case Success(Some(value)) if mode == Master =>
-          logger.info("Last mtree is {}", value.toJson)
+        case Some(value) if mode == Master =>
+          logger.debug("Last RTREE is {}", value.toJson)
           treeUpgrade.registerNewUpgrade
           val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
           publishWithNoCache(topic, value)
 
-        case Success(None) if mode == Master =>
-          logger.info("No mtree found ... creating filling ...")
+        case None if mode == Slave =>
+          logger.debug("No FTREE found")
           treeUpgrade.registerNewUpgrade
 
-          val futureFillingChainer = createTrees(List(
+        case None if mode == Master =>
+          logger.debug("No RTREE found ... creating filling ...")
+          treeUpgrade.registerNewUpgrade
+
+          val fillingChainers = createTrees(List(
             treeEventLogCreator.createEventLog(
               UUIDHelper.randomUUID.toString,
               JString("caaaugustoss"),
               Nil
             )
-          )).map { xs =>
-            createEventLogs(xs.toVector)
+          ))
+
+          createEventLogs(fillingChainers.toVector).map { els =>
+            publishWithNoCache(topic, els)
           }
 
-          futureFillingChainer.map { evs =>
-            evs.map { ev =>
-              publishWithNoCache(topic, ev)
-            }
-          }
-
-        case Failure(exception) =>
-          logger.error("Error getting last tree {}" + exception.getMessage)
       }
     }
   }
@@ -98,50 +94,36 @@ class TreeMonitor @Inject() (
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
     if (good) {
-      logger.info("Tree creation is OK to go")
+      logger.debug("Tree creation is OK to go")
       treeCreationTrigger.registerNewTreeInstant
     } else {
-      logger.info("Tree creation is not ready yet")
+      logger.debug("Tree creation is not ready yet")
     }
 
     good
   }
 
-  def createTrees(eventLogs: List[EventLog]) = {
-
-    for {
-      maybeLatest <- treeCache.latestHash
-      (chainers, latest) <- Future(treeCreator.create(eventLogs, maybeLatest)(treeCache.prefix))
-      _ <- treeCache.setLatestHash(latest)
-    } yield {
-      chainers
-    }
-
+  def createTrees(eventLogs: List[EventLog]) = synchronized {
+    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.latestHash)(treeCache.prefix)
+    treeCache.setLatestHash(latest)
+    chainers
   }
 
-  def createEventLogs(chainers: Vector[Chainer[EventLog]]) = {
+  def createEventLogs(chainers: Vector[Chainer[EventLog]]) = synchronized {
     //TODO: WE SHOULD ADD THE NEW HEADERS HERE
     treeEventLogCreator.create(chainers)
   }
 
-  def publishWithCache(topic: String, eventLog: EventLog) = {
-    for {
-      _ <- treeCache.setLatestTree(eventLog)
-      p <- treePublisher.publish(topic, eventLog)
-    } yield {
-      logger.debug("Tree sent to:" + topic)
-      p
-    }
+  def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
+    logger.debug("Tree sent to:" + topic)
+    treeCache.setLatestTree(eventLog)
+    treePublisher.publish(topic, eventLog)
   }
 
-  def publishWithNoCache(topic: String, eventLog: EventLog) = {
-    for {
-      _ <- treeCache.deleteLatestTree
-      p <- treePublisher.publish(topic, eventLog)
-    } yield {
-      logger.debug("Tree sent to:" + topic)
-      p
-    }
+  def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
+    logger.debug("Tree sent to:" + topic)
+    treeCache.deleteLatestTree
+    treePublisher.publish(topic, eventLog)
   }
 
 }
