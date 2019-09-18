@@ -5,12 +5,13 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
+import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, HeaderNames }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig
@@ -144,7 +145,6 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
   }
 }
 
-@Singleton
 class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with ProducerConfPaths
@@ -154,7 +154,13 @@ class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exe
 
     v1.map { v1 =>
 
-      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers)
+      val headers = Mode.fold(treeMonitor.mode)(
+        onSlave = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
+      )(
+        onMaster = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
+      )
+
+      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers, headers)
 
       if (eventLogTrees.nonEmpty) {
         v1.copy(treeEventLogs = eventLogTrees)

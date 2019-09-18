@@ -4,15 +4,14 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, HeaderNames }
 import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
 
 @Singleton
 class TreeMonitor @Inject() (
@@ -55,10 +54,11 @@ class TreeMonitor @Inject() (
           publishWithNoCache(topic, value)
 
         case Some(value) if mode == Master =>
-          logger.debug("Last RTREE is {}", value.toJson)
+          val _value = value.addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:storage")
+          logger.debug("Last RTREE is {}", _value.toJson)
           treeUpgrade.registerNewUpgrade
           val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-          publishWithNoCache(topic, value)
+          publishWithNoCache(topic, _value)
 
         case None if mode == Slave =>
           logger.debug("No FTREE found")
@@ -76,8 +76,8 @@ class TreeMonitor @Inject() (
             )
           ))
 
-          createEventLogs(fillingChainers.toVector).map { els =>
-            publishWithNoCache(topic, els)
+          createEventLogs(fillingChainers.toVector).map { el =>
+            publishWithNoCache(topic, el)
           }
 
       }
@@ -94,10 +94,10 @@ class TreeMonitor @Inject() (
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
     if (good) {
-//      logger.debug("Tree creation is OK to go")
+      //      logger.debug("Tree creation is OK to go")
       treeCreationTrigger.registerNewTreeInstant
     } else {
-//      logger.debug("Tree creation is not ready yet")
+      //      logger.debug("Tree creation is not ready yet")
     }
 
     good
@@ -109,19 +109,18 @@ class TreeMonitor @Inject() (
     chainers
   }
 
-  def createEventLogs(chainers: Vector[Chainer[EventLog]]) = synchronized {
-    //TODO: WE SHOULD ADD THE NEW HEADERS HERE
-    treeEventLogCreator.create(chainers)
+  def createEventLogs(chainers: Vector[Chainer[EventLog]], headers: (String, String)*) = synchronized {
+    treeEventLogCreator.create(chainers).map(_.addHeaders(headers: _*))
   }
 
   def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
-    logger.debug("Tree sent to:" + topic)
+    logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
     treeCache.setLatestTree(eventLog)
     treePublisher.publish(topic, eventLog)
   }
 
   def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
-    logger.debug("Tree sent to:" + topic)
+    logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
     treeCache.deleteLatestTree
     treePublisher.publish(topic, eventLog)
   }
