@@ -52,10 +52,6 @@ class ChainerServiceBinder extends AbstractModule
     .annotatedWith(Names.named(DefaultLeavesCounter.name))
     .to(classOf[DefaultLeavesCounter])
 
-  def memCache: ScopedBindingBuilder = bind(classOf[Cache])
-    .annotatedWith(Names.named(MemCache.name))
-    .to(classOf[MemCache])
-
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -70,7 +66,6 @@ class ChainerServiceBinder extends AbstractModule
     metricsLoggerCounter
     treesCounter
     leavesCounter
-    memCache
   }
 
 }

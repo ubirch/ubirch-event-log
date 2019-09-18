@@ -55,7 +55,7 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
     val producer = ProducerRunner[String, String](configs, Some(new StringSerializer()), Some(new StringSerializer()))
 
-    val range = (0 to 1)
+    val range = (0 to 10000)
 
     def data(index: Int) = mode match {
       case Slave =>
