@@ -48,7 +48,7 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
   def mode: Mode = Mode.getMode(modeFromConfig)
 
-  val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
+  val topic = "com.ubirch.chainer.master.onep"
 
   def main(args: Array[String]): Unit = {
     def configs = Configs(bootstrapServers, lingerMs = lingerMs)

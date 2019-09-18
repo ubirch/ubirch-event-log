@@ -31,12 +31,18 @@ class TreeMonitor @Inject() (
 
   val mode: Mode = Mode.getMode(modeFromConfig)
 
+  require((treeCreationTrigger.every != treeUpgrade.every), "treeEvery and treeUpgrade can't be the same on master mode")
+
   def treeBillOfMaterialsHook = {
-    logger.info("Tree Creation Trigger {} with current elapsed seconds {} ", treeCreationTrigger.lastTree, treeCreationTrigger.elapsedSeconds)
+    val lt = treeCreationTrigger.lastTree
+    val es = treeCreationTrigger.elapsedSeconds
+    logger.info("Tree Creation Trigger {} with current elapsed seconds {} ", lt, es)
   }
 
   def treeUpgradeHook = {
-    logger.info("Tree Upgrade {} with current elapsed seconds {} ", treeUpgrade.lastUpgrade, treeUpgrade.elapsedSeconds)
+    val lu = treeUpgrade.lastUpgrade
+    val es = treeUpgrade.elapsedSeconds
+    logger.info("Tree Upgrade {} with current elapsed seconds {} ", lu, es)
     if (treeUpgrade.goodToUpgrade) {
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
       treeCache.latestTree.onComplete {
@@ -94,8 +100,9 @@ class TreeMonitor @Inject() (
     if (good) {
       logger.info("Tree creation is OK to go")
       treeCreationTrigger.registerNewTreeInstant
-    } else
+    } else {
       logger.info("Tree creation is not ready yet")
+    }
 
     good
   }
