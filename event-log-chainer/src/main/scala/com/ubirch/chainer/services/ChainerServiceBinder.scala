@@ -9,7 +9,6 @@ import com.ubirch.chainer.services.kafka.consumer.DefaultChainerManager
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models.{ Cache, MemCache }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }

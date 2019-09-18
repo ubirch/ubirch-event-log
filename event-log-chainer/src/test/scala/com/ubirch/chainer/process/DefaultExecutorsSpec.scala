@@ -10,7 +10,7 @@ import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCo
 import com.ubirch.chainer.services.tree._
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
-import com.ubirch.models.{ EventLog, MemCache }
+import com.ubirch.models.EventLog
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
