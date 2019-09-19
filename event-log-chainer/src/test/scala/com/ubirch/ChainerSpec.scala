@@ -9,6 +9,7 @@ import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
+import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -19,6 +20,7 @@ import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST._
+import org.scalatest.Tag
 
 class InjectorHelperImpl(
     bootstrapServers: String,
@@ -157,7 +159,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        ))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -234,7 +240,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        ))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -313,7 +323,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> Slave.value,
+          HeaderNames.ORIGIN -> category,
+          TreeMonitor.headersNormalCreationFromMode(Slave)
+        ))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -336,7 +350,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs after records threshold is reached" in {
+    "consume, process and publish tree and event logs after records threshold is reached" taggedAs (Tag("problem")) in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -370,6 +384,8 @@ class ChainerSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
+        Thread.sleep(5000)
+
         e1s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
         Thread.sleep(5000)
@@ -380,7 +396,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(7000)
+        Thread.sleep(5000)
 
         val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
@@ -401,7 +417,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> Slave.value, HeaderNames.ORIGIN -> category))
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> Slave.value,
+          HeaderNames.ORIGIN -> category,
+          TreeMonitor.headersNormalCreationFromMode(Slave)
+        ))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(
@@ -487,7 +507,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
         assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
-        assert(treeEventLog.headers == Headers.create(HeaderNames.TRACE -> mode.value, HeaderNames.ORIGIN -> mode.category))
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        ))
         assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
         assert(treeEventLog.lookupKeys ==
           Seq(LookupKey(

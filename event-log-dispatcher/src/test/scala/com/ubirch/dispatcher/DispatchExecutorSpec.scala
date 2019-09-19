@@ -3,11 +3,11 @@ package com.ubirch.dispatcher
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{Config, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.dispatcher.services.{DispatchInfo, DispatcherServiceBinder}
-import com.ubirch.kafka.consumer.{All, StringConsumer}
-import com.ubirch.models.{EventLog, HeaderNames, Values}
+import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.models.{ EventLog, HeaderNames, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
@@ -202,7 +202,6 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
         }
 
         assert(topicSize > topicsProcessed && topicsProcessed > 0)
-
 
       }
 
