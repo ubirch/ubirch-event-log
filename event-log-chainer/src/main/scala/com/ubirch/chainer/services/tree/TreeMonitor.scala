@@ -51,11 +51,11 @@ class TreeMonitor @Inject() (
     logger.debug("TreeUP_{}_{}", treeUpgrade.elapsedSeconds, treeUpgrade.lastUpgrade)
 
     if (treeUpgrade.goodToUpgrade) {
-      logger.debug("Upgrading Tree 027BE")
+      logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
       treeCache
         .latestTreeEventLog
-        .map(_.addHeaders(headerExcludeStorage)) match {
+        .map(_.replaceHeaders(headerExcludeStorage)) match {
           case Some(value) => //For every cached tree that is OK to upgrade, we upgrade.
             logger.debug(s"Last ${mode.value} tree: {}", value.toJson)
             treeUpgrade.registerNewUpgrade
@@ -101,6 +101,12 @@ class TreeMonitor @Inject() (
     treePublisher.publish(topic, eventLog)
   }
 
+  def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
+    //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
+    treeCache.setLatestTree(eventLog)
+    treePublisher.publish(topic, eventLog)
+  }
+
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
     if (good) {
@@ -111,12 +117,6 @@ class TreeMonitor @Inject() (
     }
 
     good
-  }
-
-  def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
-    //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
-    treeCache.setLatestTree(eventLog)
-    treePublisher.publish(topic, eventLog)
   }
 
 }

@@ -577,6 +577,166 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Slave" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true, treeEvery = 10, treeUpgrade = 13)
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 400
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.UPP_CATEGORY)
+              .sign(config))
+        }
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        val treeMonitor = InjectorHelper.get[TreeMonitor]
+        treeMonitor.start
+        //Consumer
+
+        Thread.sleep(7000)
+
+        val maxNumberToRead = events.sliding(50, 50).size /* tree */
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+        val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+
+        val mode = Slave
+        val expectedHeaders = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        )
+
+        messagesAsEventLogs.map(_.headers).map{ x =>
+          assert(x == expectedHeaders)
+        }
+
+        assert(messages.size == events.sliding(50, 50).size)
+
+        val upgrade = consumeFirstStringMessageFrom(eventLogTopic)
+        val upgradeEventLog = ChainerJsonSupport.FromString[EventLog](upgrade).get
+
+        val expectedHeadersUpgrade = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headerExcludeStorage
+        )
+
+        assert(upgradeEventLog.headers == expectedHeadersUpgrade)
+
+        assert(messagesAsEventLogs.reverse.headOption.map(_.id) == Option(upgradeEventLog.id))
+
+        Thread.sleep(10000)
+
+        assertThrows[java.util.concurrent.TimeoutException](consumeFirstStringMessageFrom(eventLogTopic))
+
+
+      }
+
+    }
+
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true, treeEvery = 10, treeUpgrade = 13, mode = Master)
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 400
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.SLAVE_TREE_CATEGORY)
+              .sign(config))
+        }
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        val treeMonitor = InjectorHelper.get[TreeMonitor]
+        treeMonitor.start
+        //Consumer
+
+        Thread.sleep(7000)
+
+        val maxNumberToRead = events.sliding(50, 50).size /* tree */
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+        val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+
+        val mode = Master
+        val expectedHeaders = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        )
+
+        messagesAsEventLogs.map(_.headers).map{ x =>
+          assert(x == expectedHeaders)
+        }
+
+        assert(messages.size == events.sliding(50, 50).size)
+
+        val upgrade = consumeFirstStringMessageFrom(eventLogTopic)
+        val upgradeEventLog = ChainerJsonSupport.FromString[EventLog](upgrade).get
+
+        val expectedHeadersUpgrade = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headerExcludeStorage
+        )
+
+        assert(upgradeEventLog.headers == expectedHeadersUpgrade)
+        assert(messagesAsEventLogs.reverse.headOption.map(_.id) == Option(upgradeEventLog.id))
+
+        Thread.sleep(10000)
+
+        val upgrade2 = consumeFirstStringMessageFrom(eventLogTopic)
+        val upgradeEventLog2 = ChainerJsonSupport.FromString[EventLog](upgrade2).get
+
+        val expectedHeadersUpgrade2 = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category)
+
+        assert(upgradeEventLog2.headers == expectedHeadersUpgrade2)
+        assert(upgradeEventLog2.id != upgradeEventLog.id)
+
+      }
+
+    }
+
   }
 
   override protected def beforeEach(): Unit = {
