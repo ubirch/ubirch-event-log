@@ -5,13 +5,12 @@ import java.util.UUID
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.chainer.models.Mode
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, HeaderNames }
+import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig
@@ -66,8 +65,6 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
 
   import reporter.Types._
 
-  def uuid: UUID = UUIDHelper.timeBasedUUID
-
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
 
     val successfulEventLogs = scala.collection.mutable.ListBuffer.empty[EventLog]
@@ -96,6 +93,8 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
 
   }
 
+  def uuid: UUID = UUIDHelper.timeBasedUUID
+
 }
 
 @Singleton
@@ -104,8 +103,6 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
   with LazyLogging {
 
   import reporter.Types._
-
-  def uuid: UUID = UUIDHelper.timeBasedUUID
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
 
@@ -133,6 +130,8 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
     }
 
   }
+
+  def uuid: UUID = UUIDHelper.timeBasedUUID
 }
 
 class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)

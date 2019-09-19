@@ -1,7 +1,7 @@
 package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.{ LazyLogging, Logger }
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.models.{ EventLog, HeaderNames }
@@ -34,7 +34,7 @@ class TreeMonitor @Inject() (
 
   def headersNormalCreation = headersNormalCreationFromMode(mode)
 
-  require((treeCreationTrigger.every != treeUpgrade.every), "treeEvery and treeUpgrade can't be the same on master mode")
+  require(treeCreationTrigger.every != treeUpgrade.every, "treeEvery & treeUpgrade can't be the same on master mode")
 
   def start = {
     scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
