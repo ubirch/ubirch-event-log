@@ -154,13 +154,7 @@ class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exe
 
     v1.map { v1 =>
 
-      val headers = Mode.fold(treeMonitor.mode)(
-        onSlave = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
-      )(
-        onMaster = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
-      )
-
-      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers, headers)
+      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers, treeMonitor.headersNormalCreation)
 
       if (eventLogTrees.nonEmpty) {
         v1.copy(treeEventLogs = eventLogTrees)

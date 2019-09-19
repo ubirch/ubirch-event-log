@@ -1,7 +1,7 @@
 package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.{ LazyLogging, Logger }
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.models.{ EventLog, HeaderNames }
@@ -24,71 +24,81 @@ class TreeMonitor @Inject() (
     config: Config
 )(implicit ec: ExecutionContext) extends LazyLogging {
 
-  implicit val scheduler = monix.execution.Scheduler(ec)
+  import TreeMonitor._
 
   val modeFromConfig: String = config.getString("eventLog.mode")
 
   val mode: Mode = Mode.getMode(modeFromConfig)
 
+  implicit val scheduler = monix.execution.Scheduler(ec)
+
+  def headersNormalCreation = headersNormalCreationFromMode(mode)
+
   require((treeCreationTrigger.every != treeUpgrade.every), "treeEvery and treeUpgrade can't be the same on master mode")
-
-  def treeBillOfMaterialsHook = {
-    val lt = treeCreationTrigger.lastTree
-    val es = treeCreationTrigger.elapsedSeconds
-    logger.info("TreeCR_{}_{}", es, lt)
-  }
-
-  def treeUpgradeHook = {
-    val lu = treeUpgrade.lastUpgrade
-    val es = treeUpgrade.elapsedSeconds
-    logger.debug("TreeUP_{}_{}", es, lu)
-
-    if (treeUpgrade.goodToUpgrade) {
-
-      val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-      treeCache.latestTreeEventLog match {
-        case Some(value) if mode == Slave =>
-          logger.debug("Last FTREE is {}", value.toJson)
-          //TODO WE NEED TO ADD HEADERS
-          treeUpgrade.registerNewUpgrade
-          publishWithNoCache(topic, value)
-
-        case Some(value) if mode == Master =>
-          val _value = value.addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:storage")
-          logger.debug("Last RTREE is {}", _value.toJson)
-          treeUpgrade.registerNewUpgrade
-          val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-          publishWithNoCache(topic, _value)
-
-        case None if mode == Slave =>
-          logger.debug("No FTREE found")
-          treeUpgrade.registerNewUpgrade
-
-        case None if mode == Master =>
-          logger.debug("No RTREE found ... creating filling ...")
-          treeUpgrade.registerNewUpgrade
-
-          val fillingChainers = createTrees(List(
-            treeEventLogCreator.createEventLog(
-              UUIDHelper.randomUUID.toString,
-              JString("caaaugustoss"),
-              Nil
-            )
-          ))
-
-          createEventLogs(fillingChainers.toVector).map { el =>
-            publishWithNoCache(topic, el)
-          }
-
-      }
-    }
-  }
 
   def start = {
     scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
       treeBillOfMaterialsHook
       treeUpgradeHook
     }
+  }
+
+  def treeBillOfMaterialsHook: Unit = {
+    logger.info("TreeCR_{}_{}", treeCreationTrigger.elapsedSeconds, treeCreationTrigger.lastTree)
+  }
+
+  def treeUpgradeHook: Unit = {
+    logger.debug("TreeUP_{}_{}", treeUpgrade.elapsedSeconds, treeUpgrade.lastUpgrade)
+
+    if (treeUpgrade.goodToUpgrade) {
+      logger.debug("Upgrading Tree 027BE")
+      val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
+      treeCache
+        .latestTreeEventLog
+        .map(_.addHeaders(headerExcludeStorage)) match {
+          case Some(value) => //For every cached tree that is OK to upgrade, we upgrade.
+            logger.debug(s"Last ${mode.value} tree: {}", value.toJson)
+            treeUpgrade.registerNewUpgrade
+            publishWithNoCache(topic, value)
+
+          case None if mode == Slave =>
+            logger.debug("No FTREE found")
+            treeUpgrade.registerNewUpgrade
+
+          case None if mode == Master => // If we need to upgrade but no tree found, we create a filling tree
+            logger.debug("No RTREE found ... creating filling ...")
+            treeUpgrade.registerNewUpgrade
+
+            val fillingChainers = createTrees(List(
+              treeEventLogCreator.createEventLog(
+                UUIDHelper.randomUUID.toString,
+                JString("caaaugustoss"),
+                Nil
+              )
+            ))
+
+            createEventLogs(fillingChainers.toVector).map { el =>
+              publishWithNoCache(topic, el)
+            }
+
+        }
+    }
+  }
+
+  def createTrees(eventLogs: List[EventLog]) = synchronized {
+    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.latestHash)(treeCache.prefix)
+    treeCache.setLatestHash(latest)
+    chainers
+  }
+
+  def createEventLogs(chainers: Vector[Chainer[EventLog]], headers: (String, String)*) = synchronized {
+    treeEventLogCreator.create(chainers).map(_.addHeaders(headers: _*))
+  }
+
+  def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
+    //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
+    treeCache.deleteLatestTree
+    treePublisher.publish(topic, eventLog)
   }
 
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
@@ -103,26 +113,25 @@ class TreeMonitor @Inject() (
     good
   }
 
-  def createTrees(eventLogs: List[EventLog]) = synchronized {
-    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.latestHash)(treeCache.prefix)
-    treeCache.setLatestHash(latest)
-    chainers
-  }
-
-  def createEventLogs(chainers: Vector[Chainer[EventLog]], headers: (String, String)*) = synchronized {
-    treeEventLogCreator.create(chainers).map(_.addHeaders(headers: _*))
-  }
-
   def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
-    logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
+    //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
     treeCache.setLatestTree(eventLog)
     treePublisher.publish(topic, eventLog)
   }
 
-  def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
-    logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
-    treeCache.deleteLatestTree
-    treePublisher.publish(topic, eventLog)
-  }
+}
+
+object TreeMonitor {
+
+  def headersNormalCreationFromMode(mode: Mode) = Mode.foldF(mode)
+    .onSlave(() => headerExcludeAggregation)
+    .onMaster(() => headerExcludeBlockChain)
+    .run
+
+  def headerExcludeBlockChain = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
+
+  def headerExcludeAggregation = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
+
+  def headerExcludeStorage = HeaderNames.DISPATCHER -> "tags-exclude:storage"
 
 }

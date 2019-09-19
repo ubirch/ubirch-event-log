@@ -9,11 +9,11 @@ import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models
-import com.ubirch.models.{EventLog, EventLogSerializer, HeaderNames, Values}
+import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames, Values }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.{Counter, DefaultMetricsLoggerCounter}
+import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
@@ -23,8 +23,8 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.KafkaException
 import org.json4s.JValue
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class DispatchExecutor @Inject() (
@@ -52,34 +52,34 @@ class DispatchExecutor @Inject() (
 
     val prs =
       dispatchingInfo
-      .find(_.category == eventLog.category)
-      .map { dispatch =>
+        .find(_.category == eventLog.category)
+        .map { dispatch =>
 
-        dispatch.topics.toVector.flatMap { dispatchTopic =>
+          dispatch.topics.toVector.flatMap { dispatchTopic =>
 
-          lazy val tagsToExclude = ((eventLogJValue \  EventLogSerializer.HEADERS) \ HeaderNames.DISPATCHER)
-            .extractOpt[List[String]]
-            .getOrElse(Nil)
-            .flatMap(_.split("tags-exclude:"))
-            .filter(_.nonEmpty)
-            .distinct
+            lazy val tagsToExclude = ((eventLogJValue \ EventLogSerializer.HEADERS) \ HeaderNames.DISPATCHER)
+              .extractOpt[List[String]]
+              .getOrElse(Nil)
+              .flatMap(_.split("tags-exclude:"))
+              .filter(_.nonEmpty)
+              .distinct
 
-          lazy  val dataToSend: String = dispatchTopic.dataToSend
-            .filter(_.nonEmpty)
-            .flatMap ( dts => (eventLogJValue \ dts).extractOpt[String] )
-            .orElse (Option(eventLogAsString))
-            .map { x =>
-              counterPerTopic.counter.labels(metricsSubNamespace, dispatchTopic.name).inc()
-              x
-            }
-            .getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
+            lazy val dataToSend: String = dispatchTopic.dataToSend
+              .filter(_.nonEmpty)
+              .flatMap(dts => (eventLogJValue \ dts).extractOpt[String])
+              .orElse(Option(eventLogAsString))
+              .map { x =>
+                counterPerTopic.counter.labels(metricsSubNamespace, dispatchTopic.name).inc()
+                x
+              }
+              .getOrElse(throw DispatcherProducerRecordException("Empty Materials 2: No data field extracted.", eventLog.toJson))
 
-          if(dispatchTopic.tags.exists(tagsToExclude.contains)) Vector.empty
-          else Vector(ProducerRecordHelper.toRecord(dispatchTopic.name, eventLog.id, dataToSend, Map.empty))
+            if (dispatchTopic.tags.exists(tagsToExclude.contains)) Vector.empty
+            else Vector(ProducerRecordHelper.toRecord(dispatchTopic.name, eventLog.id, dataToSend, Map.empty))
 
-        }
+          }
 
-      }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 1: No Dispatching Info", eventLog.toJson))
+        }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 1: No Dispatching Info", eventLog.toJson))
 
     prs
 

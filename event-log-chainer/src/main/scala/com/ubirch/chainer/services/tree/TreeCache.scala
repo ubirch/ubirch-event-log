@@ -20,7 +20,7 @@ class TreeCache @Inject() (config: Config)(implicit ec: ExecutionContext) {
   private val _latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
 
   def prefix(value: String): String = {
-    val px = Mode.fold(mode)("sl.")("ml.")
+    val px = Mode.fold(mode)(() => "sl.")(() => "ml.")
     if (!value.startsWith(px)) px + value else value
   }
 
