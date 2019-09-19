@@ -8,7 +8,6 @@ import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models
 import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames, Values }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter

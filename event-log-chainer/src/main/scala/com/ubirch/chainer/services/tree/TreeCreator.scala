@@ -13,15 +13,7 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
   import com.ubirch.chainer.models.Chainables.eventLogChainable
 
   lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
-
-  def outerBalancingHash: Option[String] = None
-
-  def split(eventLogs: List[EventLog]): List[List[EventLog]] = {
-    if (splitTrees && eventLogs.size >= 100)
-      eventLogs.sliding(50, 50).toList
-    else
-      Iterator(eventLogs).toList
-  }
+  lazy val splitSize: Int = config.getInt("eventLog.splitSize")
 
   def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String) = {
 
@@ -50,6 +42,15 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
     val splits = split(eventLogs)
     go(splits, Nil, maybeInitialTreeHash.getOrElse(""))
 
+  }
+
+  def outerBalancingHash: Option[String] = None
+
+  def split(eventLogs: List[EventLog]): List[List[EventLog]] = {
+    if (splitTrees && eventLogs.size >= splitSize * 2)
+      eventLogs.sliding(splitSize, splitSize).toList
+    else
+      Iterator(eventLogs).toList
   }
 
 }
