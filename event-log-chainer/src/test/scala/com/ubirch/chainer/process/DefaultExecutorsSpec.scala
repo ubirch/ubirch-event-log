@@ -3,6 +3,7 @@ package com.ubirch.chainer.process
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
+import com.ubirch.chainer.models.Chainer.CreateConfig
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services._
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
@@ -244,8 +245,8 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
   }
 
   "TreeCreatorExecutor" must {
+
     "create tree" in {
-      import org.json4s.jackson.JsonMethods.parse
 
       val reporter = mock[Reporter]
 
@@ -273,7 +274,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
-      val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+      val eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
       val consumerRecords = (0 to 10).map { _ =>
         val el = EventLog(eventData)
@@ -303,9 +304,68 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(res.chainers.flatMap(_.getNode) == eventLogChainer.getNode.toVector)
 
     }
-  }
 
-  "TreeEventLogCreation" must {
+    "create tree with chained hashes" in {
+
+      val reporter = mock[Reporter]
+
+      val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
+
+      val _balancingHash = Chainer.getEmptyNodeVal
+
+      val treeCache = new TreeCache(config)
+
+      val treeCreator = new TreeCreator(config) {
+        override def outerBalancingHash: Option[String] = Option(_balancingHash)
+      }
+
+      val treeEventLogCreator = new TreeEventLogCreator(config, new DefaultTreeCounter(config), new DefaultLeavesCounter(config))
+
+      val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
+
+      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+
+      val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
+
+      val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
+
+      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+
+      val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
+
+      def eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
+
+      val consumerRecords = (0 to 200).map { _ =>
+        val el = EventLog(eventData)
+        new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
+      }.toVector
+
+      val cp = ChainerPipeData(consumerRecords, Vector.empty, Vector.empty, Vector.empty, Vector.empty)
+
+      val els = eventPreparer(Future.successful(cp))
+      val nels = await(els, 5 second)
+
+      def chainerRes = treeCreatorExecutor(els)
+
+      val res = await(chainerRes, 5 seconds)
+      val eventLogChainer = treeCreator.create(nels.eventLogs.toList, None)(treeCache.prefix)
+
+      import com.ubirch.chainer.models.Chainables.eventLogChainable
+
+      val createConfig = CreateConfig(None, Option(_balancingHash), treeCreator.splitTrees, treeCreator.splitSize, treeCache.prefix)
+      val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
+
+      assert(eventLogChainer._2 == "sl." + res.treeEventLogs.reverse.headOption.map(_.id).getOrElse("HOO"))
+      assert(eventLogChainer._2 == chainerRes2._2)
+
+      assert(res.chainers.map(_.getNode).toList == eventLogChainer._1.map(_.getNode))
+      assert(chainerRes2._1.map(_.getNode) == eventLogChainer._1.map(_.getNode))
+
+      assert(res.chainers.nonEmpty)
+      assert(res.chainers.map(x => ChainerJsonSupport.ToJson(x.getNode).get) == eventLogChainer._1.map(_.getNode).map(x => ChainerJsonSupport.ToJson(x).get).toVector)
+
+    }
+
     "create slave tree" in {
 
       val reporter = mock[Reporter]
@@ -359,7 +419,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor)
+      val treeEventLogCreation = new TreeCreatorExecutor(treeMonitor)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 
@@ -431,7 +491,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         .createSeedNodes(keepOrder = true)
         .createNode
 
-      val treeEventLogCreation = new TreeEventLogCreation(treeMonitor)
+      val treeEventLogCreation = new TreeCreatorExecutor(treeMonitor)
 
       val treeEventLogRes = await(treeEventLogCreation(chainerRes), 2 seconds)
 

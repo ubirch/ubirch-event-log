@@ -27,17 +27,13 @@ case class ParsingIntoEventLogException(message: String, pipeData: ChainerPipeDa
   */
 case class SigningEventLogException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
 
-case class TreeEventLogCreationException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
-
-case class TreeEventLogCreatorException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
-
 /**
   * Represents an exception thrown in the execution pipeline for when there has been an error creating
   * a Producer Record object to be published into Kafka.
   * @param message Represents the error message.
   * @param pipeData Represents a convenience for handling and keeping data through the pipeline
   */
-case class CreateTreeProducerRecordException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
+case class TreeCreatorExecutorException(message: String, pipeData: ChainerPipeData) extends ExecutionException(message)
 
 /**
   * Represents an exception thrown in the execution pipeline for when there has been an error committing the producer record value

@@ -139,30 +139,15 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
   with LazyLogging {
 
   override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = v1.map { v1 =>
-    val chainers = treeMonitor.createTrees(v1.eventLogs.toList)
-    v1.copy(chainers = chainers.toVector)
-  }
-}
 
-class TreeEventLogCreation @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)
-  extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
-  with ProducerConfPaths
-  with LazyLogging {
-
-  override def apply(v1: Future[ChainerPipeData]): Future[ChainerPipeData] = {
-
-    v1.map { v1 =>
-
-      val eventLogTrees = treeMonitor.createEventLogs(v1.chainers, treeMonitor.headersNormalCreation)
-
-      if (eventLogTrees.nonEmpty) {
-        v1.copy(treeEventLogs = eventLogTrees)
-      } else {
-        throw TreeEventLogCreationException(s"Error creating EventLog", v1)
-      }
-
+    try {
+      val chainers = treeMonitor.createTrees(v1.eventLogs.toList).toVector
+      val eventLogTrees = treeMonitor.createEventLogs(chainers, treeMonitor.headersNormalCreation)
+      v1.copy(chainers = chainers, treeEventLogs = eventLogTrees)
+    } catch {
+      case e: Exception =>
+        throw TreeCreatorExecutorException("Error Creating Tree: " + e.getMessage, v1)
     }
-
   }
 }
 
@@ -215,8 +200,6 @@ trait ExecutorFamily {
 
   def treeCreatorExecutor: TreeCreatorExecutor
 
-  def treeEventLogCreation: TreeEventLogCreation
-
   def eventLogSigner: EventLogsSigner
 
   def commit: Commit
@@ -228,7 +211,6 @@ class DefaultExecutorFamily @Inject() (
     val filterEmpty: FilterEmpty,
     val eventLogParser: EventLogsParser,
     val treeCreatorExecutor: TreeCreatorExecutor,
-    val treeEventLogCreation: TreeEventLogCreation,
     val eventLogSigner: EventLogsSigner,
     val commit: Commit
 ) extends ExecutorFamily
