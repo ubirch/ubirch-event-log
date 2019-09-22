@@ -46,7 +46,6 @@ class DefaultChainerManager @Inject() (
     executorFamily.filterEmpty andThen
       executorFamily.eventLogParser andThen
       executorFamily.treeCreatorExecutor andThen
-      executorFamily.treeEventLogCreation andThen
       executorFamily.commit
   }
 
@@ -66,12 +65,7 @@ class DefaultChainerManager @Inject() (
       counter.counter.labels(metricsSubNamespace, "SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
-    case e @ TreeEventLogCreationException(_, pipeData) =>
-      logger.error("TreeEventLogCreationException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "TreeEventLogCreationException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
-      Future.successful(pipeData)
-    case e @ CreateTreeProducerRecordException(_, pipeData) =>
+    case e @ TreeCreatorExecutorException(_, pipeData) =>
       logger.error("CreateProducerRecordException: " + e.getMessage)
       counter.counter.labels(metricsSubNamespace, "CreateTreeProducerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
