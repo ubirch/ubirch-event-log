@@ -69,13 +69,16 @@ class TreeMonitor @Inject() (
             logger.debug("No RTREE found ... creating filling ...")
             treeUpgrade.registerNewUpgrade
 
-            val fillingChainers = createTrees(List(
-              treeEventLogCreator.createEventLog(
-                UUIDHelper.randomUUID.toString,
-                JString("caaaugustoss"),
-                Nil
+            val fillingChainers = createTrees(
+              List(
+                treeEventLogCreator.createEventLog(
+                  UUIDHelper.randomUUID.toString,
+                  zero = treeCache.latestHash.getOrElse(""),
+                  data = JString("caaaugustoss"),
+                  leaves = Nil
+                )
               )
-            ))
+            )
 
             createEventLogs(fillingChainers.toVector).map { el =>
               publishWithNoCache(topic, el)

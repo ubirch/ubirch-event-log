@@ -150,7 +150,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val mode = Slave
 
-        lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
+        lazy val valuesStrategy = ValueStrategy.getStrategyForNormalLeaves(mode)
 
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
@@ -314,7 +314,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val category = Values.SLAVE_TREE_CATEGORY
 
-        lazy val valuesStrategy = ValueStrategy.getStrategy(Slave)
+        lazy val valuesStrategy = ValueStrategy.getStrategyForNormalLeaves(Slave)
 
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
@@ -408,7 +408,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val category = Values.SLAVE_TREE_CATEGORY
 
-        lazy val valuesStrategy = ValueStrategy.getStrategy(Slave)
+        lazy val valuesStrategy = ValueStrategy.getStrategyForNormalLeaves(Slave)
 
         assert(treeEventLogAsString.nonEmpty)
         assert(treeEventLog.id.nonEmpty)
@@ -626,8 +626,12 @@ class ChainerSpec extends TestBase with LazyLogging {
           TreeMonitor.headersNormalCreationFromMode(mode)
         )
 
-        messagesAsEventLogs.map(_.headers).map{ x =>
+        messagesAsEventLogs.map(_.headers).map { x =>
           assert(x == expectedHeaders)
+        }
+
+        messagesAsEventLogs.flatMap(_.lookupKeys).map { x =>
+          println(x)
         }
 
         assert(messages.size == events.sliding(50, 50).size)
@@ -648,7 +652,6 @@ class ChainerSpec extends TestBase with LazyLogging {
         Thread.sleep(10000)
 
         assertThrows[java.util.concurrent.TimeoutException](consumeFirstStringMessageFrom(eventLogTopic))
-
 
       }
 
@@ -703,7 +706,7 @@ class ChainerSpec extends TestBase with LazyLogging {
           TreeMonitor.headersNormalCreationFromMode(mode)
         )
 
-        messagesAsEventLogs.map(_.headers).map{ x =>
+        messagesAsEventLogs.map(_.headers).map { x =>
           assert(x == expectedHeaders)
         }
 
@@ -728,7 +731,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val expectedHeadersUpgrade2 = Headers.create(
           HeaderNames.TRACE -> mode.value,
-          HeaderNames.ORIGIN -> mode.category)
+          HeaderNames.ORIGIN -> mode.category
+        )
 
         assert(upgradeEventLog2.headers == expectedHeadersUpgrade2)
         assert(upgradeEventLog2.id != upgradeEventLog.id)
