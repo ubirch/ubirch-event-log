@@ -7,20 +7,35 @@ import com.ubirch.protocol.ProtocolMessage
 
 import scala.util.{ Failure, Success, Try }
 
-trait ValueStrategy {
+trait ValueStrategy[T] {
+  def create(value: T): Seq[Value]
+}
+
+trait EventLogValueStrategy extends ValueStrategy[EventLog] {
   def create(eventLog: EventLog): Seq[Value]
 }
 
+trait StringValueStrategy extends ValueStrategy[String] {
+  def create(zero: String): Seq[Value]
+}
+
 object ValueStrategy {
-  def getStrategy(mode: Mode): ValueStrategy = {
+  def getStrategyForNormalLeaves(mode: Mode): EventLogValueStrategy = {
     mode match {
       case Slave => SlaveTreeStrategy()
       case Master => OtherStrategy()
     }
   }
+
+  def getStrategyForZero(mode: Mode): StringValueStrategy = {
+    mode match {
+      case Slave => ZeroOnSlave()
+      case Master => ZeroOnMaster()
+    }
+  }
 }
 
-case class SlaveTreeStrategy() extends ValueStrategy with LazyLogging {
+case class SlaveTreeStrategy() extends EventLogValueStrategy with LazyLogging {
   override def create(eventLog: EventLog): Seq[Value] = {
 
     val ubirchPacket = try {
@@ -48,6 +63,14 @@ case class SlaveTreeStrategy() extends ValueStrategy with LazyLogging {
   }
 }
 
-case class OtherStrategy() extends ValueStrategy {
+case class OtherStrategy() extends EventLogValueStrategy {
   override def create(eventLog: EventLog): Seq[Value] = Seq(Value(eventLog.id, Option(eventLog.category), Map.empty))
+}
+
+case class ZeroOnSlave() extends StringValueStrategy {
+  override def create(zero: String): Seq[Value] = Seq(Value(zero, Option(Values.SLAVE_TREE_CATEGORY), Map.empty))
+}
+
+case class ZeroOnMaster() extends StringValueStrategy {
+  override def create(zero: String): Seq[Value] = Seq(Value(zero, Option(Values.MASTER_TREE_CATEGORY), Map.empty))
 }

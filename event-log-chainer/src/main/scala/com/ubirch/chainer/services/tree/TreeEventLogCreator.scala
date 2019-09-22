@@ -35,23 +35,30 @@ class TreeEventLogCreator @Inject() (
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
-  lazy val valuesStrategy = ValueStrategy.getStrategy(mode)
-
-  def createEventLog(rootHash: String, data: JValue, leaves: Seq[EventLog]) = {
+  def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]) = {
 
     val category = mode.category
     val serviceClass = mode.serviceClass
     val lookupName = mode.lookupName
     val customerId = mode.customerId
 
-    val lookupKeys = {
-      LookupKey(
+    val zeroLookup = if (zero.nonEmpty) {
+      List(LookupKey(
         lookupName,
         category,
         rootHash.asKeyWithLabel(category),
-        leaves.flatMap(x => valuesStrategy.create(x))
-      )
-    }
+        ValueStrategy.getStrategyForZero(mode).create(zero)
+      ))
+    } else Nil
+
+    val normalTreeLookups = List(LookupKey(
+      lookupName,
+      category,
+      rootHash.asKeyWithLabel(category),
+      leaves.flatMap(x => ValueStrategy.getStrategyForNormalLeaves(mode).create(x))
+    ))
+
+    val lookupKeys = zeroLookup ++ normalTreeLookups
 
     val treeEl = EventLog(data)
       .withNewId(rootHash)
@@ -59,7 +66,7 @@ class TreeEventLogCreator @Inject() (
       .withCustomerId(customerId)
       .withServiceClass(serviceClass)
       .withRandomNonce
-      .addLookupKeys(lookupKeys)
+      .addLookupKeys(lookupKeys: _*)
       .addOriginHeader(category)
       .addTraceHeader(mode.value)
 
@@ -67,17 +74,17 @@ class TreeEventLogCreator @Inject() (
     else treeEl
   }
 
-  def createEventLog(node: Node[String], els: Seq[EventLog]): EventLog = {
+  def createEventLog(node: Node[String], zero: String, els: Seq[EventLog]): EventLog = {
     val rootHash = node.value
     val data = ChainerJsonSupport.ToJson(node).get
-    createEventLog(rootHash, data, els)
+    createEventLog(rootHash, zero, data, els)
   }
 
   def create(chainers: Vector[Chainer[EventLog]]): Vector[EventLog] = {
     chainers
-      .flatMap { x => x.getNode.map(rn => (rn, x.es)) }
-      .map { case (node, els) =>
-        Try(createEventLog(node, els)) match {
+      .flatMap { x => x.getNode.map(rn => (rn, x.getZero, x.es)) }
+      .map { case (node, zero, els) =>
+        Try(createEventLog(node, zero, els)) match {
           case Success(tree) =>
             val leavesSize = els.size
             logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
