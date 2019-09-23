@@ -127,10 +127,14 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
     )
 
     eventLog.lookupKeys
-      .find(_.category == Values.SLAVE_TREE_CATEGORY)
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_ID)
       .map(_.value)
       .getOrElse(Nil)
-      .map(x => relation(x.name, x.extra(Values.SIGNATURE)))
+      .map { x =>
+        logger.info("EL: " + eventLog.toJson)
+        logger.info("Value: " + x.toString)
+        relation(x.name, x.extra(Values.SIGNATURE))
+      }
   }
 
   def linkRelations = {
@@ -152,7 +156,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
     )
 
     eventLog.lookupKeys
-      .find(_.category == Values.SLAVE_TREE_LINK_ID)
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_LINK_ID)
       .map(_.value)
       .getOrElse(Nil)
       .map(x => relation(x.name))
@@ -188,7 +192,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       )
 
     eventLog.lookupKeys
-      .find(_.category == Values.MASTER_TREE_CATEGORY)
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_ID)
       .map(_.value)
       .getOrElse(Nil)
       .map(x => relation(x.name))
@@ -213,7 +217,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
     )
 
     eventLog.lookupKeys
-      .find(_.category == Values.MASTER_TREE_LINK_ID)
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_LINK_ID)
       .map(_.value)
       .getOrElse(Nil)
       .map(x => relation(x.name))

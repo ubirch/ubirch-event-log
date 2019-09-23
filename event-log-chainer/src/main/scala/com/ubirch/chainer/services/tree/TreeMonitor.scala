@@ -43,9 +43,8 @@ class TreeMonitor @Inject() (
     }
   }
 
-  def treeBillOfMaterialsHook: Unit = {
-    logger.info("TreeCR_{}_{}", treeCreationTrigger.elapsedSeconds, treeCreationTrigger.lastTree)
-  }
+  def treeBillOfMaterialsHook: Unit =
+    logger.debug("TreeCR_{}_{}", treeCreationTrigger.elapsedSeconds, treeCreationTrigger.lastTree)
 
   def treeUpgradeHook: Unit = {
     logger.debug("TreeUP_{}_{}", treeUpgrade.elapsedSeconds, treeUpgrade.lastUpgrade)
@@ -54,9 +53,9 @@ class TreeMonitor @Inject() (
       logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
       val latestHash = treeCache.latestHash.getOrElse("")
+      val latestTree = treeCache.latestTreeEventLog
 
-      treeCache
-        .latestTreeEventLog
+      latestTree
         .map(_.replaceHeaders(headerExcludeStorage))
         .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*)) match {
 
@@ -66,7 +65,7 @@ class TreeMonitor @Inject() (
             publishWithNoCache(topic, value)
 
           case None if mode == Slave =>
-            logger.debug("No FTREE found")
+            logger.debug("No FTREE found ... We are good, nothing to do.")
             treeUpgrade.registerNewUpgrade
 
           case None if mode == Master => // If we need to upgrade but no tree found, we create a filling tree
@@ -76,7 +75,7 @@ class TreeMonitor @Inject() (
             val fillingChainers = createTrees(
               List(
                 treeEventLogCreator.createEventLog(
-                  UUIDHelper.randomUUID.toString,
+                  "FILLING_" + UUIDHelper.randomUUID.toString,
                   zero = latestHash,
                   data = JString("caaaugustoss"),
                   leaves = Nil
@@ -85,11 +84,8 @@ class TreeMonitor @Inject() (
             )
 
             createEventLogs(fillingChainers.toVector)
-            .map(x =>
-              x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
-            .map { el =>
-              publishWithNoCache(topic, el)
-            }
+            .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
+            .map(el => publishWithNoCache(topic, el))
 
         }
     }
