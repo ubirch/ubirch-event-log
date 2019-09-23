@@ -14,7 +14,7 @@ object Values {
   val SLAVE_TREE_LINK_ID = "slave-tree-link-id"
   val SLAVE_TREE_UPGRADE_ID = "slave-tree-upgrade-id"
   val MASTER_TREE_UPGRADE_ID = "master-tree-upgrade-id"
-  val MASTER_TREE_LINK_ID = "slave-tree-link-id"
+  val MASTER_TREE_LINK_ID = "master-tree-link-id"
   val PAYLOAD = "payload"
   val SIGNATURE = "signature"
   val DEVICE_ID = "device-id"
