@@ -74,8 +74,9 @@ class TreeMonitor @Inject() (
 
             val fillingChainers = createTrees(
               List(
+                //This is the event-log that will be used to create the tree
                 treeEventLogCreator.createEventLog(
-                  "FILLING_" + UUIDHelper.randomUUID.toString,
+                  "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
                   zero = latestHash,
                   data = JString("caaaugustoss"),
                   leaves = Nil
@@ -83,6 +84,7 @@ class TreeMonitor @Inject() (
               )
             )
 
+            //This is the tree event-log (filling)
             createEventLogs(fillingChainers.toVector)
             .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
             .map(el => publishWithNoCache(topic, el))

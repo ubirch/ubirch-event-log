@@ -223,9 +223,34 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       .map(x => relation(x.name))
   }
 
+  def upgradeRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY + "_UPGRADE" && x.name == Values.MASTER_TREE_UPGRADE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
+
   override def create: Seq[Relation] = {
     try {
-      treeRelations ++ linkRelations
+      treeRelations ++ linkRelations ++ upgradeRelations
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
