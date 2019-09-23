@@ -11,7 +11,7 @@ import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCo
 import com.ubirch.chainer.services.tree._
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
-import com.ubirch.models.EventLog
+import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
@@ -355,7 +355,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val createConfig = CreateConfig(None, Option(_balancingHash), treeCreator.splitTrees, treeCreator.splitSize, treeCache.prefix)
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
 
-      assert(eventLogChainer._2 == "sl." + res.treeEventLogs.reverse.headOption.map(_.id).getOrElse("HOO"))
+      assert(eventLogChainer._2 == treeCache.prefix(res.treeEventLogs.reverse.headOption.map(_.id).getOrElse("HOO")))
       assert(eventLogChainer._2 == chainerRes2._2)
 
       assert(res.chainers.map(_.getNode).toList == eventLogChainer._1.map(_.getNode))
@@ -430,7 +430,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Slave.category))
       assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Slave.serviceClass))
       assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Slave.customerId))
-      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Slave.lookupName))
+      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(x => x.name == Slave.lookupName || x.name == Values.SLAVE_TREE_LINK_ID))
       assert(treeEventLogCreator.mode == Slave)
 
     }
@@ -502,7 +502,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       assert(treeEventLogRes.treeEventLogs.map(_.category).forall(x => x == Master.category))
       assert(treeEventLogRes.treeEventLogs.map(_.serviceClass).forall(x => x == Master.serviceClass))
       assert(treeEventLogRes.treeEventLogs.map(_.customerId).forall(x => x == Master.customerId))
-      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(_.name == Master.lookupName))
+      assert(treeEventLogRes.treeEventLogs.flatMap(_.lookupKeys).forall(x => x.name == Master.lookupName || x.name == Values.MASTER_TREE_LINK_ID))
       assert(treeEventLogCreator.mode == Master)
 
     }

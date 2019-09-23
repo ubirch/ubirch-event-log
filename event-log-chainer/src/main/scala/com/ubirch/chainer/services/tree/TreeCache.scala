@@ -24,8 +24,11 @@ class TreeCache @Inject() (config: Config)(implicit ec: ExecutionContext) {
   def setLatestHash(value: String) = _latestHash.set(Some(prefix(value)))
 
   def prefix(value: String): String = {
-    val px = Mode.fold(mode)(() => "sl.")(() => "ml.")
-    if (!value.startsWith(px)) px + value else value
+    if (false) {
+      val px = Mode.fold(mode)(() => "sl.")(() => "ml.")
+      if (!value.startsWith(px)) px + value else value
+    } else
+      value
   }
 
   def latestTreeEventLog: Option[EventLog] = _latestTreeEventLog.get()

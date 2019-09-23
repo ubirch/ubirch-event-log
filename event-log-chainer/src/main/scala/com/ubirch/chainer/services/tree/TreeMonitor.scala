@@ -53,9 +53,13 @@ class TreeMonitor @Inject() (
     if (treeUpgrade.goodToUpgrade) {
       logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
+      val latestHash = treeCache.latestHash.getOrElse("")
+
       treeCache
         .latestTreeEventLog
-        .map(_.replaceHeaders(headerExcludeStorage)) match {
+        .map(_.replaceHeaders(headerExcludeStorage))
+        .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*)) match {
+
           case Some(value) => //For every cached tree that is OK to upgrade, we upgrade.
             logger.debug(s"Last ${mode.value} tree: {}", value.toJson)
             treeUpgrade.registerNewUpgrade
@@ -73,14 +77,17 @@ class TreeMonitor @Inject() (
               List(
                 treeEventLogCreator.createEventLog(
                   UUIDHelper.randomUUID.toString,
-                  zero = treeCache.latestHash.getOrElse(""),
+                  zero = latestHash,
                   data = JString("caaaugustoss"),
                   leaves = Nil
                 )
               )
             )
 
-            createEventLogs(fillingChainers.toVector).map { el =>
+            createEventLogs(fillingChainers.toVector)
+            .map(x =>
+              x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
+            .map { el =>
               publishWithNoCache(topic, el)
             }
 

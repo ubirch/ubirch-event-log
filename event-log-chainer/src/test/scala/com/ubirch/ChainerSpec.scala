@@ -630,10 +630,6 @@ class ChainerSpec extends TestBase with LazyLogging {
           assert(x == expectedHeaders)
         }
 
-        messagesAsEventLogs.flatMap(_.lookupKeys).map { x =>
-          println(x)
-        }
-
         assert(messages.size == events.sliding(50, 50).size)
 
         val upgrade = consumeFirstStringMessageFrom(eventLogTopic)

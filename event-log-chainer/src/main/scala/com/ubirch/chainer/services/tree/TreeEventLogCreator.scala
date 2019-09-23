@@ -7,7 +7,7 @@ import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.util.ChainerJsonSupport
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, LookupKey }
+import com.ubirch.models.{ EventLog, LookupKey, Value, Values }
 import com.ubirch.services.metrics.Counter
 import javax.inject._
 import org.json4s.JsonAST.JValue
@@ -35,6 +35,24 @@ class TreeEventLogCreator @Inject() (
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
+  def upgradeLookups(key: String, value: String) = {
+    val category = mode.category
+    List(LookupKey(
+      Mode.fold(mode)(
+        () => Values.SLAVE_TREE_UPGRADE_ID
+      )(
+          () => Values.MASTER_TREE_UPGRADE_ID
+        ),
+      category + "_UPGRADE",
+      key.asKeyWithLabel(category + "_UPGRADE"),
+      Mode.fold(mode)(
+        () => Seq(Value(value, Option(Values.SLAVE_TREE_CATEGORY), Map.empty))
+      )(
+          () => Seq(Value(value, Option(Values.MASTER_TREE_CATEGORY), Map.empty))
+        )
+    ))
+  }
+
   def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]) = {
 
     val category = mode.category
@@ -44,10 +62,18 @@ class TreeEventLogCreator @Inject() (
 
     val zeroLookup = if (zero.nonEmpty) {
       List(LookupKey(
-        lookupName,
+        Mode.fold(mode)(
+          () => Values.SLAVE_TREE_LINK_ID
+        )(
+            () => Values.MASTER_TREE_LINK_ID
+          ),
         category,
         rootHash.asKeyWithLabel(category),
-        ValueStrategy.getStrategyForZero(mode).create(zero)
+        Mode.fold(mode)(
+          () => Seq(Value(zero, Option(Values.SLAVE_TREE_CATEGORY), Map.empty))
+        )(
+            () => Seq(Value(zero, Option(Values.MASTER_TREE_CATEGORY), Map.empty))
+          )
       ))
     } else Nil
 
