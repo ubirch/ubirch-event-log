@@ -38,18 +38,16 @@ class TreeEventLogCreator @Inject() (
   def upgradeLookups(key: String, value: String) = {
     val category = mode.category
     List(LookupKey(
-      Mode.fold(mode)(
-        () => Values.SLAVE_TREE_UPGRADE_ID
-      )(
-          () => Values.MASTER_TREE_UPGRADE_ID
-        ),
+      Mode.Fold(mode)
+        .onSlave(() => Values.SLAVE_TREE_UPGRADE_ID)
+        .onMaster(() => Values.MASTER_TREE_UPGRADE_ID)
+        .run,
       category + "_UPGRADE",
       key.asKeyWithLabel(category + "_UPGRADE"),
-      Mode.fold(mode)(
-        () => Seq(Value(value, Option(Values.SLAVE_TREE_CATEGORY), Map.empty))
-      )(
-          () => Seq(Value(value, Option(Values.MASTER_TREE_CATEGORY), Map.empty))
-        )
+      Mode.Fold(mode)
+        .onSlave(() => Seq(Value(value, Option(Values.SLAVE_TREE_CATEGORY), Map.empty)))
+        .onMaster(() => Seq(Value(value, Option(Values.MASTER_TREE_CATEGORY), Map.empty)))
+        .run
     ))
   }
 
@@ -62,18 +60,16 @@ class TreeEventLogCreator @Inject() (
 
     val zeroLookup = if (zero.nonEmpty) {
       List(LookupKey(
-        Mode.fold(mode)(
-          () => Values.SLAVE_TREE_LINK_ID
-        )(
-            () => Values.MASTER_TREE_LINK_ID
-          ),
+        Mode.Fold(mode)
+          .onSlave(() => Values.SLAVE_TREE_LINK_ID)
+          .onMaster(() => Values.MASTER_TREE_LINK_ID)
+          .run,
         category,
         rootHash.asKeyWithLabel(category),
-        Mode.fold(mode)(
-          () => Seq(Value(zero, Option(Values.SLAVE_TREE_CATEGORY), Map.empty))
-        )(
-            () => Seq(Value(zero, Option(Values.MASTER_TREE_CATEGORY), Map.empty))
-          )
+        Mode.Fold(mode)
+          .onSlave(() => Seq(Value(zero, Option(Values.SLAVE_TREE_CATEGORY), Map.empty)))
+          .onMaster(() => Seq(Value(zero, Option(Values.MASTER_TREE_CATEGORY), Map.empty)))
+          .run
       ))
     } else Nil
 
