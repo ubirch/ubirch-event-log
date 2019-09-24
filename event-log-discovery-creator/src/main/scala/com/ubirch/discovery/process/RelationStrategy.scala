@@ -130,11 +130,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_ID)
       .map(_.value)
       .getOrElse(Nil)
-      .map { x =>
-        logger.info("EL: " + eventLog.toJson)
-        logger.info("Value: " + x.toString)
-        relation(x.name, x.extra(Values.SIGNATURE))
-      }
+      .map ( x => relation(x.name, x.extra(Values.SIGNATURE)) )
   }
 
   def linkRelations = {
