@@ -56,7 +56,7 @@ class TreeMonitor @Inject() (
       val latestTree = treeCache.latestTreeEventLog
 
       latestTree
-        .map(_.replaceHeaders(headerExcludeStorage))
+        //.map(_.replaceHeaders(headerExcludeStorage))
         .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*)) match {
 
           case Some(value) => //For every cached tree that is OK to upgrade, we upgrade.
