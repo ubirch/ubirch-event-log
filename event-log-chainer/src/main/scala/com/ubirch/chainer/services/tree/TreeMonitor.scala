@@ -56,7 +56,7 @@ class TreeMonitor @Inject() (
       val latestTree = treeCache.latestTreeEventLog
 
       latestTree
-        //.map(_.replaceHeaders(headerExcludeStorage))
+        .map(_.removeHeader(HeaderNames.DISPATCHER))
         .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*)) match {
 
           case Some(value) => //For every cached tree that is OK to upgrade, we upgrade.
@@ -72,18 +72,24 @@ class TreeMonitor @Inject() (
             logger.debug("No RTREE found ... creating filling ...")
             treeUpgrade.registerNewUpgrade
 
-            val fillingChainers = createTrees(
-              List(
-                //This is the event-log that will be used to create the tree
-                treeEventLogCreator.createEventLog(
-                  "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
-                  zero = latestHash,
-                  data = JString("caaaugustoss"),
-                  leaves = Nil
-                )
+            //This is the event-log that will be used to create the tree
+            val fillingEventLog = if (latestHash.isEmpty) {
+              treeEventLogCreator.createEventLog(
+                "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
+                zero = latestHash,
+                data = JString("caaaugustoss"),
+                leaves = Nil
               )
-            )
+            } else {
+              treeEventLogCreator.createEventLog(
+                latestHash,
+                zero = "",
+                data = JString("caaaugustoss"),
+                leaves = Nil
+              )
+            }
 
+            val fillingChainers = createTrees(List(fillingEventLog))
             //This is the tree event-log (filling)
             createEventLogs(fillingChainers.toVector)
             .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
@@ -117,13 +123,7 @@ class TreeMonitor @Inject() (
 
   def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
-    if (good) {
-      //      logger.debug("Tree creation is OK to go")
-      treeCreationTrigger.registerNewTreeInstant
-    } else {
-      //      logger.debug("Tree creation is not ready yet")
-    }
-
+    if (good) treeCreationTrigger.registerNewTreeInstant
     good
   }
 
