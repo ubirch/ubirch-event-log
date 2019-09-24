@@ -130,7 +130,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_ID)
       .map(_.value)
       .getOrElse(Nil)
-      .map ( x => relation(x.name, x.extra(Values.SIGNATURE)) )
+      .map(x => relation(x.name, x.extra(Values.SIGNATURE)))
   }
 
   def linkRelations = {
@@ -158,9 +158,34 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .map(x => relation(x.name))
   }
 
+  def upgradeRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY + "_UPGRADE"), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY + "_UPGRADE" && x.name == Values.SLAVE_TREE_UPGRADE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
+
   override def create: Seq[Relation] = {
     try {
-      uppRelations ++ linkRelations
+      uppRelations ++ linkRelations ++ upgradeRelations
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
