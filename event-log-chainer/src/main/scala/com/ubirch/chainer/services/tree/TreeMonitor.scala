@@ -69,11 +69,11 @@ class TreeMonitor @Inject() (
             treeUpgrade.registerNewUpgrade
 
           case None if mode == Master => // If we need to upgrade but no tree found, we create a filling tree
-            logger.debug("No RTREE found ... creating filling ...")
             treeUpgrade.registerNewUpgrade
 
             //This is the event-log that will be used to create the tree
             val fillingEventLog = if (latestHash.isEmpty) {
+              logger.debug("No RTREE found ... creating filling ...")
               treeEventLogCreator.createEventLog(
                 "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
                 zero = latestHash,
@@ -81,6 +81,7 @@ class TreeMonitor @Inject() (
                 leaves = Nil
               )
             } else {
+              logger.debug("No RTREE found ... creating filling from cache ...")
               treeEventLogCreator.createEventLog(
                 latestHash,
                 zero = "",

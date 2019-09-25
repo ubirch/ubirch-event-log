@@ -209,9 +209,10 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
             .withCategory(Values.MASTER_TREE_CATEGORY)
             .addLookupKeys(
               LookupKey(
-                Values.SLAVE_TREE_ID, Values.MASTER_TREE_CATEGORY,
-                id.toString.asKeyWithLabel(Values.MASTER_TREE_CATEGORY),
-                Seq(Value(x.toString, Option(Values.MASTER_TREE_CATEGORY),
+                name = Values.MASTER_TREE_ID,
+                category = Values.MASTER_TREE_CATEGORY,
+                key = id.toString.asKeyWithLabel(Values.MASTER_TREE_CATEGORY),
+                value = Seq(Value(x.toString, Option(Values.MASTER_TREE_CATEGORY),
                   Map(Values.SIGNATURE -> x.toString)))
               )
             )

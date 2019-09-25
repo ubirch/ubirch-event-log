@@ -22,6 +22,7 @@ else
 #    $CUR_TAG=stable
     CUR_TAG=latest
 fi
+CUR_TAG=201909241311-dev
 
 #if [[ "dev" == "$ENV" ]]; then
 #     Insta

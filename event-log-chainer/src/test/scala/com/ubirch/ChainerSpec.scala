@@ -637,8 +637,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val expectedHeadersUpgrade = Headers.create(
           HeaderNames.TRACE -> mode.value,
-          HeaderNames.ORIGIN -> mode.category,
-          TreeMonitor.headerExcludeStorage
+          HeaderNames.ORIGIN -> mode.category
+        //, TreeMonitor.headerExcludeStorage
         )
 
         assert(upgradeEventLog.headers == expectedHeadersUpgrade)
@@ -713,8 +713,8 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val expectedHeadersUpgrade = Headers.create(
           HeaderNames.TRACE -> mode.value,
-          HeaderNames.ORIGIN -> mode.category,
-          TreeMonitor.headerExcludeStorage
+          HeaderNames.ORIGIN -> mode.category
+        //, TreeMonitor.headerExcludeStorage
         )
 
         assert(upgradeEventLog.headers == expectedHeadersUpgrade)
