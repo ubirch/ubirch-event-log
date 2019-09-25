@@ -13,4 +13,18 @@ object PMHelper {
     pm.setChain(org.bouncycastle.util.Strings.toByteArray(Random.nextString(10)))
     pm
   }
+
+  def createPM2 = {
+    val pmId = Random.nextInt()
+    val pm = new ProtocolMessage(1, UUIDHelper.randomUUID, 0, pmId)
+    pm.setSignature(org.bouncycastle.util.Strings.toByteArray(Random.nextString(10)))
+    pm
+  }
+
+  def createPM3 = {
+    val pmId = Random.nextInt()
+    val pm = new ProtocolMessage(1, null, 0, pmId)
+    pm.setSignature(org.bouncycastle.util.Strings.toByteArray(Random.nextString(10)))
+    pm
+  }
 }
