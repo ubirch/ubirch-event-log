@@ -78,7 +78,7 @@ class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(i
   def getRelations(eventLog: EventLog) = {
     val rs = RelationStrategy.getStrategy(eventLog).create
     if (rs.isEmpty) {
-      logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values.")
+      logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values. EventLog {} ", eventLog.toJson)
     }
     rs
   }
