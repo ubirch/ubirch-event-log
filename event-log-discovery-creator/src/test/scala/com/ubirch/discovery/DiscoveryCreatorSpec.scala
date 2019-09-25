@@ -21,7 +21,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
   "DiscoveryCreator" must {
 
-    "create proper Relations for UPPs" in {
+    "create proper Relations for UPPs without chain" in {
 
       implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
       implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
@@ -46,7 +46,54 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         }
         creator.start
 
-        val range = 1 to 2
+        val range = 1 to 1
+        val pms = range.map(_ => DiscoveryJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM2).get)
+        val eventLogs = pms.map(EventLog(_).withNewId.withCurrentEventTime.withRandomNonce.withCategory(Values.UPP_CATEGORY).toJson)
+
+        eventLogs.foreach(x => publishStringMessageToKafka(consumerTopics.toList.headOption.getOrElse(""), x))
+
+        Thread.sleep(5000)
+
+        val relationsAsJson = consumeFirstStringMessageFrom(producerTopic)
+
+        val relations = DiscoveryJsonSupport.FromString[Seq[Relation]](relationsAsJson).get
+
+        assert(relations.forall(_.edge.label != Option(Values.CHAIN_CATEGORY)))
+        assert(relations.exists(_.edge.label == Option(Values.DEVICE_CATEGORY)))
+
+        assert(relations.nonEmpty)
+        assert(relations.size == 1) // We expect to relations: UPP-DEVICE
+
+      }
+
+    }
+
+    "create proper Relations for UPPs with chain" in {
+
+      implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
+      implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val config = new ConfigProvider get ()
+
+      implicit val ec = new ExecutionProvider(config) get ()
+      val lifecycle = new DefaultLifecycle
+
+      val consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
+
+      val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
+
+      withRunningKafka {
+        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+          override def consumerBootstrapServers: String = bootstrapServers
+          override def producerBootstrapServers: String = bootstrapServers
+        }
+        creator.start
+
+        val range = 1 to 1
         val pms = range.map(_ => DiscoveryJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
         val eventLogs = pms.map(EventLog(_).withNewId.withCurrentEventTime.withRandomNonce.withCategory(Values.UPP_CATEGORY).toJson)
 
@@ -58,8 +105,11 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val relations = DiscoveryJsonSupport.FromString[Seq[Relation]](relationsAsJson).get
 
+        assert(relations.exists(_.edge.label == Option(Values.CHAIN_CATEGORY)))
+        assert(relations.exists(_.edge.label == Option(Values.DEVICE_CATEGORY)))
+
         assert(relations.nonEmpty)
-        assert(relations.size == range.size)
+        assert(relations.size == 2) // We expect to relations: UPP-DEVICE, UPP-CHAIN
 
       }
 
