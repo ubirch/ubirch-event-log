@@ -50,7 +50,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 
         futureRes.map {
           case (Some(ev), _, maybeAnchors) =>
-            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, maybeAnchors.map(_.event))), None, None)
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, maybeAnchors)), None, None)
           case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>

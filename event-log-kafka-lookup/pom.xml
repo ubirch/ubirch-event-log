@@ -22,6 +22,10 @@
         <!-- versions -->
 
         <event-log-core.version>1.2.5</event-log-core.version>
+        <gremlinScala.version>3.4.1.4</gremlinScala.version>
+        <janusGraph.version>0.3.1</janusGraph.version>
+        <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
+        <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
@@ -59,6 +63,29 @@
             <artifactId>ubirch-kafka-envelope</artifactId>
             <version>1.0.1</version>
         </dependency>
+
+        <!-- Gremlin -->
+        <dependency>
+            <groupId>com.michaelpollmeier</groupId>
+            <artifactId>gremlin-scala_${scala.compat.version}</artifactId>
+            <version>${gremlinScala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-driver</artifactId>
+            <version>${tinkerPopDriver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tinkerpop.gremlin</groupId>
+            <artifactId>gremlin-java</artifactId>
+            <version>${tinkerPopJava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.janusgraph</groupId>
+            <artifactId>janusgraph-core</artifactId>
+            <version>${janusGraph.version}</version>
+        </dependency>
+        <!-- /Gremlin -->
 
         <!-- Json -->
         <dependency>
