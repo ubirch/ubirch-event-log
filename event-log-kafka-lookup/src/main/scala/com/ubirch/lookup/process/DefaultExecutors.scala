@@ -16,6 +16,7 @@ import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.json4s.JValue
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -49,8 +50,10 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
         val futureRes = finder.findAll(value, queryType)
 
         futureRes.map {
-          case (Some(ev), _, maybeAnchors) =>
-            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, maybeAnchors)), None, None)
+          case (Some(ev), path, maybeAnchors) =>
+            val anchors = Map("shortest_path" -> path, "blockchains" -> maybeAnchors)
+            val jValueAnchors = LookupJsonSupport.ToJson(anchors).get
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, Seq(jValueAnchors))), None, None)
           case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
