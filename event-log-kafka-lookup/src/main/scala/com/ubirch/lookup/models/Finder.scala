@@ -1,47 +1,25 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ EventLogRow, EventsDAO, Values }
+import com.ubirch.lookup.util.LookupJsonSupport
+import com.ubirch.models.EventLogRow
 import javax.inject._
+import org.json4s.JsonAST.JValue
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
 @Singleton
-class Finder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
+class Finder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit ec: ExecutionContext) extends LazyLogging {
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
-    queryType match {
-      case Payload => eventsDAO.events.byIdAndCat(value, Values.UPP_CATEGORY).map(_.headOption)
-      case Signature => eventsDAO.eventLogRowByLookupRowInfo(value, Signature.value, Values.UPP_CATEGORY)
-    }
-  }
-
-  def findSlaveTree(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
-    eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.SLAVE_TREE_ID, Values.SLAVE_TREE_CATEGORY)
-  }
-
-  def findMasterTree(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
-    eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.MASTER_TREE_ID, Values.MASTER_TREE_CATEGORY)
-  }
-
-  def findAnchors(treeEventLog: EventLogRow): Future[Seq[EventLogRow]] = {
-    eventsDAO.eventLogRowByLookupValueAndCategory(treeEventLog.id, Values.PUBLIC_CHAIN_CATEGORY)
-  }
-
-  def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
-    val fres = findUPP(value, queryType).flatMap {
+  def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[JValue], Seq[JValue])] = {
+    val fres = cassandraFinder.findUPP(value, queryType).flatMap {
       case upp @ Some(uppEl) =>
-        findSlaveTree(uppEl).flatMap {
-          case Some(slaveTreeEl) =>
-            findMasterTree(slaveTreeEl).flatMap {
-              case tree @ Some(masterTreeEl) =>
-                findAnchors(masterTreeEl).map(ax => (upp, tree, ax))
-              case None => Future.successful((upp, None, Seq.empty))
-            }
-          case None => Future.successful((upp, None, Seq.empty))
-        }
-      case None => Future.successful((None, None, Seq.empty))
+        gremlinFinder.findAnchorsWithPathAsVertices(uppEl.id)
+          .map { case (path, blockchains) =>
+            (upp, path.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get), blockchains.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get))
+          }
+      case None => Future.successful((None, Seq.empty, Seq.empty))
     }
 
     fres.onComplete {
