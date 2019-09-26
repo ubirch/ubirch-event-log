@@ -87,7 +87,14 @@ spec:
               value: "{{ .Values.eventLogLookup.kafka.consumer.fetchMaxBytes }}"
             - name: LU_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
               value: "{{ .Values.eventLogLookup.kafka.consumer.partitionFetchMaxBytes }}"
-
+            - name: LU_GRM_HOSTS
+              value: "{{ .Values.eventLogLookup.gremlin.hosts }}"
+            - name: LU_GRM_PORT
+              value: "{{ .Values.eventLogLookup.gremlin.port }}"
+            - name: LU_GRM_COONPOOL_RECONINTERVAL
+              value: "{{ .Values.eventLogLookup.gremlin.connectionPool.reconnectInterval }}"
+            - name: LU_GRM_COONPOOL_MAXWAITCONNECTION
+              value: "{{ .Values.eventLogLookup.gremlin.connectionPool.maxWaitForConnection }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
