@@ -18,6 +18,12 @@ class Finder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: Gremlin
         gremlinFinder.findAnchorsWithPathAsVertices(uppEl.id)
           .map { case (path, blockchains) =>
             (upp, path.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get), blockchains.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get))
+          }.recover {
+
+            case e: Exception =>
+              logger.error("Error talking Gremlin {}", e.getMessage)
+              (upp, List.empty, List.empty[JValue])
+
           }
       case None => Future.successful((None, Seq.empty, Seq.empty))
     }
