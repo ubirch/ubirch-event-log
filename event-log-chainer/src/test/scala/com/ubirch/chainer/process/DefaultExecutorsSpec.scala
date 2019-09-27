@@ -270,7 +270,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val treeBootstrap = new TreeWarmUp(treeCache)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -329,7 +331,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val treeBootstrap = new TreeWarmUp(treeCache)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -390,7 +394,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val treeBootstrap = new TreeWarmUp(treeCache)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -462,7 +468,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val treeBootstrap = new TreeWarmUp(treeCache)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
