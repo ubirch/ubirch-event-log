@@ -56,9 +56,15 @@ spec:
                       - name: EVTL_CS_SERIAL_CONSISTENCY_LEVEL
                         value: "{{ .Values.eventLog.cassandra.cluster.serialConsistencyLevel}}"
                       - name: EVTL_CS_USERNAME
-                        value: "{{ .Values.eventLog.cassandra.cluster.username}}"
+                        valueFrom:
+                            secretKeyRef:
+                                name: ubs.cassandra
+                                key: username
                       - name: EVTL_CS_PASSWORD
-                        value: "{{ .Values.eventLog.cassandra.cluster.password}}"
+                        valueFrom:
+                            secretKeyRef:
+                                name: ubs.cassandra
+                                key: password
                       - name: EVTL_CS_WITH_SSL
                         value: "{{ .Values.eventLog.cassandra.cluster.withSsl}}"
                       - name: EVTL_KFC_NODES
