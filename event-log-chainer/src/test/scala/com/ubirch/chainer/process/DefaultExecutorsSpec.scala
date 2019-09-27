@@ -7,9 +7,10 @@ import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services.{ AtomicInstantMonitor, InstantMonitor }
-import com.ubirch.chainer.util.{ ChainerJsonSupport, EmptyValueException, ParsingIntoEventLogException, SigningEventLogException }
+import com.ubirch.chainer.util.{ ChainerJsonSupport, EmptyValueException, PMHelper, ParsingIntoEventLogException, SigningEventLogException }
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EventLog
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.producer.Reporter
@@ -292,7 +293,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         override def outerBalancingHash: Option[String] = Option(_balancingHash)
       }
 
-      val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
+      val eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
       val consumerRecords = (0 to 10).map { _ =>
         val el = EventLog(eventData)

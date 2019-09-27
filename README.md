@@ -22,9 +22,9 @@ The Event Log System is a collection of services that allow the chaining
 
 * [Event Log Core](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
 
-* [Event Log Kafka](https://github.com/ubirch/ubirch-event-log/tree/1.2.x/event-log-kafka)
+* [Event Log Kafka](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-kafka)
 
-* [Event Log Util](https://github.com/ubirch/ubirch-event-log/tree/1.2.x/event-log-util)
+* [Event Log Util](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-util)
 
 
 ## Install
@@ -39,10 +39,6 @@ After doing this, you can drill down to working on the
 particular project you may be interested in.
 
 ## Useful Scripts
-
-**exportEnvVariables.sh**: Sets the environment vars for easily modification when running service directly from the jar.
-
-**deleteEnvVariables.sh**: Removes the environment var. Very useful to use defaults again and run tests.
 
 **migrateDb.sh** Helps in the migration of the db evolution scripts.
 

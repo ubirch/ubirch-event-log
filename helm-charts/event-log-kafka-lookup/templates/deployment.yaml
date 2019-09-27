@@ -74,7 +74,7 @@ spec:
             - name: LU_KFP_TOPIC
               value: "{{ .Values.eventLogLookup.kafka.producer.topic}}"
             - name: LU_KFP_ERROR_TOPIC
-              value: "{{ .Values.eventLogLookup.kafka.producer.errortopic}}"
+              value: "{{ .Values.eventLogLookup.kafka.producer.errorTopic}}"
             - name: LU_PROM_HTTP_PORT
               value: "{{ .Values.eventLogLookup.prometheus.port}}"
             - name: EVTL_JAVA_OPTS

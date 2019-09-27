@@ -111,7 +111,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -123,7 +123,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -158,7 +158,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -174,7 +174,7 @@ class ConsumerRunnerSpec extends TestBase {
         Thread.sleep(1000)
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -214,7 +214,7 @@ class ConsumerRunnerSpec extends TestBase {
       val successCounterA = new AtomicInteger(0)
       val successCounterB = new AtomicInteger(0)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -230,7 +230,7 @@ class ConsumerRunnerSpec extends TestBase {
         Thread.sleep(1000)
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -294,7 +294,7 @@ class ConsumerRunnerSpec extends TestBase {
       val counter = new CountDownLatch(1)
       val successCounter = new AtomicInteger(0)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -310,7 +310,7 @@ class ConsumerRunnerSpec extends TestBase {
         Thread.sleep(1000)
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -351,7 +351,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -363,7 +363,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -405,7 +405,7 @@ class ConsumerRunnerSpec extends TestBase {
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
       val counter = new CountDownLatch(maxEntities)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -417,7 +417,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -462,7 +462,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 10
       val futureMessages = scala.collection.mutable.ListBuffer.empty[String]
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -474,7 +474,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -525,7 +525,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 1
       val attempts = new CountDownLatch(3)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -537,7 +537,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -576,7 +576,7 @@ class ConsumerRunnerSpec extends TestBase {
       val maxEntities = 1
       val attempts = new CountDownLatch(4)
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -588,7 +588,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )
@@ -635,7 +635,7 @@ class ConsumerRunnerSpec extends TestBase {
       val failedProcesses = new CountDownLatch(3)
       var committedN = 0
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
 
@@ -647,7 +647,7 @@ class ConsumerRunnerSpec extends TestBase {
         }
 
         val configs = Configs(
-          bootstrapServers = "localhost:" + config.kafkaPort,
+          bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
           groupId = "My_Group_ID",
           autoOffsetReset = OffsetResetStrategy.EARLIEST
         )

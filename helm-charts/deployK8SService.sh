@@ -29,9 +29,14 @@ if [[ -z "$4" ]]; then
 fi
 
 ENV=$1
+REALENV=${ENV}
 SERVICENAME=$2
 IMAGETAG=$3
 VALUES=$4
+
+if [ "devbeta" == "$ENV" ]; then
+  REALENV="dev"
+fi
 
 if [[ -f /keybase/team/ubirchdevops/bin/helm.sh ]];
 then
@@ -42,7 +47,7 @@ fi
 
 $HELM $ENV delete $SERVICENAME --purge
 $HELM $ENV install \
-    $SERVICENAME --namespace core-$ENV \
+    $SERVICENAME --namespace core-$REALENV \
     --name $SERVICENAME --debug \
     --set image.tag=$IMAGETAG \
     -f $VALUES

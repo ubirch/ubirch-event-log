@@ -56,7 +56,7 @@ spec:
             - name: DIS_KFP_NODES
               value: "{{ .Values.eventLogDispatcher.kafka.bootstrapServers}}"
             - name: DIS_KFP_ERROR_TOPIC
-              value: "{{ .Values.eventLogDispatcher.kafka.producer.errortopic}}"
+              value: "{{ .Values.eventLogDispatcher.kafka.producer.errorTopic}}"
             - name: DIS_PROM_HTTP_PORT
               value: "{{ .Values.eventLogDispatcher.prometheus.port}}"
             - name: DIS_KFC_MAX_POLL_RECORDS

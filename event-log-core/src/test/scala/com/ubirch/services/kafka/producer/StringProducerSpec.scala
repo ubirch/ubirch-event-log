@@ -35,9 +35,9 @@ class StringProducerSpec extends TestBase with MockitoSugar with LazyLogging {
 
     "error message successfully pushed" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
-      val configs = Configs(bootstrapServers = "localhost:" + config.kafkaPort)
+      val configs = Configs(bootstrapServers = "localhost:" + kafkaConfig.kafkaPort)
       val topic = NameGiver.giveMeAnErrorTopicName
 
       val error = Entities.Errors.errorExample()
