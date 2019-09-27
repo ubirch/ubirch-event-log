@@ -17,6 +17,20 @@ object Mode {
       case Master.value => Master
     }
   }
+
+  def fold[R](mode: Mode)(onSlave: () => R)(onMaster: () => R): R = mode match {
+    case Slave => onSlave()
+    case Master => onMaster()
+  }
+
+  def foldF[R](mode: Mode): Fold[R] = Fold[R](mode, None, None)
+
+  case class Fold[R](mode: Mode, onSlave: Option[() => R] = None, onMaster: Option[() => R] = None) {
+    def onSlave(newOnSlave: () => R): Fold[R] = copy(onSlave = Some(newOnSlave))
+    def onMaster(newOnMaster: () => R): Fold[R] = copy(onMaster = Some(newOnMaster))
+    def run: R = fold(mode)(onSlave.getOrElse(throw new IllegalArgumentException("No onSlave has been set.")))(onMaster.getOrElse(throw new IllegalArgumentException("No onMaster has been set.")))
+  }
+
 }
 
 case object Slave extends Mode {

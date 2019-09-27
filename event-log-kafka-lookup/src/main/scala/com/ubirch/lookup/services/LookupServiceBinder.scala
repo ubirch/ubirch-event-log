@@ -38,6 +38,8 @@ class LookupServiceBinder
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   //Cassandra Cluster
 
+  def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultGremlinConnector])
+
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -49,6 +51,7 @@ class LookupServiceBinder
     consumer
     consumerRecordsManager
     producer
+    gremlin
   }
 
 }

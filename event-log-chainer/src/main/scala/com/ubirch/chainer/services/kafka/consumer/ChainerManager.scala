@@ -13,11 +13,17 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-case class ChainerPipeData(consumerRecords: Vector[ConsumerRecord[String, String]], eventLogs: Vector[EventLog], chainers: Vector[Chainer[EventLog]], treeEventLogs: Vector[EventLog], producerRecords: Vector[ProducerRecord[String, String]], recordsMetadata: Vector[RecordMetadata])
+case class ChainerPipeData(
+    consumerRecords: Vector[ConsumerRecord[String, String]],
+    eventLogs: Vector[EventLog],
+    chainers: Vector[Chainer[EventLog]],
+    treeEventLogs: Vector[EventLog],
+    recordsMetadata: Vector[RecordMetadata]
+)
   extends EventLogsPipeData[String]
 
 @Singleton
@@ -39,10 +45,7 @@ class DefaultChainerManager @Inject() (
   def executor: Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]] = {
     executorFamily.filterEmpty andThen
       executorFamily.eventLogParser andThen
-      //executorFamily.eventLogSigner andThen
       executorFamily.treeCreatorExecutor andThen
-      executorFamily.treeEventLogCreation andThen
-      executorFamily.createTreeProducerRecord andThen
       executorFamily.commit
   }
 
@@ -62,12 +65,7 @@ class DefaultChainerManager @Inject() (
       counter.counter.labels(metricsSubNamespace, "SigningEventLogException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
-    case e @ TreeEventLogCreationException(_, pipeData) =>
-      logger.error("TreeEventLogCreationException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "TreeEventLogCreationException").inc()
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
-      Future.successful(pipeData)
-    case e @ CreateTreeProducerRecordException(_, pipeData) =>
+    case e @ TreeCreatorExecutorException(_, pipeData) =>
       logger.error("CreateProducerRecordException: " + e.getMessage)
       counter.counter.labels(metricsSubNamespace, "CreateTreeProducerRecordException").inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))

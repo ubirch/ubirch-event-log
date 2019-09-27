@@ -66,6 +66,9 @@ class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(i
   final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
 
   def getEventLog(consumerRecord: ConsumerRecord[String, String]) = {
+    if (consumerRecord.value().isEmpty) {
+      throw ParsingError("Error parsing", "Empty Value", consumerRecord.value())
+    }
     Try(DiscoveryJsonSupport.FromString[EventLog](consumerRecord.value()).get)
       .recover {
         case e => throw ParsingError("Error parsing", e.getMessage, consumerRecord.value())
@@ -75,7 +78,7 @@ class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(i
   def getRelations(eventLog: EventLog) = {
     val rs = RelationStrategy.getStrategy(eventLog).create
     if (rs.isEmpty) {
-      logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values.")
+      logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values. EventLog {} ", eventLog.toJson)
     }
     rs
   }
@@ -93,6 +96,7 @@ class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(i
         case NonFatal(e: StrategyException) =>
           send(errorTopic, Error(e.eventLog.id, e.message, e.getClass.getName, e.eventLog.toJson).toEventLog(errorTopic).toJson)
           logger.error("Error Creating Relation (1): ", e)
+          logger.error("Error Creating Relation (1.1): {}", x.value())
         case NonFatal(e) =>
           send(errorTopic, Error(UUIDHelper.randomUUID, e.getMessage, e.getClass.getName).toEventLog(errorTopic).toJson)
           logger.error("Error Creating Relation (2): ", e)

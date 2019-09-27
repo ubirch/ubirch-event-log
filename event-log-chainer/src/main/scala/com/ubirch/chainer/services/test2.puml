@@ -1,0 +1,71 @@
+@startuml
+
+object UPP1
+object UPP2
+
+object STREE1  #ff4000
+
+STREE1 -- UPP1
+STREE1 -- UPP2
+
+object UPP3
+object UPP4
+
+object STREE2  #ff4000
+
+STREE2 -- UPP3
+STREE2 -- UPP4
+STREE2 -- STREE1
+
+object UPP5
+object STREE3 <<UP>>  #red\9932CC
+
+STREE3 -- UPP5
+STREE3 -- STREE2
+
+object STREE4 #ff4000
+object MTREE1 #11f400
+
+MTREE1 <------ STREE3
+MTREE1 -- STREE4
+
+object STREE5 #ff4000
+object MTREE2 #11f400
+
+MTREE2 -- MTREE1
+MTREE2 -- STREE5
+
+object STREE6 #ff4000
+object MTREE3 <<UP>> #11f400\9932CC
+object BLOCKCHAIN #blue\9932CC
+
+MTREE3 -- MTREE2
+MTREE3 -- STREE6
+MTREE3 -----> BLOCKCHAIN
+
+object UPP6
+object STREE7 #ff4000
+
+STREE7 -- STREE3
+STREE7 -- UPP6
+
+object UPP7
+object STREE8 #ff4000
+
+STREE8 -- STREE7
+STREE8 -- UPP7
+
+object MTREE4 #11f400
+object STREE9 #ff4000
+
+MTREE4 -- STREE9
+
+MTREE4 -- MTREE3
+
+
+
+
+
+
+@enduml
+

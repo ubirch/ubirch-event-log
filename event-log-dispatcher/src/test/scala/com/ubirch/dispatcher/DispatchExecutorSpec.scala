@@ -1,11 +1,13 @@
 package com.ubirch.dispatcher
 
+import java.util.concurrent.TimeoutException
+
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
-import com.ubirch.models.{ EventLog, Values }
+import com.ubirch.models.{ EventLog, HeaderNames, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
@@ -120,7 +122,11 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
         dispatchInfo.map { x =>
 
+          val topicSize = x.topics.size
+          var topicsProcessed = 0
+
           x.topics.map { t =>
+            topicsProcessed = topicsProcessed + 1
             val readMessage = consumeFirstStringMessageFrom(t.name)
             t.dataToSend.filter(_.isEmpty).map { _ =>
               val dispatchRes = EventLogJsonSupport.FromString[EventLog](readMessage).get
@@ -130,7 +136,72 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
           }
 
+          assert(topicSize == topicsProcessed)
+
         }
+
+      }
+
+    }
+
+    "consume and dispatch successfully with tag-exclude headers" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+
+        val dispatchInfo = InjectorHelper.get[DispatchInfo].info
+
+        val eventLogs = dispatchInfo.map { x =>
+          EventLog(JString(UUIDHelper.randomUUID.toString))
+            .withCategory(x.category)
+            .withNewId
+            .addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:aggregation")
+        }
+
+        eventLogs.foreach { x =>
+          publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
+        }
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val topicSize = dispatchInfo.flatMap(_.topics).size
+        var topicsProcessed = 0
+
+        dispatchInfo.map { x =>
+
+          x.topics.map { dispatchTopic =>
+
+            if (dispatchTopic.tags.contains("aggregation")) {
+              assertThrows[TimeoutException](consumeFirstStringMessageFrom(dispatchTopic.name))
+            } else {
+
+              topicsProcessed = topicsProcessed + 1
+              dispatchTopic.dataToSend.filter(_.isEmpty).map { _ =>
+                val dispatchRes = EventLogJsonSupport.FromString[EventLog](consumeFirstStringMessageFrom(dispatchTopic.name)).get
+                assert(eventLogs.contains(dispatchRes))
+                assert(eventLogs.map(_.category).contains(dispatchRes.category))
+              }
+            }
+          }
+
+        }
+
+        assert(topicSize > topicsProcessed && topicsProcessed > 0)
 
       }
 
