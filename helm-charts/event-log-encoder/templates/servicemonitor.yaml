@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: event-log-encoder
-  namespace: prometheus
   labels:
     app: event-log-encoder
     release: prometheus-operator

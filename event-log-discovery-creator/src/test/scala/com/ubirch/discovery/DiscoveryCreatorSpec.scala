@@ -12,6 +12,7 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.{ PortGiver, UUIDHelper }
+import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST.JInt
@@ -296,6 +297,10 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
     }
 
+  }
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
   }
 
 }

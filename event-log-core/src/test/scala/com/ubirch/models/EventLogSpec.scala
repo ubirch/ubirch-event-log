@@ -334,7 +334,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
       val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
       val time = new Date()
 
-      val el = EventLog("my service class", "my category", data)
+      val el = EventLog("my service class", "my category", data).withEventTime(time)
 
       assert(el.customerId.isEmpty)
       assert(el.serviceClass == "my service class")

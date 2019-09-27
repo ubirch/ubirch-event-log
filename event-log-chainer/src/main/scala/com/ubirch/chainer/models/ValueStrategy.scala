@@ -23,7 +23,13 @@ object ValueStrategy {
 case class SlaveTreeStrategy() extends ValueStrategy with LazyLogging {
   override def create(eventLog: EventLog): Seq[Value] = {
 
-    val ubirchPacket = ChainerJsonSupport.FromJson[ProtocolMessage](eventLog.event).get
+    val ubirchPacket = try {
+      ChainerJsonSupport.FromJson[ProtocolMessage](eventLog.event).get
+    } catch {
+      case e: Exception =>
+        logger.error(s"SlaveTreeStrategy: Seems not to be a UPP - ${eventLog.event}", e)
+        throw e
+    }
 
     val signature = Option(ubirchPacket)
       .flatMap(x => Option(x.getSignature))

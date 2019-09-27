@@ -10,7 +10,7 @@ class KafkaServiceSpec extends TestBase {
 
     "should respond to simple publish/subscribe test" in {
 
-      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       withRunningKafka {
         publishStringMessageToKafka("topic", "message")

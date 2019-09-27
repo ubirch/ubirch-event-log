@@ -2,7 +2,6 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: event-log-chainer-master
-  namespace: prometheus
   labels:
     app: event-log-chainer-master
     release: prometheus-operator

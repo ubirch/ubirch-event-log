@@ -56,7 +56,7 @@ spec:
             - name: CHAINER_KFP_TOPIC
               value: "{{ .Values.eventLogChainerMaster.kafka.producer.topic}}"
             - name: CHAINER_KFP_ERROR_TOPIC
-              value: "{{ .Values.eventLogChainerMaster.kafka.producer.errortopic}}"
+              value: "{{ .Values.eventLogChainerMaster.kafka.producer.errorTopic}}"
             - name: CHAINER_PROM_HTTP_PORT
               value: "{{ .Values.eventLogChainerMaster.prometheus.port}}"
             - name: CHAINER_MIN_TREE_RECORDS
