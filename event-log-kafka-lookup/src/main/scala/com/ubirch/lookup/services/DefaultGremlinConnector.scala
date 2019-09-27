@@ -10,6 +10,7 @@ import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.Bindings
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
 
 import scala.concurrent.Future
 
@@ -29,9 +30,12 @@ trait Gremlin {
 }
 
 @Singleton
-class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config) extends Gremlin with LazyLogging with GremlinConnectorPaths {
+class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
+  extends Gremlin
+  with LazyLogging
+  with GremlinConnectorPaths {
 
-  val cluster: Cluster = Cluster.open(buildProperties(config))
+  lazy val cluster: Cluster = Cluster.open(buildProperties(config))
 
   implicit val graph: ScalaGraph = EmptyGraph.instance.asScala.configure(_.withRemote(DriverRemoteConnection.using(cluster)))
   val b: Bindings = Bindings.instance
@@ -61,3 +65,12 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config) e
   }
 
 }
+
+
+@Singleton
+class DefaultTestingGremlinConnector () extends Gremlin{
+  override implicit val graph: ScalaGraph = TinkerFactory.createModern().asScala()
+  override val b: Bindings = Bindings.instance
+  override val g: TraversalSource = graph.traversal
+}
+
