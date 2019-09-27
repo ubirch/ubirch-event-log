@@ -66,9 +66,8 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
 
 }
 
-
 @Singleton
-class DefaultTestingGremlinConnector () extends Gremlin{
+class DefaultTestingGremlinConnector() extends Gremlin {
   override implicit val graph: ScalaGraph = TinkerFactory.createModern().asScala()
   override val b: Bindings = Bindings.instance
   override val g: TraversalSource = graph.traversal
