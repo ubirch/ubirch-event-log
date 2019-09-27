@@ -56,9 +56,15 @@ spec:
             - name: LU_CS_SERIAL_CONSISTENCY_LEVEL
               value: "{{ .Values.eventLogLookup.cassandra.cluster.serialConsistencyLevel}}"
             - name: LU_CS_USERNAME
-              value: "{{ .Values.eventLogLookup.cassandra.cluster.username}}"
+              valueFrom:
+                secretKeyRef:
+                  name: ubs.cassandra
+                  key: username
             - name: LU_CS_PASSWORD
-              value: "{{ .Values.eventLogLookup.cassandra.cluster.password}}"
+              valueFrom:
+                secretKeyRef:
+                  name: ubs.cassandra
+                  key: password
             - name: LU_CS_WITH_SSL
               value: "{{ .Values.eventLogLookup.cassandra.cluster.withSsl}}"
             - name: LU_KFC_NODES
