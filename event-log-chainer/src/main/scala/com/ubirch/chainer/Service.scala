@@ -25,12 +25,12 @@ object Service extends Boot(ChainerServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
 
+    val monitor = get[TreeMonitor]
+    monitor.start
+
     val consumer: StringConsumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
     consumer.start()
-
-    val monitor = get[TreeMonitor]
-    monitor.start
 
   }
 
