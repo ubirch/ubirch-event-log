@@ -8,7 +8,7 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.lookup.models.{ LookupResult, Payload, QueryType, Signature }
-import com.ubirch.lookup.services.LookupServiceBinder
+import com.ubirch.lookup.services.{ DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder }
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
@@ -24,6 +24,9 @@ import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new LookupServiceBinder {
+
+  override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf

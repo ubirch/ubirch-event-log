@@ -107,32 +107,85 @@ case class UPPStrategy(eventLog: EventLog) extends RelationStrategy with LazyLog
 
 case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
 
-  def relation(hash: String, signature: String) = Relation(
-    vFrom = RelationElem(
-      Option(Values.SLAVE_TREE_CATEGORY), Map(
-        Values.HASH -> eventLog.id,
-        Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-      )
-    ),
-    vTo = RelationElem(
-      Option(Values.UPP_CATEGORY), Map(
-        Values.HASH -> hash,
-        Values.SIGNATURE -> signature,
-        Values.TYPE -> Values.UPP_CATEGORY
-      )
-    ),
-    edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map.empty)
-  )
+  def uppRelations = {
 
-  def get = eventLog.lookupKeys
-    .find(_.category == Values.SLAVE_TREE_CATEGORY)
-    .map(_.value)
-    .getOrElse(Nil)
-    .map(x => relation(x.name, x.extra(Values.SIGNATURE)))
+    def relation(hash: String, signature: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.UPP_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.SIGNATURE -> signature,
+          Values.TYPE -> Values.UPP_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name, x.extra(Values.SIGNATURE)))
+  }
+
+  def linkRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_LINK_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
+
+  def upgradeRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY + "_UPGRADE"), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.SLAVE_TREE_CATEGORY + "_UPGRADE" && x.name == Values.SLAVE_TREE_UPGRADE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
 
   override def create: Seq[Relation] = {
     try {
-      get
+      uppRelations ++ linkRelations ++ upgradeRelations
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
@@ -144,28 +197,81 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
 case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
 
-  def relation(hash: String) =
-    Relation(
-      vFrom = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map(
-        Values.HASH -> eventLog.id,
-        Values.TYPE -> Values.MASTER_TREE_CATEGORY
-      )),
-      vTo = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map(
-        Values.HASH -> hash,
-        Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-      )),
+  def treeRelations = {
+
+    def relation(hash: String) =
+      Relation(
+        vFrom = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )),
+        vTo = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+        )),
+        edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
+      )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
+
+  def linkRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
       edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
     )
 
-  def get = eventLog.lookupKeys
-    .find(_.category == Values.MASTER_TREE_CATEGORY)
-    .map(_.value)
-    .getOrElse(Nil)
-    .map(x => relation(x.name))
+    eventLog.lookupKeys
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_LINK_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
+
+  def upgradeRelations = {
+
+    def relation(hash: String) = Relation(
+      vFrom = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> eventLog.id,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      vTo = RelationElem(
+        Option(Values.MASTER_TREE_CATEGORY), Map(
+          Values.HASH -> hash,
+          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+        )
+      ),
+      edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
+    )
+
+    eventLog.lookupKeys
+      .find(x => x.category == Values.MASTER_TREE_CATEGORY + "_UPGRADE" && x.name == Values.MASTER_TREE_UPGRADE_ID)
+      .map(_.value)
+      .getOrElse(Nil)
+      .map(x => relation(x.name))
+  }
 
   override def create: Seq[Relation] = {
     try {
-      get
+      treeRelations ++ linkRelations ++ upgradeRelations
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)

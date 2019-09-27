@@ -63,10 +63,14 @@ spec:
               value: "{{ .Values.eventLogChainerMaster.minTreeRecords}}"
             - name: CHAINER_MIN_TREE_EVERY
               value: "{{ .Values.eventLogChainerMaster.treeEvery }}"
+            - name: CHAINER_MIN_TREE_UPGRADE
+              value: "{{ .Values.eventLogChainerMaster.treeUpgrade }}"
             - name: CHAINER_MODE
               value: "{{ .Values.eventLogChainerMaster.mode }}"
             - name: CHAINER_SPLIT
               value: "{{ .Values.eventLogChainerMaster.split }}"
+            - name: CHAINER_SPLIT_SIZE
+              value: "{{ .Values.eventLogChainerMaster.splitSize }}"
             - name: CHAINER_KFC_MAX_POLL_RECORDS
               value: "{{ .Values.eventLogChainerMaster.kafka.consumer.maxpoll }}"
             - name: CHAINER_KFP_LINGER_MS

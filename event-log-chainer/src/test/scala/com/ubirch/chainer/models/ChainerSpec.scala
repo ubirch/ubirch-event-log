@@ -200,5 +200,20 @@ class ChainerSpec extends TestBase {
 
     }
 
+    "set and get Zero" in {
+      val listOfData = List(
+        SomeDataTypeFromKafka("vegetables", "eggplant"),
+        SomeDataTypeFromKafka("vegetables", "artichoke"),
+        SomeDataTypeFromKafka("fruits", "banana"),
+        SomeDataTypeFromKafka("fruits", "apple")
+      )
+
+      val zero = "Mandarina"
+
+      val chainer = Chainer(listOfData).withHashZero(zero)
+      assert(chainer.getZero == zero)
+
+    }
+
   }
 }
