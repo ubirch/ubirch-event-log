@@ -96,6 +96,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   } yield {
 
     def withPrevious(hash: String) = Map(Values.PREV_HASH -> hash)
+    def withNext(hash: String) = Map(Values.NEXT_HASH -> hash)
 
     val pathWithPrevious = {
       pathV.foldLeft(List.empty[VertexStruct]){
@@ -112,7 +113,22 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       }
     }
 
-    (pathWithPrevious, blockchainsV)
+    val pathWithNext = {
+      pathWithPrevious.foldRight(List.empty[VertexStruct]){
+        (acc, current) =>
+
+          val next = current
+            .headOption
+            .map(_.properties)
+            .flatMap(_.get(Values.HASH))
+            .map(withNext)
+            .getOrElse(withNext(""))
+
+          List(acc.copy(properties = acc.properties ++ next)) ++ current
+      }
+    }
+
+    (pathWithNext, blockchainsV)
   }
 
 }

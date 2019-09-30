@@ -21,6 +21,7 @@ object Values {
   val UPP_CHAIN = "upp-chain"
   val HASH = "hash"
   val PREV_HASH = "prev_hash"
+  val NEXT_HASH = "next_hash"
   val TYPE = "type"
   val ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK = "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK"
   val UBIRCH = "ubirch"
