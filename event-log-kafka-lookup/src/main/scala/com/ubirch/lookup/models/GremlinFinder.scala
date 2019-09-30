@@ -55,13 +55,26 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   def toVertexStruct(vertices: List[Vertex]) = {
     val futureRes = vertices.map { v =>
-      val fmaps = g.V(v).valueMap.promise().map(_.headOption)
-      val flabel = g.V(v).label.promise().map(_.headOption)
+      val fmaps = g.V(v).valueMap().promise().map(_.headOption)
+      val flabel = g.V(v).label().promise().map(_.headOption)
       val gremlinRes = for {
         jmaps <- fmaps
         label <- flabel
       } yield {
-        val maps = jmaps.map(_.asScala.toMap).map(_.map(x => x._1.toString -> x._2.toString)).getOrElse(Map.empty[String, String])
+        val maps = jmaps
+          .map(_.asScala.toMap)
+          .map(_.map { x =>
+            try {
+              val key = x._1.toString
+              val value = x._2.asInstanceOf[java.util.ArrayList[String]].asScala.headOption.getOrElse("NO VALUE")
+              key -> value
+            } catch {
+              case e: Exception =>
+                logger.error("Error creating VertexStruct")
+                throw e
+            }
+          })
+          .getOrElse(Map.empty[String, String])
         label.map(x => (x, maps))
       }
       gremlinRes
