@@ -20,6 +20,7 @@ object Values {
   val DEVICE_ID = "device-id"
   val UPP_CHAIN = "upp-chain"
   val HASH = "hash"
+  val PREV_HASH = "prev_hash"
   val TYPE = "type"
   val ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK = "ETHEREUM_TESTNET_RINKEBY_TESTNET_NETWORK"
   val UBIRCH = "ubirch"
