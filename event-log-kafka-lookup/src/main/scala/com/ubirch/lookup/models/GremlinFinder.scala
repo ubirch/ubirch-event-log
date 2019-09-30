@@ -95,7 +95,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     blockchainsV <- toVertexStruct(blockchains)
   } yield {
 
-    val blockchainsVWithPrevious = blockchainsV.foldLeft(List.empty[VertexStruct]){
+    val pathWithPrevious = pathV.foldLeft(List.empty[VertexStruct]){
       (acc, current) =>
 
         val next = acc.reverse
@@ -108,7 +108,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         acc  ++ List(current.copy(properties = current.properties ++ next))
     }
 
-    (pathV, blockchainsVWithPrevious)
+    (pathWithPrevious, blockchainsV)
   }
 
 }
