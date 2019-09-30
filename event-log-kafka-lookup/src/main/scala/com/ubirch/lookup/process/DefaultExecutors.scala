@@ -53,7 +53,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
           case (Some(ev), path, maybeAnchors) =>
             val anchors = Map("shortest_path" -> path, "blockchains" -> maybeAnchors)
             val jValueAnchors = LookupJsonSupport.ToJson(anchors).get
-            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, Seq(jValueAnchors))), None, None)
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, jValueAnchors)), None, None)
           case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
