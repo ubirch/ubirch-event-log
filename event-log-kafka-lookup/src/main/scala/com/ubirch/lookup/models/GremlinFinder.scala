@@ -95,17 +95,21 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     blockchainsV <- toVertexStruct(blockchains)
   } yield {
 
-    val pathWithPrevious = pathV.foldLeft(List.empty[VertexStruct]){
-      (acc, current) =>
+    def withPrevious(hash: String) = Map(Values.PREV_HASH -> hash)
 
-        val next = acc.reverse
-          .headOption
-          .map(_.properties)
-          .flatMap(_.get(Values.HASH))
-          .map(x => Map(Values.PREV_HASH -> x))
-          .getOrElse(Map.empty)
+    val pathWithPrevious = {
+      pathV.foldLeft(List.empty[VertexStruct]){
+        (acc, current) =>
 
-        acc  ++ List(current.copy(properties = current.properties ++ next))
+          val next = acc.reverse
+            .headOption
+            .map(_.properties)
+            .flatMap(_.get(Values.HASH))
+            .map(withPrevious)
+            .getOrElse(withPrevious(""))
+
+          acc  ++ List(current.copy(properties = current.properties ++ next))
+      }
     }
 
     (pathWithPrevious, blockchainsV)
