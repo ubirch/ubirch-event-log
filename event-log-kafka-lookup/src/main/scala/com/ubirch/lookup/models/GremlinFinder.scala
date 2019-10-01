@@ -83,9 +83,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     Future.sequence(futureRes).map { xs =>
       xs.flatMap(y => y.toList)
     }.map { xs =>
-      xs.map { case (a, b) =>
-        VertexStruct(a, b)
-      }
+      xs.map { case (a, b) => VertexStruct(a, b) }
     }
   }
 
@@ -95,40 +93,44 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     blockchainsV <- toVertexStruct(blockchains)
   } yield {
 
-    def withPrevious(hash: String) = Map(Values.PREV_HASH -> hash)
-    def withNext(hash: String) = Map(Values.NEXT_HASH -> hash)
+    def withPrevious(hashes: List[String]) = Map(Values.PREV_HASH -> hashes.mkString(","))
+    def withNext(hashes: List[String]) = Map(Values.NEXT_HASH -> hashes.mkString(","))
 
-    val pathWithPrevious = {
-      pathV.foldLeft(List.empty[VertexStruct]){
-        (acc, current) =>
+    val pathLinks =
+      pathV
+        .foldLeft(List.empty[VertexStruct]) { (acc, current) =>
 
-          val next = acc.reverse
+          val next = acc
+            .reverse
             .headOption
             .map(_.properties)
             .flatMap(_.get(Values.HASH))
-            .map(withPrevious)
-            .getOrElse(withPrevious(""))
+            .map(x => withPrevious(List(x)))
+            .getOrElse(withPrevious(List("")))
 
-          acc  ++ List(current.copy(properties = current.properties ++ next))
-      }
-    }
+          acc ++ List(current.addProperties(next))
+        }
+        .foldRight(List.empty[VertexStruct]) { (current, acc) =>
 
-    val pathWithNext = {
-      pathWithPrevious.foldRight(List.empty[VertexStruct]){
-        (acc, current) =>
-
-          val next = current
+          val next = acc
             .headOption
             .map(_.properties)
             .flatMap(_.get(Values.HASH))
-            .map(withNext)
-            .getOrElse(withNext(""))
+            .map(x => withNext(List(x)))
+            .getOrElse(withNext(List("")))
 
-          List(acc.copy(properties = acc.properties ++ next)) ++ current
-      }
-    }
+          current.addProperties(next) +: acc
+        }
 
-    (pathWithNext, blockchainsV)
+    val blockchainHashes = blockchainsV.map(_.properties.getOrElse(Values.HASH, ""))
+    val upToMaster = pathLinks.reverse
+    val lastMaster = upToMaster.headOption.map(_.addProperties(withNext(blockchainHashes))).toList
+    val lastMasterHash = lastMaster.map(x => x.properties.getOrElse(Values.HASH, ""))
+
+    val completePath = upToMaster.tail.reverse ++ lastMaster
+    val completeBlockchains = blockchainsV.map(_.addProperties(withPrevious(lastMasterHash)))
+
+    (completePath, completeBlockchains)
   }
 
 }
