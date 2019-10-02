@@ -11,6 +11,7 @@ import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString
+import com.ubirch.models.EnrichedEventLog._
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -128,23 +129,10 @@ class TreeMonitor @Inject() (
     val fillingChainers = createTrees(List(fillingEventLog))
     //This is the tree event-log (filling)
     createEventLogs(fillingChainers.toVector)
-      .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
-      .map { x =>
-        if (addBigBangProperties) {
-          //Add time zero and lookup
-          import LookupKey._
-          val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
-          val newDate = sdf.parse("02-03-1986 00:00:00")
-          x.withEventTime(newDate)
-            .addLookupKeys(
-              LookupKey(
-                "big-bang-tree-id",
-                "BING_BANG_TREE",
-                x.id.asKeyWithLabel("BIG_BANG_TREE"),
-                Seq("BIG_BANG_TREE".asValueWithLabel("BIG_BANG_TREE"))
-              )
-            )
-        } else x
+      .map(el => el.addLookupKeys(treeEventLogCreator.upgradeLookups(el.id, latestHash): _*))
+      .map { el =>
+        if (addBigBangProperties) el.withBigBangTime.addBigBangLookup
+        else el
       }
       .map(el => publishWithNoCache(topic, el))
   }
