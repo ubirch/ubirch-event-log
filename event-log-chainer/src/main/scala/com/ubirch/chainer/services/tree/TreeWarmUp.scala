@@ -10,7 +10,7 @@ case object WhatTheHeck extends WarmUpResult
 case object CreateGenesisTree extends WarmUpResult
 
 @Singleton
-class TreeWarmUp @Inject()(treeCache: TreeCache) extends LazyLogging {
+class TreeWarmUp @Inject() (treeCache: TreeCache) extends LazyLogging {
 
   def warmup: WarmUpResult = {
     logger.info("Starting Tree Warm-up...")
@@ -26,7 +26,7 @@ class TreeWarmUp @Inject()(treeCache: TreeCache) extends LazyLogging {
         logger.info("Genesis Tree and Latest Tree found. Setting local Latest as [{}]", lt)
         treeCache.setLatestHash(lt)
         AllGood
-      case (None, Some(lt)) =>
+      case (None, Some(_)) =>
         logger.error("WHAT: There's a latest tree BUT no genesis! ")
         WhatTheHeck
       case (None, None) =>
@@ -40,8 +40,8 @@ class TreeWarmUp @Inject()(treeCache: TreeCache) extends LazyLogging {
     logger.info("Checking Genesis Tree ...")
     None
   }
-  def lastest : Option[String] = {
+  def lastest: Option[String] = {
     logger.info("Checking Latest Tree ...")
-    Some("hooa")
+    None
   }
 }
