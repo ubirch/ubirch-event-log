@@ -5,6 +5,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.process.RelationStrategy
+import com.ubirch.discovery.services.metrics.DefaultEventsCounter
 import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.discovery.util.Exceptions.{ ParsingError, StrategyException }
 import com.ubirch.kafka.express.ExpressKafka
@@ -13,6 +14,7 @@ import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.services.kafka.producer.ProducerShutdownHook
 import com.ubirch.services.lifeCycle.Lifecycle
+import com.ubirch.services.metrics.Counter
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -60,7 +62,11 @@ abstract class DefaultExpressDiscoveryBase(config: Config, lifecycle: Lifecycle)
 }
 
 @Singleton
-class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(implicit ec: ExecutionContext)
+class DefaultExpressDiscovery @Inject() (
+    config: Config,
+    lifecycle: Lifecycle,
+    @Named(DefaultEventsCounter.name) eventsCounter: Counter
+)(implicit ec: ExecutionContext)
   extends DefaultExpressDiscoveryBase(config, lifecycle) with LazyLogging {
 
   final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
@@ -76,7 +82,7 @@ class DefaultExpressDiscovery @Inject() (config: Config, lifecycle: Lifecycle)(i
   }
 
   def getRelations(eventLog: EventLog) = {
-    val rs = RelationStrategy.getStrategy(eventLog).create
+    val rs = RelationStrategy.getStrategy(eventLog, eventsCounter: Counter).create
     if (rs.isEmpty) {
       logger.warn("No relations created. It is possible that the incoming data doesn't have the needed values. EventLog {} ", eventLog.toJson)
     }
