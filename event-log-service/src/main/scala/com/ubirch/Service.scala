@@ -1,6 +1,7 @@
 package com.ubirch
 
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.service.rest.RestService
 import com.ubirch.util.Boot
 
 import scala.language.postfixOps
@@ -13,6 +14,9 @@ import scala.language.postfixOps
 object Service extends Boot {
 
   def main(args: Array[String]): Unit = {
+
+    val restEndpoint = get[RestService]
+    restEndpoint.start
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
