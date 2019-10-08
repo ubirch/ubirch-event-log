@@ -5,7 +5,7 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
-import com.ubirch.discovery.services.metrics.DefaultEventsCounter
+import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.services._
 import com.ubirch.services.config.ConfigProvider
@@ -26,9 +26,9 @@ class DiscoveryServiceBinder
 
   def expressKafka: ScopedBindingBuilder = bind(classOf[ExpressKafka[String, String, Unit]]).to(classOf[DefaultExpressDiscovery])
 
-  def eventsCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultEventsCounter.name))
-    .to(classOf[DefaultEventsCounter])
+  def deviceCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultDeviceCounter.name))
+    .to(classOf[DefaultDeviceCounter])
 
   override def configure(): Unit = {
     lifecycle
@@ -36,6 +36,7 @@ class DiscoveryServiceBinder
     config
     executionContext
     expressKafka
+    deviceCounter
   }
 
 }

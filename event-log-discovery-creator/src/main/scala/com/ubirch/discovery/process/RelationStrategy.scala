@@ -2,11 +2,13 @@ package com.ubirch.discovery.process
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.{ Relation, RelationElem }
+import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
+import javax.inject._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -15,19 +17,22 @@ sealed trait RelationStrategy {
   def create: Seq[Relation]
 }
 
-object RelationStrategy {
-  def getStrategy(eventLog: EventLog, eventsCounter: Counter): RelationStrategy = {
+@Singleton
+class RelationStrategyImpl @Inject() (@Named(DefaultDeviceCounter.name) deviceCounter: Counter) {
+
+  def getStrategy(eventLog: EventLog): RelationStrategy = {
     eventLog match {
-      case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el, eventsCounter)
-      case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy(el, eventsCounter)
-      case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy(el, eventsCounter)
-      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy(el, eventsCounter)
-      case el => UnknownStrategy(el, eventsCounter)
+      case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el, deviceCounter)
+      case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy(el)
+      case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy(el)
+      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy(el)
+      case el => UnknownStrategy(el)
     }
   }
+
 }
 
-case class UPPStrategy(eventLog: EventLog, eventsCounter: Counter) extends RelationStrategy with LazyLogging {
+case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends RelationStrategy with LazyLogging {
 
   def get = {
 
@@ -66,6 +71,8 @@ case class UPPStrategy(eventLog: EventLog, eventsCounter: Counter) extends Relat
           throw new Exception(s"Error parsing chain [${e.getMessage}] ")
       }
 
+    //"service", "device-id", "upp", "chain"
+    deviceCounter.counter.labels("event_log_trace", device).inc()
     logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
 
     val relation1 = Relation(
@@ -108,7 +115,7 @@ case class UPPStrategy(eventLog: EventLog, eventsCounter: Counter) extends Relat
   }
 }
 
-case class SlaveTreeStrategy(eventLog: EventLog, eventsCounter: Counter) extends RelationStrategy with LazyLogging {
+case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
 
   def uppRelations = {
 
@@ -206,7 +213,7 @@ case class SlaveTreeStrategy(eventLog: EventLog, eventsCounter: Counter) extends
   }
 }
 
-case class MasterTreeStrategy(eventLog: EventLog, eventsCounter: Counter) extends RelationStrategy with LazyLogging {
+case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
 
   def treeRelations = {
 
@@ -298,7 +305,7 @@ case class MasterTreeStrategy(eventLog: EventLog, eventsCounter: Counter) extend
   }
 }
 
-case class PublicBlockchainStrategy(eventLog: EventLog, eventsCounter: Counter) extends RelationStrategy with LazyLogging {
+case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
   def relation(hash: String) = {
     logger.info("[event-log-trace] blockchain={} master-tree={} blockchain-name={}", eventLog.id, hash, eventLog.category)
     Relation(
@@ -332,7 +339,7 @@ case class PublicBlockchainStrategy(eventLog: EventLog, eventsCounter: Counter) 
   }
 }
 
-case class UnknownStrategy(eventLog: EventLog, eventsCounter: Counter) extends RelationStrategy {
+case class UnknownStrategy(eventLog: EventLog) extends RelationStrategy {
   override def create: Seq[Relation] =
     throw UnknownStrategyException("UnknownStrategyException", "There's no strategy for category " + eventLog.category, eventLog)
 }
