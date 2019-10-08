@@ -1,7 +1,5 @@
 package com.ubirch.lookup.models
 
-import org.json4s.{ CustomSerializer, JObject }
-
 case class VertexStruct(label: String, properties: Map[String, String]) {
 
   def addLabel(newLabel: String): VertexStruct = copy(label = newLabel)
