@@ -36,6 +36,13 @@
 
         <event-log-core.version>1.2.5</event-log-core.version>
 
+        <!-- Scalatra -->
+        <scalatra.version>2.6.5</scalatra.version>
+        <scalactic.version>3.0.5</scalactic.version>
+        <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
+        <javaxServlet.version>3.1.0</javaxServlet.version>
+        <jetty-servlets.version>9.4.19.v20190610</jetty-servlets.version>
+
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
@@ -58,6 +65,60 @@
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
         </dependency>
+
+        <!-- Scalatra -->
+
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra_2.12</artifactId>
+            <version>${scalatra.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.compat.version}</artifactId>
+            <version>${scalactic.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra-swagger_${scala.compat.version}</artifactId>
+            <version>${scalatraSwagger.version}</version>
+        </dependency>
+
+        <!-- Javax servlet -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>${javaxServlet.version}</version>
+        </dependency>
+
+        <!-- Jetty servlet -->
+        <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-server -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>9.4.19.v20190610</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>9.4.19.v20190610</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-webapp -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-webapp</artifactId>
+            <version>9.4.19.v20190610</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-servlets -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlets</artifactId>
+            <version>9.4.19.v20190610</version>
+        </dependency>
+
 
     </dependencies>
 
