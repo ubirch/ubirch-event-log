@@ -49,4 +49,16 @@ object EventLogRow {
       nonce = eventLog.nonce
     )
   }
+
+  def toEventLog(eventLogRow: EventLogRow): EventLog = {
+    EventLog(eventLogRow.event)
+      .withCategory(eventLogRow.category)
+      .withEventTime(eventLogRow.eventTime)
+      .withSignature(eventLogRow.signature)
+      .withNonce(eventLogRow.nonce)
+      .withServiceClass(eventLogRow.serviceClass)
+      .withNewId(eventLogRow.id)
+      .withCustomerId(eventLogRow.customerId)
+
+  }
 }
