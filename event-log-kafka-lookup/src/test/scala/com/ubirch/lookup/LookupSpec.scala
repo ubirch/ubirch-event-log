@@ -118,8 +118,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val expectedLookup = LookupResult.Found(key, queryType, LookupJsonSupport.getJValue(data), JNull)
         val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
 
@@ -475,8 +475,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val expectedLookup = LookupResult.Found(key, queryType, pmAsJson, tx)
         val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
         assert(masterTree.category == masterTree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))

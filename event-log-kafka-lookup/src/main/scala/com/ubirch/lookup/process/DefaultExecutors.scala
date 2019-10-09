@@ -9,7 +9,7 @@ import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
-import com.ubirch.models.GenericResponse
+import com.ubirch.models.JValueGenericResponse
 import com.ubirch.process.Executor
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
@@ -97,9 +97,9 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
         val output = v1.lookupResult
           .map { x =>
             val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
-            val gr = GenericResponse(success = x.success, x.message, lookupJValue)
+            val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
 
-            (x, LookupJsonSupport.ToJson[GenericResponse](gr))
+            (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
           }
           .map { case (x, y) =>
             val commitDecision: ProducerRecord[String, String] = {
