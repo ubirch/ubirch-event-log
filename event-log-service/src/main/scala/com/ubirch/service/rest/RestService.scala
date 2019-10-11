@@ -63,10 +63,10 @@ class RestService @Inject() (config: Config, lifecycle: Lifecycle) extends LazyL
     contextSwaggerUi
   }
 
-  private def startServer(server: Server): Unit =
+  private def startServer(server: Server, withJoin: Boolean = false): Unit =
     try {
       server.start()
-      server.join()
+      if (withJoin) server.join()
     } catch {
       case e: Exception =>
         logger.error(e.getMessage)

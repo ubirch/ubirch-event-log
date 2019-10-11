@@ -1,20 +1,19 @@
 package com.ubirch.chainer.services.tree
 
-import java.text.SimpleDateFormat
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
-import com.ubirch.models.{ EventLog, HeaderNames, LookupKey }
-import com.ubirch.util.UUIDHelper
+import com.ubirch.models.EnrichedEventLog._
+import com.ubirch.models.{ EventLog, HeaderNames }
+import com.ubirch.util.{ FutureHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString
-import com.ubirch.models.EnrichedEventLog._
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.postfixOps
 
 @Singleton
 class TreeMonitor @Inject() (
@@ -49,14 +48,14 @@ class TreeMonitor @Inject() (
       }
     }
 
-    Mode
+    val doWarmup = Mode
       .foldF(mode)
       .onSlave { () =>
         logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
-        tick
+        Future.successful(tick)
       }
       .onMaster { () =>
-        treeWarmUp.warmup match {
+        treeWarmUp.warmup.map {
           case AllGood =>
             logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
             tick
@@ -69,6 +68,8 @@ class TreeMonitor @Inject() (
         }
       }
       .run
+
+    FutureHelper.await(doWarmup, 10 seconds)
 
   }
 

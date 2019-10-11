@@ -4,8 +4,8 @@ import java.util.concurrent.{ CountDownLatch, TimeUnit, Future => JavaFuture }
 
 import monix.execution.Scheduler.{ global => scheduler }
 
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ ExecutionContext, Future, blocking }
+import scala.concurrent.duration.{ Duration, FiniteDuration }
+import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
 
 /**
   * A helper class for future-related stuff
@@ -32,5 +32,13 @@ class FutureHelper()(implicit ec: ExecutionContext) {
     countDown.await()
     t
   }
+
+}
+
+object FutureHelper {
+
+  def await[T](future: Future[T]): T = await(future, Duration.Inf)
+
+  def await[T](future: Future[T], atMost: Duration): T = Await.result(future, atMost)
 
 }

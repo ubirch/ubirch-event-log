@@ -1,9 +1,7 @@
 package com.ubirch.models
 
-import java.text.SimpleDateFormat
-
 import com.typesafe.config.Config
-import com.ubirch.util.{ SigningHelper, UUIDHelper }
+import com.ubirch.util.{ SigningHelper, TimeHelper, UUIDHelper }
 
 import scala.language.implicitConversions
 
@@ -44,9 +42,7 @@ case class EnrichedEventLog(eventLog: EventLog) {
   }
 
   def withBigBangTime: EventLog = {
-    val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
-    val newDate = sdf.parse("02-03-1986 00:00:00")
-    eventLog.withEventTime(newDate)
+    eventLog.withEventTime(TimeHelper.bigBangAsDate.toDate)
   }
 
   def addBigBangLookup: EventLog = {
