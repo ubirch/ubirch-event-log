@@ -3,14 +3,13 @@ package com.ubirch.controllers
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models._
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.ExecutionException
 import javax.inject._
 import org.json4s.Formats
+import org.scalatra._
 import org.scalatra.json.NativeJsonSupport
 import org.scalatra.swagger.{ Swagger, SwaggerSupport, SwaggerSupportSyntax }
-import org.scalatra._
 
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.{ ExecutionContext, Promise }
 import scala.util.{ Failure, Success }
 
 class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByCat)(implicit val executor: ExecutionContext)
@@ -23,6 +22,10 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
 
   override protected def applicationDescription: String = "EventLog Getter"
   override protected implicit def jsonFormats: Formats = EventLogJsonSupport.formats
+
+  before() {
+    contentType = formats("json")
+  }
 
   val infoSwagger: SwaggerSupportSyntax.OperationBuilder =
     (apiOperation[InfoGenericResponse]("Basic API Info")
@@ -49,7 +52,10 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
     val query = parsedBody
       .extractOpt[QueryByCatAndTimeElems]
       .filter(_.validate)
-      .getOrElse(halt(BadRequest(EventLogGenericResponse(success = false, "Invalid query data provided", Nil))))
+      .getOrElse {
+        logger.error("invalid_params={}", request.body)
+        halt(BadRequest(EventLogGenericResponse(success = false, "Invalid query data provided", Nil)))
+      }
 
     val res = eventsByCat.byCatAndYearAndMonthAndDay(query.category, query.year, query.month, query.day)
 
@@ -58,14 +64,16 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
     res.onComplete {
 
       case Success(value) =>
-        logger.info("Result:  " + value)
-        val r = Ok(
+        logger.info("events_query_result=:  " + value)
+        val response = {
           EventLogGenericResponse(
             success = true,
             "Request successfully processed",
             value.map(x => EventLogRow.toEventLog(x))
           )
-        )
+        }
+        val r = if (value.isEmpty) NotFound(response) else Ok(response)
+
         promise.success(r)
       case Failure(exception) =>
         logger.error("Error querying:" + exception.getMessage)

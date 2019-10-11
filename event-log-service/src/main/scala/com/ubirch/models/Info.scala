@@ -9,7 +9,7 @@ case class Info(name: String, description: String, version: String)
 case class QueryByCatAndTimeElems(category: String, year: Int, month: Int, day: Int) {
   def validate: Boolean = {
     category.nonEmpty &&
-      year > 1986 &&
+      year >= 1986 &&
       month > 0 &&
       month < 13 &&
       day > 0 &&

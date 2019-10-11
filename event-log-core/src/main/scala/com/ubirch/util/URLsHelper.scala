@@ -1,8 +1,10 @@
 package com.ubirch.util
 
-import java.net.InetSocketAddress
+import java.net.{ InetSocketAddress, URL }
 
 import com.ubirch.util.Exceptions.{ InvalidContactPointsException, NoContactPointsException }
+
+import scala.util.Try
 
 /**
   * A helper convenience for URL related work
@@ -52,5 +54,7 @@ object URLsHelper {
     }
 
   }
+
+  def toURL(endpoint: String): Try[URL] = Try(new URL(endpoint))
 
 }

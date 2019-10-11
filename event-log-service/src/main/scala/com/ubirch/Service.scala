@@ -17,8 +17,12 @@ object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
 
+    logger.info("Starting Rest")
+
     val restEndpoint = get[RestService]
     restEndpoint.start
+
+    logger.info("Starting consumer")
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
