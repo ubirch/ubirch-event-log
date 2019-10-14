@@ -33,6 +33,7 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
     }, exec)
     p.future
   }
+
   def get(url: String)(implicit exec: Executor): Future[Response] = {
     val f = client.prepareGet(url).execute()
     futureFromPromise(f)

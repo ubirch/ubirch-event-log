@@ -9,6 +9,7 @@ import com.ubirch.chainer.services.httpClient.WebClient
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.util.{ EventLogJsonSupport, TimeHelper, URLsHelper }
 import javax.inject._
+import org.json4s.JsonDSL._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -56,9 +57,10 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
   }
 
   def firstEver: Future[Option[String]] = {
+
     logger.info("Checking Genesis Tree ...")
-    import org.json4s.JsonDSL._
-    implicit val executor = ec.asInstanceOf[Executor with ExecutionContext]
+
+    val executor = ec.asInstanceOf[Executor with ExecutionContext]
     val bigBangTime = TimeHelper.bigBangAsDate
     val body = {
 
@@ -73,45 +75,44 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
     logger.info("params={}", body)
 
-    webClient.post(logQueryEndpointAsURL.toString)(body.getBytes(StandardCharsets.UTF_8)).map { res =>
+    webClient
+      .post(logQueryEndpointAsURL.toString)(body.getBytes(StandardCharsets.UTF_8))(executor)
+      .map { res =>
 
-      logger.info("endpoint={} status_code_text={} status_code={} content_type={}", logQueryEndpointAsString, res.getStatusText, res.getStatusCode, res.getContentType)
+        logger.info("endpoint={} status_code_text={} status_code={} content_type={}", logQueryEndpointAsString, res.getStatusText, res.getStatusCode, res.getContentType)
 
-      if (res.getContentType.contains("json")) {
+        if (res.getContentType.contains("json")) {
 
-        logger.debug("received_body={}", res.getResponseBody)
+          logger.debug("received_body={}", res.getResponseBody)
 
-        if (res.getStatusCode == 200) { //Found
+          if (res.getStatusCode == 200) { //Found
 
-          try {
-            val jvalue = EventLogJsonSupport.getJValue(res.getResponseBodyAsStream)
-            val eventLogJValue = jvalue \\ "data"
-            val bigBangEventLog = EventLogJsonSupport.FromJson[List[EventLog]](eventLogJValue).get
+            try {
+              val jvalue = EventLogJsonSupport.getJValue(res.getResponseBodyAsStream)
+              val eventLogJValue = jvalue \\ "data"
+              val bigBangEventLog = EventLogJsonSupport.FromJson[List[EventLog]](eventLogJValue).get
 
-            logger.info("big_bang_event_log_found:" + bigBangEventLog)
+              logger.info("big_bang_event_log_found:" + bigBangEventLog)
 
-            Some(bigBangEventLog.head.id)
+              Some(bigBangEventLog.head.id)
 
-          } catch {
-            case e: Exception =>
-              logger.error("Error parsing Big Bang Tree", e)
-              throw new Exception("Error parsing into event log.")
-          }
+            } catch {
+              case e: Exception =>
+                logger.error("Error parsing Big Bang Tree", e)
+                throw new Exception("Error parsing into event log.")
+            }
 
-        } else if (res.getStatusCode == 404) { // Not found
-          logger.info("No Big Bang Tree found")
-          None
-        } else if (res.getStatusCode == 400) {
-          logger.error("invalid_parameters={}" + body)
-          throw new Exception("Invalid parameters calling " + logQueryEndpointAsString)
-        } //Invalid Params
-        else throw new Exception("Wrong response from " + logQueryEndpointAsString)
+          } else if (res.getStatusCode == 404) { // Not found
+            logger.info("No Big Bang Tree found")
+            None
+          } else if (res.getStatusCode == 400) {
+            logger.error("invalid_parameters={}" + body)
+            throw new Exception("Invalid parameters calling " + logQueryEndpointAsString)
+          } //Invalid Params
+          else throw new Exception("Wrong response from " + logQueryEndpointAsString)
+        } else throw new Exception("Wrong content type. I am expecting application/json;charset=utf-8")
 
-      } else {
-        throw new Exception("Wrong content type. I am expecting application/json;charset=utf-8")
       }
-
-    }
 
   }
 

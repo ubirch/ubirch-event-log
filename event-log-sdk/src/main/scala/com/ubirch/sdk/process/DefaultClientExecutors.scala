@@ -201,7 +201,7 @@ class CommitHandlerStealthAsync extends Executor[(JavaFuture[RecordMetadata], Ev
 
 class Logger extends Executor[EventLog, EventLog] with LazyLogging {
   override def apply(v1: EventLog): EventLog = {
-    logger.debug(v1.toJson);
+    logger.debug(v1.toJson)
     v1
   }
 }
