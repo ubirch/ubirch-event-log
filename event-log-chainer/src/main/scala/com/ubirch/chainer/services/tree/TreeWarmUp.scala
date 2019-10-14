@@ -1,6 +1,5 @@
 package com.ubirch.chainer.services.tree
 
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.Executor
 
 import com.typesafe.config.Config
@@ -9,7 +8,7 @@ import com.ubirch.chainer.services.httpClient.WebClient
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.util.{ EventLogJsonSupport, TimeHelper, URLsHelper }
 import javax.inject._
-import org.json4s.JsonDSL._
+import org.asynchttpclient.Param
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -62,21 +61,20 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
     val executor = ec.asInstanceOf[Executor with ExecutionContext]
     val bigBangTime = TimeHelper.bigBangAsDate
-    val body = {
 
-      val _body =
-        ("category" -> Values.MASTER_TREE_CATEGORY) ~
-          ("year" -> bigBangTime.getYear) ~
-          ("month" -> bigBangTime.getMonthOfYear) ~
-          ("day" -> bigBangTime.getDayOfMonth)
+    val queryParams = List(
+      new Param("category", Values.MASTER_TREE_CATEGORY),
+      new Param("year", bigBangTime.getYear.toString),
+      new Param("month", bigBangTime.getMonthOfYear.toString),
+      new Param("day", bigBangTime.getDayOfMonth.toString)
+    )
 
-      EventLogJsonSupport.stringify(_body)
-    }
+    val queryParamsAsString = queryParams.map(x => x.getName + "=" + x.getValue).mkString(",")
 
-    logger.info("params={}", body)
+    logger.info("params={}", queryParamsAsString)
 
     webClient
-      .post(logQueryEndpointAsURL.toString)(body.getBytes(StandardCharsets.UTF_8))(executor)
+      .get(logQueryEndpointAsURL.toString)(queryParams)(executor)
       .map { res =>
 
         logger.info("endpoint={} status_code_text={} status_code={} content_type={}", logQueryEndpointAsString, res.getStatusText, res.getStatusCode, res.getContentType)
@@ -106,7 +104,7 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
             logger.info("No Big Bang Tree found")
             None
           } else if (res.getStatusCode == 400) {
-            logger.error("invalid_parameters={}" + body)
+            logger.error("invalid_parameters={}", queryParamsAsString)
             throw new Exception("Invalid parameters calling " + logQueryEndpointAsString)
           } //Invalid Params
           else throw new Exception("Wrong response from " + logQueryEndpointAsString)

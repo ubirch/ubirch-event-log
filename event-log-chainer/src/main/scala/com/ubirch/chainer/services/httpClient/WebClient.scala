@@ -5,12 +5,13 @@ import java.util.concurrent.Executor
 import com.typesafe.scalalogging.LazyLogging
 import javax.inject._
 import org.asynchttpclient.Dsl._
-import org.asynchttpclient.{ ListenableFuture, Response }
+import org.asynchttpclient.{ ListenableFuture, Param, Response }
 
+import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 trait WebClient {
-  def get(url: String)(implicit exec: Executor): Future[Response]
+  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[Response]
   def post(url: String)(body: Array[Byte])(implicit exec: Executor): Future[Response]
 }
 
@@ -34,8 +35,8 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
     p.future
   }
 
-  def get(url: String)(implicit exec: Executor): Future[Response] = {
-    val f = client.prepareGet(url).execute()
+  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[Response] = {
+    val f = client.prepareGet(url).setQueryParams(params.asJava).execute()
     futureFromPromise(f)
   }
 
@@ -52,5 +53,5 @@ object WebClientTest extends App {
 
   implicit val exec = scala.concurrent.ExecutionContext.global.asInstanceOf[Executor with ExecutionContext]
   val webClient = new DefaultAsyncWebClient
-  webClient.get("http://www.google.com/").map(x => println(x.getResponseBody)).foreach(_ => webClient.shutdown())
+  webClient.get("http://www.google.com/")(Nil).map(x => println(x.getResponseBody)).foreach(_ => webClient.shutdown())
 }

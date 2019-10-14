@@ -44,18 +44,35 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
       summary "Queries for event logs that have a common category and time elements."
       description "Queries for event logs that have a common category and time elements."
       tags "Queries for event logs"
-      parameters
-      bodyParam[QueryByCatAndTimeElems]("query"))
+      parameters (
+        queryParam[String]("category").description("The category of the event-log you are interested in looking up.").defaultValue("MASTER_TREE"),
+        queryParam[Int]("year").description("The year of the event"),
+        queryParam[Int]("month").description("The month of the event"),
+        queryParam[Int]("day").description("The day of the event")
+      ))
 
-  post("/events", operation(eventsSwagger)) {
+  get("/events", operation(eventsSwagger)) {
 
-    val query = parsedBody
-      .extractOpt[QueryByCatAndTimeElems]
-      .filter(_.validate)
-      .getOrElse {
-        logger.error("invalid_params={}", request.body)
-        halt(BadRequest(EventLogGenericResponse(success = false, "Invalid query data provided", Nil)))
-      }
+    val query = try {
+
+      Option(
+        QueryByCatAndTimeElems(
+          params("category"),
+          params("year").toInt,
+          params("month").toInt,
+          params("day").toInt
+        )
+      )
+        .filter(_.validate)
+        .getOrElse {
+          logger.error("invalid_params_1={}", request.getQueryString)
+          halt(BadRequest(EventLogGenericResponse(success = false, "Invalid query data provided", Nil)))
+        }
+    } catch {
+      case e: Exception =>
+        logger.error("invalid_params_2={}, error={}", request.getQueryString, e.getMessage)
+        halt(BadRequest(EventLogGenericResponse(success = false, "Error reading query params", Nil)))
+    }
 
     val res = eventsByCat.byCatAndYearAndMonthAndDay(query.category, query.year, query.month, query.day)
 
