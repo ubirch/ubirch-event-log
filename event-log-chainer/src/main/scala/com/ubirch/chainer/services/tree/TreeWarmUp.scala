@@ -94,7 +94,7 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
               logger.info("big_bang_event_log_found:" + bigBangEventLog)
 
-              Some(bigBangEventLog.head.id)
+              bigBangEventLog.headOption.map(_.id)
 
             } catch {
               case e: Exception =>
