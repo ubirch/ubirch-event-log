@@ -45,10 +45,14 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
       description "Queries for event logs that have a common category and time elements."
       tags "Queries for event logs"
       parameters (
-        queryParam[String]("category").description("The category of the event-log you are interested in looking up.").defaultValue("MASTER_TREE"),
+        queryParam[String]("category").description("The category of the event-log you are interested in looking up."),
         queryParam[Int]("year").description("The year of the event"),
         queryParam[Int]("month").description("The month of the event"),
-        queryParam[Int]("day").description("The day of the event")
+        queryParam[Int]("day").description("The day of the event"),
+        queryParam[Int]("hour").description("The hour of the event").optional,
+        queryParam[Int]("minute").description("The minutes of the event").optional,
+        queryParam[Int]("second").description("The seconds of the event").optional,
+        queryParam[Int]("milli").description("The millis of the event").optional
       ))
 
   get("/events", operation(eventsSwagger)) {
@@ -60,21 +64,38 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
           params("category"),
           params("year").toInt,
           params("month").toInt,
-          params("day").toInt
+          params("day").toInt,
+          params.getOrElse("hour", "-1").toInt,
+          params.getOrElse("minute", "-1").toInt,
+          params.getOrElse("second", "-1").toInt,
+          params.getOrElse("milli", "-1").toInt
         )
-      )
-        .filter(_.validate)
+      ).filter(_.validate)
         .getOrElse {
           logger.error("invalid_params_1={}", request.getQueryString)
           halt(BadRequest(EventLogGenericResponse(success = false, "Invalid query data provided", Nil)))
         }
+
     } catch {
       case e: Exception =>
         logger.error("invalid_params_2={}, error={}", request.getQueryString, e.getMessage)
         halt(BadRequest(EventLogGenericResponse(success = false, "Error reading query params", Nil)))
     }
 
-    val res = eventsByCat.byCatAndYearAndMonthAndDay(query.category, query.year, query.month, query.day)
+    logger.debug("params={}", request.getQueryString)
+    logger.debug("QueryByCatAndTimeElems={}", query)
+
+    val res = eventsByCat.byCatAndTimeElems(
+      query.category,
+      query.year,
+      query.month,
+      query.day,
+      query.hour,
+      query.minute,
+      query.second,
+      query.milli,
+      10
+    )
 
     val promise = Promise[ActionResult]()
 

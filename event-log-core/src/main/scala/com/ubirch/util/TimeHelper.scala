@@ -14,4 +14,6 @@ object TimeHelper {
     new DateTime(sdf.parse(bigBangTime))
   }
 
+  def now = new DateTime()
+
 }

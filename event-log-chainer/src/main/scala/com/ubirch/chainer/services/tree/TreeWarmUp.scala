@@ -1,6 +1,7 @@
 package com.ubirch.chainer.services.tree
 
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -9,6 +10,7 @@ import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.util.{ EventLogJsonSupport, TimeHelper, URLsHelper }
 import javax.inject._
 import org.asynchttpclient.Param
+import org.joda.time.DateTime
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -22,10 +24,11 @@ case object CreateGenesisTree extends WarmUpResult
 class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
   val logQueryEndpointAsString = config.getString("eventLog.logQueryEndpoint")
-
   val logQueryEndpointAsURL = URLsHelper.toURL(logQueryEndpointAsString).get
+  val daysBack = config.getInt("eventLog.daysBack")
 
   require(logQueryEndpointAsString.nonEmpty, "Log Query Endpoint not found. Please check \"eventLog.logQueryEndpoint\" ")
+  require(daysBack > 1, "Days back has to be lt 1")
 
   def warmup: Future[WarmUpResult] = {
 
@@ -55,18 +58,21 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
   }
 
-  def firstEver: Future[Option[String]] = {
+  private def query(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int) = {
 
-    logger.info("Checking Genesis Tree ...")
+    logger.info("Querying for Trees ...")
 
     val executor = ec.asInstanceOf[Executor with ExecutionContext]
-    val bigBangTime = TimeHelper.bigBangAsDate
 
     val queryParams = List(
-      new Param("category", Values.MASTER_TREE_CATEGORY),
-      new Param("year", bigBangTime.getYear.toString),
-      new Param("month", bigBangTime.getMonthOfYear.toString),
-      new Param("day", bigBangTime.getDayOfMonth.toString)
+      new Param("category", category),
+      new Param("year", year.toString),
+      new Param("month", month.toString),
+      new Param("day", day.toString),
+      new Param("hour", hour.toString),
+      new Param("minute", minute.toString),
+      new Param("second", second.toString),
+      new Param("milli", milli.toString)
     )
 
     val queryParamsAsString = queryParams.map(x => x.getName + "=" + x.getValue).mkString(",")
@@ -88,21 +94,19 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
             try {
               val jvalue = EventLogJsonSupport.getJValue(res.getResponseBodyAsStream)
               val eventLogJValue = jvalue \\ "data"
-              val bigBangEventLog = EventLogJsonSupport.FromJson[List[EventLog]](eventLogJValue).get
+              val eventLogs = EventLogJsonSupport.FromJson[List[EventLog]](eventLogJValue).get
 
-              logger.info("big_bang_event_log_found:" + bigBangEventLog)
-
-              bigBangEventLog.headOption.map(_.id)
+              eventLogs
 
             } catch {
               case e: Exception =>
-                logger.error("Error parsing Big Bang Tree", e)
+                logger.error("Error parsing into event logs", e)
                 throw new Exception("Error parsing into event log.")
             }
 
           } else if (res.getStatusCode == 404) { // Not found
-            logger.info("No Big Bang Tree found")
-            None
+            logger.info("No Tree found with these params {}", queryParamsAsString)
+            Nil
           } else if (res.getStatusCode == 400) {
             logger.error("invalid_parameters={}", queryParamsAsString)
             throw new Exception("Invalid parameters calling " + logQueryEndpointAsString)
@@ -114,9 +118,64 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
   }
 
+  def firstEver: Future[Option[String]] = {
+
+    logger.info("Checking Genesis Tree ...")
+
+    val bgt = TimeHelper.bigBangAsDate
+
+    query(
+      Values.MASTER_TREE_CATEGORY,
+      bgt.getYear,
+      bgt.getMonthOfYear,
+      bgt.getDayOfMonth,
+      bgt.getHourOfDay,
+      bgt.getMinuteOfHour,
+      bgt.getSecondOfMinute,
+      bgt.getMillisOfSecond
+    )
+      .map(_.headOption)
+      .map { bbt =>
+        logger.info("big_bang_event_log_found:" + bbt)
+        bbt.map(_.id)
+      }
+
+  }
+
   def lastest: Future[Option[String]] = {
+
     logger.info("Checking Latest Tree ...")
-    Future.successful(None)
+
+    val now = TimeHelper.now
+    val daysBackCounter = new AtomicInteger(daysBack)
+
+    def check(dateTime: DateTime): Future[Option[String]] = {
+      query(
+        Values.MASTER_TREE_CATEGORY,
+        dateTime.getYear,
+        dateTime.getMonthOfYear,
+        dateTime.getDayOfMonth,
+        -1,
+        -1,
+        -1,
+        -1
+      )
+        .map(_.filter(x => new DateTime(x.eventTime) != TimeHelper.bigBangAsDate))
+        .map(_.headOption)
+        .flatMap {
+          case v @ Some(el) =>
+            logger.info("lastest_tree_event_log_found:" + el)
+            Future.successful(v.map(_.id))
+          case None =>
+            if (daysBackCounter.getAndDecrement() == 0) {
+              logger.warn("Went back {} and didn't find any tree", daysBack)
+              Future.successful(None)
+            } else check(dateTime.minusDays(1))
+        }
+    }
+
+    check(now)
+
   }
 
 }
