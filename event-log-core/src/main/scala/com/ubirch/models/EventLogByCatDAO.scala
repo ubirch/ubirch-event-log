@@ -26,6 +26,24 @@ trait EventLogByCatQueries extends TablePointer[EventLogRow] with CustomEncoding
       .map(x => x)
   }
 
+  def byCatAndTimeElemsQ(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int, limit: Int) = {
+
+    val basicQuote = quote {
+      query[EventLogRow]
+        .filter(x => x.category == lift(category))
+        .filter(x => x.eventTimeInfo.year == lift(year))
+        .filter(x => x.eventTimeInfo.month == lift(month))
+        .filter(x => x.eventTimeInfo.day == lift(day))
+    }
+
+    val plusHour = if (hour > -1) quote(basicQuote.filter(_.eventTimeInfo.hour == lift(hour))) else quote(basicQuote)
+    val plusMinute = if (minute > -1) quote(plusHour.filter(_.eventTimeInfo.minute == lift(minute))) else quote(plusHour)
+    val plusSecond = if (second > -1) quote(plusMinute.filter(_.eventTimeInfo.second == lift(second))) else quote(plusMinute)
+    val complete = if (milli > -1) quote(plusSecond.filter(_.eventTimeInfo.milli == lift(milli))) else quote(plusSecond)
+
+    quote(complete.take(lift(limit)))
+  }
+
 }
 
 /**
@@ -45,5 +63,8 @@ class EventsByCat @Inject() (val connectionService: ConnectionService)(implicit 
 
   def byCatAndYearAndMonthAndDay(category: String, year: Int, month: Int, day: Int): Future[List[EventLogRow]] =
     run(byCatAndYearAndMonthAndDayQ(category, year, month, day))
+
+  def byCatAndTimeElems(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int, limit: Int): Future[List[EventLogRow]] =
+    run(byCatAndTimeElemsQ(category, year, month, day, hour, minute, second, milli, limit))
 
 }

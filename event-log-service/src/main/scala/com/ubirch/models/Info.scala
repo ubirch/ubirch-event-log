@@ -6,7 +6,7 @@ case class EventLogGenericResponse(success: Boolean, message: String, data: List
 
 case class Info(name: String, description: String, version: String)
 
-case class QueryByCatAndTimeElems(category: String, year: Int, month: Int, day: Int) {
+case class QueryByCatAndTimeElems(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int) {
   def validate: Boolean = {
     category.nonEmpty &&
       year >= 1986 &&
