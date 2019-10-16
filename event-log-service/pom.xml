@@ -38,6 +38,7 @@
 
         <!-- Scalatra -->
         <scalatra.version>2.6.5</scalatra.version>
+        <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
         <scalactic.version>3.0.5</scalactic.version>
         <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
         <javaxServlet.version>3.1.0</javaxServlet.version>
@@ -82,6 +83,14 @@
             <groupId>org.scalatra</groupId>
             <artifactId>scalatra-swagger_${scala.compat.version}</artifactId>
             <version>${scalatraSwagger.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.scalatra/scalatra-scalatest -->
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra-scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatra-scalatest.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Javax servlet -->

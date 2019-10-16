@@ -132,4 +132,9 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
 
   }
 
+  notFound {
+    logger.info("route_not_found={} query_string={}", requestPath, request.getQueryString)
+    NotFound(EventLogGenericResponse(success = false, "Route not found", Nil))
+  }
+
 }
