@@ -1,5 +1,6 @@
 package com.ubirch.chainer.services.httpClient
 
+import java.io.InputStream
 import java.util.concurrent.Executor
 
 import com.typesafe.scalalogging.LazyLogging
@@ -10,9 +11,20 @@ import org.asynchttpclient.{ ListenableFuture, Param, Response }
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 
+case class WebclientResponse(
+    getStatusText: String,
+    getStatusCode: Int,
+    getContentType: String,
+    getResponseBody: String,
+    getResponseBodyAsStream: InputStream
+)
+
+object WebclientResponse {
+  def fromResponse(response: Response) = WebclientResponse(response.getStatusText, response.getStatusCode, response.getContentType, response.getResponseBody, response.getResponseBodyAsStream)
+}
+
 trait WebClient {
-  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[Response]
-  def post(url: String)(body: Array[Byte])(implicit exec: Executor): Future[Response]
+  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[WebclientResponse]
 }
 
 @Singleton
@@ -21,11 +33,11 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
   private val client = asyncHttpClient()
 
   def futureFromPromise(f: ListenableFuture[Response])(implicit exec: Executor) = {
-    val p = Promise[Response]()
+    val p = Promise[WebclientResponse]()
     f.addListener(new Runnable {
       def run = {
         try {
-          p.success(f.get)
+          p.success(WebclientResponse.fromResponse(f.get))
         } catch {
           case e: Exception =>
             p.failure(e)
@@ -35,13 +47,8 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
     p.future
   }
 
-  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[Response] = {
+  def get(url: String)(params: List[Param])(implicit exec: Executor): Future[WebclientResponse] = {
     val f = client.prepareGet(url).setQueryParams(params.asJava).execute()
-    futureFromPromise(f)
-  }
-
-  def post(url: String)(body: Array[Byte])(implicit exec: Executor): Future[Response] = {
-    val f = client.preparePost(url).setBody(body).execute()
     futureFromPromise(f)
   }
 
