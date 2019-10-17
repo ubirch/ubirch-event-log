@@ -1,9 +1,8 @@
 package com.ubirch
 
 import net.manub.embeddedkafka.EmbeddedKafka
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, MustMatchers, WordSpec, WordSpecLike }
-import org.scalatra.test.scalatest.{ ScalatraSuite, ScalatraWordSpec }
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
+import org.scalatra.test.scalatest.ScalatraWordSpec
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }

@@ -149,7 +149,7 @@ class TreeMonitor @Inject() (
   }
 
   def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
-    logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
+    //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
     treeCache.deleteLatestTree
     treePublisher.publish(topic, eventLog)
   }
