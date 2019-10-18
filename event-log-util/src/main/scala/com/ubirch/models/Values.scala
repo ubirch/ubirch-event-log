@@ -34,5 +34,7 @@ object Values {
   val EVENT_LOG_SYSTEM = "EVENT_LOG"
   val SUCCESS = "success"
   val FAILURE = "failure"
+  val SHORTEST_PATH = "shortest_path"
+  val BLOCKCHAINS = "blockchains"
 
 }
