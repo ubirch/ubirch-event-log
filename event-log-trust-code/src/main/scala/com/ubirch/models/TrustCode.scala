@@ -3,14 +3,13 @@ package com.ubirch.models
 import com.ubirch.sdk.EventLogging
 import org.json4s.JValue
 
-abstract class SmartCodeBase extends EventLogging {
-  def init(id: String): Unit
+trait TrustCodeBase extends EventLogging {
   def put(id: String, state: JValue): Unit
-  def get(id: String, state: JValue): Unit
+  def get(id: String): Unit
 }
 
-
-abstract class SmartCode extends SmartCodeBase {
+abstract class TrustCode extends TrustCodeBase {
   override def put(id: String, state: JValue): Unit = log(state).withCustomerId(id).commitAsync
-  override def get(id: String, state: JValue): Unit = ???
+  override def get(id: String): Unit = ???
+
 }

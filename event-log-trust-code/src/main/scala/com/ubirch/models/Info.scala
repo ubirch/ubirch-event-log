@@ -19,4 +19,3 @@ case class QueryByCatAndTimeElems(category: String, year: Int, month: Int, day: 
 
 case class TrustCodeGenericResponse(success: Boolean, message: String, data: List[TrustCodeResponse]) extends GenericResponseBase[List[TrustCodeResponse]]
 
-

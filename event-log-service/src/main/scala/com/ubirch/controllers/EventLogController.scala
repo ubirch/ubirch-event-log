@@ -47,7 +47,7 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
       parameters (
         queryParam[String]("category").description("The category of the event-log you are interested in looking up."),
         queryParam[String]("id").description("The id of the event log")
-    ))
+      ))
 
   get("/events2", operation(events2Swagger)) {
 
@@ -104,15 +104,15 @@ class EventLogController @Inject() (val swagger: Swagger, eventsByCat: EventsByC
       description "Queries for event logs that have a common category and time elements."
       tags "Queries for event logs"
       parameters (
-      queryParam[String]("category").description("The category of the event-log you are interested in looking up."),
-      queryParam[Int]("id").description("The id of the event log"),
-      queryParam[Int]("month").description("The month of the event"),
-      queryParam[Int]("day").description("The day of the event"),
-      queryParam[Int]("hour").description("The hour of the event").optional,
-      queryParam[Int]("minute").description("The minutes of the event").optional,
-      queryParam[Int]("second").description("The seconds of the event").optional,
-      queryParam[Int]("milli").description("The millis of the event").optional
-    ))
+        queryParam[String]("category").description("The category of the event-log you are interested in looking up."),
+        queryParam[Int]("id").description("The id of the event log"),
+        queryParam[Int]("month").description("The month of the event"),
+        queryParam[Int]("day").description("The day of the event"),
+        queryParam[Int]("hour").description("The hour of the event").optional,
+        queryParam[Int]("minute").description("The minutes of the event").optional,
+        queryParam[Int]("second").description("The seconds of the event").optional,
+        queryParam[Int]("milli").description("The millis of the event").optional
+      ))
 
   get("/events", operation(eventsSwagger)) {
 

@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.time.DateTimeException
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.classloader.{TrustCodeLoad, TrustCodeLoader}
 import com.ubirch.models._
 import com.ubirch.sdk.{EventLogging, EventLoggingBase}
 import com.ubirch.service.eventLog.EventLogEndpoint
@@ -18,10 +19,14 @@ import org.scalatra.swagger.{Swagger, SwaggerSupport, SwaggerSupportSyntax}
 import scala.concurrent.{ExecutionContext, Promise}
 import scala.util.{Failure, Success}
 
-class EventLogTrustCodeController @Inject()(val swagger: Swagger,
-                                            eventLogging: EventLogging,
-                                            eventLogEndpoint: EventLogEndpoint)
-                                           (implicit val executor: ExecutionContext)
+class EventLogTrustCodeController @Inject() (
+    val swagger: Swagger,
+    eventLogging: EventLogging,
+    eventLogEndpoint: EventLogEndpoint,
+    trustCodeLoader: TrustCodeLoader,
+    cache: Cache
+)
+  (implicit val executor: ExecutionContext)
   extends ScalatraServlet
   with NativeJsonSupport
   with SwaggerSupport
@@ -68,18 +73,17 @@ class EventLogTrustCodeController @Inject()(val swagger: Swagger,
 
   }
 
-
   get("/trust_code/:id") {
     val trustCodeId = params("id")
     val fres = eventLogEndpoint
       .queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY)
-      .map{ els =>
-      TrustCodeGenericResponse(
-        success = true,
-        "Trust Code Successfully retrieved",
-        els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-      )
-    }
+      .map { els =>
+        TrustCodeGenericResponse(
+          success = true,
+          "Trust Code Successfully retrieved",
+          els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+        )
+      }
 
     val finalRes = new AsyncResult() {
       override val is = fres
@@ -91,12 +95,28 @@ class EventLogTrustCodeController @Inject()(val swagger: Swagger,
     val trustCodeId = params("id")
     val fres = eventLogEndpoint
       .queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY)
-      .map{ els =>
-        TrustCodeGenericResponse(
-          success = true,
-          "Trust Code Successfully init",
-          els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-        )
+      .map { els =>
+
+        els.headOption.map { x =>
+          logger.info("Creating trust code")
+          val trustCode = EventLogJsonSupport.FromJson[TrustCodeCreation](x.event).get
+          trustCodeLoader.materialize(x.id, trustCode.trustCode) match {
+            case Success(value) =>
+              cache.put[TrustCodeLoad](value.id, value)
+              TrustCodeGenericResponse(
+                success = true,
+                "Trust Code Successfully initiated",
+                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+              )
+            case Failure(exception) =>
+              logger.error("error={}", exception.getMessage)
+              TrustCodeGenericResponse(
+                success = false,
+                "Error initiating Trust Code: " + exception.getMessage,
+                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+              )
+          }
+        }
       }
 
     val finalRes = new AsyncResult() {

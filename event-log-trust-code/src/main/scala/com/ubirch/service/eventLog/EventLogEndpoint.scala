@@ -7,13 +7,13 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.EventLog
 import com.ubirch.service.httpClient.WebClient
-import com.ubirch.util.{EventLogJsonSupport, URLsHelper}
+import com.ubirch.util.{ EventLogJsonSupport, URLsHelper }
 import javax.inject.Inject
 import org.asynchttpclient.Param
 
 import scala.concurrent.ExecutionContext
 
-class EventLogEndpoint @Inject()(webClient: WebClient, config: Config)(implicit ec: ExecutionContext) extends LazyLogging{
+class EventLogEndpoint @Inject() (webClient: WebClient, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
   val logQueryEndpointAsString = config.getString("eventLog.logEndpoint.events")
   val logQueryEndpointAsURL = URLsHelper.toURL(logQueryEndpointAsString).get
@@ -22,7 +22,6 @@ class EventLogEndpoint @Inject()(webClient: WebClient, config: Config)(implicit 
 
   require(logQueryEndpointAsString.nonEmpty, "Log Query Endpoint not found. Please check \"eventLog.logEndpoint.events\" ")
   require(simpleLogQueryEndpointAsString.nonEmpty, "Log Query Endpoint not found. Please check \"eventLog.logEndpoint.events2\" ")
-
 
   def query(url: URL, queryParams: List[Param]) = {
 
@@ -78,7 +77,6 @@ class EventLogEndpoint @Inject()(webClient: WebClient, config: Config)(implicit 
     )
 
     query(simpleLogQueryEndpointAsUrl, queryParams)
-
 
   }
 
