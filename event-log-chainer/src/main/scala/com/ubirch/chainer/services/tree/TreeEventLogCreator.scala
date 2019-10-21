@@ -3,7 +3,7 @@ package com.ubirch.chainer.services.tree
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.chainer.models.{ Chainer, Mode, Node, ValueStrategy }
+import com.ubirch.chainer.models.{ Chainer, CompressedTreeData, Mode, ValueStrategy }
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.util.ChainerJsonSupport
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -96,28 +96,34 @@ class TreeEventLogCreator @Inject() (
     else treeEl
   }
 
-  def createEventLog(node: Node[String], zero: String, els: Seq[EventLog]): EventLog = {
-    val rootHash = node.value
-    val data = ChainerJsonSupport.ToJson(node).get
-    createEventLog(rootHash, zero, data, els)
+  def createEventLog(chainer: Chainer[EventLog]): Option[EventLog] = {
+    for {
+      node <- chainer.getNode
+      compressedData <- Chainer.compress(chainer)
+    } yield {
+      val data = ChainerJsonSupport.ToJson[CompressedTreeData](compressedData).get
+      createEventLog(node.value, chainer.getZero, data, chainer.es)
+    }
   }
 
   def create(chainers: Vector[Chainer[EventLog]]): Vector[EventLog] = {
     chainers
-      .flatMap { x => x.getNode.map(rn => (rn, x.getZero, x.es)) }
-      .map { case (node, zero, els) =>
-        Try(createEventLog(node, zero, els)) match {
-          case Success(tree) =>
-            val leavesSize = els.size
+      .map { x =>
+        Try(createEventLog(x)) match {
+          case Success(Some(tree)) =>
+            val leavesSize = x.es.size
+            logger.info(tree.toJson)
             logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
             treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
             leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)
             tree
+          case Success(None) =>
+            logger.error(s"Error creating EventLog from [${mode.value}] (2) ")
+            throw new Exception("Error creating EventLog")
           case Failure(e) =>
-            logger.error(s"Error creating EventLog from [${mode.value}] (2): ", e)
+            logger.error(s"Error creating EventLog from [${mode.value}] (3): ", e)
             throw e
         }
       }
-
   }
 }

@@ -40,6 +40,7 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
           p.success(WebclientResponse.fromResponse(f.get))
         } catch {
           case e: Exception =>
+            logger.error("Something went wrong when talking to the event log service endpoint")
             p.failure(e)
         }
       }
