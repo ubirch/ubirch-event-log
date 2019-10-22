@@ -102,7 +102,7 @@ class TreeEventLogCreator @Inject() (
       compressedData <- Chainer.compress(chainer)
     } yield {
       val data = ChainerJsonSupport.ToJson[CompressedTreeData](compressedData).get
-      createEventLog(node.value, chainer.getZero, data, chainer.es)
+      createEventLog(node.value, chainer.getZero, data, chainer.seeds)
     }
   }
 
@@ -111,8 +111,7 @@ class TreeEventLogCreator @Inject() (
       .map { x =>
         Try(createEventLog(x)) match {
           case Success(Some(tree)) =>
-            val leavesSize = x.es.size
-            logger.info(tree.toJson)
+            val leavesSize = x.seeds.size
             logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
             treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
             leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)

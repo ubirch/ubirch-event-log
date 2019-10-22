@@ -12,7 +12,7 @@ import scala.annotation.tailrec
   *           Chainable
   * @tparam T Represents the type T of the elements to chain.
   */
-class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
+class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
 
   private var zero: String = ""
   private var grouped: List[List[T]] = Nil
@@ -162,6 +162,14 @@ object Chainer {
       val leaves = chainer.getBalancedNodes.map(_.value)
       CompressedTreeData(root.value, leaves)
     }
+
+  def uncompress(compressedTreeData: CompressedTreeData): Option[Node[String]] = {
+    compressedTreeData
+      .leaves
+      .map(x => Node(x, None, None))
+      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+      .headOption
+  }
 
 }
 
