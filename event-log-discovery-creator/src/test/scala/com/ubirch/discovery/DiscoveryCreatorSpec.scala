@@ -3,7 +3,9 @@ package com.ubirch.discovery
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.discovery.models.Relation
+import com.ubirch.discovery.process.RelationStrategyImpl
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
+import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.discovery.util.{ DiscoveryJsonSupport, PMHelper }
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.models.{ Error, EventLog, LookupKey, Value, Values }
@@ -39,8 +41,9 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
       withRunningKafka {
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
@@ -86,8 +89,10 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
+
       withRunningKafka {
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
@@ -135,8 +140,10 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       def errorTopic_ : String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
+
       withRunningKafka {
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
           override def errorTopic: String = errorTopic_
@@ -177,9 +184,11 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
+
       withRunningKafka {
 
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
@@ -239,9 +248,11 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
+
       withRunningKafka {
 
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
@@ -302,9 +313,11 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
+      val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
+
       withRunningKafka {
 
-        val creator = new DefaultExpressDiscovery(config, lifecycle) {
+        val creator = new DefaultExpressDiscovery(config, lifecycle, relationStrategy) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
