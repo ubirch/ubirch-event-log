@@ -17,7 +17,7 @@ import org.scalatra.json.NativeJsonSupport
 import org.scalatra.swagger.{Swagger, SwaggerSupport, SwaggerSupportSyntax}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class EventLogTrustCodeController @Inject() (
     val swagger: Swagger,
@@ -50,9 +50,18 @@ class EventLogTrustCodeController @Inject() (
 
   post("/trust_code", operation(trustCodeSwagger)) {
     import eventLogging._
+
     val trustCodeCreation = parsedBody
 
-    val tc = EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get
+    val tc = Try(EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get).getOrElse{
+      halt(BadRequest(
+        TrustCodeGenericResponse(
+          success = false,
+          "Error parsing request",
+          Nil
+        )
+      ))
+    }
 
     val uuid = UUIDHelper.randomUUID
     val fres = trustCodeLoader.materialize(uuid.toString, tc.trustCode) match {
@@ -143,6 +152,7 @@ class EventLogTrustCodeController @Inject() (
       override val is = fres
     }
     finalRes
+
   }
 
   get("/trust_code/:id/verify") {
@@ -153,9 +163,57 @@ class EventLogTrustCodeController @Inject() (
   post("/trust_code/:id/:method") {
     val trustCodeId = params("id")
     val method = params("method")
-    val methodParams = parsedBody
 
-    TrustCodeGenericResponse(true, "Trust Code Successfully verified", Nil)
+    val methodParams = Try(EventLogJsonSupport.FromJson[List[TrustCodeMethodParam]](parsedBody).get).getOrElse{
+      halt(BadRequest(
+        TrustCodeGenericResponse(
+          success = false,
+          "Error parsing request",
+          Nil
+        )
+      ))
+    }
+
+    val fres = cache.get[TrustCodeLoad](trustCodeId).map {
+
+      case Some(TrustCodeLoad(id, instance, clazz)) =>
+
+        val params = methodParams.map { p =>
+          p.tpe match {
+            case "STRING" => (classOf[String], p.value)
+            case "INT" => (classOf[Int], p.value.asInstanceOf[Int])
+            case "BOOLEAN" => (classOf[Boolean], p.value.asInstanceOf[Boolean])
+            case "LONG" => (classOf[Long], p.value.asInstanceOf[Long])
+            case "FLOAT" => (classOf[Float], p.value.asInstanceOf[Float])
+          }
+
+        }
+
+        try {
+          if (clazz.getDeclaredMethods.exists(_.getName == method)) {
+            clazz.getDeclaredMethod(method, params.map(_._1): _*).invoke(instance, params.map(_._2.asInstanceOf[Object]): _*)
+            Ok(TrustCodeGenericResponse(true, "Trust Code Method Executed", Nil))
+
+          } else {
+            NotFound(TrustCodeGenericResponse(false, "Trust Code Method Not Found", Nil))
+          }
+
+        } catch {
+          case e: Exception =>
+            logger.error("Error Executing Trust Code Method {}", e.getMessage)
+            InternalServerError(TrustCodeGenericResponse(false, "Error Executing Trust Code Method = " + e.getMessage, Nil))
+        }
+
+      case None => NotFound(TrustCodeGenericResponse(false, "Trust Code has not been initiated", Nil))
+    }
+
+
+    val finalRes = new AsyncResult() {
+      override val is = fres
+    }
+    finalRes
+
+
   }
 
   notFound {
