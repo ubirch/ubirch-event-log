@@ -8,7 +8,7 @@ import com.ubirch.classloader.{TrustCodeLoad, TrustCodeLoader}
 import com.ubirch.models._
 import com.ubirch.sdk.{EventLogging, EventLoggingBase}
 import com.ubirch.service.eventLog.EventLogEndpoint
-import com.ubirch.util.EventLogJsonSupport
+import com.ubirch.util.{EventLogJsonSupport, UUIDHelper}
 import javax.inject._
 import org.joda.time.DateTime
 import org.json4s.Formats
@@ -16,7 +16,7 @@ import org.scalatra._
 import org.scalatra.json.NativeJsonSupport
 import org.scalatra.swagger.{Swagger, SwaggerSupport, SwaggerSupportSyntax}
 
-import scala.concurrent.{ExecutionContext, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
 
 class EventLogTrustCodeController @Inject() (
@@ -52,19 +52,28 @@ class EventLogTrustCodeController @Inject() (
     import eventLogging._
     val trustCodeCreation = parsedBody
 
-    val fres = eventLogging.log(trustCodeCreation)
-      .withNewId
-      .withCategory(Values.UPP_CATEGORY)
-      .withServiceClass("SMART_CODE")
-      .withRandomNonce
-      .commitAsync
-      .map { el =>
-        Ok(TrustCodeGenericResponse(
-          success = true,
-          "Trust Code Successfully created",
-          List(TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-        ))
-      }(executor)
+    val tc = EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get
+
+    val uuid = UUIDHelper.randomUUID
+    val fres = trustCodeLoader.materialize(uuid.toString, tc.trustCode) match {
+      case Success(_) =>
+        eventLogging.log(trustCodeCreation)
+          .withNewId(uuid)
+          .withCategory(Values.UPP_CATEGORY)
+          .withServiceClass("SMART_CODE")
+          .withRandomNonce
+          .commitAsync
+          .map { el =>
+            Ok(TrustCodeGenericResponse(
+              success = true,
+              "Trust Code Successfully created",
+              List(TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+            ))
+          }(executor)
+      case Failure(e) =>
+        logger.error("Error creating trust code {}", e.getMessage)
+        Future.successful(Ok(TrustCodeGenericResponse(success = false, s"Error creating trust code=${e.getMessage} ", Nil)))
+    }
 
     val finalRes = new AsyncResult() {
       override val is = fres
@@ -93,28 +102,39 @@ class EventLogTrustCodeController @Inject() (
 
   get("/trust_code/:id/init") {
     val trustCodeId = params("id")
-    val fres = eventLogEndpoint
+    val fres: Future[TrustCodeGenericResponse] = eventLogEndpoint
       .queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY)
-      .map { els =>
+      .flatMap { els =>
 
         els.headOption.map { x =>
           logger.info("Creating trust code")
           val trustCode = EventLogJsonSupport.FromJson[TrustCodeCreation](x.event).get
           trustCodeLoader.materialize(x.id, trustCode.trustCode) match {
             case Success(value) =>
-              cache.put[TrustCodeLoad](value.id, value)
-              TrustCodeGenericResponse(
-                success = true,
-                "Trust Code Successfully initiated",
-                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-              )
+              cache.put[TrustCodeLoad](value.id, value).map {_  =>
+                TrustCodeGenericResponse(
+                  success = true,
+                  "Trust Code Successfully initiated",
+                  els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                )
+              }
             case Failure(exception) =>
               logger.error("error={}", exception.getMessage)
-              TrustCodeGenericResponse(
-                success = false,
-                "Error initiating Trust Code: " + exception.getMessage,
-                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-              )
+              Future.successful {
+                TrustCodeGenericResponse(
+                  success = false,
+                  "Error initiating Trust Code: " + exception.getMessage,
+                  els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                )
+              }
+          }
+        }.getOrElse {
+          Future.successful {
+            TrustCodeGenericResponse(
+              success = false,
+              "No Trust Code found",
+              Nil
+            )
           }
         }
       }
