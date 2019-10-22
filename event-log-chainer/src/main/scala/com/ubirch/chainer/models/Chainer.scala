@@ -4,6 +4,7 @@ import com.ubirch.chainer.util.Hasher
 import com.ubirch.util.UUIDHelper
 
 import scala.annotation.tailrec
+import scala.util.Failure
 
 /**
   * Represents a class that allows chaining values of type T
@@ -164,11 +165,18 @@ object Chainer {
     }
 
   def uncompress(compressedTreeData: CompressedTreeData): Option[Node[String]] = {
-    compressedTreeData
+    val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
       .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
       .headOption
+
+    uncompressed match {
+      case c @ Some(value) if value.value == compressedTreeData.root => c
+      case Some(value) if value.value != compressedTreeData.root => throw new Exception("Root Hash doesn't match Compressed Root")
+      case None => None
+    }
+
   }
 
 }
