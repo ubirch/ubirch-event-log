@@ -72,7 +72,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
       }
 
     //"service", "device-id", "upp", "chain"
-    deviceCounter.counter.labels("event_log_trace", device).inc()
+    deviceCounter.counter.labels("event_log_trace").inc()
     logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
 
     val relation1 = Relation(
