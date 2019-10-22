@@ -57,8 +57,6 @@ class T {
   clazz.getDeclaredMethod("createCar", classOf[String]).invoke(instance, "HOOOLA")
   clazz.getDeclaredMethod("createCar", classOf[String]).invoke(instance, "holllllalla")
 
-
-
 }
 
 object Service2 {
@@ -66,7 +64,6 @@ object Service2 {
   def main(args: Array[String]): Unit = {
 
     new T
-
 
   }
 

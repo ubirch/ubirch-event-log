@@ -9,10 +9,18 @@ trait TrustCodeBase extends EventLogging {
 }
 
 abstract class TrustCode extends TrustCodeBase {
-  override def put(id: String, state: JValue): Unit = log(state).withNewId(id).commitAsync
+  override def put(id: String, state: JValue): Unit =
+    log(state)
+      .withNewId(id + ".TCE")
+      .withCategory(Values.UPP_CATEGORY)
+      .withCurrentEventTime
+      .withRandomNonce
+      .commitAsync
   override def get(id: String): Unit = ???
 
 }
+
+case class Context(id: String)
 
 case class TrustCodeCreation(name: String, description: String, trustCode: String)
 

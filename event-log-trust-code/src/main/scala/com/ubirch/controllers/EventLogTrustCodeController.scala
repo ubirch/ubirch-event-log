@@ -4,20 +4,20 @@ import java.text.SimpleDateFormat
 import java.time.DateTimeException
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.classloader.{TrustCodeLoad, TrustCodeLoader}
+import com.ubirch.classloader.{ TrustCodeLoad, TrustCodeLoader }
 import com.ubirch.models._
-import com.ubirch.sdk.{EventLogging, EventLoggingBase}
+import com.ubirch.sdk.{ EventLogging, EventLoggingBase }
 import com.ubirch.service.eventLog.EventLogEndpoint
-import com.ubirch.util.{EventLogJsonSupport, UUIDHelper}
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import javax.inject._
 import org.joda.time.DateTime
 import org.json4s.Formats
 import org.scalatra._
 import org.scalatra.json.NativeJsonSupport
-import org.scalatra.swagger.{Swagger, SwaggerSupport, SwaggerSupportSyntax}
+import org.scalatra.swagger.{ Swagger, SwaggerSupport, SwaggerSupportSyntax }
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Failure, Success, Try }
 
 class EventLogTrustCodeController @Inject() (
     val swagger: Swagger,
@@ -53,7 +53,7 @@ class EventLogTrustCodeController @Inject() (
 
     val trustCodeCreation = parsedBody
 
-    val tc = Try(EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get).getOrElse{
+    val tc = Try(EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get).getOrElse {
       halt(BadRequest(
         TrustCodeGenericResponse(
           success = false,
@@ -67,9 +67,9 @@ class EventLogTrustCodeController @Inject() (
     val fres = trustCodeLoader.materialize(uuid.toString, tc.trustCode) match {
       case Success(_) =>
         eventLogging.log(trustCodeCreation)
-          .withNewId(uuid)
+          .withNewId("TC." + uuid.toString)
           .withCategory(Values.UPP_CATEGORY)
-          .withServiceClass("SMART_CODE")
+          .withServiceClass("TRUST_CODE")
           .withRandomNonce
           .commitAsync
           .map { el =>
@@ -115,37 +115,51 @@ class EventLogTrustCodeController @Inject() (
       .queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY)
       .flatMap { els =>
 
-        els.headOption.map { x =>
-          logger.info("Creating trust code")
-          val trustCode = EventLogJsonSupport.FromJson[TrustCodeCreation](x.event).get
-          trustCodeLoader.materialize(x.id, trustCode.trustCode) match {
-            case Success(value) =>
-              cache.put[TrustCodeLoad](value.id, value).map {_  =>
-                TrustCodeGenericResponse(
-                  success = true,
-                  "Trust Code Successfully initiated",
-                  els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-                )
-              }
-            case Failure(exception) =>
-              logger.error("error={}", exception.getMessage)
-              Future.successful {
-                TrustCodeGenericResponse(
-                  success = false,
-                  "Error initiating Trust Code: " + exception.getMessage,
-                  els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-                )
-              }
+        try {
+          els.headOption.map { x =>
+            logger.info("Creating trust code")
+            val trustCode = EventLogJsonSupport.FromJson[TrustCodeCreation](x.event).get
+            trustCodeLoader.materialize(x.id, trustCode.trustCode) match {
+              case Success(value) =>
+                cache.put[TrustCodeLoad](value.id, value).map { _ =>
+                  TrustCodeGenericResponse(
+                    success = true,
+                    "Trust Code Successfully initiated",
+                    els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                  )
+                }
+              case Failure(e) =>
+                logger.error("error={}", e.getMessage)
+                Future.successful {
+                  TrustCodeGenericResponse(
+                    success = false,
+                    "Error initiating Trust Code: " + e.getMessage,
+                    els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                  )
+                }
+            }
+          }.getOrElse {
+            Future.successful {
+              TrustCodeGenericResponse(
+                success = false,
+                "No Trust Code found",
+                Nil
+              )
+            }
           }
-        }.getOrElse {
-          Future.successful {
-            TrustCodeGenericResponse(
-              success = false,
-              "No Trust Code found",
-              Nil
-            )
-          }
+
+        } catch {
+          case e: Exception =>
+            logger.error("error={}", e.getMessage)
+            Future.successful {
+              TrustCodeGenericResponse(
+                success = false,
+                "Error initiating Trust Code: " + e.getMessage,
+                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+              )
+            }
         }
+
       }
 
     val finalRes = new AsyncResult() {
@@ -164,7 +178,7 @@ class EventLogTrustCodeController @Inject() (
     val trustCodeId = params("id")
     val method = params("method")
 
-    val methodParams = Try(EventLogJsonSupport.FromJson[List[TrustCodeMethodParam]](parsedBody).get).getOrElse{
+    val methodParams = Try(EventLogJsonSupport.FromJson[List[TrustCodeMethodParam]](parsedBody).get).getOrElse {
       halt(BadRequest(
         TrustCodeGenericResponse(
           success = false,
@@ -179,7 +193,7 @@ class EventLogTrustCodeController @Inject() (
       case Some(TrustCodeLoad(id, instance, clazz)) =>
 
         val params = methodParams.map { p =>
-          p.tpe match {
+          p.tpe.toUpperCase match {
             case "STRING" => (classOf[String], p.value)
             case "INT" => (classOf[Int], p.value.asInstanceOf[Int])
             case "BOOLEAN" => (classOf[Boolean], p.value.asInstanceOf[Boolean])
@@ -189,11 +203,15 @@ class EventLogTrustCodeController @Inject() (
 
         }
 
+        val completeParams = (classOf[Context], Context(trustCodeId)) +: params
+
         try {
           if (clazz.getDeclaredMethods.exists(_.getName == method)) {
-            clazz.getDeclaredMethod(method, params.map(_._1): _*).invoke(instance, params.map(_._2.asInstanceOf[Object]): _*)
-            Ok(TrustCodeGenericResponse(true, "Trust Code Method Executed", Nil))
+            clazz
+              .getDeclaredMethod(method, completeParams.map(_._1): _*)
+              .invoke(instance, completeParams.map(_._2.asInstanceOf[Object]): _*)
 
+            Ok(TrustCodeGenericResponse(true, "Trust Code Method Executed", Nil))
           } else {
             NotFound(TrustCodeGenericResponse(false, "Trust Code Method Not Found", Nil))
           }
@@ -207,12 +225,10 @@ class EventLogTrustCodeController @Inject() (
       case None => NotFound(TrustCodeGenericResponse(false, "Trust Code has not been initiated", Nil))
     }
 
-
     val finalRes = new AsyncResult() {
       override val is = fres
     }
     finalRes
-
 
   }
 
