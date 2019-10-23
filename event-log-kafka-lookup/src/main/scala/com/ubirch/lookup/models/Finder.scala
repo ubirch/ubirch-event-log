@@ -9,20 +9,22 @@ import org.json4s.JsonAST.JValue
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
-@Singleton
-class Finder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit ec: ExecutionContext) extends LazyLogging {
+trait Finder extends LazyLogging {
 
-  def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[JValue], Seq[JValue])] = {
-    val fres = cassandraFinder.findUPP(value, queryType).flatMap {
+  implicit def ec: ExecutionContext
+
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]]
+
+  def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct])] = {
+    val fres = findUPP(value, queryType).flatMap {
       case upp @ Some(uppEl) =>
-        gremlinFinder.findAnchorsWithPathAsVertices(uppEl.id)
-          .map { case (path, blockchains) =>
-            (upp, path.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get), blockchains.map(x => LookupJsonSupport.ToJson[VertexStruct](x).get))
-          }.recover {
+        findAnchorsWithPathAsVertices(uppEl.id)
+          .map { case (path, blockchains) => (upp, path, blockchains) }
+          .recover {
 
             case e: Exception =>
               logger.error("Error talking Gremlin {}", e.getMessage)
-              (upp, List.empty, List.empty[JValue])
+              (upp, List.empty, List.empty)
 
           }
       case None => Future.successful((None, Seq.empty, Seq.empty))
@@ -39,5 +41,18 @@ class Finder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: Gremlin
 
     fres
   }
+
+  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])]
+
+}
+
+@Singleton
+class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit val ec: ExecutionContext)
+  extends Finder
+  with LazyLogging {
+
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
+
+  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = gremlinFinder.findAnchorsWithPathAsVertices(id)
 
 }

@@ -1,7 +1,10 @@
 package com.ubirch
 
+import java.io.ByteArrayInputStream
 import java.util.Date
+import java.util.concurrent.Executor
 
+import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
@@ -9,6 +12,7 @@ import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
+import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
@@ -19,8 +23,23 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
+
+import scala.concurrent.Future
+
+class WebClientProvider extends Provider[WebClient] {
+  override def get(): WebClient = new WebClient {
+    override def get(url: String)(params: List[Param])(implicit exec: Executor): Future[WebclientResponse] = {
+      url match {
+        case "http://localhost:8081/v1/events" =>
+          val body = """{"success":true,"message":"Nothing Found","data":[]}"""
+          Future.successful(WebclientResponse("OK", 200, "application/json", body, new ByteArrayInputStream(body.getBytes())))
+      }
+    }
+  }
+}
 
 class InjectorHelperImpl(
     bootstrapServers: String,
@@ -30,12 +49,17 @@ class InjectorHelperImpl(
     treeEvery: Int = 60,
     treeUpgrade: Int = 120,
     mode: Mode = Slave,
-    split: Boolean = false
+    split: Boolean = false,
+    webClientProvider: Option[Provider[WebClient]] = None
 ) extends InjectorHelper(List(new ChainerServiceBinder {
 
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
+        .withValue(
+          "eventLog.daysBack",
+          ConfigValueFactory.fromAnyRef(3)
+        )
         .withValue(
           "eventLog.split",
           ConfigValueFactory.fromAnyRef(split)
@@ -73,6 +97,8 @@ class InjectorHelperImpl(
         )
     }
   })
+
+  override def webClient: ScopedBindingBuilder = webClientProvider.map(x => bind(classOf[WebClient]).toProvider(x)).getOrElse(super.webClient)
 }))
 
 object ChainerSpec {
@@ -146,7 +172,10 @@ class ChainerSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
 
         val mode = Slave
 
@@ -158,7 +187,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.event == node)
         assert(treeEventLog.headers == Headers.create(
           HeaderNames.TRACE -> mode.value,
           HeaderNames.ORIGIN -> mode.category,
@@ -171,12 +200,12 @@ class ChainerSpec extends TestBase with LazyLogging {
               mode.lookupName,
               mode.category,
               treeEventLog.id.asKeyWithLabel(mode.category),
-              chainer.es.flatMap(x => valuesStrategy.create(x))
+              chainer.seeds.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        assert(events.size == chainer.es.size)
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         //assert(chainer.getNodes.map(_.value).size == customerIds.size) for when there's explicit grouping
@@ -229,7 +258,10 @@ class ChainerSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
 
         val mode = Master
 
@@ -239,7 +271,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.event == node)
         assert(treeEventLog.headers == Headers.create(
           HeaderNames.TRACE -> mode.value,
           HeaderNames.ORIGIN -> mode.category,
@@ -252,12 +284,12 @@ class ChainerSpec extends TestBase with LazyLogging {
               mode.lookupName,
               mode.category,
               treeEventLog.id.asKeyWithLabel(mode.category),
-              chainer.es.map(x => x.id.asValueWithLabel(x.category))
+              chainer.seeds.map(x => x.id.asValueWithLabel(x.category))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        assert(events.size == chainer.es.size)
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         // assert(chainer.getNodes.map(_.value).size == customerIds.size) Good for when there's explicit grouping
@@ -310,7 +342,10 @@ class ChainerSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -322,7 +357,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == "ubirchChainerSlave")
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.event == node)
         assert(treeEventLog.headers == Headers.create(
           HeaderNames.TRACE -> Slave.value,
           HeaderNames.ORIGIN -> category,
@@ -335,12 +370,12 @@ class ChainerSpec extends TestBase with LazyLogging {
               Values.SLAVE_TREE_ID,
               category,
               treeEventLog.id.asKeyWithLabel(category),
-              chainer.es.flatMap(x => valuesStrategy.create(x))
+              chainer.seeds.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        assert(events.size == chainer.es.size)
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         assert(chainer.getNodes.map(_.value).size == customerIds.size)
@@ -404,7 +439,10 @@ class ChainerSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -416,7 +454,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == "ubirchChainerSlave")
         assert(treeEventLog.category == category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.event == node)
         assert(treeEventLog.headers == Headers.create(
           HeaderNames.TRACE -> Slave.value,
           HeaderNames.ORIGIN -> category,
@@ -429,12 +467,12 @@ class ChainerSpec extends TestBase with LazyLogging {
               Values.SLAVE_TREE_ID,
               category,
               treeEventLog.id.asKeyWithLabel(category),
-              chainer.es.flatMap(x => valuesStrategy.create(x))
+              chainer.seeds.flatMap(x => valuesStrategy.create(x))
             )
           ))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        assert(events.size == chainer.es.size)
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         assert(chainer.getNodes.map(_.value).size == customerIds.size)
@@ -496,7 +534,10 @@ class ChainerSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerSpec.getChainer(events)
-        val node = ChainerJsonSupport.ToJson(chainer.getNode).get
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
 
         val mode = Master
 
@@ -506,7 +547,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         assert(treeEventLog.serviceClass == mode.serviceClass)
         assert(treeEventLog.category == mode.category)
         assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
-        assert(ChainerJsonSupport.ToJson(chainer.getNode).get == treeEventLog.event)
+        assert(treeEventLog.event == node)
         assert(treeEventLog.headers == Headers.create(
           HeaderNames.TRACE -> mode.value,
           HeaderNames.ORIGIN -> mode.category,
@@ -518,11 +559,11 @@ class ChainerSpec extends TestBase with LazyLogging {
             mode.lookupName,
             mode.category,
             treeEventLog.id.asKeyWithLabel(mode.category),
-            chainer.es.map(x => x.id.asValueWithLabel(x.category))
+            chainer.seeds.map(x => x.id.asValueWithLabel(x.category))
           )))
         assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
-        assert(events.map(_.id).sorted == chainer.es.map(_.id).sorted)
-        assert(events.size == chainer.es.size)
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
         assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
         assert(maxNumberToRead == messages.size)
         assert(chainer.getNodes.map(_.value).size == customerIds.size)
@@ -653,12 +694,21 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" in {
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" taggedAs (new Tag("problem2")) in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, split = true, treeEvery = 10, treeUpgrade = 13, mode = Master)
+      val InjectorHelper = new InjectorHelperImpl(
+        bootstrapServers,
+        messageEnvelopeTopic,
+        eventLogTopic,
+        split = true,
+        treeEvery = 10,
+        treeUpgrade = 13,
+        mode = Master,
+        webClientProvider = Option(new WebClientProvider)
+      )
       val config = InjectorHelper.get[Config]
 
       withRunningKafka {
@@ -681,57 +731,81 @@ class ChainerSpec extends TestBase with LazyLogging {
         events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
         //Consumer
+        val treeMonitor = InjectorHelper.get[TreeMonitor]
+        treeMonitor.start
+
         val consumer = InjectorHelper.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
         consumer.setConsumptionStrategy(All)
         consumer.startPolling()
-        val treeMonitor = InjectorHelper.get[TreeMonitor]
-        treeMonitor.start
         //Consumer
 
-        Thread.sleep(7000)
+        val bigBangTree = 1
+        val maxNumberToReadNormalMasters = events.sliding(50, 50).size /* tree */
+        val upgradeTree = 1
 
-        val maxNumberToRead = events.sliding(50, 50).size /* tree */
-        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+        val maxToRead = bigBangTree + maxNumberToReadNormalMasters + upgradeTree
+
+        Thread.sleep(10000)
+
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
 
         val mode = Master
+        val expectedHeadersBigBang = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category
+        )
+
         val expectedHeaders = Headers.create(
           HeaderNames.TRACE -> mode.value,
           HeaderNames.ORIGIN -> mode.category,
           TreeMonitor.headersNormalCreationFromMode(mode)
         )
 
-        messagesAsEventLogs.map(_.headers).map { x =>
-          assert(x == expectedHeaders)
+        //big bang
+        val bigBang = messagesAsEventLogs.headOption
+
+        //normal trees
+        val normalTrees =
+          messagesAsEventLogs
+            .tail
+            .reverse
+            .tail
+            .reverse
+
+        val upgradeTREE = messagesAsEventLogs
+          .tail
+          .reverse
+          .headOption
+
+        bigBang
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        normalTrees
+          .map { x =>
+            assert(x.headers == expectedHeaders)
+          }
+
+        upgradeTREE
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        //upgrade tree
+
+        assert(messages.size == maxToRead)
+
+        for {
+          l <- normalTrees.reverse.headOption
+          u <- upgradeTREE
+        } yield {
+          assert(l.id == u.id)
+          assert(l.headers != u.headers)
+          assert(l.lookupKeys != u.lookupKeys)
         }
-
-        assert(messages.size == events.sliding(50, 50).size)
-
-        val upgrade = consumeFirstStringMessageFrom(eventLogTopic)
-        val upgradeEventLog = ChainerJsonSupport.FromString[EventLog](upgrade).get
-
-        val expectedHeadersUpgrade = Headers.create(
-          HeaderNames.TRACE -> mode.value,
-          HeaderNames.ORIGIN -> mode.category
-        //, TreeMonitor.headerExcludeStorage
-        )
-
-        assert(upgradeEventLog.headers == expectedHeadersUpgrade)
-        assert(messagesAsEventLogs.reverse.headOption.map(_.id) == Option(upgradeEventLog.id))
-
-        Thread.sleep(10000)
-
-        val upgrade2 = consumeFirstStringMessageFrom(eventLogTopic)
-        val upgradeEventLog2 = ChainerJsonSupport.FromString[EventLog](upgrade2).get
-
-        val expectedHeadersUpgrade2 = Headers.create(
-          HeaderNames.TRACE -> mode.value,
-          HeaderNames.ORIGIN -> mode.category
-        )
-
-        assert(upgradeEventLog2.headers == expectedHeadersUpgrade2)
-        assert(upgradeEventLog2.id != upgradeEventLog.id)
 
       }
 

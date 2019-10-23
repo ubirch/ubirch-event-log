@@ -5,6 +5,7 @@ import com.google.inject.name.Names
 import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.chainer.process.{ DefaultExecutorFamily, ExecutorFamily }
+import com.ubirch.chainer.services.httpClient.{ DefaultAsyncWebClient, WebClient }
 import com.ubirch.chainer.services.kafka.consumer.DefaultChainerManager
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.kafka.consumer.StringConsumer
@@ -51,6 +52,9 @@ class ChainerServiceBinder extends AbstractModule
     .annotatedWith(Names.named(DefaultLeavesCounter.name))
     .to(classOf[DefaultLeavesCounter])
 
+  def webClient: ScopedBindingBuilder = bind(classOf[WebClient])
+    .to(classOf[DefaultAsyncWebClient])
+
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -65,6 +69,7 @@ class ChainerServiceBinder extends AbstractModule
     metricsLoggerCounter
     treesCounter
     leavesCounter
+    webClient
   }
 
 }

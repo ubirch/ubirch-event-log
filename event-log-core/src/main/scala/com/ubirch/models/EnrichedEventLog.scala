@@ -1,7 +1,7 @@
 package com.ubirch.models
 
 import com.typesafe.config.Config
-import com.ubirch.util.{ SigningHelper, UUIDHelper }
+import com.ubirch.util.{ SigningHelper, TimeHelper, UUIDHelper }
 
 import scala.language.implicitConversions
 
@@ -39,6 +39,21 @@ case class EnrichedEventLog(eventLog: EventLog) {
 
   def addBlueMark: EventLog = {
     eventLog.addHeaders(HeaderNames.BLUE_MARK -> UUIDHelper.randomUUID.toString)
+  }
+
+  def withBigBangTime: EventLog = {
+    eventLog.withEventTime(TimeHelper.bigBangAsDate.toDate)
+  }
+
+  def addBigBangLookup: EventLog = {
+    import LookupKey._
+    val lk = LookupKey(
+      Values.BIG_BANG_MASTER_TREE_ID,
+      Values.BIG_BANG_MASTER_TREE_CATEGORY,
+      eventLog.id.asKeyWithLabel(Values.BIG_BANG_MASTER_TREE_CATEGORY),
+      Seq(Values.BIG_BANG_MASTER_TREE_CATEGORY.asValueWithLabel(Values.BIG_BANG_MASTER_TREE_CATEGORY))
+    )
+    eventLog.addLookupKeys(lk)
   }
 
 }

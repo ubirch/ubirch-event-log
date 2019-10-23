@@ -5,6 +5,7 @@ import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.lookup.models.{ DefaultFinder, Finder }
 import com.ubirch.lookup.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.lookup.services.kafka.consumer.DefaultRecordsManager
 import com.ubirch.services._
@@ -38,6 +39,8 @@ class LookupServiceBinder
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   //Cassandra Cluster
 
+  def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[DefaultFinder])
+
   def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultGremlinConnector])
 
   override def configure(): Unit = {
@@ -52,6 +55,7 @@ class LookupServiceBinder
     consumerRecordsManager
     producer
     gremlin
+    finder
   }
 
 }

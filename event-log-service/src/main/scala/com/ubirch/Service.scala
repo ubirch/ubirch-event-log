@@ -1,6 +1,9 @@
 package com.ubirch
 
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.service.ExtServiceBinder
+import com.ubirch.service.rest.RestService
+import com.ubirch.services.ServiceBinder
 import com.ubirch.util.Boot
 
 import scala.language.postfixOps
@@ -10,9 +13,16 @@ import scala.language.postfixOps
   * It starts an String Consumer that in turn starts all the rest of the
   * needed components, such as all the core components, executors, reporters, etc.
   */
-object Service extends Boot {
+object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
+
+    logger.info("Starting Rest")
+
+    val restEndpoint = get[RestService]
+    restEndpoint.start
+
+    logger.info("Starting consumer")
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)

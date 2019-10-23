@@ -3,11 +3,13 @@ package com.ubirch.lookup
 import java.util.UUID
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
+import com.google.inject.Module
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
-import com.ubirch.lookup.models.{ LookupResult, Payload, QueryType, Signature }
+import com.ubirch.lookup.models._
+import com.ubirch.lookup.process.LookupExecutor
 import com.ubirch.lookup.services.{ DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder }
 import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models._
@@ -15,33 +17,70 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
+import javax.inject._
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
 import org.json4s.JValue
-import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods.parse
 
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
-class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new LookupServiceBinder {
+class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
 
-  override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
 
-  override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-    override def conf: Config = {
-      super.conf
-        .withValue(
-          "eventLog.kafkaConsumer.bootstrapServers",
-          ConfigValueFactory.fromAnyRef(bootstrapServers)
-        )
-        .withValue(
-          "eventLog.kafkaProducer.bootstrapServers",
-          ConfigValueFactory.fromAnyRef(bootstrapServers)
-        )
-    }
-  })
-}))
+  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil))
+
+}
+
+class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
+
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
+
+  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))
+
+}
+
+object FakeFoundFinder {
+  val simplePath = List(
+    VertexStruct("UPP", properties = Map(
+      "next_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
+      "signature" -> "bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==",
+      "hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
+      "prev_hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
+      "type" -> "UPP"
+    )),
+    VertexStruct("UPP", properties = Map(
+      "next_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
+      "signature" -> "YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==",
+      "hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
+      "prev_hash" -> "",
+      "type" -> "UPP"
+    )),
+    VertexStruct("SLAVE_TREE", properties = Map(
+      "next_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
+      "hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
+      "prev_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
+      "type" -> "SLAVE_TREE"
+    )),
+    VertexStruct("MASTER_TREE", properties = Map(
+      "next_hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
+      "hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
+      "prev_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
+      "type" -> "MASTER_TREE"
+    ))
+  )
+  val blockchains = List(
+    VertexStruct("PUBLIC_CHAIN", properties = Map(
+      "public_chain" -> "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
+      "hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
+      "prev_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
+      "type" -> "PUBLIC_CHAIN"
+    ))
+  )
+}
 
 class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
@@ -80,7 +119,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
 
       withRunningKafka {
 
@@ -94,7 +156,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -116,10 +178,10 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
             |}
           """.stripMargin
 
-        val expectedLookup = LookupResult.Found(key, queryType, LookupJsonSupport.getJValue(data), JNull)
+        val expectedLookup = LookupResult.Found(key, queryType, LookupJsonSupport.getJValue(data), LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))
         val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
 
@@ -133,7 +195,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
 
       withRunningKafka {
 
@@ -147,7 +232,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -156,8 +241,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         Thread.sleep(5000)
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-
-        val expected = s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}"""
+        val expected = s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"payload","message":"Nothing Found","event":null,"anchors":null}}"""
 
         assert(readMessage == expected)
 
@@ -171,7 +255,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
 
       withRunningKafka {
 
@@ -185,7 +292,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -195,7 +302,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"success":true,"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":[]}}""")
+        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"success":true,"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":null}}""")
 
       }
 
@@ -213,7 +320,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
 
       withRunningKafka {
 
@@ -227,7 +357,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -250,7 +380,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           """.stripMargin
         )
 
-        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":[]}}""")
+        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":null}}""")
 
       }
 
@@ -269,7 +399,30 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
 
       withRunningKafka {
 
@@ -283,7 +436,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -293,7 +446,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"success":true,"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[]}}""")
+        assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"success":true,"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":{"shortest_path":[{"label":"UPP","properties":{"next_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","signature":"bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==","hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","prev_hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","type":"UPP"}},{"label":"UPP","properties":{"next_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","signature":"YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==","hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","prev_hash":"","type":"UPP"}},{"label":"SLAVE_TREE","properties":{"next_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","prev_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","type":"SLAVE_TREE"}},{"label":"MASTER_TREE","properties":{"next_hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","prev_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","type":"MASTER_TREE"}}],"blockchains":[{"label":"PUBLIC_CHAIN","properties":{"public_chain":"IOTA_TESTNET_IOTA_TESTNET_NETWORK","hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","prev_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","type":"PUBLIC_CHAIN"}}]}}}""".stripMargin)
 
       }
 
@@ -314,23 +467,13 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         """.stripMargin
       )
 
-      val anchors = EventLogJsonSupport.getJValue {
-        """
-          |{
-          |  "status": "added",
-          |  "txid": "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
-          |  "message": "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19",
-          |  "blockchain": "ethereum",
-          |  "network_info": "Rinkeby Testnet Network",
-          |  "network_type": "testnet",
-          |  "created": "2019-05-07T21:30:14.421095"
-          |}
-        """.stripMargin
-      }
+      val anchors = LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
 
       val value = EventLogJsonSupport.ToJson(LookupResult(success = true, "key", Payload, "", Option(data), Option(anchors))).toString
 
-      val expected = """{"success":true,"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":[{"status":"added","txid":"51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0","message":"e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19","blockchain":"ethereum","network_info":"Rinkeby Testnet Network","network_type":"testnet","created":"2019-05-07T21:30:14.421095"}]}"""
+      println(value)
+
+      val expected = """{"success":true,"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":{"shortest_path":[{"label":"UPP","properties":{"next_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","signature":"bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==","hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","prev_hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","type":"UPP"}},{"label":"UPP","properties":{"next_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","signature":"YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==","hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","prev_hash":"","type":"UPP"}},{"label":"SLAVE_TREE","properties":{"next_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","prev_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","type":"SLAVE_TREE"}},{"label":"MASTER_TREE","properties":{"next_hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","prev_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","type":"MASTER_TREE"}}],"blockchains":[{"label":"PUBLIC_CHAIN","properties":{"public_chain":"IOTA_TESTNET_IOTA_TESTNET_NETWORK","hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","prev_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","type":"PUBLIC_CHAIN"}}]}}""".stripMargin
 
       assert(value == expected)
 
@@ -344,9 +487,32 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
 
-      val eventsDAO = InjectorHelper.get[EventsDAO]
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
+
+          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
+            override def conf: Config = {
+              super.conf
+                .withValue(
+                  "eventLog.kafkaConsumer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+                .withValue(
+                  "eventLog.kafkaProducer.bootstrapServers",
+                  ConfigValueFactory.fromAnyRef(bootstrapServers)
+                )
+            }
+          })
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
+
+      val eventsDAO = injector.get[EventsDAO]
 
       //We insert the PM Event
       val pmId = UUIDHelper.randomUUID.toString
@@ -463,7 +629,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         publishToKafka(pr)
 
         //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
+        val consumer = injector.get[StringConsumer]
         consumer.setTopics(Set(messageEnvelopeTopic))
 
         consumer.startPolling()
@@ -473,10 +639,10 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        val expectedLookup = LookupResult.Found(key, queryType, pmAsJson, tx)
+        val expectedLookup = LookupResult.Found(key, queryType, pmAsJson, LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))
         val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-        val expectedGenericResponse = GenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[GenericResponse](expectedGenericResponse).toString
+        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
+        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
 
         assert(expectedGenericResponseAsJson == readMessage)
         assert(masterTree.category == masterTree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))
