@@ -127,7 +127,12 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val lastMaster = upToMaster.headOption.map(_.addProperties(withNext(blockchainHashes))).toList
     val lastMasterHash = lastMaster.map(x => x.properties.getOrElse(Values.HASH, ""))
 
-    val completePath = upToMaster.tail.reverse ++ lastMaster
+    val completePath = {
+      val cp = if(upToMaster.isEmpty) Nil
+      else upToMaster.tail.reverse
+
+      cp ++ lastMaster
+    }
     val completeBlockchains = blockchainsV.map(_.addProperties(withPrevious(lastMasterHash)))
 
     (completePath, completeBlockchains)
