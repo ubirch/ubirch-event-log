@@ -6,6 +6,7 @@ import com.ubirch.TestBase
 import com.ubirch.chainer.models.Chainer.CreateConfig
 import com.ubirch.chainer.models.{ Chainer, Master, Slave }
 import com.ubirch.chainer.services._
+import com.ubirch.chainer.services.httpClient.DefaultAsyncWebClient
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
 import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCounter }
 import com.ubirch.chainer.services.tree._
@@ -60,7 +61,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       }
 
       val treeMonitor = mock[TreeMonitor]
-      when(treeMonitor.goodToCreate((any[Vector[ConsumerRecord[String, String]]]()))).thenReturn(true)
+      when(treeMonitor.goodToCreate(any[Vector[ConsumerRecord[String, String]]]())).thenReturn(true)
 
       val filterEmpty = new FilterEmpty(treeMonitor, config)
       val fres = filterEmpty(data.toVector)
@@ -87,7 +88,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val treeMonitor = mock[TreeMonitor]
 
       when(treeMonitor.treeCreationTrigger).thenReturn(treeCreationTrigger)
-      when(treeMonitor.goodToCreate((any[Vector[ConsumerRecord[String, String]]]()))).thenCallRealMethod()
+      when(treeMonitor.goodToCreate(any[Vector[ConsumerRecord[String, String]]]())).thenCallRealMethod()
 
       Thread.sleep(3000)
 
@@ -270,7 +271,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val webClient = new DefaultAsyncWebClient()
+
+      val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -329,7 +334,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val webClient = new DefaultAsyncWebClient()
+
+      val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -390,7 +399,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val webClient = new DefaultAsyncWebClient()
+
+      val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 
@@ -462,7 +475,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val treeMonitor = new TreeMonitor(treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
+      val webClient = new DefaultAsyncWebClient()
+
+      val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
+
+      val treeMonitor = new TreeMonitor(treeBootstrap, treeCache, treeCreator, treeEventLogCreator, treePublisher, treeCreationTrigger, treeUpgrade, config)
 
       val treeCreatorExecutor = new TreeCreatorExecutor(treeMonitor)
 

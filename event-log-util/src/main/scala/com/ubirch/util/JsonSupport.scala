@@ -1,5 +1,6 @@
 package com.ubirch.util
 
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 import org.bouncycastle.util.Strings
@@ -45,6 +46,8 @@ trait JsonHelperBase extends WithJsonFormats {
   def _toBase64String(v1: JValue): String = Base64.toBase64String(_getBytes(v1))
 
   def getJValue(v1: String): JValue = jackson.parseJson(v1)
+
+  def getJValue(v1: InputStream): JValue = jackson.parseJson(v1)
 
 }
 

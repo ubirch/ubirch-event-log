@@ -5,17 +5,17 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType }
+import com.ubirch.lookup.models.{ Finder, LookupResult, QueryType, VertexStruct }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
-import com.ubirch.models.GenericResponse
+import com.ubirch.models.{ JValueGenericResponse, Values }
 import com.ubirch.process.Executor
-import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.json4s.JValue
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -42,27 +42,26 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
       value <- maybeValue
       queryType <- maybeQueryType
     } yield {
-      if (value.isEmpty || key.isEmpty) {
+      if (value.isEmpty || key.isEmpty)
         Future.successful(LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
-      } else {
+      else {
 
-        val futureRes = finder.findAll(value, queryType)
-
-        futureRes.map {
+        finder.findAll(value, queryType).map {
           case (Some(ev), path, maybeAnchors) =>
-            val anchors = Map("shortest_path" -> path, "blockchains" -> maybeAnchors)
-            val jValueAnchors = LookupJsonSupport.ToJson(anchors).get
-            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, jValueAnchors)), None, None)
-          case (None, _, _) => LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, LookupExecutor.shortestPathAsJValue(path, maybeAnchors))), None, None)
+          case (None, _, _) =>
+            LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
         }.recover {
           case e: InvalidQueryException =>
             logger.error("Error querying db: ", e)
             throw e
           case e: Exception =>
             logger.error("Error querying data: ", e)
+            val res = LookupResult.Error(key, queryType, "Error processing request: " + e.getMessage)
             throw LookupExecutorException(
               "Error querying data",
-              LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Error(key, queryType, "Error processing request: " + e.getMessage)), None, None), e.getMessage
+              LookupPipeData(v1, Some(key), Some(queryType), Some(res), None, None),
+              e.getMessage
             )
         }
       }
@@ -74,6 +73,13 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 
   }
 
+}
+
+object LookupExecutor {
+  def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]) = {
+    val anchors = Map(Values.SHORTEST_PATH -> path, Values.BLOCKCHAINS -> maybeAnchors)
+    LookupJsonSupport.ToJson(anchors).get
+  }
 }
 
 /**
@@ -92,14 +98,14 @@ class CreateProducerRecord @Inject() (config: Config)(implicit ec: ExecutionCont
 
       try {
 
-        val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
+        val topic = config.getString(TOPIC_PATH)
 
         val output = v1.lookupResult
           .map { x =>
             val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
-            val gr = GenericResponse(success = x.success, x.message, lookupJValue)
+            val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
 
-            (x, LookupJsonSupport.ToJson[GenericResponse](gr))
+            (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
           }
           .map { case (x, y) =>
             val commitDecision: ProducerRecord[String, String] = {

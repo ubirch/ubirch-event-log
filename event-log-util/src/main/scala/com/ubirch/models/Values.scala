@@ -2,6 +2,7 @@ package com.ubirch.models
 
 object Values {
 
+  val BIG_BANG_MASTER_TREE_CATEGORY = "BIG_BANG_MASTER_TREE"
   val MASTER_TREE_CATEGORY = "MASTER_TREE"
   val SLAVE_TREE_CATEGORY = "SLAVE_TREE"
   val UPP_CATEGORY = "UPP"
@@ -10,6 +11,7 @@ object Values {
   val PUBLIC_CHAIN_CATEGORY = "PUBLIC_CHAIN"
   val UNKNOWN_CATEGORY = "UNKNOW_CATEGORY"
   val MASTER_TREE_ID = "master-tree-id"
+  val BIG_BANG_MASTER_TREE_ID = "big-bang-master-tree-id"
   val SLAVE_TREE_ID = "slave-tree-id"
   val SLAVE_TREE_LINK_ID = "slave-tree-link-id"
   val SLAVE_TREE_UPGRADE_ID = "slave-tree-upgrade-id"
@@ -32,5 +34,7 @@ object Values {
   val EVENT_LOG_SYSTEM = "EVENT_LOG"
   val SUCCESS = "success"
   val FAILURE = "failure"
+  val SHORTEST_PATH = "shortest_path"
+  val BLOCKCHAINS = "blockchains"
 
 }

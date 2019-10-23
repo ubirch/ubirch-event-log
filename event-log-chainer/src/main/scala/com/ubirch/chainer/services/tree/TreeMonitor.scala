@@ -4,17 +4,20 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
+import com.ubirch.models.EnrichedEventLog._
 import com.ubirch.models.{ EventLog, HeaderNames }
-import com.ubirch.util.UUIDHelper
+import com.ubirch.util.{ FutureHelper, UUIDHelper }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.language.postfixOps
 
 @Singleton
 class TreeMonitor @Inject() (
+    treeWarmUp: TreeWarmUp,
     treeCache: TreeCache,
     treeCreator: TreeCreator,
     treeEventLogCreator: TreeEventLogCreator,
@@ -37,19 +40,46 @@ class TreeMonitor @Inject() (
   require(treeCreationTrigger.every != treeUpgrade.every, "treeEvery & treeUpgrade can't be the same on master mode")
 
   def start = {
-    scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
-      treeBillOfMaterialsHook
-      treeUpgradeHook
+
+    def tick = {
+      scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
+        treeBillOfMaterialsHook
+        treeUpgradeHook(forceUpgrade = false)
+      }
     }
+
+    val doWarmup = Mode
+      .foldF(mode)
+      .onSlave { () =>
+        logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
+        Future.successful(tick)
+      }
+      .onMaster { () =>
+        treeWarmUp.warmup.map {
+          case AllGood =>
+            logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
+            tick
+          case WhatTheHeck =>
+            logger.error(s"Tree(${mode.value} Warm-up failed.")
+            throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
+          case CreateGenesisTree =>
+            treeUpgradeHook(forceUpgrade = true)
+            tick
+        }
+      }
+      .run
+
+    FutureHelper.await(doWarmup, 10 seconds)
+
   }
 
   def treeBillOfMaterialsHook: Unit =
     logger.debug("TreeCR_{}_{}", treeCreationTrigger.elapsedSeconds, treeCreationTrigger.lastTree)
 
-  def treeUpgradeHook: Unit = {
+  def treeUpgradeHook(forceUpgrade: Boolean): Unit = {
     logger.debug("TreeUP_{}_{}", treeUpgrade.elapsedSeconds, treeUpgrade.lastUpgrade)
 
-    if (treeUpgrade.goodToUpgrade) {
+    if (treeUpgrade.goodToUpgrade || forceUpgrade) {
       logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
       val latestHash = treeCache.latestHash.getOrElse("")
@@ -70,34 +100,42 @@ class TreeMonitor @Inject() (
 
           case None if mode == Master => // If we need to upgrade but no tree found, we create a filling tree
             treeUpgrade.registerNewUpgrade
-
             //This is the event-log that will be used to create the tree
-            val fillingEventLog = if (latestHash.isEmpty) {
-              logger.debug("No RTREE found ... creating filling ...")
-              treeEventLogCreator.createEventLog(
-                "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
-                zero = latestHash,
-                data = JString("caaaugustoss"),
-                leaves = Nil
-              )
-            } else {
-              logger.debug("No RTREE found ... creating filling from cache ...")
-              treeEventLogCreator.createEventLog(
-                latestHash,
-                zero = "",
-                data = JString("caaaugustoss"),
-                leaves = Nil
-              )
-            }
-
-            val fillingChainers = createTrees(List(fillingEventLog))
-            //This is the tree event-log (filling)
-            createEventLogs(fillingChainers.toVector)
-            .map(x => x.addLookupKeys(treeEventLogCreator.upgradeLookups(x.id, latestHash): _*))
-            .map(el => publishWithNoCache(topic, el))
+            createAndSendFilling(topic, latestHash, addBigBangProperties = forceUpgrade)
 
         }
     }
+  }
+
+  def createAndSendFilling(topic: String, latestHash: String, addBigBangProperties: Boolean) = {
+    //This is the event-log that will be used to create the tree
+    val fillingEventLog = if (latestHash.isEmpty) {
+      logger.debug("No RTREE found as EventLog ... creating filling ...")
+      treeEventLogCreator.createEventLog(
+        rootHash = "FILLING_LEAF_" + UUIDHelper.randomUUID.toString,
+        zero = latestHash,
+        data = JString("caaaugustoss"),
+        leaves = Nil
+      )
+    } else {
+      logger.debug("No RTREE found as EventLog... creating filling from cache ... [{}]", latestHash)
+      treeEventLogCreator.createEventLog(
+        rootHash = latestHash,
+        zero = "",
+        data = JString("caaaugustoss"),
+        leaves = Nil
+      )
+    }
+
+    val fillingChainers = createTrees(List(fillingEventLog))
+    //This is the tree event-log (filling)
+    createEventLogs(fillingChainers.toVector)
+      .map(el => el.addLookupKeys(treeEventLogCreator.upgradeLookups(el.id, latestHash): _*))
+      .map { el =>
+        if (addBigBangProperties) el.withBigBangTime.addBigBangLookup
+        else el
+      }
+      .map(el => publishWithNoCache(topic, el))
   }
 
   def createTrees(eventLogs: List[EventLog]) = synchronized {
