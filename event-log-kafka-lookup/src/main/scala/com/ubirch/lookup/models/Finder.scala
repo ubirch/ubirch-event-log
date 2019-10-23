@@ -18,15 +18,15 @@ trait Finder extends LazyLogging {
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct])] = {
     val fres = findUPP(value, queryType).flatMap {
       case upp @ Some(uppEl) =>
+
         findAnchorsWithPathAsVertices(uppEl.id)
           .map { case (path, blockchains) => (upp, path, blockchains) }
           .recover {
-
             case e: Exception =>
-              logger.error("Error talking Gremlin {}", e.getMessage)
+              logger.error("Error talking Gremlin= {}", e.getMessage)
               (upp, List.empty, List.empty)
-
           }
+
       case None => Future.successful((None, Seq.empty, Seq.empty))
     }
 
