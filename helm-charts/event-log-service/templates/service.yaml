@@ -10,6 +10,9 @@ metadata:
 spec:
   type: {{ .Values.service.type }}
   ports:
+    - name: event-log-endpoint
+      port: {{ .Values.eventLog.server.port }}
+      protocol: TCP
     - name: prometheus-metrics
       port: {{ .Values.eventLog.prometheus.port}}
       protocol: TCP
