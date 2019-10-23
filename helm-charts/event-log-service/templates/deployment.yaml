@@ -30,7 +30,7 @@ spec:
                   image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
                   ports:
-                      - containerPort: 8080
+                      - containerPort: {{ .Values.eventLog.server.port }}
                       - containerPort: 9010
                       - containerPort: 9020
                       - containerPort: 4321
@@ -93,7 +93,10 @@ spec:
                         value: "{{ .Values.eventLog.kafka.consumer.fetchMaxBytes }}"
                       - name: EVTL_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
                         value: "{{ .Values.eventLog.kafka.consumer.partitionFetchMaxBytes }}"
-                        
+                      - name: EVTL_HTTP_SERVER_PORT
+                        value: "{{ .Values.eventLog.server.port }}"
+                      - name: EVTL_HTTP_SERVER_BASE_URL
+                        value: "{{ .Values.eventLog.server.baseUrl }}"
                   resources:
                     {{- toYaml .Values.resources | nindent 22 }}
                 {{- with .Values.nodeSelector }}
