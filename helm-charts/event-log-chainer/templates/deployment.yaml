@@ -83,7 +83,10 @@ spec:
               value: "{{ .Values.eventLogChainer.kafka.consumer.fetchMaxBytes }}"
             - name: CHAINER_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
               value: "{{ .Values.eventLogChainer.kafka.consumer.partitionFetchMaxBytes }}"
-
+            - name: CHAINER_DAYSBACK
+              value: "{{ .Values.eventLogChainer.daysBack }}"
+            - name: CHAINER_LOG_QUERY_ENDPOINT
+              value: "{{ .Values.eventLogChainer.logQueryEndPoint }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
