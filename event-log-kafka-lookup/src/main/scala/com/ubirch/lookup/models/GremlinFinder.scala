@@ -128,7 +128,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val lastMasterHash = lastMaster.map(x => x.properties.getOrElse(Values.HASH, ""))
 
     val completePath = {
-      val cp = if(upToMaster.isEmpty) Nil
+      val cp = if (upToMaster.isEmpty) Nil
       else upToMaster.tail.reverse
 
       cp ++ lastMaster
