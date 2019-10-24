@@ -171,7 +171,7 @@ class EventLogTrustCodeController @Inject() (
 
   get("/trust_code/:id/verify") {
     val trustCodeId = params("id")
-    TrustCodeGenericResponse(true, "Trust Code Successfully verified", Nil)
+    TrustCodeGenericResponse(success = true, "Trust Code Successfully verified", Nil)
   }
 
   post("/trust_code/:id/:method") {
@@ -188,22 +188,30 @@ class EventLogTrustCodeController @Inject() (
       ))
     }
 
+    val paramsTuple = methodParams.map { p =>
+      p.tpe.toUpperCase match {
+        case "STRING" => (classOf[String], p.value)
+        case "INT" => (classOf[Int], p.value.asInstanceOf[Int])
+        case "BOOLEAN" => (classOf[Boolean], p.value.asInstanceOf[Boolean])
+        case "LONG" => (classOf[Long], p.value.asInstanceOf[Long])
+        case "FLOAT" => (classOf[Float], p.value.asInstanceOf[Float])
+        case _ =>
+          halt(BadRequest(
+            TrustCodeGenericResponse(
+              success = false,
+              "Type not supported. Only types supported: String, Int, Boolean, Long and Float.",
+              Nil
+            )
+          ))
+      }
+
+    }
+
     val fres = cache.get[TrustCodeLoad](trustCodeId).map {
 
-      case Some(TrustCodeLoad(id, instance, clazz)) =>
+      case Some(TrustCodeLoad(_, instance, clazz)) =>
 
-        val params = methodParams.map { p =>
-          p.tpe.toUpperCase match {
-            case "STRING" => (classOf[String], p.value)
-            case "INT" => (classOf[Int], p.value.asInstanceOf[Int])
-            case "BOOLEAN" => (classOf[Boolean], p.value.asInstanceOf[Boolean])
-            case "LONG" => (classOf[Long], p.value.asInstanceOf[Long])
-            case "FLOAT" => (classOf[Float], p.value.asInstanceOf[Float])
-          }
-
-        }
-
-        val completeParams = (classOf[Context], Context(trustCodeId)) +: params
+        val completeParams = (classOf[Context], Context(trustCodeId)) +: paramsTuple
 
         try {
           if (clazz.getDeclaredMethods.exists(_.getName == method)) {
@@ -211,18 +219,17 @@ class EventLogTrustCodeController @Inject() (
               .getDeclaredMethod(method, completeParams.map(_._1): _*)
               .invoke(instance, completeParams.map(_._2.asInstanceOf[Object]): _*)
 
-            Ok(TrustCodeGenericResponse(true, "Trust Code Method Executed", Nil))
-          } else {
-            NotFound(TrustCodeGenericResponse(false, "Trust Code Method Not Found", Nil))
-          }
+            Ok(TrustCodeGenericResponse(success = true, "Trust Code Method Executed", Nil))
+          } else
+            NotFound(TrustCodeGenericResponse(success = false, "Trust Code Method Not Found", Nil))
 
         } catch {
           case e: Exception =>
             logger.error("Error Executing Trust Code Method {}", e.getMessage)
-            InternalServerError(TrustCodeGenericResponse(false, "Error Executing Trust Code Method = " + e.getMessage, Nil))
+            InternalServerError(TrustCodeGenericResponse(success = false, "Error Executing Trust Code Method = " + e.getMessage, Nil))
         }
 
-      case None => NotFound(TrustCodeGenericResponse(false, "Trust Code has not been initiated", Nil))
+      case None => NotFound(TrustCodeGenericResponse(success = false, "Trust Code has not been initiated", Nil))
     }
 
     val finalRes = new AsyncResult() {
