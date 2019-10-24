@@ -5,14 +5,14 @@ import scala.language.implicitConversions
 
 sealed trait RelationElem {
   val label: Option[String]
-  val properties: Map[String, String]
+  val properties: Map[String, Any]
   def addLabel(newLabel: String): RelationElem
-  def addProperty(prop: (String, String)*): RelationElem
+  def addProperty(prop: (String, Any)*): RelationElem
 }
 
-case class Vertex(label: Option[String], properties: Map[String, String]) extends RelationElem {
+case class Vertex(label: Option[String], properties: Map[String, Any]) extends RelationElem {
   def addLabel(newLabel: String): Vertex = copy(label = Some(newLabel))
-  def addProperty(prop: (String, String)*): Vertex = copy(properties = properties ++ prop)
+  def addProperty(prop: (String, Any)*): Vertex = copy(properties = properties ++ prop)
 }
 
 object Vertex {
@@ -21,9 +21,9 @@ object Vertex {
   def empty: Vertex = Vertex(None, Map.empty[String, String])
 }
 
-case class Edge(label: Option[String], properties: Map[String, String]) extends RelationElem {
+case class Edge(label: Option[String], properties: Map[String, Any]) extends RelationElem {
   def addLabel(newLabel: String): Edge = copy(label = Some(newLabel))
-  def addProperty(prop: (String, String)*): Edge = copy(properties = properties ++ prop)
+  def addProperty(prop: (String, Any)*): Edge = copy(properties = properties ++ prop)
 }
 
 object Edge {
@@ -33,8 +33,8 @@ object Edge {
 }
 
 case class Relation(vFrom: Vertex, vTo: Vertex, edge: Edge) {
-  def addProperty(key: String, value: String): Relation = copy(edge = Edge(edge.label, edge.properties ++ Map(key -> value)))
-  def withProperties(newProps: Map[String, String]): Relation = copy(edge = Edge(edge.label, newProps))
+  def addProperty(key: String, value: Any): Relation = copy(edge = Edge(edge.label, edge.properties ++ Map(key -> value)))
+  def withProperties(newProps: Map[String, Any]): Relation = copy(edge = Edge(edge.label, newProps))
   def addRelationLabel(label: String): Relation = copy(edge = edge.copy(label = Some(label)))
   def addRelationLabel(label: Option[String]): Relation = copy(edge = edge.copy(label = label))
   def addOriginLabel(label: String): Relation = copy(vFrom = vFrom.copy(label = Some(label)))

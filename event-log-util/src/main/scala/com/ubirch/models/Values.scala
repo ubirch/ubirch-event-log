@@ -36,5 +36,6 @@ object Values {
   val FAILURE = "failure"
   val SHORTEST_PATH = "shortest_path"
   val BLOCKCHAINS = "blockchains"
+  val TIMESTAMP = "timestamp"
 
 }
