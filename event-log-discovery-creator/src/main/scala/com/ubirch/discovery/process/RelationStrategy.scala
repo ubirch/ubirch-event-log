@@ -85,8 +85,9 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
             .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
+            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         )
-        .through(Edge.simple(Values.DEVICE_CATEGORY))
+        .through(Edge(Values.DEVICE_CATEGORY))
 
     val maybeRelation2 = maybeChain.map { chain =>
       relation1
@@ -96,7 +97,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
             .addProperty(Values.SIGNATURE -> chain)
             .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         )
-        .through(Edge.simple(Values.CHAIN_CATEGORY))
+        .through(Edge(Values.CHAIN_CATEGORY))
 
     }
 
@@ -127,6 +128,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.UPP_CATEGORY)
             .addProperty(Values.HASH -> hash)
@@ -151,6 +153,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
@@ -208,6 +211,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
@@ -287,6 +291,7 @@ case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy
       .addProperty(Values.HASH -> eventLog.id)
       .addProperty(Values.TYPE -> Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.PUBLIC_CHAIN_CATEGORY -> eventLog.category)
+      .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
       .connectedTo(
         Vertex(Values.MASTER_TREE_CATEGORY)
           .addProperty(Values.HASH -> hash)

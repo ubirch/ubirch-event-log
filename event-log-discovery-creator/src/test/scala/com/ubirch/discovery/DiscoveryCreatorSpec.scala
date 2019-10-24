@@ -110,6 +110,8 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val relations = DiscoveryJsonSupport.FromString[Seq[Relation]](relationsAsJson).get
 
+        println(relationsAsJson)
+
         assert(relations.exists(_.edge.label == Option(Values.CHAIN_CATEGORY)))
         assert(relations.exists(_.edge.label == Option(Values.DEVICE_CATEGORY)))
 
