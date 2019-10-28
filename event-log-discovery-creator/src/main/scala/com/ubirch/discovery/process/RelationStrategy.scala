@@ -134,7 +134,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.SIGNATURE -> signature)
             .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY +  "->" + Values.UPP_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY))
 
     }
 
@@ -158,7 +158,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" +Values.SLAVE_TREE_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
 
     }
 
@@ -217,7 +217,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         )
-        .through(Edge(Values.MASTER_TREE_CATEGORY +  "->" + Values.SLAVE_TREE_CATEGORY))
+        .through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
 
     }
 
