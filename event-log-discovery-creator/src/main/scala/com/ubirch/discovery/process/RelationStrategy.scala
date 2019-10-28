@@ -87,7 +87,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
             .addProperty(Values.DEVICE_ID -> device)
             .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
         )
-        .through(Edge(Values.DEVICE_CATEGORY))
+        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY))
 
     val maybeRelation2 = maybeChain.map { chain =>
       relation1
@@ -134,7 +134,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.SIGNATURE -> signature)
             .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY +  "->" + Values.UPP_CATEGORY))
 
     }
 
@@ -158,7 +158,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" +Values.SLAVE_TREE_CATEGORY))
 
     }
 
@@ -217,7 +217,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         )
-        .through(Edge(Values.MASTER_TREE_CATEGORY))
+        .through(Edge(Values.MASTER_TREE_CATEGORY +  "->" + Values.SLAVE_TREE_CATEGORY))
 
     }
 
@@ -237,12 +237,12 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.MASTER_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
-        ).through(Edge(Values.MASTER_TREE_CATEGORY))
-
+        ).through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
     }
 
     eventLog.lookupKeys
@@ -258,12 +258,13 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.MASTER_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         )
-        .through(Edge(Values.MASTER_TREE_CATEGORY))
+        .through(Edge(Values.MASTER_TREE_CATEGORY + "_UPGRADE"))
 
     eventLog.lookupKeys
       .find(x => x.category == Values.MASTER_TREE_CATEGORY + "_UPGRADE" && x.name == Values.MASTER_TREE_UPGRADE_ID)
@@ -297,7 +298,7 @@ case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy
           .addProperty(Values.HASH -> hash)
           .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
       )
-      .through(Edge(Values.PUBLIC_CHAIN_CATEGORY))
+      .through(Edge(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
 
   }
 
