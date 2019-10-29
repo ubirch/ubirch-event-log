@@ -15,7 +15,6 @@ import com.ubirch.util._
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.json4s.JValue
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
