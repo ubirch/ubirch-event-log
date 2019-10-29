@@ -1,10 +1,8 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models.EventLogRow
 import javax.inject._
-import org.json4s.JsonAST.JValue
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
