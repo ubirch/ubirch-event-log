@@ -121,7 +121,7 @@ object LookupExecutor {
   def upperAndLowerAsJValue(upperPath: Seq[VertexStruct], upperBlocks: Seq[VertexStruct], lowerPath: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]) = {
     val anchors = Map(
       Values.UPPER_PATH -> upperPath,
-      Values.BLOCKCHAINS -> upperBlocks,
+      Values.UPPER_BLOCKCHAINS -> upperBlocks,
       Values.LOWER_PATH -> lowerPath,
       Values.LOWER_BLOCKCHAINS -> lowerBlocks
     )
