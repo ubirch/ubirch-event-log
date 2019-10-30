@@ -5,7 +5,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.models.{ Finder, LookupResult, QueryDepth, QueryType, ShortestPath, Simple, UpperLower, VertexStruct }
+import com.ubirch.lookup.models.{ AnchorsNoPath, AnchorsWithPath, Finder, LookupResult, QueryDepth, QueryType, ResponseForm, ShortestPath, Simple, UpperLower, VertexStruct }
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
@@ -33,18 +33,31 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
     }
 
-  def shortestPath(key: String, value: String, queryType: QueryType)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] =
+  def shortestPath(key: String, value: String, queryType: QueryType, responseForm: ResponseForm)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] = {
+
     finder.findUPPWithShortestPath(value, queryType).map {
       case (Some(ev), path, maybeAnchors) =>
-        LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, LookupExecutor.shortestPathAsJValue(path, maybeAnchors))), None, None)
+        val anchors = responseForm match {
+          case AnchorsNoPath => LookupExecutor.shortestPathAsJValue(maybeAnchors)
+          case AnchorsWithPath => LookupExecutor.shortestPathAsJValue(path, maybeAnchors)
+
+        }
+        LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, anchors)), None, None)
+
       case (None, _, _) =>
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
     }
+  }
 
-  def upperLower(key: String, value: String, queryType: QueryType)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] =
+  def upperLower(key: String, value: String, queryType: QueryType, responseForm: ResponseForm)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] =
     finder.findUPPWithUpperLowerBounds(value, queryType).map {
       case (Some(ev), upperPath, upperBlocks, lowerPath, lowerBlocks) =>
-        LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, LookupExecutor.upperAndLowerAsJValue(upperPath, upperBlocks, lowerPath, lowerBlocks))), None, None)
+        val anchors = responseForm match {
+          case AnchorsNoPath => LookupExecutor.upperAndLowerAsJValue(upperBlocks, lowerBlocks)
+          case AnchorsWithPath => LookupExecutor.upperAndLowerAsJValue(upperPath, upperBlocks, lowerPath, lowerBlocks)
+
+        }
+        LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, anchors)), None, None)
       case (None, _, _, _, _) =>
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
     }
@@ -69,6 +82,14 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
       .flatMap(QueryDepth.fromString)
       .getOrElse(Simple)
 
+    val responseForm = maybeConsumerRecord
+      .flatMap(_.headers().headers(ResponseForm.QUERY_RESPONSE_FORM_HEADER).asScala.headOption)
+      .map(_.value())
+      .map(org.bouncycastle.util.Strings.fromUTF8ByteArray)
+      .filter(ResponseForm.isValid)
+      .flatMap(ResponseForm.fromString)
+      .getOrElse(AnchorsNoPath)
+
     val maybeFutureRes = for {
       key <- maybeKey
       value <- maybeValue
@@ -81,8 +102,8 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 
         val res = queryDepth match {
           case Simple => simple(key, value, queryType)(v1)
-          case ShortestPath => shortestPath(key, value, queryType)(v1)
-          case UpperLower => upperLower(key, value, queryType)(v1)
+          case ShortestPath => shortestPath(key, value, queryType, responseForm)(v1)
+          case UpperLower => upperLower(key, value, queryType, responseForm)(v1)
         }
 
         res.recover {
@@ -111,12 +132,14 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 }
 
 object LookupExecutor {
+
+  def shortestPathAsJValue(maybeAnchors: Seq[VertexStruct]) =
+    LookupJsonSupport.ToJson[Seq[VertexStruct]](maybeAnchors).get
+
   def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]) = {
     val anchors = Map(Values.SHORTEST_PATH -> path, Values.BLOCKCHAINS -> maybeAnchors)
     LookupJsonSupport.ToJson(anchors).get
   }
-
-  //upperPath, upperBlocks, lowerPath, lowerBlocks
 
   def upperAndLowerAsJValue(upperPath: Seq[VertexStruct], upperBlocks: Seq[VertexStruct], lowerPath: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]) = {
     val anchors = Map(
@@ -127,6 +150,15 @@ object LookupExecutor {
     )
     LookupJsonSupport.ToJson(anchors).get
   }
+
+  def upperAndLowerAsJValue(upperBlocks: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]) = {
+    val anchors = Map(
+      Values.UPPER_BLOCKCHAINS -> upperBlocks,
+      Values.LOWER_BLOCKCHAINS -> lowerBlocks
+    )
+    LookupJsonSupport.ToJson(anchors).get
+  }
+
 }
 
 /**
