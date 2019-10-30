@@ -44,5 +44,7 @@ object Values {
   val UPPER_BLOCKCHAINS = "upper_blockchains"
   val LOWER_PATH = "lower_path"
   val LOWER_BLOCKCHAINS = "lower_blockchains"
+  val RESPONSE_ANCHORS_WITH_PATH = "anchors_with_path"
+  val RESPONSE_ANCHORS_NO_PATH = "anchors_no_path"
 
 }
