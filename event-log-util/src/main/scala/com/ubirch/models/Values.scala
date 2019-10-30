@@ -37,5 +37,12 @@ object Values {
   val SHORTEST_PATH = "shortest_path"
   val BLOCKCHAINS = "blockchains"
   val TIMESTAMP = "timestamp"
+  val QUERY_DEPTH_SIMPLE = "query-depth-simple"
+  val QUERY_DEPTH_SHORTEST_PATH = "query-depth-shortest-path"
+  val QUERY_DEPTH_SHORTEST_UPPER_LOWER = "query-depth-upper-lower"
+  val UPPER_PATH = "upper_path"
+  val UPPER_BLOCKCHAINS = "upper_blockchains"
+  val LOWER_PATH = "lower_path"
+  val LOWER_BLOCKCHAINS = "lower_blockchains"
 
 }
