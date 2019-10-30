@@ -33,6 +33,7 @@ class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val 
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil))
 
+  def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil, Nil, Nil))
 }
 
 class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
@@ -40,6 +41,8 @@ class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val 
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))
+
+  def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil, Nil, Nil))
 
 }
 
@@ -152,7 +155,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val key = UUIDHelper.randomUUID.toString
         val value = "c29tZSBieXRlcyEAAQIDnw=="
         val queryType = Payload
-        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value))
+        val queryDepth = ShortestPath
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value, QueryDepth.QUERY_DEPTH_HEADER -> queryDepth.value))
         publishToKafka(pr)
 
         //Consumer
@@ -432,7 +436,9 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val key = UUIDHelper.randomUUID.toString
         val value = "5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg=="
         val queryType = Signature
-        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value))
+        val queryDepth = ShortestPath
+
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value, QueryDepth.QUERY_DEPTH_HEADER -> queryDepth.value))
         publishToKafka(pr)
 
         //Consumer
@@ -625,7 +631,8 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val key = UUIDHelper.randomUUID.toString
         val value = pmId
         val queryType = Payload
-        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value))
+        val queryDepth = ShortestPath
+        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.QUERY_TYPE_HEADER -> queryType.value, QueryDepth.QUERY_DEPTH_HEADER -> queryDepth.value))
         publishToKafka(pr)
 
         //Consumer

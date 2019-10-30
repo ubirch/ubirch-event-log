@@ -13,6 +13,15 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   import gremlin._
 
+  def findUpperAndLowerAsVertices(id: String) =
+    for {
+      (shortest, upper, lowerPath, lower) <- findUpperAndLower(id)
+      (completePathShortest, completeBlockchainsUpper) <- asVertices(shortest, upper)
+      (completePathLower, completeBlockchainsLower) <- asVertices(lowerPath, lower)
+    } yield {
+      (completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower)
+    }
+
   def findUpperAndLower(id: String) = {
 
     val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
@@ -86,13 +95,25 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   }
 
-  def findAnchorsWithPathAsVertices(id: String) = {
+  def shortestPathFromUPPToBlockchain(hash: String) =
+    shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
+
+  def shortestPath(property: String, value: String, untilLabel: String) =
+    g.V()
+      .has(Key[String](property.toLowerCase()), value)
+      .repeat(_.in().simplePath())
+      .until(_.hasLabel(untilLabel))
+      .path()
+      .limit(1)
+      .unfold[Vertex]()
+      .promise()
+
+  def asVertices(path: List[Vertex], anchors: List[Vertex]) = {
 
     def withPrevious(hashes: List[Any]) = Map(Values.PREV_HASH -> hashes.mkString(","))
     def withNext(hashes: List[Any]) = Map(Values.NEXT_HASH -> hashes.mkString(","))
 
     for {
-      (path, anchors) <- findAnchorsWithPath(id)
       pathV <- toVertexStruct(path)
       blockchainsV <- toVertexStruct(anchors)
     } yield {
@@ -140,49 +161,6 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
   }
 
-  def findAnchorsWithPath(id: String) = {
-
-    val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
-
-    val maybeBlockchains = futureShortestPath.map(_.reversedTailHeadOption).flatMap {
-      case Some(v) => getBlockchainsFromMasterVertex(v)
-      case None => Future.successful(Nil)
-    }
-
-    for {
-      sp <- futureShortestPath.map(_.reversedTailReversed)
-      bcs <- maybeBlockchains
-    } yield (sp, bcs)
-
-  }
-
-  def shortestPathFromUPPToBlockchain(hash: String) =
-    shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
-
-  def shortestPath(property: String, value: String, untilLabel: String) = {
-    g.V()
-      .has(Key[String](property.toLowerCase()), value)
-      .repeat(_.in().simplePath())
-      .until(_.hasLabel(untilLabel))
-      .path()
-      .limit(1)
-      .unfold[Vertex]()
-      .promise()
-  }
-
-  def getBlockchainsFromMasterVertex(master: Vertex) =
-    g.V(master)
-      .in()
-      .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-      .promise()
-
-  def getBlockchainsFromMasterVertexFromOption(master: Option[Vertex]) = {
-    master match {
-      case Some(value) => getBlockchainsFromMasterVertex(value)
-      case None => Future.successful(Nil)
-    }
-  }
-
   def toVertexStruct(vertices: List[Vertex]) = {
     val futureRes = vertices.map { v =>
       val fmaps = g.V(v).valueMap().promise().map(_.headOption)
@@ -216,6 +194,42 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       xs.map { case (a, b) => VertexStruct(a, b) }
     }
   }
+
+  def findAnchorsWithPathAsVertices(id: String) =
+    for {
+      (path, anchors) <- findAnchorsWithPath(id)
+      (completePath, completeBlockchains) <- asVertices(path, anchors)
+    } yield {
+      (completePath, completeBlockchains)
+    }
+
+  def findAnchorsWithPath(id: String) = {
+
+    val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
+
+    val maybeBlockchains = futureShortestPath.map(_.reversedTailHeadOption).flatMap {
+      case Some(v) => getBlockchainsFromMasterVertex(v)
+      case None => Future.successful(Nil)
+    }
+
+    for {
+      sp <- futureShortestPath.map(_.reversedTailReversed)
+      bcs <- maybeBlockchains
+    } yield (sp, bcs)
+
+  }
+
+  def getBlockchainsFromMasterVertexFromOption(master: Option[Vertex]) =
+    master match {
+      case Some(value) => getBlockchainsFromMasterVertex(value)
+      case None => Future.successful(Nil)
+    }
+
+  def getBlockchainsFromMasterVertex(master: Vertex) =
+    g.V(master)
+      .in()
+      .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
+      .promise()
 
   case class PathHelper(path: List[Vertex]) {
     lazy val reversed = path.reverse
