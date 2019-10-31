@@ -1,8 +1,11 @@
 package com.ubirch.lookup.models
 
+import java.util.Date
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
 import com.ubirch.models.Values
+import com.ubirch.util.TimeHelper
 import gremlin.scala.{ Key, P, Vertex }
 import javax.inject._
 
@@ -16,8 +19,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def findUpperAndLowerAsVertices(id: String) =
     for {
       (shortest, upper, lowerPath, lower) <- findUpperAndLower(id)
-      (completePathShortest, completeBlockchainsUpper) <- asVertices(shortest, upper)
-      (completePathLower, completeBlockchainsLower) <- asVertices(lowerPath, lower)
+      (completePathShortest, completeBlockchainsUpper) <- asVerticesWithParsedTimestamp(shortest, upper)
+      (completePathLower, completeBlockchainsLower) <- asVerticesWithParsedTimestamp(lowerPath, lower)
     } yield {
       (completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower)
     }
@@ -161,6 +164,18 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
   }
 
+  def asVerticesWithParsedTimestamp(path: List[Vertex], anchors: List[Vertex]) = {
+    def parseTimestamp(anyTime: Any): String = {
+      anyTime match {
+        case time if anyTime.isInstanceOf[Long] => TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
+        case time => time.asInstanceOf[String]
+      }
+    }
+    asVertices(path, anchors).map { case (p, a) =>
+      (p.map(_.map(Values.TIMESTAMP)(parseTimestamp)), a.map(_.map(Values.TIMESTAMP)(parseTimestamp)))
+    }
+  }
+
   def toVertexStruct(vertices: List[Vertex]) = {
     val futureRes = vertices.map { v =>
       val fmaps = g.V(v).valueMap().promise().map(_.headOption)
@@ -188,17 +203,15 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       gremlinRes
     }
 
-    Future.sequence(futureRes).map { xs =>
-      xs.flatMap(y => y.toList)
-    }.map { xs =>
-      xs.map { case (a, b) => VertexStruct(a, b) }
-    }
+    Future.sequence(futureRes)
+      .map { xs => xs.flatMap(y => y.toList) }
+      .map { xs => xs.map { case (a, b) => VertexStruct(a, b) } }
   }
 
   def findAnchorsWithPathAsVertices(id: String) =
     for {
       (path, anchors) <- findAnchorsWithPath(id)
-      (completePath, completeBlockchains) <- asVertices(path, anchors)
+      (completePath, completeBlockchains) <- asVerticesWithParsedTimestamp(path, anchors)
     } yield {
       (completePath, completeBlockchains)
     }
