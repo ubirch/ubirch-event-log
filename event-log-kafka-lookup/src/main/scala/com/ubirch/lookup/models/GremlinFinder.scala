@@ -1,7 +1,5 @@
 package com.ubirch.lookup.models
 
-import java.util.Date
-
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
 import com.ubirch.models.Values
@@ -84,6 +82,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     g.V(master)
       .repeat(
         _.out() // In for other direction
+          .hasLabel(Values.MASTER_TREE_CATEGORY)
           .simplePath()
       )
       .until(
