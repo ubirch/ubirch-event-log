@@ -1,5 +1,7 @@
 package com.ubirch.lookup
 
+import java.util.Date
+
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.lookup.models.GremlinFinder
 import com.ubirch.lookup.services.LookupServiceBinder
@@ -32,23 +34,53 @@ object ServiceShortestPath extends Boot(LookupServiceBinder.modules) {
     implicit val ec = get[ExecutionContext]
 
     val gremlin = get[GremlinFinder]
-    def shortestPath = gremlin.shortestPath(
-      Values.HASH,
-      "AL1p+p253eQqC+PoJuhSBCg/2Hh4MwfGyPFkcnvTmWIDJc7fA9q14Tca+Bjf7VouclApwedQXUtaMj4Ipy7Iuw==",
-      Values.PUBLIC_CHAIN_CATEGORY
-    )
+
+    val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
 
     val t = for {
-      sp <- shortestPath
-      vx <- gremlin.toVertexStruct(sp)
+      (_sp, _u, _lp, _l) <- res
+      sx <- gremlin.toVertexStruct(_sp)
+      ux <- gremlin.toVertexStruct(_u)
+      lp <- gremlin.toVertexStruct(_lp)
+      lw <- gremlin.toVertexStruct(_l)
     } yield {
-      vx
+      (sx, ux, lp, lw)
     }
 
     t.onComplete {
-      case Success(value) =>
-        println(value)
+      case Success((a, b, c, d)) =>
+        println("shortestPath: " + a.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("upper: " + b.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("lower-path: " + c.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("lower: " + d.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
       case Failure(exception) =>
+        logger.info("Hola")
+        throw exception
+    }
+
+  }
+
+}
+
+object ServiceShortestPath2 extends Boot(LookupServiceBinder.modules) {
+
+  def main(args: Array[String]): Unit = {
+
+    implicit val ec = get[ExecutionContext]
+
+    val gremlin = get[GremlinFinder]
+
+    val res = gremlin.findUpperAndLowerAsVertices("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
+
+    val t = res
+    t.onComplete {
+      case Success((a, b, c, d)) =>
+        println("shortestPath: " + a.mkString("\n"))
+        println("upper: " + b.mkString("\n"))
+        println("lower-path: " + c.mkString("\n"))
+        println("lower: " + d.mkString("\n"))
+      case Failure(exception) =>
+        logger.info("Hola")
         throw exception
     }
 
