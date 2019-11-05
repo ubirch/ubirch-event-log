@@ -17,6 +17,9 @@ class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionCon
     }
   }
 
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] =
+    eventsDAO.events.byIdAndCat(value, category).map(_.headOption)
+
   def findSlaveTreeThruLookup(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
     eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.SLAVE_TREE_ID, Values.SLAVE_TREE_CATEGORY)
   }

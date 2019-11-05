@@ -11,6 +11,8 @@ trait Finder extends LazyLogging {
 
   implicit def ec: ExecutionContext
 
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]]
+
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]]
 
   def findUPPWithShortestPath(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct])] = {
@@ -81,6 +83,8 @@ trait Finder extends LazyLogging {
 class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit val ec: ExecutionContext)
   extends Finder
   with LazyLogging {
+
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
 

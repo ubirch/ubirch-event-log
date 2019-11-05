@@ -72,3 +72,17 @@ object ResponseForm extends ParamsHelper[ResponseForm]("query-response-form-head
   override def options: List[ResponseForm] = List(AnchorsWithPath, AnchorsNoPath)
 }
 
+sealed trait BlockchainInfo extends Params
+
+case object Extended extends BlockchainInfo {
+  final val value: String = "ext"
+}
+
+case object Normal extends BlockchainInfo {
+  final val value: String = "normal"
+}
+
+object BlockchainInfo extends ParamsHelper[BlockchainInfo]("query-blockchain-info") {
+  override def options: List[BlockchainInfo] = List(Normal, Extended)
+}
+
