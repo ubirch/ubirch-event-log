@@ -5,7 +5,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.lookup.models.{ AnchorsNoPath, AnchorsWithPath, BlockchainInfo, Extended, Finder, LookupResult, Normal, Params, QueryDepth, QueryType, ResponseForm, ShortestPath, Simple, UpperLower, VertexStruct }
+import com.ubirch.lookup.models._
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
@@ -18,8 +18,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.json4s.JsonAST.JNull
 
+import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
-import concurrent.duration._
 import scala.language.postfixOps
 
 @Singleton

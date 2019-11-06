@@ -14,6 +14,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringSerializer }
 import org.json4s.JsonAST.{ JObject, JString }
 
+import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -65,7 +66,7 @@ object ServiceTest extends Boot(EncoderServiceBinder.modules) with ProducerConfP
     try {
       iterator.take(1).foreach(x => x)
     } finally {
-      producer.getProducerOrCreate.close()
+      producer.close(5 seconds)
       System.exit(0)
     }
 

@@ -6,7 +6,7 @@ import java.util.concurrent.CountDownLatch
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
-import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner }
+import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner, WithProducerShutdownHook }
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
@@ -40,18 +40,13 @@ trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
 }
 
-trait WithShutdownHook {
+trait WithShutdownHook extends WithConsumerShutdownHook with WithProducerShutdownHook {
   ek: ExpressKafkaApp[_, _, _] =>
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
-
-      logger.info("Shutting down Consumer: " + consumption.getName)
-      consumption.shutdown(consumerGracefulTimeout, java.util.concurrent.TimeUnit.SECONDS)
-
-      logger.info("Shutting down Producer")
-      production.getProducerAsOpt.foreach(_.close())
-
+      hookFunc(consumerGracefulTimeout, consumption)
+      hookFunc(production)
       Thread.sleep(5000) //Waiting 5 secs
       logger.info("Bye bye, see you later...")
     }

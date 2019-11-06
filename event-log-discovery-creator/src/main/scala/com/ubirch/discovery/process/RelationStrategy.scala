@@ -1,6 +1,7 @@
 package com.ubirch.discovery.process
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.discovery.models.Relation.Implicits._
 import com.ubirch.discovery.models.{ Edge, Relation, Vertex }
 import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.discovery.util.DiscoveryJsonSupport
@@ -9,7 +10,6 @@ import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.metrics.Counter
 import javax.inject._
-import Relation.Implicits._
 
 import scala.util.{ Failure, Success, Try }
 

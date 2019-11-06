@@ -102,22 +102,22 @@ object FakeFoundFinder {
         "type" -> "MASTER_TREE"
       )
     ),
-    VertexStruct (
+    VertexStruct(
       "MASTER_TREE",
       properties = Map(
         "next_hash" -> "ca96ca76c59753c27a100780d857bfdefe448ee16aa51aef6b3aa766bf28bb1e5bf355566124e830ef6641ef34f33a6b475641f4836dcbfe7b02c6edd6136eac",
         "hash" -> "375f8683023272f4b31afd134411daddee94212d1f70f376c15ae23979207f26ece737f7ede575dd6b0b088cb154eb25a1ba09d35e51cf05b9bceb3e5f4e765e",
-        "prev_hash"  -> "0a4303cf15ade07b6987dd31aba5cf4a5e60058644176c22122e91e7b94e90e59ccd362dfc88d3e84baa5eef9aa7b9dd0cdf6a6151dceb7a9459bd090925b233",
+        "prev_hash" -> "0a4303cf15ade07b6987dd31aba5cf4a5e60058644176c22122e91e7b94e90e59ccd362dfc88d3e84baa5eef9aa7b9dd0cdf6a6151dceb7a9459bd090925b233",
         "type" -> "MASTER_TREE"
       )
     ),
     VertexStruct(
       "MASTER_TREE",
       properties = Map(
-        "next_hash"-> "MBCRQSNGBLVYHMJBKJHGFKFIDKVTFJHSMWUFPSCNOCUUIKQNML9H9KYQWBXUKCKNZIIOSUXPDORQZ9999",
-        "hash"-> "ca96ca76c59753c27a100780d857bfdefe448ee16aa51aef6b3aa766bf28bb1e5bf355566124e830ef6641ef34f33a6b475641f4836dcbfe7b02c6edd6136eac",
-        "prev_hash"-> "375f8683023272f4b31afd134411daddee94212d1f70f376c15ae23979207f26ece737f7ede575dd6b0b088cb154eb25a1ba09d35e51cf05b9bceb3e5f4e765e",
-        "type"-> "MASTER_TREE"
+        "next_hash" -> "MBCRQSNGBLVYHMJBKJHGFKFIDKVTFJHSMWUFPSCNOCUUIKQNML9H9KYQWBXUKCKNZIIOSUXPDORQZ9999",
+        "hash" -> "ca96ca76c59753c27a100780d857bfdefe448ee16aa51aef6b3aa766bf28bb1e5bf355566124e830ef6641ef34f33a6b475641f4836dcbfe7b02c6edd6136eac",
+        "prev_hash" -> "375f8683023272f4b31afd134411daddee94212d1f70f376c15ae23979207f26ece737f7ede575dd6b0b088cb154eb25a1ba09d35e51cf05b9bceb3e5f4e765e",
+        "type" -> "MASTER_TREE"
       )
     )
   )
@@ -880,9 +880,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
         val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
         val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
-
-        println("R:" + readMessage)
-        println("E:" + expectedGenericResponseAsJson)
 
         assert(expectedGenericResponseAsJson == readMessage)
 

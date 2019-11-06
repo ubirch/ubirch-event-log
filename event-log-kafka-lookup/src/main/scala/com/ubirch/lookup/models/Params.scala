@@ -2,6 +2,7 @@ package com.ubirch.lookup.models
 
 import com.ubirch.models.Values
 import org.apache.kafka.clients.consumer.ConsumerRecord
+
 import scala.collection.JavaConverters._
 
 trait Params {

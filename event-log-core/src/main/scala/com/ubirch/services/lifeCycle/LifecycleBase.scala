@@ -1,12 +1,13 @@
 package com.ubirch.services.lifeCycle
 
-import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.{ ConcurrentLinkedDeque, CountDownLatch, TimeUnit }
 
 import com.typesafe.scalalogging.LazyLogging
 import javax.inject._
 
 import scala.annotation.tailrec
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 /**
   * Basic definition for a Life CyCle Component.
@@ -52,6 +53,7 @@ class DefaultLifecycle @Inject() (implicit ec: ExecutionContext)
     logger.info("Running life cycle hooks...")
     clearHooks()
   }
+
 }
 
 /**
@@ -69,7 +71,7 @@ trait JVMHook {
   */
 
 @Singleton
-class DefaultJVMHook @Inject() (lifecycle: Lifecycle) extends JVMHook with LazyLogging {
+class DefaultJVMHook @Inject() (lifecycle: Lifecycle)(implicit ec: ExecutionContext) extends JVMHook with LazyLogging {
 
   protected def registerShutdownHooks() {
 
@@ -77,10 +79,18 @@ class DefaultJVMHook @Inject() (lifecycle: Lifecycle) extends JVMHook with LazyL
 
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
-        lifecycle.stop()
+        val countDownLatch = new CountDownLatch(1)
+        lifecycle.stop().onComplete {
+          case Success(_) =>
+            countDownLatch.countDown()
+          case Failure(e) =>
+            logger.error("Error running jvm hook={}", e.getMessage)
+            countDownLatch.countDown()
+        }
 
-        Thread.sleep(5000) //Waiting 5 secs
-        logger.info("Bye bye, see you later...")
+        val res = countDownLatch.await(5000, TimeUnit.SECONDS) //Waiting 5 secs
+        if (!res) logger.warn("Taking too much time shutting down :(  ..")
+        else logger.info("Bye bye, see you later...")
       }
     })
 
