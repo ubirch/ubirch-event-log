@@ -1,14 +1,13 @@
-package com.ubirch.services.kafka.consumer
+package com.ubirch.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.ConsumerRunner
 
 import scala.concurrent.Future
 
 trait WithConsumerShutdownHook extends LazyLogging {
-  def hookFunc(gracefulTimeout: Int, consumerRunner: => ConsumerRunner[_, _]): () => Future[Unit] = {
+  def hookFunc(gracefulTimeout: => Int, consumerRunner: => ConsumerRunner[_, _]): () => Future[Unit] = {
     () =>
-      logger.info("Shutting down Consumer: " + consumerRunner.getName)
+      logger.info(s"Shutting down Consumer[timeout=$gracefulTimeout secs name=${consumerRunner.getName}] ...")
       Future.successful(consumerRunner.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
   }
 }

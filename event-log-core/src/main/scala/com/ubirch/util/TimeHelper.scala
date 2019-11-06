@@ -1,8 +1,8 @@
 package com.ubirch.util
 
 import java.text.SimpleDateFormat
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.{ ZoneId, ZonedDateTime }
 
 import org.joda.time.DateTime
 

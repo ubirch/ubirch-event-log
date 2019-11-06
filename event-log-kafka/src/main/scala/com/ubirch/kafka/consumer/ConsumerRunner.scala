@@ -360,7 +360,7 @@ abstract class ConsumerRunner[K, V](name: String)
             needForResumeCallback.run()
             logger.debug("NeedForResumeException: [{}], partitions[{}]", e.getMessage, partitions.size())
           case e: CommitTimeoutException =>
-            logger.error("Commit timed out {}", e.getMessage)
+            logger.error("(Control) Commit timed out={}", e.getMessage)
             import scala.util.control.Breaks._
             breakable {
               while (true) {

@@ -7,11 +7,11 @@ import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.process.RelationStrategyImpl
 import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.discovery.util.Exceptions.{ ParsingError, StrategyException }
+import com.ubirch.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.kafka.express.ExpressKafka
+import com.ubirch.kafka.producer.ProducerShutdownHook
 import com.ubirch.models.EnrichedError._
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
-import com.ubirch.services.kafka.producer.ProducerShutdownHook
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._

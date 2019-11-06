@@ -15,6 +15,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.StringSerializer
 import org.json4s.JsonAST.JInt
 
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 /**
@@ -75,7 +76,7 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
       }
 
     } finally {
-      producer.getProducerOrCreate.close()
+      producer.close(5 seconds)
       System.exit(0)
 
     }

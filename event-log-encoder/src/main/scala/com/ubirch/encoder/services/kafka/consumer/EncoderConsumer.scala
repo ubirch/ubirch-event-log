@@ -14,7 +14,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
 import org.json4s.JValue
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
 
 case class EncoderPipeData(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]], jValues: Vector[JValue]) extends ProcessResult[String, Array[Byte]] {
   override val id: UUID = UUIDHelper.randomUUID
@@ -34,6 +34,7 @@ class DefaultEncoderConsumer @Inject() (
 )(implicit val ec: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerCreator
+  with WithConsumerShutdownHook
   with LazyLogging {
 
   lazy val consumerConfigured = {
@@ -53,9 +54,6 @@ class DefaultEncoderConsumer @Inject() (
 
   override def get(): BytesConsumer = consumerConfigured
 
-  lifecycle.addStopHook { () =>
-    logger.info("Shutting down Consumer: " + consumerConfigured.getName)
-    Future.successful(consumerConfigured.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
-  }
+  lifecycle.addStopHook(hookFunc(gracefulTimeout, consumerConfigured))
 
 }
