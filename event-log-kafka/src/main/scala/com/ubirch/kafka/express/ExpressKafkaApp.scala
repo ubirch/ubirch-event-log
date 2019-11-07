@@ -6,7 +6,7 @@ import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
-import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner, WithProducerShutdownHook }
+import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner, WithProducerShutdownHook, WithSerializer }
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
 
-trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
+trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[K, V] {
 
   def metricsSubNamespace: String
 
@@ -33,7 +33,7 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
   }
 }
 
-trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
+trait ExpressProducer[K, V] extends ProducerBasicConfigs with WithSerializer[K, V] {
 
   lazy val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
 

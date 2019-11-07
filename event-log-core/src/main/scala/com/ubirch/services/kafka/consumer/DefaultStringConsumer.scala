@@ -163,11 +163,11 @@ class DefaultStringConsumer @Inject() (
   with WithConsumerShutdownHook {
 
   lazy val consumerConfigured = {
-    logger.info(configs.props.toString)
+    logger.info(consumerConfigs.props.toString)
     val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(topics)
-    consumerImp.setProps(configs)
+    consumerImp.setTopics(consumerTopics)
+    consumerImp.setProps(consumerConfigs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new StringDeserializer()))
     consumerImp.setConsumerRebalanceListenerBuilder(Some(DefaultConsumerRebalanceListener.apply))
@@ -175,11 +175,11 @@ class DefaultStringConsumer @Inject() (
     consumerImp
   }
 
-  override def groupIdOnEmpty: String = "event_log_group"
+  override def consumerGroupIdOnEmpty: String = "event_log_group"
 
   override def get(): StringConsumer = consumerConfigured
 
-  lifecycle.addStopHook(hookFunc(gracefulTimeout, consumerConfigured))
+  lifecycle.addStopHook(hookFunc(consumerGracefulTimeout, consumerConfigured))
 
 }
 
