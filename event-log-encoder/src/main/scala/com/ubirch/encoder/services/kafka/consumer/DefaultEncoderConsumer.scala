@@ -38,7 +38,6 @@ class DefaultEncoderConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    logger.info(consumerConfigs.props.toString)
     val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)

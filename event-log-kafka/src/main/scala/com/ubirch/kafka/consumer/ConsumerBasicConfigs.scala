@@ -1,6 +1,7 @@
 package com.ubirch.kafka.consumer
 
-import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
+import com.typesafe.scalalogging.LazyLogging
+import org.apache.kafka.clients.consumer.{ConsumerConfig, OffsetResetStrategy}
 import org.apache.kafka.common.serialization.Deserializer
 
 trait WithDeserializers[K, V] {
@@ -8,7 +9,7 @@ trait WithDeserializers[K, V] {
   def valueDeserializer: Deserializer[V]
 }
 
-trait ConsumerBasicConfigs {
+trait ConsumerBasicConfigs extends LazyLogging{
 
   def consumerTopics: Set[String]
 
@@ -24,14 +25,26 @@ trait ConsumerBasicConfigs {
 
   def consumerMaxPartitionFetchBytesConfig: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES
 
-  def consumerConfigs = Configs(
-    bootstrapServers = consumerBootstrapServers,
-    groupId = consumerGroupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = consumerMaxPollRecords,
-    fetchMaxBytesConfig = consumerFetchMaxBytesConfig,
-    maxPartitionFetchBytesConfig = consumerMaxPartitionFetchBytesConfig
-  )
+  def consumerReconnectBackoffMsConfig: Long
+
+  def consumerReconnectBackoffMaxMsConfig: Long
+
+  def consumerConfigs = {
+    val cfs = Configs(
+      bootstrapServers = consumerBootstrapServers,
+      groupId = consumerGroupId,
+      enableAutoCommit = false,
+      autoOffsetReset = OffsetResetStrategy.EARLIEST,
+      maxPollRecords = consumerMaxPollRecords,
+      fetchMaxBytesConfig = consumerFetchMaxBytesConfig,
+      maxPartitionFetchBytesConfig = consumerMaxPartitionFetchBytesConfig,
+      reconnectBackoffMsConfig = consumerReconnectBackoffMsConfig,
+      reconnectBackoffMaxMsConfig = consumerReconnectBackoffMaxMsConfig
+    )
+
+    logger.info(cfs.props.toString)
+
+    cfs
+  }
 
 }

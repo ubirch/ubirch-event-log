@@ -163,7 +163,6 @@ class DefaultStringConsumer @Inject() (
   with WithConsumerShutdownHook {
 
   lazy val consumerConfigured = {
-    logger.info(consumerConfigs.props.toString)
     val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)
