@@ -38,11 +38,11 @@ class DefaultEncoderConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    logger.info(configs.props.toString)
+    logger.info(consumerConfigs.props.toString)
     val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(topics)
-    consumerImp.setProps(configs)
+    consumerImp.setTopics(consumerTopics)
+    consumerImp.setProps(consumerConfigs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new ByteArrayDeserializer()))
     consumerImp.setUseSelfAsRebalanceListener(true)
@@ -50,10 +50,10 @@ class DefaultEncoderConsumer @Inject() (
     consumerImp
   }
 
-  override def groupIdOnEmpty: String = "encoder_event_log_group"
+  override def consumerGroupIdOnEmpty: String = "encoder_event_log_group"
 
   override def get(): BytesConsumer = consumerConfigured
 
-  lifecycle.addStopHook(hookFunc(gracefulTimeout, consumerConfigured))
+  lifecycle.addStopHook(hookFunc(consumerGracefulTimeout, consumerConfigured))
 
 }

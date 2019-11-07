@@ -1,11 +1,8 @@
 package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.{ Configs, StringProducer, WithProducerShutdownHook }
+import com.ubirch.kafka.producer.{ StringProducer, WithProducerShutdownHook }
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.URLsHelper
 import javax.inject._
 
 /**
@@ -15,17 +12,15 @@ import javax.inject._
   */
 @Singleton
 class DefaultStringProducer @Inject() (
-    config: Config,
+    val config: Config,
     lifecycle: Lifecycle
-) extends Provider[StringProducer] with LazyLogging with ProducerConfPaths with WithProducerShutdownHook {
+) extends Provider[StringProducer]
+  with ProducerCreator
+  with WithProducerShutdownHook {
 
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
+  override def lingerMs: Int = config.getInt(LINGER_MS)
 
-  def lingerMs: Int = config.getInt(LINGER_MS)
-
-  def configs = Configs(bootstrapServers, lingerMs = lingerMs)
-
-  private lazy val producerConfigured = StringProducer(configs)
+  private lazy val producerConfigured = StringProducer(producerConfigs)
 
   override def get(): StringProducer = producerConfigured
 

@@ -2,45 +2,33 @@ package com.ubirch.services.kafka.consumer
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ConsumerConfPaths
-import com.ubirch.kafka.consumer.Configs
-import com.ubirch.kafka.util.ConfigProperties
+import com.ubirch.kafka.consumer.ConsumerBasicConfigs
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
 
-trait ConsumerCreator extends ConsumerConfPaths {
+trait ConsumerCreator extends ConsumerBasicConfigs with ConsumerConfPaths {
 
   def config: Config
 
-  def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
-
-  def topics: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
-
-  def maxPollRecords: Int = config.getInt(MAX_POLL_RECORDS)
-
   def metricsSubNamespace: String = config.getString(METRICS_SUB_NAMESPACE)
 
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
+  def consumerTopics: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
-  def fetchMaxBytesConfig: Int = config.getInt(FETCH_MAX_BYTES_CONFIG)
+  def consumerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
 
-  def maxPartitionFetchBytesConfig: Int = config.getInt(MAX_PARTITION_FETCH_BYTES_CONFIG)
-
-  def configs: ConfigProperties = Configs(
-    bootstrapServers = bootstrapServers,
-    groupId = groupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = maxPollRecords,
-    fetchMaxBytesConfig = fetchMaxBytesConfig,
-    maxPartitionFetchBytesConfig = maxPartitionFetchBytesConfig
-  )
-
-  def groupId: String = {
+  def consumerGroupId: String = {
     val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) groupIdOnEmpty + "_" + UUIDHelper.randomUUID
+    if (gid.isEmpty) consumerGroupIdOnEmpty + "_" + UUIDHelper.randomUUID
     else gid
   }
 
-  def groupIdOnEmpty: String
+  def consumerMaxPollRecords: Int = config.getInt(MAX_POLL_RECORDS)
+
+  def consumerGracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
+
+  override def consumerFetchMaxBytesConfig: Int = config.getInt(FETCH_MAX_BYTES_CONFIG)
+
+  override def consumerMaxPartitionFetchBytesConfig: Int = config.getInt(MAX_PARTITION_FETCH_BYTES_CONFIG)
+
+  def consumerGroupIdOnEmpty: String
 
 }
