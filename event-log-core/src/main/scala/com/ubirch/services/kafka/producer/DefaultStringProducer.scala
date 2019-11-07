@@ -18,8 +18,6 @@ class DefaultStringProducer @Inject() (
   with ProducerCreator
   with WithProducerShutdownHook {
 
-  override def lingerMs: Int = config.getInt(LINGER_MS)
-
   private lazy val producerConfigured = StringProducer(producerConfigs)
 
   override def get(): StringProducer = producerConfigured
