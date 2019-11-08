@@ -1,6 +1,7 @@
 package com.ubirch.discovery.models
 
 import com.ubirch.models.{ EventLog, Values }
+
 import scala.language.implicitConversions
 
 sealed trait RelationElem {

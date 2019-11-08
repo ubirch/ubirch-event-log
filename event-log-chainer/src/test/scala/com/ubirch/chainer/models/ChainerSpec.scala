@@ -2,7 +2,6 @@ package com.ubirch.chainer.models
 
 import com.ubirch.TestBase
 import com.ubirch.chainer.util.Hasher
-import com.ubirch.models.EventLog
 import com.ubirch.util.EventLogJsonSupport
 
 import scala.language.implicitConversions

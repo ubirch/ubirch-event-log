@@ -4,7 +4,6 @@ import com.ubirch.chainer.util.Hasher
 import com.ubirch.util.UUIDHelper
 
 import scala.annotation.tailrec
-import scala.util.Failure
 
 /**
   * Represents a class that allows chaining values of type T

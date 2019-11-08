@@ -69,7 +69,7 @@ class RestService @Inject() (config: Config, lifecycle: Lifecycle) extends LazyL
       if (withJoin) server.join()
     } catch {
       case e: Exception =>
-        logger.error(e.getMessage)
+        logger.error("Error starting service with message=" + e.getMessage)
         System.exit(-1)
     }
 
