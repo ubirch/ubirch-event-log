@@ -119,7 +119,7 @@ class DispatchExecutor @Inject() (
           logger.error("CreateProducerRecordException: " + e.getMessage)
           results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
         case Failure(e) =>
-          logger.error(s"${e.getClass.getName}: " + e.getMessage)
+          logger.error(s"Other=${e.getClass.getName}: " + e.getMessage)
           results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
       })
 

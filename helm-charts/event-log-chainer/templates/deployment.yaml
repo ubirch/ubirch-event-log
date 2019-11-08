@@ -87,6 +87,10 @@ spec:
               value: "{{ .Values.eventLogChainer.daysBack }}"
             - name: CHAINER_LOG_QUERY_ENDPOINT
               value: "{{ .Values.eventLogChainer.logQueryEndPoint }}"
+            - name: CHAINER_KFC_RECONNECT_BACKOFF_MS_CONFIG
+              value: "{{ .Values.eventLogChainer.kafka.consumer.reconnectBackoffMsConfig}}"
+            - name: CHAINER_KFC_RECONNECT_BACKOFF_MAX_MS_CONFIG
+              value: "{{ .Values.eventLogChainer.kafka.consumer.reconnectBackoffMaxMsConfig}}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

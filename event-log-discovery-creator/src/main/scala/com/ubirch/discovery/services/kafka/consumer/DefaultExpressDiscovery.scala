@@ -7,11 +7,13 @@ import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.process.RelationStrategyImpl
 import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.discovery.util.Exceptions.{ ParsingError, StrategyException }
+import com.ubirch.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.kafka.express.ExpressKafka
+import com.ubirch.kafka.producer.ProducerShutdownHook
 import com.ubirch.models.EnrichedError._
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.services.kafka.consumer.ConsumerShutdownHook
-import com.ubirch.services.kafka.producer.ProducerShutdownHook
+import com.ubirch.services.kafka.consumer.ConsumerCreator
+import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
 import javax.inject._
@@ -22,35 +24,27 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 import scala.util.control.NonFatal
 
-abstract class DefaultExpressDiscoveryBase(config: Config, lifecycle: Lifecycle) extends ExpressKafka[String, String, Unit] with LazyLogging {
-
-  def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
-
-  def consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
-
-  def consumerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ConsumerConfPaths.BOOTSTRAP_SERVERS))
-
-  def consumerGroupId: String = config.getString(ConsumerConfPaths.GROUP_ID_PATH)
-
-  def consumerMaxPollRecords: Int = config.getInt(ConsumerConfPaths.MAX_POLL_RECORDS)
-
-  def consumerGracefulTimeout: Int = config.getInt(ConsumerConfPaths.GRACEFUL_TIMEOUT_PATH)
+abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecycle)
+  extends ExpressKafka[String, String, Unit]
+  with ConsumerCreator
+  with ProducerCreator
+  with LazyLogging {
 
   def keyDeserializer: Deserializer[String] = new StringDeserializer
 
   def valueDeserializer: Deserializer[String] = new StringDeserializer
 
-  def producerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ProducerConfPaths.BOOTSTRAP_SERVERS))
-
-  def lingerMs: Int = config.getInt(ProducerConfPaths.LINGER_MS)
-
   def keySerializer: Serializer[String] = new StringSerializer
 
   def valueSerializer: Serializer[String] = new StringSerializer
 
+  override def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+
   def producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
   def errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
+
+  def consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
 
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),

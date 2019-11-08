@@ -101,6 +101,10 @@ spec:
               value: "{{ .Values.eventLogLookup.gremlin.connectionPool.reconnectInterval }}"
             - name: LU_GRM_COONPOOL_MAXWAITCONNECTION
               value: "{{ .Values.eventLogLookup.gremlin.connectionPool.maxWaitForConnection }}"
+            - name: LU_KFC_RECONNECT_BACKOFF_MS_CONFIG
+              value: "{{ .Values.eventLogLookup.kafka.consumer.reconnectBackoffMsConfig}}"
+            - name: LU_KFC_RECONNECT_BACKOFF_MAX_MS_CONFIG
+              value: "{{ .Values.eventLogLookup.kafka.consumer.reconnectBackoffMaxMsConfig}}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
