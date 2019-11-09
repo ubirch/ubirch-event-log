@@ -14,7 +14,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
 import org.json4s.JValue
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
 
 case class EncoderPipeData(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]], jValues: Vector[JValue]) extends ProcessResult[String, Array[Byte]] {
   override val id: UUID = UUIDHelper.randomUUID
@@ -34,14 +34,14 @@ class DefaultEncoderConsumer @Inject() (
 )(implicit val ec: ExecutionContext)
   extends Provider[BytesConsumer]
   with ConsumerCreator
+  with WithConsumerShutdownHook
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    logger.info(configs.props.toString)
     val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(topics)
-    consumerImp.setProps(configs)
+    consumerImp.setTopics(consumerTopics)
+    consumerImp.setProps(consumerConfigs)
     consumerImp.setKeyDeserializer(Some(new StringDeserializer()))
     consumerImp.setValueDeserializer(Some(new ByteArrayDeserializer()))
     consumerImp.setUseSelfAsRebalanceListener(true)
@@ -49,13 +49,10 @@ class DefaultEncoderConsumer @Inject() (
     consumerImp
   }
 
-  override def groupIdOnEmpty: String = "encoder_event_log_group"
+  override def consumerGroupIdOnEmpty: String = "encoder_event_log_group"
 
   override def get(): BytesConsumer = consumerConfigured
 
-  lifecycle.addStopHook { () =>
-    logger.info("Shutting down Consumer: " + consumerConfigured.getName)
-    Future.successful(consumerConfigured.shutdown(gracefulTimeout, java.util.concurrent.TimeUnit.SECONDS))
-  }
+  lifecycle.addStopHook(hookFunc(consumerGracefulTimeout, consumerConfigured))
 
 }

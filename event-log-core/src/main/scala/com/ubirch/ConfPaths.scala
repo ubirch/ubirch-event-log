@@ -29,6 +29,8 @@ object ConfPaths {
     val METRICS_SUB_NAMESPACE = "eventLog.kafkaConsumer.metricsSubNamespace"
     val FETCH_MAX_BYTES_CONFIG = "eventLog.kafkaConsumer.fetchMaxBytesConfig"
     val MAX_PARTITION_FETCH_BYTES_CONFIG = "eventLog.kafkaConsumer.maxPartitionFetchBytesConfig"
+    val RECONNECT_BACKOFF_MS_CONFIG = "eventLog.kafkaConsumer.reconnectBackoffMsConfig"
+    val RECONNECT_BACKOFF_MAX_MS_CONFIG = "eventLog.kafkaConsumer.reconnectBackoffMaxMsConfig"
   }
 
   trait ProducerConfPaths {

@@ -38,11 +38,18 @@ if [ "devbeta" == "$ENV" ]; then
   REALENV="dev"
 fi
 
-if [[ -f /keybase/team/ubirchdevops/bin/helm.sh ]];
+if [[ -d /Volumes/Keybase/team ]];
 then
-    HELM=/keybase/team/ubirchdevops/bin/helm.sh
+    KEYBASE_BASE="/Volumes/Keybase/team"
 else
-    HELM=/keybase/team/ubirch_developer/devkube/bin/helm.sh
+    KEYBASE_BASE="/keybase/team"
+fi
+
+if [[ -f ${KEYBASE_BASE}/ubirchdevops/bin/helm.sh ]];
+then
+    HELM=${KEYBASE_BASE}/ubirchdevops/bin/helm.sh
+else
+    HELM=${KEYBASE_BASE}/ubirch_developer/devkube/bin/helm.sh
 fi
 
 $HELM $ENV delete $SERVICENAME --purge

@@ -83,7 +83,14 @@ spec:
               value: "{{ .Values.eventLogChainerMaster.kafka.consumer.fetchMaxBytes }}"
             - name: CHAINER_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
               value: "{{ .Values.eventLogChainerMaster.kafka.consumer.partitionFetchMaxBytes }}"
-
+            - name: CHAINER_DAYSBACK
+              value: "{{ .Values.eventLogChainerMaster.daysBack }}"
+            - name: CHAINER_LOG_QUERY_ENDPOINT
+              value: "{{ .Values.eventLogChainerMaster.logQueryEndPoint }}"
+            - name: CHAINER_KFC_RECONNECT_BACKOFF_MS_CONFIG
+              value: "{{ .Values.eventLogChainerMaster.kafka.consumer.reconnectBackoffMsConfig}}"
+            - name: CHAINER_KFC_RECONNECT_BACKOFF_MAX_MS_CONFIG
+              value: "{{ .Values.eventLogChainerMaster.kafka.consumer.reconnectBackoffMaxMsConfig}}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

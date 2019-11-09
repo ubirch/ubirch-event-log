@@ -12,13 +12,16 @@ import scala.annotation.tailrec
   *           Chainable
   * @tparam T Represents the type T of the elements to chain.
   */
-class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
+class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
 
   private var zero: String = ""
   private var grouped: List[List[T]] = Nil
   private var seedHashes: List[List[String]] = Nil
+  private var balancedSeedNodes: List[Node[String]] = Nil
   private var seedNodes: List[Node[String]] = Nil
   private var node: Option[Node[String]] = None
+
+  def seeds: List[T] = es
 
   def getZero: String = zero
 
@@ -27,6 +30,8 @@ class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
   def getHashes: List[List[String]] = seedHashes
 
   def getNodes: List[Node[String]] = seedNodes
+
+  def getBalancedNodes: List[Node[String]] = balancedSeedNodes
 
   def getNode: Option[Node[String]] = node
 
@@ -42,7 +47,17 @@ class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
 
   def createSeedHashes: Chainer[T] = {
     val gd = grouped.map(e => e.map(_.hash))
-    seedHashes = if (zero.isEmpty) gd else List(List(zero)) ++ gd
+
+    def addZero = {
+      gd match {
+        case Nil => gd
+        case xs :: xss =>
+          val head = zero +: xs
+          head +: xss
+      }
+    }
+
+    seedHashes = if (zero.isEmpty) gd else addZero
     this
   }
 
@@ -65,17 +80,17 @@ class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
     this
   }
 
-  private def hashesToNodesWithJoin(hes: List[String]): List[Node[String]] = {
-    Node.seeds(hes: _*)
-      .balanceRightWithEmpty(balancingHash)
-      .join((t1, t2) => Hasher.mergeAndHash(t1, t2))
+  private def balance(hes: List[String]): List[Node[String]] = {
+    val balanced = Node.seeds(hes: _*).balanceRightWithEmpty(balancingHash)
+    balancedSeedNodes = balanced
+    balanced
   }
 
-  private def hashesToNodesWithJoin2(hes: List[String]): List[Node[String]] = {
-    Node.seeds(hes: _*)
-      .balanceRightWithEmpty(balancingHash)
-      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
-  }
+  private def hashesToNodesWithJoin(hes: List[String]): List[Node[String]] =
+    balance(hes).join((t1, t2) => Hasher.mergeAndHash(t1, t2))
+
+  private def hashesToNodesWithJoin2(hes: List[String]): List[Node[String]] =
+    balance(hes).join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
 
   def balancingHash: String = Chainer.getEmptyNodeVal
 
@@ -84,9 +99,7 @@ class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
     this
   }
 
-  //  def h(es: List[Node[Block]]): Node[Block]
-  //
-  //  def i(node: Node[Block]): List[Node[Block]]
+  def compress: Option[CompressedTreeData] = Chainer.compress(this)
 
 }
 
@@ -95,13 +108,9 @@ class Chainer[T](val es: List[T])(implicit ev: T => Chainable[T]) {
   */
 object Chainer {
 
-  def getEmptyNodeVal: String = {
-    Hasher.hash(s"emptyNode_${UUIDHelper.randomUUID}")
-  }
+  def getEmptyNodeVal: String = Hasher.hash(s"emptyNode_${UUIDHelper.randomUUID}")
 
-  def getNonce: String = {
-    Hasher.hash(s"Nonce_${UUIDHelper.randomUUID}")
-  }
+  def getNonce: String = Hasher.hash(s"Nonce_${UUIDHelper.randomUUID}")
 
   def apply[T](es: List[T])(implicit ev: T => Chainable[T]): Chainer[T] = new Chainer[T](es) {}
 
@@ -145,6 +154,27 @@ object Chainer {
 
     val splits = split(es).toList
     go(splits, Nil, config.maybeInitialTreeHash.getOrElse(""))
+
+  }
+
+  def compress[T](chainer: Chainer[T]): Option[CompressedTreeData] =
+    chainer.getNode.map { root =>
+      val leaves = chainer.getBalancedNodes.map(_.value)
+      CompressedTreeData(root.value, leaves)
+    }
+
+  def uncompress(compressedTreeData: CompressedTreeData): Option[Node[String]] = {
+    val uncompressed = compressedTreeData
+      .leaves
+      .map(x => Node(x, None, None))
+      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+      .headOption
+
+    uncompressed match {
+      case c @ Some(value) if value.value == compressedTreeData.root => c
+      case Some(value) if value.value != compressedTreeData.root => throw new Exception("Root Hash doesn't match Compressed Root")
+      case None => None
+    }
 
   }
 

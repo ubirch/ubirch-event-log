@@ -9,6 +9,7 @@ import org.apache.kafka.common.serialization.Serializer
 
 import scala.beans.BeanProperty
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ Future, Promise }
 import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
@@ -80,6 +81,12 @@ abstract class ProducerRunner[K, V] extends VersionedLazyLogging {
       onPostProducerCreation.run(getProducerAsOpt)
     }
 
+  }
+
+  def close(timout: FiniteDuration) = {
+    getProducerAsOpt
+      .map(_.close(java.time.Duration.ofMillis(timout.toMillis)))
+      .getOrElse(Unit)
   }
 
   def getProducerAsOpt: Option[Producer[K, V]] = producer

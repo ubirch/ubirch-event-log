@@ -23,7 +23,9 @@ object Configs {
       autoOffsetReset: OffsetResetStrategy = OffsetResetStrategy.LATEST,
       isolationLevel: IsolationLevel = IsolationLevel.READ_UNCOMMITTED,
       fetchMaxBytesConfig: Int = ConsumerConfig.DEFAULT_FETCH_MAX_BYTES,
-      maxPartitionFetchBytesConfig: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES
+      maxPartitionFetchBytesConfig: Int = ConsumerConfig.DEFAULT_MAX_PARTITION_FETCH_BYTES,
+      reconnectBackoffMsConfig: Long = 50L,
+      reconnectBackoffMaxMsConfig: Long = 1000L
   ): ConfigProperties = {
 
     new ConfigProperties {
@@ -41,7 +43,10 @@ object Configs {
           ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> autoOffsetReset.toString.toLowerCase,
           ConsumerConfig.ISOLATION_LEVEL_CONFIG -> isolationLevel.toString.toLowerCase(),
           ConsumerConfig.FETCH_MAX_BYTES_CONFIG -> fetchMaxBytesConfig.toString,
-          ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG -> maxPartitionFetchBytesConfig.toString
+          ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG -> maxPartitionFetchBytesConfig.toString,
+          ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG -> reconnectBackoffMsConfig.toString,
+          ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG -> reconnectBackoffMaxMsConfig.toString
+
         )
       }
     }

@@ -37,9 +37,12 @@ class DefaultAsyncWebClient extends WebClient with LazyLogging {
     f.addListener(new Runnable {
       def run = {
         try {
-          p.success(WebclientResponse.fromResponse(f.get))
+          val res = f.get
+          logger.info("response={}", res.getResponseBody)
+          p.success(WebclientResponse.fromResponse(res))
         } catch {
           case e: Exception =>
+            logger.error("Something went wrong when talking to the event log service endpoint")
             p.failure(e)
         }
       }

@@ -2,45 +2,37 @@ package com.ubirch.services.kafka.consumer
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ConsumerConfPaths
-import com.ubirch.kafka.consumer.Configs
-import com.ubirch.kafka.util.ConfigProperties
+import com.ubirch.kafka.consumer.ConsumerBasicConfigs
 import com.ubirch.util.{ URLsHelper, UUIDHelper }
-import org.apache.kafka.clients.consumer.OffsetResetStrategy
 
-trait ConsumerCreator extends ConsumerConfPaths {
+trait ConsumerCreator extends ConsumerBasicConfigs {
 
   def config: Config
 
-  def gracefulTimeout: Int = config.getInt(GRACEFUL_TIMEOUT_PATH)
+  def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
-  def topics: Set[String] = config.getString(TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
+  override def consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
-  def maxPollRecords: Int = config.getInt(MAX_POLL_RECORDS)
+  override def consumerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ConsumerConfPaths.BOOTSTRAP_SERVERS))
 
-  def metricsSubNamespace: String = config.getString(METRICS_SUB_NAMESPACE)
-
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
-
-  def fetchMaxBytesConfig: Int = config.getInt(FETCH_MAX_BYTES_CONFIG)
-
-  def maxPartitionFetchBytesConfig: Int = config.getInt(MAX_PARTITION_FETCH_BYTES_CONFIG)
-
-  def configs: ConfigProperties = Configs(
-    bootstrapServers = bootstrapServers,
-    groupId = groupId,
-    enableAutoCommit = false,
-    autoOffsetReset = OffsetResetStrategy.EARLIEST,
-    maxPollRecords = maxPollRecords,
-    fetchMaxBytesConfig = fetchMaxBytesConfig,
-    maxPartitionFetchBytesConfig = maxPartitionFetchBytesConfig
-  )
-
-  def groupId: String = {
-    val gid = config.getString(GROUP_ID_PATH)
-    if (gid.isEmpty) groupIdOnEmpty + "_" + UUIDHelper.randomUUID
+  override def consumerGroupId: String = {
+    val gid = config.getString(ConsumerConfPaths.GROUP_ID_PATH)
+    if (gid.isEmpty) consumerGroupIdOnEmpty + "_" + UUIDHelper.randomUUID
     else gid
   }
 
-  def groupIdOnEmpty: String
+  override def consumerMaxPollRecords: Int = config.getInt(ConsumerConfPaths.MAX_POLL_RECORDS)
+
+  override def consumerGracefulTimeout: Int = config.getInt(ConsumerConfPaths.GRACEFUL_TIMEOUT_PATH)
+
+  override def consumerFetchMaxBytesConfig: Int = config.getInt(ConsumerConfPaths.FETCH_MAX_BYTES_CONFIG)
+
+  override def consumerMaxPartitionFetchBytesConfig: Int = config.getInt(ConsumerConfPaths.MAX_PARTITION_FETCH_BYTES_CONFIG)
+
+  override def consumerReconnectBackoffMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MS_CONFIG)
+
+  override def consumerReconnectBackoffMaxMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MAX_MS_CONFIG)
+
+  def consumerGroupIdOnEmpty: String
 
 }

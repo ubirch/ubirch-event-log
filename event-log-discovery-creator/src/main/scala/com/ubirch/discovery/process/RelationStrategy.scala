@@ -1,11 +1,15 @@
 package com.ubirch.discovery.process
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.discovery.models.{ Relation, RelationElem }
+import com.ubirch.discovery.models.Relation.Implicits._
+import com.ubirch.discovery.models.{ Edge, Relation, Vertex }
+import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.discovery.util.DiscoveryJsonSupport
 import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.services.metrics.Counter
+import javax.inject._
 
 import scala.util.{ Failure, Success, Try }
 
@@ -14,19 +18,22 @@ sealed trait RelationStrategy {
   def create: Seq[Relation]
 }
 
-object RelationStrategy {
+@Singleton
+class RelationStrategyImpl @Inject() (@Named(DefaultDeviceCounter.name) deviceCounter: Counter) {
+
   def getStrategy(eventLog: EventLog): RelationStrategy = {
     eventLog match {
-      case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el)
+      case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el, deviceCounter)
       case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy(el)
       case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy(el)
       case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy(el)
       case el => UnknownStrategy(el)
     }
   }
+
 }
 
-case class UPPStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
+case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends RelationStrategy with LazyLogging {
 
   def get = {
 
@@ -65,28 +72,33 @@ case class UPPStrategy(eventLog: EventLog) extends RelationStrategy with LazyLog
           throw new Exception(s"Error parsing chain [${e.getMessage}] ")
       }
 
-    val relation1 = Relation(
-      vFrom = RelationElem(Option(Values.UPP_CATEGORY), Map(
-        Values.HASH -> eventLog.id,
-        Values.SIGNATURE -> signature,
-        Values.TYPE -> Values.UPP_CATEGORY
-      )),
-      vTo = RelationElem(Option(Values.DEVICE_CATEGORY), Map(
-        Values.DEVICE_ID -> device,
-        Values.TYPE -> Values.DEVICE_CATEGORY
-      )),
-      edge = RelationElem(Option(Values.DEVICE_CATEGORY), Map.empty)
-    )
+    //"service", "device-id", "upp", "chain"
+    deviceCounter.counter.labels("event_log_trace").inc()
+    logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
+
+    val relation1 =
+      Vertex(Values.UPP_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.SIGNATURE -> signature)
+        .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.DEVICE_CATEGORY)
+            .addProperty(Values.DEVICE_ID -> device)
+            .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
+        )
+        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY))
 
     val maybeRelation2 = maybeChain.map { chain =>
-      Relation(
-        vFrom = relation1.vFrom,
-        vTo = RelationElem(Option(Values.UPP_CATEGORY), Map(
-          Values.SIGNATURE -> chain,
-          Values.TYPE -> Values.UPP_CATEGORY
-        )),
-        edge = RelationElem(Option(Values.CHAIN_CATEGORY), Map.empty)
-      )
+      relation1
+        .vFrom
+        .connectedTo(
+          Vertex(Values.UPP_CATEGORY)
+            .addProperty(Values.SIGNATURE -> chain)
+            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
+        )
+        .through(Edge(Values.CHAIN_CATEGORY))
+
     }
 
     Seq(relation1) ++ maybeRelation2.toSeq
@@ -109,22 +121,22 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
   def uppRelations = {
 
-    def relation(hash: String, signature: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-        )
-      ),
-      vTo = RelationElem(
-        Option(Values.UPP_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.SIGNATURE -> signature,
-          Values.TYPE -> Values.UPP_CATEGORY
-        )
-      ),
-      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map.empty)
-    )
+    def relation(hash: String, signature: String) = {
+
+      logger.info("[event-log-trace] upp={} foundation-tree={}", hash, eventLog.id)
+
+      Vertex(Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.UPP_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.SIGNATURE -> signature)
+            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY))
+
+    }
 
     eventLog.lookupKeys
       .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_ID)
@@ -135,21 +147,20 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
   def linkRelations = {
 
-    def relation(hash: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-        )
-      ),
-      vTo = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-        )
-      ),
-      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map.empty)
-    )
+    def relation(hash: String) = {
+      logger.info("[event-log-trace] foundation-tree-from={} foundation-tree-to={}", eventLog.id, hash)
+
+      Vertex(Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.SLAVE_TREE_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
+
+    }
 
     eventLog.lookupKeys
       .find(x => x.category == Values.SLAVE_TREE_CATEGORY && x.name == Values.SLAVE_TREE_LINK_ID)
@@ -160,21 +171,16 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
   def upgradeRelations = {
 
-    def relation(hash: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.SLAVE_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
+    def relation(hash: String) =
+      Vertex(Values.SLAVE_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        .connectedTo(
+          Vertex(Values.MASTER_TREE_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         )
-      ),
-      vTo = RelationElem(
-        Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
-        )
-      ),
-      edge = RelationElem(Option(Values.SLAVE_TREE_CATEGORY + "_UPGRADE"), Map.empty)
-    )
+        .through(Edge(Values.SLAVE_TREE_CATEGORY + "_UPGRADE"))
 
     eventLog.lookupKeys
       .find(x => x.category == Values.SLAVE_TREE_CATEGORY + "_UPGRADE" && x.name == Values.SLAVE_TREE_UPGRADE_ID)
@@ -199,18 +205,21 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
   def treeRelations = {
 
-    def relation(hash: String) =
-      Relation(
-        vFrom = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
-        )),
-        vTo = RelationElem(Option(Values.SLAVE_TREE_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.TYPE -> Values.SLAVE_TREE_CATEGORY
-        )),
-        edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
-      )
+    def relation(hash: String) = {
+      logger.info("[event-log-trace] foundation-tree={} master-tree={}", hash, eventLog.id)
+
+      Vertex(Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.SLAVE_TREE_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
+        )
+        .through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
+
+    }
 
     eventLog.lookupKeys
       .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_ID)
@@ -221,21 +230,20 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
   def linkRelations = {
 
-    def relation(hash: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
-        )
-      ),
-      vTo = RelationElem(
-        Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
-        )
-      ),
-      edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
-    )
+    def relation(hash: String) = {
+
+      logger.info("[event-log-trace] master-tree-from={} master-tree-to={}", eventLog.id, hash)
+
+      Vertex(Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.MASTER_TREE_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        ).through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
+    }
 
     eventLog.lookupKeys
       .find(x => x.category == Values.MASTER_TREE_CATEGORY && x.name == Values.MASTER_TREE_LINK_ID)
@@ -246,21 +254,17 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
   def upgradeRelations = {
 
-    def relation(hash: String) = Relation(
-      vFrom = RelationElem(
-        Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> eventLog.id,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
+    def relation(hash: String) =
+      Vertex(Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.MASTER_TREE_CATEGORY)
+            .addProperty(Values.HASH -> hash)
+            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         )
-      ),
-      vTo = RelationElem(
-        Option(Values.MASTER_TREE_CATEGORY), Map(
-          Values.HASH -> hash,
-          Values.TYPE -> Values.MASTER_TREE_CATEGORY
-        )
-      ),
-      edge = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map.empty)
-    )
+        .through(Edge(Values.MASTER_TREE_CATEGORY + "_UPGRADE"))
 
     eventLog.lookupKeys
       .find(x => x.category == Values.MASTER_TREE_CATEGORY + "_UPGRADE" && x.name == Values.MASTER_TREE_UPGRADE_ID)
@@ -281,19 +285,22 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 }
 
 case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
-  def relation(hash: String) =
-    Relation(
-      vFrom = RelationElem(Option(Values.PUBLIC_CHAIN_CATEGORY), Map(
-        Values.HASH -> eventLog.id,
-        Values.TYPE -> Values.PUBLIC_CHAIN_CATEGORY,
-        Values.PUBLIC_CHAIN_CATEGORY -> eventLog.category
-      )),
-      vTo = RelationElem(Option(Values.MASTER_TREE_CATEGORY), Map(
-        Values.HASH -> hash,
-        Values.TYPE -> Values.MASTER_TREE_CATEGORY
-      )),
-      edge = RelationElem(Option(Values.PUBLIC_CHAIN_CATEGORY), Map.empty)
-    )
+  def relation(hash: String) = {
+    logger.info("[event-log-trace] blockchain={} master-tree={} blockchain-name={}", eventLog.id, hash, eventLog.category)
+
+    Vertex(Values.PUBLIC_CHAIN_CATEGORY)
+      .addProperty(Values.HASH -> eventLog.id)
+      .addProperty(Values.TYPE -> Values.PUBLIC_CHAIN_CATEGORY)
+      .addProperty(Values.PUBLIC_CHAIN_CATEGORY -> eventLog.category)
+      .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+      .connectedTo(
+        Vertex(Values.MASTER_TREE_CATEGORY)
+          .addProperty(Values.HASH -> hash)
+          .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
+      )
+      .through(Edge(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
+
+  }
 
   def get = eventLog.lookupKeys
     .find(_.category == Values.PUBLIC_CHAIN_CATEGORY)

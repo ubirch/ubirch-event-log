@@ -2,8 +2,10 @@ package com.ubirch.chainer.models
 
 import com.ubirch.TestBase
 import com.ubirch.chainer.util.Hasher
+import com.ubirch.util.EventLogJsonSupport
 
 import scala.language.implicitConversions
+import scala.util.Random
 
 case class SomeDataTypeFromKafka(id: String, data: String)
 
@@ -212,6 +214,85 @@ class ChainerSpec extends TestBase {
 
       val chainer = Chainer(listOfData).withHashZero(zero)
       assert(chainer.getZero == zero)
+
+    }
+
+    "compress with even input " in {
+
+      val listOfData = List(
+        SomeDataTypeFromKafka("vegetables", "eggplant"),
+        SomeDataTypeFromKafka("vegetables", "artichoke"),
+        SomeDataTypeFromKafka("fruits", "banana"),
+        SomeDataTypeFromKafka("fruits", "apple")
+      )
+
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+
+      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+
+      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+
+      assert(c.map(_.getNode).flatMap(_.toList) == node)
+      assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
+
+    }
+
+    "compress with odd input " in {
+
+      val listOfData = List(
+        SomeDataTypeFromKafka("vegetables", "eggplant"),
+        SomeDataTypeFromKafka("vegetables", "artichoke"),
+        SomeDataTypeFromKafka("fruits", "banana")
+      )
+
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+
+      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+
+      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+
+      assert(c.map(_.getNode).flatMap(_.toList) == node)
+      assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
+
+    }
+
+    "compress with even input with a lot of data when splitting" in {
+
+      val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
+
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+
+      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+
+      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+
+      assert(c.map(_.getNode).flatMap(_.toList) == node)
+      assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
+
+      val normalNodeSizes = c.map(_.getNode).flatMap(_.toList).map(x => EventLogJsonSupport.ToJson[Node[String]](x).toString.length)
+      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData](x).toString.length)
+
+      assert(normalNodeSizes.zip(compressedNodeSizes).map { case (a, b) => a > b }.forall(x => x))
+
+    }
+
+    "compress with even input with a lot of data " in {
+
+      val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
+
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), false, 50, s => s))
+
+      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+
+      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+
+      assert(c.map(_.getNode).flatMap(_.toList) == node)
+      assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
+
+      val normalNodeSizes = c.map(_.getNode).flatMap(_.toList).map(x => EventLogJsonSupport.ToJson[Node[String]](x).toString.length)
+      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData](x).toString.length)
+
+      assert(normalNodeSizes.zip(compressedNodeSizes).map { case (a, b) => a > b }.forall(x => x))
 
     }
 
