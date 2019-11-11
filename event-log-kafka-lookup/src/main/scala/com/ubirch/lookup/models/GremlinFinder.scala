@@ -170,12 +170,19 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         case time => time.asInstanceOf[String]
       }
     }
+    def decorateType(anyTime: Any): Any = {
+      anyTime match {
+        case time if anyTime.isInstanceOf[String] =>
+          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
+          else time.toString
+        case time => time
+      }
+    }
     asVertices(path, anchors).map { case (p, a) =>
-      val _path = p.map( x =>
+      val _path = p.map(x =>
         x.map(Values.TIMESTAMP)(parseTimestamp)
-          .map(Values.SLAVE_TREE_CATEGORY)(_ => Values.FOUNDATION_TREE_CATEGORY)
-          .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY)
-      )
+          .map(Values.TYPE)(decorateType)
+          .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
 
       val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
 
