@@ -1,22 +1,20 @@
 package com.ubirch.controllers
 
-import java.text.SimpleDateFormat
-import java.time.DateTimeException
-
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.classloader.{ TrustCodeLoad, TrustCodeLoader }
 import com.ubirch.models._
-import com.ubirch.sdk.{ EventLogging, EventLoggingBase }
+import com.ubirch.sdk.EventLogging
 import com.ubirch.service.eventLog.EventLogEndpoint
+import com.ubirch.service.rest.ServerConfig
 import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import javax.inject._
-import org.joda.time.DateTime
 import org.json4s.Formats
 import org.scalatra._
 import org.scalatra.json.NativeJsonSupport
 import org.scalatra.swagger.{ Swagger, SwaggerSupport, SwaggerSupportSyntax }
 
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.tools.reflect.ToolBoxError
 import scala.util.{ Failure, Success, Try }
 
 class EventLogTrustCodeController @Inject() (
@@ -24,7 +22,9 @@ class EventLogTrustCodeController @Inject() (
     eventLogging: EventLogging,
     eventLogEndpoint: EventLogEndpoint,
     trustCodeLoader: TrustCodeLoader,
-    cache: Cache
+    cache: Cache,
+    serverConfig: ServerConfig
+
 )
   (implicit val executor: ExecutionContext)
   extends ScalatraServlet
@@ -41,6 +41,13 @@ class EventLogTrustCodeController @Inject() (
     contentType = formats("json")
   }
 
+  // Allows CORS support to display the swagger UI when using the same network
+  options("/*") {
+    response.setHeader(
+      "Access-Control-Allow-Headers", request.getHeader("Access-Control-Request-Headers")
+    )
+  }
+
   val trustCodeSwagger: SwaggerSupportSyntax.OperationBuilder =
     (apiOperation[TrustCodeResponse]("Returns EventLog based on category and time elements.")
       summary "Queries for event logs that have a common category and time elements."
@@ -52,6 +59,8 @@ class EventLogTrustCodeController @Inject() (
     import eventLogging._
 
     val trustCodeCreation = parsedBody
+
+    logger.info("Received request with params {}", trustCodeCreation)
 
     val tc = Try(EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get).getOrElse {
       halt(BadRequest(
@@ -73,15 +82,18 @@ class EventLogTrustCodeController @Inject() (
           .withRandomNonce
           .commitAsync
           .map { el =>
-            Ok(TrustCodeGenericResponse(
+            Created(TrustCodeGenericResponse(
               success = true,
               "Trust Code Successfully created",
-              List(TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+              List(TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
             ))
           }(executor)
+      case Failure(e: ToolBoxError) =>
+        logger.error("1. Error creating trust code={}", e.getMessage)
+        Future.successful(BadRequest(TrustCodeGenericResponse(success = false, s"Error creating trust code=${e.getMessage} ", Nil)))
       case Failure(e) =>
-        logger.error("Error creating trust code {}", e.getMessage)
-        Future.successful(Ok(TrustCodeGenericResponse(success = false, s"Error creating trust code=${e.getMessage} ", Nil)))
+        logger.error("2. Error creating trust code={}", e)
+        Future.successful(InternalServerError(TrustCodeGenericResponse(success = false, s"Error creating trust code=${e.getMessage} ", Nil)))
     }
 
     val finalRes = new AsyncResult() {
@@ -96,11 +108,15 @@ class EventLogTrustCodeController @Inject() (
     val fres = eventLogEndpoint
       .queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY)
       .map { els =>
-        TrustCodeGenericResponse(
+        Ok(TrustCodeGenericResponse(
           success = true,
           "Trust Code Successfully retrieved",
-          els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
-        )
+          els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+        ))
+      }.recover {
+        case e: Exception =>
+          Future.successful(InternalServerError(TrustCodeGenericResponse(success = false, s"Error retrieving trust code=${e.getMessage} ", Nil)))
+
       }
 
     val finalRes = new AsyncResult() {
@@ -125,7 +141,7 @@ class EventLogTrustCodeController @Inject() (
                   TrustCodeGenericResponse(
                     success = true,
                     "Trust Code Successfully initiated",
-                    els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                    els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
                   )
                 }
               case Failure(e) =>
@@ -134,7 +150,7 @@ class EventLogTrustCodeController @Inject() (
                   TrustCodeGenericResponse(
                     success = false,
                     "Error initiating Trust Code: " + e.getMessage,
-                    els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                    els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
                   )
                 }
             }
@@ -155,7 +171,7 @@ class EventLogTrustCodeController @Inject() (
               TrustCodeGenericResponse(
                 success = false,
                 "Error initiating Trust Code: " + e.getMessage,
-                els.map(el => TrustCodeResponse(el.id, "http://localhost:8081/v1/trust_code/" + el.id, Some(el)))
+                els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
               )
             }
         }

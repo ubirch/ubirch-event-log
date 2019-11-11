@@ -12,13 +12,9 @@ import org.scalatra.servlet.ScalatraListener
 
 import scala.concurrent.Future
 
-class RestService @Inject() (config: Config, lifecycle: Lifecycle) extends LazyLogging {
+class RestService @Inject() (serverConfig: ServerConfig, lifecycle: Lifecycle) extends LazyLogging {
 
-  val serverPort: Int = config.getInt("eventLog.server.port")
-  val serverBaseUrl: String = config.getString("eventLog.server.baseUrl")
-  val appVersion: String = config.getString("eventLog.version")
-  val swaggerPath: String = config.getString("eventLog.server.swaggerPath")
-  val contextPathBase: String = serverBaseUrl + "/" + appVersion
+  import serverConfig._
 
   def start = {
     val server = initializeServer

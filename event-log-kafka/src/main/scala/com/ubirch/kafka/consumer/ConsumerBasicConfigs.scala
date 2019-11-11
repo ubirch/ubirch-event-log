@@ -1,7 +1,7 @@
 package com.ubirch.kafka.consumer
 
 import com.typesafe.scalalogging.LazyLogging
-import org.apache.kafka.clients.consumer.{ConsumerConfig, OffsetResetStrategy}
+import org.apache.kafka.clients.consumer.{ ConsumerConfig, OffsetResetStrategy }
 import org.apache.kafka.common.serialization.Deserializer
 
 trait WithDeserializers[K, V] {
@@ -9,7 +9,7 @@ trait WithDeserializers[K, V] {
   def valueDeserializer: Deserializer[V]
 }
 
-trait ConsumerBasicConfigs extends LazyLogging{
+trait ConsumerBasicConfigs extends LazyLogging {
 
   def consumerTopics: Set[String]
 
