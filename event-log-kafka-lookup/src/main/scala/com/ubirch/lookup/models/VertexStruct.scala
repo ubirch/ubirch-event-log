@@ -13,7 +13,7 @@ case class VertexStruct(label: String, properties: Map[String, Any]) {
     (k, newV)
   })
   def addLabelWhen(newLabel: String)(matching: String): VertexStruct = {
-    if(this.label == matching) this.addLabel(newLabel)
+    if (this.label == matching) this.addLabel(newLabel)
     else this
   }
 }
