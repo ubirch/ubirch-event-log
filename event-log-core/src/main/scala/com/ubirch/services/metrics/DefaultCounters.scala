@@ -29,35 +29,35 @@ trait BasicPrometheusCounter {
 }
 
 @Singleton
-class DefaultConsumerRecordsManagerCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
+class DefaultSuccessCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
 
   final val counter: PrometheusCounter =
     createCounter(
       namespace = metricsNamespace,
-      name = "event_error_total",
-      help = "Total event errors.",
-      labelNames = List("service", "result")
+      name = "successes_count",
+      help = "Total Successes Counter",
+      labelNames = List("service")
     ).register()
 
 }
 
-object DefaultConsumerRecordsManagerCounter {
-  final val name = "DefaultConsumerRecordsManagerCounter"
+object DefaultSuccessCounter {
+  final val name = "DefaultSuccessCounter"
 }
 
 @Singleton
-class DefaultMetricsLoggerCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
+class DefaultFailureCounter @Inject() (val config: Config) extends Counter with BasicPrometheusCounter {
 
   final val counter: PrometheusCounter =
     createCounter(
       namespace = metricsNamespace,
-      name = "events_total",
-      help = "Total events.",
-      labelNames = List("service", "result")
+      name = "failures_count",
+      help = "Total Failures Counter",
+      labelNames = List("service")
     ).register()
 
 }
 
-object DefaultMetricsLoggerCounter {
-  final val name = "DefaultMetricsLoggerCounter"
+object DefaultFailureCounter {
+  final val name = "DefaultFailureCounter"
 }

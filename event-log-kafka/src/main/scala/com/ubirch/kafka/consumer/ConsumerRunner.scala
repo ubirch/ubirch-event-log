@@ -246,6 +246,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private val preConsumeCallback = new Callback0[Unit] {}
 
+  private val postPollCallback = new Callback0[Unit] {}
+
   private val postConsumeCallback = new Callback[Int, Unit] {}
 
   protected val postCommitCallback = new Callback[Int, Unit] {}
@@ -288,6 +290,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
 
+  def onPostPoll(f: () => Unit): Unit = postPollCallback.addCallback(f)
+
   def onPostConsume(f: Int => Unit): Unit = postConsumeCallback.addCallback(f)
 
   def onPostCommit(f: Int => Unit): Unit = postCommitCallback.addCallback(f)
@@ -319,6 +323,9 @@ abstract class ConsumerRunner[K, V](name: String)
 
           val pollTimeDuration = java.time.Duration.ofMillis(getPollTimeout.toMillis)
           val consumerRecords = consumer.poll(pollTimeDuration)
+
+          postPollCallback.run()
+
           val totalPolledCount = consumerRecords.count()
 
           try {
