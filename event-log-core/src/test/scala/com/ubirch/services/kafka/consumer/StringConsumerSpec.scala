@@ -12,7 +12,7 @@ import com.ubirch.process.{ Executor, ExecutorFamily }
 import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
+import com.ubirch.services.metrics.DefaultFailureCounter
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver }
 import com.ubirch.{ Entities, TestBase }
@@ -33,7 +33,7 @@ import scala.language.{ implicitConversions, postfixOps }
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with ExecutionImpl {
 
   val config = ConfigFactory.load()
-  val counter = new DefaultConsumerRecordsManagerCounter(config)
+  val counter = new DefaultFailureCounter(config)
 
   def spawn(kafkaPort: Int): StringConsumer = {
     val lifeCycle = mock[DefaultLifecycle]

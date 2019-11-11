@@ -13,7 +13,7 @@ import com.ubirch.services._
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 
 import scala.concurrent.ExecutionContext
 
@@ -33,12 +33,12 @@ class EncoderServiceBinder
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[EncodingExecutionProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[BytesConsumer]).toProvider(classOf[DefaultEncoderConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
-  def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultConsumerRecordsManagerCounter.name))
-    .to(classOf[DefaultConsumerRecordsManagerCounter])
-  def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultMetricsLoggerCounter.name))
-    .to(classOf[DefaultMetricsLoggerCounter])
+  def successCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultSuccessCounter.name))
+    .to(classOf[DefaultSuccessCounter])
+  def failureCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultFailureCounter.name))
+    .to(classOf[DefaultFailureCounter])
   def encodingsCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultEncodingsCounter.name))
     .to(classOf[DefaultEncodingsCounter])
@@ -47,8 +47,8 @@ class EncoderServiceBinder
     lifecycle
     jvmHook
     config
-    metricsLoggerCounter
-    consumerRecordsManagerCounter
+    successCounter
+    failureCounter
     encodingsCounter
     executionContext
     consumer
