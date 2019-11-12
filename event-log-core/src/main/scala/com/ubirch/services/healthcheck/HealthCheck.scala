@@ -21,6 +21,8 @@ class HealthCheck @Inject() (config: Config) extends HealthCheckConfPaths {
   var anyKafkaProducer: Option[Either[Producer[_, _], ProducerRunner[_, _]]] = None
 
   def init(injectorHelper: InjectorHelper): Unit = {
+    if (!config.getBoolean(ENABLED)) return
+
     server.setLivenessCheck(Checks.process())
     server.setReadinessCheck(Checks.process())
 

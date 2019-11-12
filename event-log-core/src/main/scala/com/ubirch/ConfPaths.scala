@@ -53,6 +53,7 @@ object ConfPaths {
 
   trait HealthCheckConfPaths {
     val PORT = "eventLog.healthCheck.port"
+    val ENABLED = "eventLog.healthCheck.enabled"
   }
 
 }
