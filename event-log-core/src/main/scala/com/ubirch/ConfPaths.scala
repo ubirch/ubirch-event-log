@@ -51,4 +51,8 @@ object ConfPaths {
   object ConsumerConfPaths extends ConsumerConfPaths
   object ProducerConfPaths extends ProducerConfPaths
 
+  trait HealthCheckConfPaths {
+    val PORT = "eventLog.healthCheck.port"
+  }
+
 }

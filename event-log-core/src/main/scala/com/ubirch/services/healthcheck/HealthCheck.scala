@@ -1,24 +1,34 @@
 package com.ubirch.services.healthcheck
 
+import com.typesafe.config.Config
+import com.ubirch.ConfPaths.HealthCheckConfPaths
 import com.ubirch.kafka.consumer.{BytesConsumer, ConsumerRunner, StringConsumer}
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.kafka.producer.{BytesProducer, ProducerRunner, StringProducer}
 import com.ubirch.niomon.healthcheck.HealthCheckServer.CheckerFn
 import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.util.InjectorHelper
+import javax.inject.{Inject, Singleton}
 import org.apache.kafka.clients.producer.Producer
 
 import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success}
+import scala.util.Success
 
-class HealthCheck {
+@Singleton
+class HealthCheck @Inject() (config: Config) extends HealthCheckConfPaths {
 
   val server = new HealthCheckServer(Map(), Map())
   var anyKafkaProducer: Option[Either[Producer[_, _], ProducerRunner[_, _]]] = None
 
   def init(injectorHelper: InjectorHelper): Unit = {
+    server.setLivenessCheck(Checks.process())
+    server.setReadinessCheck(Checks.process())
+
     addChecksForGuiceManagedKafkaClientRunners(injectorHelper)
+    addChecksForExpressKafka(injectorHelper)
     addReachabilityChecksIfAnyProducerFound()
+
+    server.run(config.getInt(PORT))
   }
 
   def addChecksForProducerRunner(name: String, producerRunner: ProducerRunner[_, _]): Unit = {
