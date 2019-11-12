@@ -69,7 +69,10 @@ spec:
               value: "{{ .Values.eventLogDispatcher.kafka.consumer.fetchMaxBytes }}"
             - name: DIS_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
               value: "{{ .Values.eventLogDispatcher.kafka.consumer.partitionFetchMaxBytes }}"
-
+            - name: DIS_KFC_RECONNECT_BACKOFF_MS_CONFIG
+              value: "{{ .Values.eventLogDispatcher.kafka.consumer.reconnectBackoffMsConfig}}"
+            - name: DIS_KFC_RECONNECT_BACKOFF_MAX_MS_CONFIG
+              value: "{{ .Values.eventLogDispatcher.kafka.consumer.reconnectBackoffMaxMsConfig}}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

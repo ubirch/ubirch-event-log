@@ -2,15 +2,15 @@ package com.ubirch.services.kafka.producer
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.kafka.producer.Configs
+import com.ubirch.kafka.producer.ProducerBasicConfigs
 import com.ubirch.util.URLsHelper
 
-trait ProducerCreator extends ProducerConfPaths {
+trait ProducerCreator extends ProducerBasicConfigs {
 
   def config: Config
 
-  def bootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(BOOTSTRAP_SERVERS))
+  def lingerMs: Int = config.getInt(ProducerConfPaths.LINGER_MS)
 
-  def configs = Configs(bootstrapServers)
+  def producerBootstrapServers: String = URLsHelper.passThruWithCheck(config.getString(ProducerConfPaths.BOOTSTRAP_SERVERS))
 
 }

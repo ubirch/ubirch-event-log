@@ -29,6 +29,10 @@ This type is usually extended to support customized data.
 
 6. **Consumers:** There are out-of-the box consumers. A String and Bytes Consumers.
 
+7. **ConsumerBasicConfigs:** This is helper trait that creates/defines a basic config for a consumer.
+
+8. **WithConsumerShutdownHook:** This a helper that defines a hook to shut down a consumer.
+
 ## Producer Runner
 
 The purpose of the producer runner is to provide a simple and straightforward abstraction 
@@ -39,6 +43,10 @@ The principal elements of the producer runner environment are:
 1. **Configs:** A convenience to manage the configuration keys that are used to initialize the kafka producer.
 
 2. **ProducerRunner:** Represents a simple definition for a kafka producer. It supports callback on the producer creation event
+
+3. **ProducerBasicConfigs** This is helper trait that creates/defines a basic config for a producer.
+
+4. **WithProducerShutdownHook:** This a helper that defines a hook to shut down a producer.
 
 ## Express Kafka Steps ##
 
@@ -74,6 +82,6 @@ with the method *send*.
       <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-kafka</artifactId>
-            <version>1.2.5-SNAPSHOT</version>
+            <version>1.2.6-SNAPSHOT</version>
        </dependency>
 ```

@@ -44,6 +44,10 @@ particular project you may be interested in.
 
 ## Prometheus Metrics
 
+**Note**: If you're starting the multiple services on the same machine/jvm, the port might change and
+you will have to change it accordingly. The port that is assigned to Prometheus is show on the console of 
+every service at boot.
+
 ```
   http://localhost:4321/
 ```

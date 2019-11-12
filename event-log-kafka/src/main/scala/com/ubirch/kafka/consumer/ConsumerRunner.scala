@@ -138,20 +138,21 @@ trait WithProcessRecords[K, V] {
       }
     }
 
-    def commitFunc2(): Vector[Unit] = {
+    def commitFuncUpgraded(): Vector[Unit] = {
 
       try {
         consumer.commitSync()
         postCommitCallback.run(consumerRecords.count())
       } catch {
         case e: TimeoutException =>
-          throw CommitTimeoutException("Commit timed out", () => this.commitFunc(), e)
+          throw CommitTimeoutException("Commit timed out", () => this.commitFuncUpgraded(), e)
         case e: Throwable =>
           throw e
       }
 
     }
 
+    @deprecated("It makes commits slower. Do not use. Use commitFuncUpgraded. It will be removed soon.", "1.2.6")
     def commitFunc(): Vector[Unit] = {
 
       try {
@@ -181,7 +182,7 @@ trait WithProcessRecords[K, V] {
         failed.set(None)
         throw error.get
       } else {
-        commitFunc2()
+        commitFuncUpgraded()
       }
 
     }
@@ -277,6 +278,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var maxCommitAttempts = 3
 
+  @BeanProperty var maxCommitAttemptBackoff: FiniteDuration = 1000 millis
+
   @BeanProperty var delaySingleRecord: FiniteDuration = 0 millis
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
@@ -360,7 +363,7 @@ abstract class ConsumerRunner[K, V](name: String)
             needForResumeCallback.run()
             logger.debug("NeedForResumeException: [{}], partitions[{}]", e.getMessage, partitions.size())
           case e: CommitTimeoutException =>
-            logger.error("Commit timed out {}", e.getMessage)
+            logger.error("(Control) Commit timed out={}", e.getMessage)
             import scala.util.control.Breaks._
             breakable {
               while (true) {
@@ -370,7 +373,7 @@ abstract class ConsumerRunner[K, V](name: String)
                   throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
                 } else {
                   try {
-                    new FutureHelper().delay(1 second)(e.commitFunc())
+                    new FutureHelper().delay(getMaxCommitAttemptBackoff)(e.commitFunc())
                     break()
                   } catch {
                     case _: CommitTimeoutException =>

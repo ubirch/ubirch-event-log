@@ -1,25 +1,26 @@
 package com.ubirch.kafka.express
 
 import java.util.UUID
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 
 import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer._
-import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner }
+import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner, WithProducerShutdownHook, WithSerializer }
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{ Failure, Success }
 
-trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
+trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[K, V] {
 
   def metricsSubNamespace: String
 
   def controller: ConsumerRecordsController[K, V]
 
-  lazy val consumption = {
+  lazy val consumption: ConsumerRunner[K, V] = {
     val consumerImp = ConsumerRunner.emptyWithMetrics[K, V](metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)
@@ -32,7 +33,7 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs[K, V] {
   }
 }
 
-trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
+trait ExpressProducer[K, V] extends ProducerBasicConfigs with WithSerializer[K, V] {
 
   lazy val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
 
@@ -40,20 +41,26 @@ trait ExpressProducer[K, V] extends ProducerBasicConfigs[K, V] {
 
 }
 
-trait WithShutdownHook {
+trait WithShutdownHook extends WithConsumerShutdownHook with WithProducerShutdownHook {
   ek: ExpressKafkaApp[_, _, _] =>
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
+      val countDownLatch = new CountDownLatch(1)
+      (for {
+        _ <- hookFunc(consumerGracefulTimeout, consumption)()
+        _ <- hookFunc(production)()
+      } yield ())
+        .onComplete {
+          case Success(_) => countDownLatch.countDown()
+          case Failure(e) =>
+            logger.error("Error running jvm hook={}", e.getMessage)
+            countDownLatch.countDown()
+        }
 
-      logger.info("Shutting down Consumer: " + consumption.getName)
-      consumption.shutdown(consumerGracefulTimeout, java.util.concurrent.TimeUnit.SECONDS)
-
-      logger.info("Shutting down Producer")
-      production.getProducerAsOpt.foreach(_.close())
-
-      Thread.sleep(5000) //Waiting 5 secs
-      logger.info("Bye bye, see you later...")
+      val res = countDownLatch.await(5000, TimeUnit.SECONDS) //Waiting 5 secs
+      if (!res) logger.warn("Taking too much time shutting down :(  ..")
+      else logger.info("Bye bye, see you later...")
     }
   })
 }
@@ -76,7 +83,7 @@ trait ConfigBase {
 trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K, V] {
   thiz =>
 
-  lazy val controller = new ConsumerRecordsController[K, V] {
+  lazy val controller: ConsumerRecordsController[K, V] = new ConsumerRecordsController[K, V] {
 
     def simpleProcessResult(result: R, consumerRecord: Vector[ConsumerRecord[K, V]]): ProcessResult[K, V] = new ProcessResult[K, V] {
       override val id: UUID = UUID.randomUUID()

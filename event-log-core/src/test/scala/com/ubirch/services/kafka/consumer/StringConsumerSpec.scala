@@ -46,7 +46,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
       lifeCycle,
       new DefaultConsumerRecordsManager(reporter, family, counter, config)
     ) {
-      override def configs: ConfigProperties = {
+      override def consumerConfigs: ConfigProperties = {
         Configs(
           bootstrapServers = "localhost:" + kafkaPort,
           groupId = "My_Group_ID",
@@ -425,7 +425,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
           lifeCycle,
           recordsManager
         ) {
-          override def configs: ConfigProperties = {
+          override def consumerConfigs: ConfigProperties = {
             Configs(
               bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",
@@ -510,7 +510,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
           lifeCycle,
           recordsManager
         ) {
-          override def configs: ConfigProperties = {
+          override def consumerConfigs: ConfigProperties = {
             Configs(
               bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",
@@ -599,7 +599,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
           lifeCycle,
           recordsManager
         ) {
-          override def configs: ConfigProperties = {
+          override def consumerConfigs: ConfigProperties = {
             Configs(
               bootstrapServers = "localhost:" + kafkaConfig.kafkaPort,
               groupId = "My_Group_ID",

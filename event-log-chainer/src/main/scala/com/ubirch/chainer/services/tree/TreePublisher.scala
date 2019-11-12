@@ -28,7 +28,7 @@ class TreePublisher @Inject() (
       case Success(_) =>
         counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
       case Failure(exception) =>
-        logger.error("Error publishing ", exception)
+        logger.error("Error publishing tree", exception)
         counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
     }
     futureSend

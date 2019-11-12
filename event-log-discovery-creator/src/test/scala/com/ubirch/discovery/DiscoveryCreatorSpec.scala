@@ -61,8 +61,9 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val relations = DiscoveryJsonSupport.FromString[Seq[Relation]](relationsAsJson).get
 
-        assert(relations.forall(_.edge.label != Option(Values.CHAIN_CATEGORY)))
-        assert(relations.exists(_.edge.label == Option(Values.DEVICE_CATEGORY)))
+        assert(relations.forall(_.edge.label != Option(Values.UPP_CATEGORY)))
+        assert(relations.forall(_.edge.label != Option(Values.DEVICE_CATEGORY)))
+        assert(relations.exists(_.edge.label == Option(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY)))
 
         assert(relations.nonEmpty)
         assert(relations.size == 1) // We expect to relations: UPP-DEVICE
@@ -110,8 +111,9 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
         val relations = DiscoveryJsonSupport.FromString[Seq[Relation]](relationsAsJson).get
 
-        assert(relations.exists(_.edge.label == Option(Values.CHAIN_CATEGORY)))
-        assert(relations.exists(_.edge.label == Option(Values.DEVICE_CATEGORY)))
+        assert(relations.forall(_.edge.label != Option(Values.UPP_CATEGORY)))
+        assert(relations.forall(_.edge.label != Option(Values.DEVICE_CATEGORY)))
+        assert(relations.exists(_.edge.label == Option(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY)))
 
         assert(relations.nonEmpty)
         assert(relations.size == 2) // We expect to relations: UPP-DEVICE, UPP-CHAIN
