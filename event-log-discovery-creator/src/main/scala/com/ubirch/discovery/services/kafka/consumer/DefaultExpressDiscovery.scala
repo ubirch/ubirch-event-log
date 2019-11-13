@@ -108,9 +108,8 @@ class DefaultExpressDiscovery @Inject() (
   }
 
   def run(consumerRecord: ConsumerRecord[String, String]) = {
-    Future(composed(consumerRecord)).flatMap { json =>
-      send(producerTopic, json)
-    }
+    val json = composed(consumerRecord)
+    send(producerTopic, json)
   }
 
 }

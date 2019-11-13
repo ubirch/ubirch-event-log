@@ -56,7 +56,7 @@ class LoggerExecutor @Inject() (
         .getOrElse(throw ParsingIntoEventLogException("Error Parsing Into Event Log", PipeData(consumerRecord, None)))
 
       Task.fromFuture {
-        events.insertFromEventLog(el)
+        events.insertFromEventLogFake(el)
           .map { x =>
             successCounter.counter.labels(metricsSubNamespace).inc()
             x
