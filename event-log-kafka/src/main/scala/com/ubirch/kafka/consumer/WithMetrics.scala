@@ -28,7 +28,7 @@ trait WithMetrics extends WithNamespace {
   //Metrics Def Start
   val startInstant = new AtomicReference[Option[Instant]](None)
 
-  onPreConsume(() => startInstant.set(Some(new Instant())))
+  onPostPoll(() => startInstant.set(Some(new Instant())))
   onPostConsume { count =>
     if (count > 0) {
       val finishTime = new Instant()
@@ -39,25 +39,25 @@ trait WithMetrics extends WithNamespace {
   //Metrics Def End
 
   //Metrics Def Start
-  final val pollSizeSummary: Summary = Summary.build
-    .namespace(metricsNamespace)
-    .name(metricsName("poll_consume_size"))
-    .help("Poll consume size.")
-    .labelNames("service")
-    .register
+  //  final val pollSizeSummary: Summary = Summary.build
+  //    .namespace(metricsNamespace)
+  //    .name(metricsName("poll_consume_size"))
+  //    .help("Poll consume size.")
+  //    .labelNames("service")
+  //    .register
 
   final val pollConsumeLatencySummary: Summary = Summary.build
     .namespace(metricsNamespace)
-    .name(metricsName("poll_consume_seconds"))
-    .help("Poll consume latency in seconds.")
+    .name(metricsName("processing_time"))
+    .help("Message processing time in seconds")
     .labelNames("service")
     .register
 
   val pollConsumeTimer = new AtomicReference[Option[Summary.Timer]](None)
 
-  onPreConsume(() => pollConsumeTimer.set(Some(pollConsumeLatencySummary.labels(metricsSubNamespaceLabel).startTimer)))
+  onPostPoll(() => pollConsumeTimer.set(Some(pollConsumeLatencySummary.labels(metricsSubNamespaceLabel).startTimer)))
   onPostConsume { count =>
-    pollSizeSummary.labels(metricsSubNamespaceLabel).observe(count)
+    pollConsumeLatencySummary.labels(metricsSubNamespaceLabel).observe(count)
     pollConsumeTimer.get().map(x => x.observeDuration())
   }
   //Metrics Def End

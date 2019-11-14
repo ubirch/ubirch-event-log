@@ -74,7 +74,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
 
     //"service", "device-id", "upp", "chain"
     deviceCounter.counter.labels("event_log_trace").inc()
-    logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
+    //logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
 
     val relation1 =
       Vertex(Values.UPP_CATEGORY)
@@ -123,7 +123,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
     def relation(hash: String, signature: String) = {
 
-      logger.info("[event-log-trace] upp={} foundation-tree={}", hash, eventLog.id)
+      //logger.info("[event-log-trace] upp={} foundation-tree={}", hash, eventLog.id)
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
@@ -148,7 +148,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
   def linkRelations = {
 
     def relation(hash: String) = {
-      logger.info("[event-log-trace] foundation-tree-from={} foundation-tree-to={}", eventLog.id, hash)
+      //logger.info("[event-log-trace] foundation-tree-from={} foundation-tree-to={}", eventLog.id, hash)
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
@@ -206,7 +206,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
   def treeRelations = {
 
     def relation(hash: String) = {
-      logger.info("[event-log-trace] foundation-tree={} master-tree={}", hash, eventLog.id)
+      //logger.info("[event-log-trace] foundation-tree={} master-tree={}", hash, eventLog.id)
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
@@ -232,7 +232,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
     def relation(hash: String) = {
 
-      logger.info("[event-log-trace] master-tree-from={} master-tree-to={}", eventLog.id, hash)
+      //logger.info("[event-log-trace] master-tree-from={} master-tree-to={}", eventLog.id, hash)
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
@@ -286,7 +286,7 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
 case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
   def relation(hash: String) = {
-    logger.info("[event-log-trace] blockchain={} master-tree={} blockchain-name={}", eventLog.id, hash, eventLog.category)
+    //logger.info("[event-log-trace] blockchain={} master-tree={} blockchain-name={}", eventLog.id, hash, eventLog.category)
 
     Vertex(Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.HASH -> eventLog.id)

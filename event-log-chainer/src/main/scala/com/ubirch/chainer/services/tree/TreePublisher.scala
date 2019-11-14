@@ -4,8 +4,8 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models.{ EventLog, Values }
-import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
+import com.ubirch.models.EventLog
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.ProducerRecordHelper
 import javax.inject._
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -15,7 +15,8 @@ import scala.util.{ Failure, Success }
 
 class TreePublisher @Inject() (
     stringProducer: StringProducer,
-    @Named(DefaultMetricsLoggerCounter.name) counter: Counter,
+    @Named(DefaultSuccessCounter.name) successCounter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
     config: Config
 )(implicit ec: ExecutionContext) extends LazyLogging {
 
@@ -26,10 +27,10 @@ class TreePublisher @Inject() (
     val futureSend = stringProducer.send(pr)
     futureSend.onComplete {
       case Success(_) =>
-        counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
+        successCounter.counter.labels(metricsSubNamespace).inc()
       case Failure(exception) =>
         logger.error("Error publishing tree", exception)
-        counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+        failureCounter.counter.labels(metricsSubNamespace).inc()
     }
     futureSend
 
