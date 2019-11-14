@@ -15,7 +15,7 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 
 import scala.concurrent.ExecutionContext
 
@@ -33,12 +33,12 @@ class DispatcherServiceBinder
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
-  def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultConsumerRecordsManagerCounter.name))
-    .to(classOf[DefaultConsumerRecordsManagerCounter])
-  def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultMetricsLoggerCounter.name))
-    .to(classOf[DefaultMetricsLoggerCounter])
+  def successCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultSuccessCounter.name))
+    .to(classOf[DefaultSuccessCounter])
+  def failureCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultFailureCounter.name))
+    .to(classOf[DefaultFailureCounter])
   def dispatchCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultDispatchingCounter.name))
     .to(classOf[DefaultDispatchingCounter])
@@ -52,8 +52,8 @@ class DispatcherServiceBinder
     consumer
     consumerRecordsManager
     producer
-    consumerRecordsManagerCounter
-    metricsLoggerCounter
+    successCounter
+    failureCounter
     dispatchCounter
   }
 

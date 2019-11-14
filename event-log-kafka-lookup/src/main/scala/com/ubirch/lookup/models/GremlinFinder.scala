@@ -17,8 +17,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def findUpperAndLowerAsVertices(id: String) =
     for {
       (shortest, upper, lowerPath, lower) <- findUpperAndLower(id)
-      (completePathShortest, completeBlockchainsUpper) <- asVerticesWithParsedTimestamp(shortest, upper)
-      (completePathLower, completeBlockchainsLower) <- asVerticesWithParsedTimestamp(lowerPath, lower)
+      (completePathShortest, completeBlockchainsUpper) <- asVerticesDecorated(shortest, upper)
+      (completePathLower, completeBlockchainsLower) <- asVerticesDecorated(lowerPath, lower)
     } yield {
       (completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower)
     }
@@ -163,15 +163,30 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
   }
 
-  def asVerticesWithParsedTimestamp(path: List[Vertex], anchors: List[Vertex]) = {
+  def asVerticesDecorated(path: List[Vertex], anchors: List[Vertex]) = {
     def parseTimestamp(anyTime: Any): String = {
       anyTime match {
         case time if anyTime.isInstanceOf[Long] => TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
         case time => time.asInstanceOf[String]
       }
     }
+    def decorateType(anyTime: Any): Any = {
+      anyTime match {
+        case time if anyTime.isInstanceOf[String] =>
+          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
+          else time.toString
+        case time => time
+      }
+    }
     asVertices(path, anchors).map { case (p, a) =>
-      (p.map(_.map(Values.TIMESTAMP)(parseTimestamp)), a.map(_.map(Values.TIMESTAMP)(parseTimestamp)))
+      val _path = p.map(x =>
+        x.map(Values.TIMESTAMP)(parseTimestamp)
+          .map(Values.TYPE)(decorateType)
+          .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
+
+      val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
+
+      (_path, _anchors)
     }
   }
 
@@ -210,7 +225,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def findAnchorsWithPathAsVertices(id: String) =
     for {
       (path, anchors) <- findAnchorsWithPath(id)
-      (completePath, completeBlockchains) <- asVerticesWithParsedTimestamp(path, anchors)
+      (completePath, completeBlockchains) <- asVerticesDecorated(path, anchors)
     } yield {
       (completePath, completeBlockchains)
     }

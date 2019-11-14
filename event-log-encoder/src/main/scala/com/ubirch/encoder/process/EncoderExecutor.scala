@@ -18,7 +18,7 @@ import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
@@ -35,7 +35,8 @@ import scala.util.{ Failure, Success, Try }
 class EncoderExecutor @Inject() (
     reporter: Reporter,
     @Named(DefaultEncodingsCounter.name) encodingsCounter: Counter,
-    @Named(DefaultMetricsLoggerCounter.name) results: Counter,
+    @Named(DefaultSuccessCounter.name) successCounter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
     config: Config,
     stringProducer: StringProducer
 )(implicit ec: ExecutionContext) extends ConsumerRecordsController[String, Array[Byte]]
@@ -60,15 +61,15 @@ class EncoderExecutor @Inject() (
     consumerRecords.map { x =>
       run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
+          successCounter.counter.labels(metricsSubNamespace).inc()
         case Failure(e: EncodingException) =>
           logger.error("EncodingException: " + e.getMessage)
-          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+          failureCounter.counter.labels(metricsSubNamespace).inc()
           val value = e.pipeData.jValues.headOption.map(x => compact(x)).getOrElse("No Value")
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.name, value = value))
         case Failure(e) =>
           logger.error("EncodingException (other): " + e.getMessage)
-          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+          failureCounter.counter.labels(metricsSubNamespace).inc()
           reporter.report(Error(id = UUIDHelper.randomUUID, message = e.getMessage, exceptionName = e.getClass.getName, value = e.getMessage))
 
       }(scheduler)

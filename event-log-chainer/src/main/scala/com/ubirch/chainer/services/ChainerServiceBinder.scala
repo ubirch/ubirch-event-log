@@ -15,7 +15,7 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.services.{ BasicServices, ExecutionServices, Kafka }
 
 import scala.concurrent.ExecutionContext
@@ -38,12 +38,12 @@ class ChainerServiceBinder extends AbstractModule
 
   def instantMonitor: ScopedBindingBuilder = bind(classOf[InstantMonitor]).to(classOf[AtomicInstantMonitor])
 
-  def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultConsumerRecordsManagerCounter.name))
-    .to(classOf[DefaultConsumerRecordsManagerCounter])
-  def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultMetricsLoggerCounter.name))
-    .to(classOf[DefaultMetricsLoggerCounter])
+  def successCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultSuccessCounter.name))
+    .to(classOf[DefaultSuccessCounter])
+  def failureCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultFailureCounter.name))
+    .to(classOf[DefaultFailureCounter])
   def treesCounter: ScopedBindingBuilder = bind(classOf[Counter])
     .annotatedWith(Names.named(DefaultTreeCounter.name))
     .to(classOf[DefaultTreeCounter])
@@ -65,8 +65,8 @@ class ChainerServiceBinder extends AbstractModule
     consumerRecordsManager
     producer
     instantMonitor
-    consumerRecordsManagerCounter
-    metricsLoggerCounter
+    successCounter
+    failureCounter
     treesCounter
     leavesCounter
     webClient
