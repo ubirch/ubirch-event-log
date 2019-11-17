@@ -6,23 +6,23 @@ import org.json4s.JValue
 import scala.concurrent.Future
 
 trait TrustCodeBase extends EventLogging {
-  def put(id: String, state: JValue): Future[EventLog]
-  def get(id: String): Unit
+  def put(context: Context, state: JValue): Future[EventLog]
 }
 
 abstract class TrustCode extends TrustCodeBase {
-  override def put(id: String, state: JValue) =
+  override def put(context: Context, state: JValue) =
     log(state)
-      .withNewId(id + ".TCE")
+      .withNewId(context.trustCodeId + ".TCE")
+      .withCustomerId(context.ownerId)
+      .withServiceClass("TRUST_CODE")
       .withCategory(Values.UPP_CATEGORY)
       .withCurrentEventTime
       .withRandomNonce
       .commitAsync
-  override def get(id: String): Unit = ???
 
 }
 
-case class Context(id: String)
+case class Context(trustCodeId: String, ownerId: String)
 
 case class TrustCodeCreation(name: String, description: String, trustCode: String)
 

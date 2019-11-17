@@ -62,6 +62,7 @@ class EventLogTrustCodeController @Inject() (
   post("/trust_code", operation(trustCodeSwagger)) {
     import eventLogging._
 
+    val ownerId = "Carlos"
     val trustCodeCreation = parsedBody
 
     logger.info("Received request with params {}", trustCodeCreation)
@@ -83,6 +84,7 @@ class EventLogTrustCodeController @Inject() (
           .withNewId("TC." + uuid.toString)
           .withCategory(Values.UPP_CATEGORY)
           .withServiceClass("TRUST_CODE")
+          .withCustomerId(ownerId)
           .withRandomNonce
           .commitAsync
           .map { el =>
@@ -145,6 +147,7 @@ class EventLogTrustCodeController @Inject() (
   }
 
   post("/trust_code/:id/:method") {
+    val owner = "Carlos"
     val trustCodeId = params("id")
     val method = params("method")
 
@@ -184,7 +187,7 @@ class EventLogTrustCodeController @Inject() (
 
         val declaredMethods = clazz.getDeclaredMethods.toList
 
-        val completeParams = (classOf[Context], Context(trustCodeId)) +: paramsTuple
+        val completeParams = (classOf[Context], Context(trustCodeId, owner)) +: paramsTuple
 
         if (declaredMethods.nonEmpty && paramsTuple.isEmpty) {
           BadRequest(TrustCodeGenericResponse(success = false, "Trust Code Params Not Found", Nil))
