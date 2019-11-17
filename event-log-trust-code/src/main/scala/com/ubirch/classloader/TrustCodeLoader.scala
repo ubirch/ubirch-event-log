@@ -7,7 +7,7 @@ import scala.reflect.runtime.universe
 import scala.tools.reflect.ToolBox
 import scala.util.Try
 
-case class TrustCodeLoad(id: String, trustCode: TrustCode, clazz: Class[TrustCode])
+case class TrustCodeLoad(id: String, trustCode: TrustCode, clazz: Class[TrustCode], methods: List[String])
 
 @Singleton
 class TrustCodeLoader() {
@@ -25,7 +25,8 @@ class TrustCodeLoader() {
     val clazz = tb.compile(tb.parse(code))().asInstanceOf[Class[TrustCode]]
     val ctor = clazz.getDeclaredConstructor()
     val instance = ctor.newInstance()
-    TrustCodeLoad(id, instance, clazz)
+    val declaredMethods = clazz.getDeclaredMethods.toList.map(_.getName).filterNot(_.contains("$"))
+    TrustCodeLoad(id, instance, clazz, declaredMethods)
   }
 
 }

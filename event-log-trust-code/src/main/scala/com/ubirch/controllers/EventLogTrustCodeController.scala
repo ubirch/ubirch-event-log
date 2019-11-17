@@ -78,7 +78,7 @@ class EventLogTrustCodeController @Inject() (
 
     val uuid = UUIDHelper.randomUUID
     val fres = trustCodeLoader.materialize(uuid.toString, tc.trustCode) match {
-      case Success(_) =>
+      case Success(tc) =>
         eventLogging.log(trustCodeCreation)
           .withNewId("TC." + uuid.toString)
           .withCategory(Values.UPP_CATEGORY)
@@ -89,7 +89,7 @@ class EventLogTrustCodeController @Inject() (
             Created(TrustCodeGenericResponse(
               success = true,
               "Trust Code Successfully created",
-              List(TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+              List(TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), tc.methods, Some(el)))
             ))
           }(executor)
       case Failure(e: ToolBoxError) =>
@@ -119,10 +119,11 @@ class EventLogTrustCodeController @Inject() (
             Nil
           ))
         } else {
+          //Can we put the methods names here?
           Ok(TrustCodeGenericResponse(
             success = true,
             "Trust Code Successfully retrieved",
-            els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+            els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Nil, Some(el)))
           ))
         }
 
@@ -148,6 +149,7 @@ class EventLogTrustCodeController @Inject() (
     val method = params("method")
 
     val methodParams = Try(EventLogJsonSupport.FromJson[List[TrustCodeMethodParam]](parsedBody).get).getOrElse {
+      logger.error("Error parsing request: " + parsedBody.toString)
       halt(BadRequest(
         TrustCodeGenericResponse(
           success = false,
@@ -178,7 +180,7 @@ class EventLogTrustCodeController @Inject() (
 
     val fres = cache.get[TrustCodeLoad](trustCodeId).map {
 
-      case Some(TrustCodeLoad(_, instance, clazz)) =>
+      case Some(TrustCodeLoad(_, instance, clazz, _)) =>
 
         val declaredMethods = clazz.getDeclaredMethods.toList
 
@@ -217,6 +219,7 @@ class EventLogTrustCodeController @Inject() (
   }
 
   post("/trust_code/:id/init") {
+
     val trustCodeId = params("id")
 
     def run: Future[TrustCodeGenericResponse] = {
@@ -234,7 +237,7 @@ class EventLogTrustCodeController @Inject() (
                     TrustCodeGenericResponse(
                       success = true,
                       "Trust Code Successfully initiated",
-                      els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+                      els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), value.methods, Some(el)))
                     )
                   }
                 case Failure(e) =>
@@ -243,7 +246,7 @@ class EventLogTrustCodeController @Inject() (
                     TrustCodeGenericResponse(
                       success = false,
                       "Error initiating Trust Code: " + e.getMessage,
-                      els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+                      els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Nil, Some(el)))
                     )
                   }
               }
@@ -264,7 +267,7 @@ class EventLogTrustCodeController @Inject() (
                 TrustCodeGenericResponse(
                   success = false,
                   "Error initiating Trust Code: " + e.getMessage,
-                  els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Some(el)))
+                  els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), Nil, Some(el)))
                 )
               }
           }
@@ -273,13 +276,15 @@ class EventLogTrustCodeController @Inject() (
     }
 
     val fres = cache.get[TrustCodeLoad](trustCodeId).flatMap {
-      case Some(t) =>
+      case Some(tc) =>
 
-        Future.successful(TrustCodeGenericResponse(
-          success = true,
-          "Trust Code already initiated",
-          Nil
-        ))
+        eventLogEndpoint.queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY).map{ els =>
+          TrustCodeGenericResponse(
+            success = true,
+            "Trust Code already initiated",
+            els.map(el => TrustCodeResponse(el.id, serverConfig.createURL("/trust_code/" + el.id), tc.methods, Some(el)))
+          )
+        }
 
       case None => run
     }

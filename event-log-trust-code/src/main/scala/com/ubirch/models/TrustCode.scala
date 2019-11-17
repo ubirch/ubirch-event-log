@@ -28,6 +28,6 @@ case class TrustCodeCreation(name: String, description: String, trustCode: Strin
 
 case class TrustCodeMethodParam(tpe: String, value: String)
 
-case class TrustCodeResponse(id: String, endpoint: String, eventLog: Option[EventLog])
+case class TrustCodeResponse(id: String, endpoint: String, methods: List[String], eventLog: Option[EventLog])
 
 case class TrustCodeSession(sessionId: String, trustCode: Class[TrustCode])
