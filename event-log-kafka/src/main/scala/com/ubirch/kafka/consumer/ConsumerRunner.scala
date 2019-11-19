@@ -286,6 +286,10 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
 
+  @BeanProperty var gracefulTimeout: FiniteDuration = 5000 millis
+
+  @BeanProperty var forceExit: Boolean = true
+
   protected var consumer: Consumer[K, V] = _
 
   def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
@@ -350,7 +354,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
         } catch {
           case e: NeedForPauseException =>
-            import monix.execution.Scheduler.{ global => scheduler }
+            implicit val scheduler = monix.execution.Scheduler(ec)
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
@@ -406,21 +410,24 @@ abstract class ConsumerRunner[K, V](name: String)
     } catch {
       case e: MaxNumberOfCommitAttemptsException =>
         logger.error("MaxNumberOfCommitAttemptsException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: ConsumerCreationException =>
         logger.error("ConsumerCreationException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: EmptyTopicException =>
         logger.error("EmptyTopicException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: NeedForShutDownException =>
         logger.error("NeedForShutDownException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: Exception =>
         logger.error("Exception floor (0) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, Option(e.getMessage).getOrElse(""), e)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
     } finally {
       if (consumer != null) consumer.close()
+      if (getForceExit) {
+        sys.exit(1)
+      }
     }
   }
 
