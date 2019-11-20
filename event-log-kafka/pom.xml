@@ -6,7 +6,7 @@
     <!-- basic info -->
     <groupId>com.ubirch</groupId>
     <artifactId>event-log-kafka</artifactId>
-    <version>1.2.7-SNAPSHOT</version>
+    <version>1.2.8-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Kafka for the ubirch Platform</description>
     <url>https://ubirch.com</url>
