@@ -5,7 +5,7 @@ import com.ubirch.models._
 import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -65,11 +65,14 @@ class ExecutorSpec extends TestBase with MockitoSugar with ExecutionImpl {
 
       val config = mock[Config]
 
+      val successCounter = new DefaultSuccessCounter(config)
+      val failureCounter = new DefaultFailureCounter(config)
+
       val family = DefaultExecutorFamily(
-        new LoggerExecutor(events, new DefaultMetricsLoggerCounter(config), config)
+        new LoggerExecutor(events, successCounter, failureCounter, config)
       )
 
-      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, new DefaultConsumerRecordsManagerCounter(config), config)
+      val defaultExecutor = new DefaultConsumerRecordsManager(reporter, family, failureCounter, config)
 
       val consumerRecord = mock[ConsumerRecord[String, String]]
 
