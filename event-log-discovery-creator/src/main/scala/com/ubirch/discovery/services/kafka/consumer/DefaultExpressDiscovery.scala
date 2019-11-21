@@ -15,7 +15,7 @@ import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
@@ -108,9 +108,8 @@ class DefaultExpressDiscovery @Inject() (
   }
 
   def run(consumerRecord: ConsumerRecord[String, String]) = {
-    Future(composed(consumerRecord)).flatMap { json =>
-      send(producerTopic, json)
-    }
+    val json = composed(consumerRecord)
+    send(producerTopic, json)
   }
 
 }

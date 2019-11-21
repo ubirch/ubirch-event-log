@@ -246,6 +246,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private val preConsumeCallback = new Callback0[Unit] {}
 
+  private val postPollCallback = new Callback[Int, Unit] {}
+
   private val postConsumeCallback = new Callback[Int, Unit] {}
 
   protected val postCommitCallback = new Callback[Int, Unit] {}
@@ -284,9 +286,15 @@ abstract class ConsumerRunner[K, V](name: String)
 
   @BeanProperty var delayRecords: FiniteDuration = 0 millis
 
+  @BeanProperty var gracefulTimeout: FiniteDuration = 5000 millis
+
+  @BeanProperty var forceExit: Boolean = true
+
   protected var consumer: Consumer[K, V] = _
 
   def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
+
+  def onPostPoll(f: Int => Unit): Unit = postPollCallback.addCallback(f)
 
   def onPostConsume(f: Int => Unit): Unit = postConsumeCallback.addCallback(f)
 
@@ -308,8 +316,8 @@ abstract class ConsumerRunner[K, V](name: String)
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
-      val failed = new AtomicReference[Option[Throwable]](None)
-      val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
+      lazy val failed = new AtomicReference[Option[Throwable]](None)
+      lazy val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
       while (getRunning) {
 
@@ -322,6 +330,9 @@ abstract class ConsumerRunner[K, V](name: String)
           val totalPolledCount = consumerRecords.count()
 
           try {
+
+            postPollCallback.run(totalPolledCount)
+
             getConsumptionStrategy match {
               case All =>
                 if (totalPolledCount > 0) {
@@ -343,7 +354,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
         } catch {
           case e: NeedForPauseException =>
-            import monix.execution.Scheduler.{ global => scheduler }
+            implicit val scheduler = monix.execution.Scheduler(ec)
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
@@ -399,21 +410,27 @@ abstract class ConsumerRunner[K, V](name: String)
     } catch {
       case e: MaxNumberOfCommitAttemptsException =>
         logger.error("MaxNumberOfCommitAttemptsException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: ConsumerCreationException =>
         logger.error("ConsumerCreationException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: EmptyTopicException =>
         logger.error("EmptyTopicException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: NeedForShutDownException =>
         logger.error("NeedForShutDownException: {}", e.getMessage)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
+      case _: NullPointerException =>
+        logger.error("NullPointerException: Received a NPE. Shutting down.")
+        sys.exit(1)
       case e: Exception =>
         logger.error("Exception floor (0) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, Option(e.getMessage).getOrElse(""), e)
-        startGracefulShutdown()
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
     } finally {
       if (consumer != null) consumer.close()
+      if (getForceExit) {
+        sys.exit(1)
+      }
     }
   }
 

@@ -10,7 +10,7 @@ import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.consumer.{ EventLogsPipeData, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter }
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -30,7 +30,7 @@ case class ChainerPipeData(
 class DefaultChainerManager @Inject() (
     val reporter: Reporter,
     executorFamily: ExecutorFamily,
-    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
     config: Config
 )(implicit ec: ExecutionContext)
   extends StringConsumerRecordsManager
@@ -52,28 +52,28 @@ class DefaultChainerManager @Inject() (
   def executorExceptionHandler: PartialFunction[Throwable, Future[ChainerPipeData]] = {
     case e: EmptyValueException =>
       logger.error("EmptyValueException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "EmptyValueException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
       logger.error("ParsingIntoEventLogException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "ParsingIntoEventLogException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
       logger.error("SigningEventLogException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "SigningEventLogException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e @ TreeCreatorExecutorException(_, pipeData) =>
       logger.error("CreateProducerRecordException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "CreateTreeProducerRecordException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
       //TODO: should we just retry the whole loop?
       logger.error("CommitException: " + e.getMessage)
-      counter.counter.labels(metricsSubNamespace, "CommitException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(pipeData)
   }

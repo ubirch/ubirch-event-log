@@ -12,4 +12,8 @@ case class VertexStruct(label: String, properties: Map[String, Any]) {
     val newV = if (k == key) f(v) else v
     (k, newV)
   })
+  def addLabelWhen(newLabel: String)(matching: String): VertexStruct = {
+    if (this.label == matching) this.addLabel(newLabel)
+    else this
+  }
 }
