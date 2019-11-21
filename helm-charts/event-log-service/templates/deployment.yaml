@@ -35,15 +35,17 @@ spec:
                       - containerPort: 9020
                       - containerPort: 4321
                   readinessProbe:
-                      tcpSocket:
-                          port: 9010
-                      initialDelaySeconds: 20
-                      periodSeconds: 10
+                    httpGet:
+                      path: "/health/ready"
+                      port: 8888
+                    initialDelaySeconds: 10
+                    periodSeconds: 10
                   livenessProbe:
-                      tcpSocket:
-                          port: 9010
-                      initialDelaySeconds: 30
-                      periodSeconds: 60
+                    httpGet:
+                      path: "/health/live"
+                      port: 8888
+                    initialDelaySeconds: 20
+                    periodSeconds: 60
                   env:
                       - name: EVTL_CS_KEYSPACE
                         value: "{{ .Values.eventLog.cassandra.cluster.keyspace}}"
