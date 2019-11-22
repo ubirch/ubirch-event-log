@@ -1,22 +1,17 @@
 package com.ubirch.sdk
 
-import java.util.UUID
-
 import com.google.inject.Module
 import com.typesafe.config.Config
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
-import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.sdk.process._
-import com.ubirch.sdk.util.SDKJsonSupport
 import com.ubirch.services.ServiceBinder
 import com.ubirch.util.InjectorHelper
 import org.json4s.JValue
-import org.json4s.jackson.JsonMethods._
 
 import scala.beans.BeanProperty
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.implicitConversions
 
 /**
@@ -35,13 +30,6 @@ trait WithConversions {
     def commitAsync: Future[EventLog] = asyncCommitter(message)
 
     def commitStealthAsync: EventLog = stealthAsyncCommitter(message)
-
-    def asProtocolMessage(uuid: UUID, signature: String): EventLog = {
-      val pm = new ProtocolMessage(1, uuid, 0, asJsonNode(message.event))
-      pm.setSignature(org.bouncycastle.util.Strings.toByteArray(signature))
-      val data = SDKJsonSupport.ToJson[ProtocolMessage](pm).get
-      message.withe
-    }
 
     //Joiners
 

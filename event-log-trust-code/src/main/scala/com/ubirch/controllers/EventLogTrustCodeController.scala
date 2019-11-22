@@ -1,23 +1,21 @@
 package com.ubirch.controllers
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.classloader.{TrustCodeLoad, TrustCodeLoader}
+import com.ubirch.classloader.{ TrustCodeLoad, TrustCodeLoader }
 import com.ubirch.models._
-import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.sdk.EventLogging
 import com.ubirch.service.eventLog.EventLogEndpoint
 import com.ubirch.service.rest.ServerConfig
-import com.ubirch.util.{EventLogJsonSupport, TrustCodeJsonSupport, UUIDHelper}
+import com.ubirch.util.{ EventLogJsonSupport, UUIDHelper }
 import javax.inject._
 import org.json4s.Formats
 import org.scalatra._
 import org.scalatra.json.NativeJsonSupport
-import org.scalatra.swagger.{Swagger, SwaggerSupport, SwaggerSupportSyntax}
+import org.scalatra.swagger.{ Swagger, SwaggerSupport, SwaggerSupportSyntax }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.tools.reflect.ToolBoxError
-import scala.util.{Failure, Success, Try}
-import org.json4s.jackson.JsonMethods._
+import scala.util.{ Failure, Success, Try }
 
 class EventLogTrustCodeController @Inject() (
     val swagger: Swagger,
@@ -64,13 +62,12 @@ class EventLogTrustCodeController @Inject() (
   post("/trust_code", operation(trustCodeSwagger)) {
     import eventLogging._
 
-    val ownerId = UUIDHelper.randomUUID
+    val ownerId = "Carlos"
     val trustCodeCreation = parsedBody
 
     logger.info("Received request with params {}", trustCodeCreation)
 
-    val fromJson = EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation)
-    val tc = Try(fromJson.get).getOrElse {
+    val tc = Try(EventLogJsonSupport.FromJson[TrustCodeCreation](trustCodeCreation).get).getOrElse {
       halt(BadRequest(
         TrustCodeGenericResponse(
           success = false,
@@ -83,19 +80,7 @@ class EventLogTrustCodeController @Inject() (
     val uuid = UUIDHelper.randomUUID
     val fres = trustCodeLoader.materialize(uuid.toString, tc.trustCode) match {
       case Success(tc) =>
-
-        val pm = new ProtocolMessage(
-          1,
-          ownerId,
-          0, asJsonNode(trustCodeCreation)
-        )
-
-        //TODO: set signature
-        pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
-
-        val data = TrustCodeJsonSupport.ToJson[ProtocolMessage](pm).get
-
-        eventLogging.log(data)
+        eventLogging.log(trustCodeCreation)
           .withNewId("TC." + uuid.toString)
           .withCategory(Values.UPP_CATEGORY)
           .withServiceClass("TRUST_CODE")
@@ -248,9 +233,7 @@ class EventLogTrustCodeController @Inject() (
           try {
             els.headOption.map { x =>
               logger.info("Creating trust code")
-              val pm = TrustCodeJsonSupport.FromJson[ProtocolMessage](x.event).get
-              val trustCode = TrustCodeJsonSupport.FromJson[TrustCodeCreation](fromJsonNode(pm.getPayload)).get
-              println("hoal:" + trustCode.trustCode)
+              val trustCode = EventLogJsonSupport.FromJson[TrustCodeCreation](x.event).get
               trustCodeLoader.materialize(x.id, trustCode.trustCode) match {
                 case Success(value) =>
                   cache.put[TrustCodeLoad](value.id, value).map { _ =>

@@ -35,7 +35,6 @@
         <build.number>${timestamp}-dev</build.number>
 
         <event-log-core.version>1.2.5</event-log-core.version>
-        <ubirch-kafka-envelope.version>1.0.1</ubirch-kafka-envelope.version>
 
         <!-- Scalatra -->
         <scalatra.version>2.6.5</scalatra.version>
@@ -73,12 +72,6 @@
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-kafka-envelope</artifactId>
-            <version>${ubirch-kafka-envelope.version}</version>
         </dependency>
 
         <!-- Scalatra -->
