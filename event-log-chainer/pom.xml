@@ -30,7 +30,7 @@
         <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
         <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
 
-        <event-log-core.version>1.2.5</event-log-core.version>
+        <event-log-core.version>1.2.6</event-log-core.version>
         <ubirch-kafka-envelope.version>1.0.1</ubirch-kafka-envelope.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>

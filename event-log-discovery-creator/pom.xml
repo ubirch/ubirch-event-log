@@ -21,7 +21,7 @@
 
         <!-- versions -->
 
-        <event-log-core.version>1.2.5</event-log-core.version>
+        <event-log-core.version>1.2.6</event-log-core.version>
         <ubirch-kafka-envelope.version>1.0.1</ubirch-kafka-envelope.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
