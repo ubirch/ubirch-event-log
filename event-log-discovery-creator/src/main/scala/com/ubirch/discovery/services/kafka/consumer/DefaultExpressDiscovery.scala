@@ -88,8 +88,8 @@ class DefaultExpressDiscovery @Inject() (
       }.get
   }
 
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
-    consumerRecords.foreach { x =>
+  override def process: Process = Process { crs =>
+    crs.foreach { x =>
       run(x).recover {
         case NonFatal(e: StrategyException) =>
           send(errorTopic, Error(e.eventLog.id, e.message, e.getClass.getName, e.eventLog.toJson).toEventLog(errorTopic).toJson)
@@ -104,7 +104,6 @@ class DefaultExpressDiscovery @Inject() (
           throw e
       }
     }
-    Future.unit
   }
 
   def run(consumerRecord: ConsumerRecord[String, String]) = {
