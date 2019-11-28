@@ -246,7 +246,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   private val preConsumeCallback = new Callback0[Unit] {}
 
-  private val postPollCallback = new Callback0[Unit] {}
+  private val postPollCallback = new Callback[Int, Unit] {}
 
   private val postConsumeCallback = new Callback[Int, Unit] {}
 
@@ -294,7 +294,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
   def onPreConsume(f: () => Unit): Unit = preConsumeCallback.addCallback(f)
 
-  def onPostPoll(f: () => Unit): Unit = postPollCallback.addCallback(f)
+  def onPostPoll(f: Int => Unit): Unit = postPollCallback.addCallback(f)
 
   def onPostConsume(f: Int => Unit): Unit = postConsumeCallback.addCallback(f)
 
@@ -316,8 +316,8 @@ abstract class ConsumerRunner[K, V](name: String)
       createConsumer(getProps)
       subscribe(getTopics.toList, getConsumerRebalanceListenerBuilder)
 
-      val failed = new AtomicReference[Option[Throwable]](None)
-      val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
+      lazy val failed = new AtomicReference[Option[Throwable]](None)
+      lazy val commitAttempts = new AtomicInteger(getMaxCommitAttempts)
 
       while (getRunning) {
 
@@ -327,12 +327,12 @@ abstract class ConsumerRunner[K, V](name: String)
 
           val pollTimeDuration = java.time.Duration.ofMillis(getPollTimeout.toMillis)
           val consumerRecords = consumer.poll(pollTimeDuration)
-
-          postPollCallback.run()
-
           val totalPolledCount = consumerRecords.count()
 
           try {
+
+            postPollCallback.run(totalPolledCount)
+
             getConsumptionStrategy match {
               case All =>
                 if (totalPolledCount > 0) {
@@ -420,6 +420,9 @@ abstract class ConsumerRunner[K, V](name: String)
       case e: NeedForShutDownException =>
         logger.error("NeedForShutDownException: {}", e.getMessage)
         shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
+      case _: NullPointerException =>
+        logger.error("NullPointerException: Received a NPE. Shutting down.")
+        sys.exit(1)
       case e: Exception =>
         logger.error("Exception floor (0) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, Option(e.getMessage).getOrElse(""), e)
         shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
