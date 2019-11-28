@@ -47,10 +47,10 @@ trait WithMetrics extends WithNamespace {
     .register
 
   private lazy final val pollConsumeLatencySummary: Summary = Summary.build
-    .quantile(0.9, 0.05) // Add 50th percentile (= median) with 5% tolerated error
-    .quantile(0.95, 0.05) // Add 70th percentile (= median) with 5% tolerated error
-    .quantile(0.99, 0.05) // Add 90th percentile with 1% tolerated error
-    .quantile(0.999, 0.05) // Add 90th percentile with 1% tolerated error
+    .quantile(0.9, 0.05)   //Add 90th percentile with 1% tolerated error
+    .quantile(0.95, 0.05)  //Add 95th percentile with 1% tolerated error
+    .quantile(0.99, 0.05)  //Add 99th percentile with 1% tolerated error
+    .quantile(0.999, 0.05) //Add 99.9th percentile with 1% tolerated error
     .namespace(metricsNamespace)
     .name(metricsName("processing_time_seconds"))
     .help("Message processing time in seconds")
