@@ -41,7 +41,7 @@
         <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
         <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
         <embedded-kafka>2.3.0</embedded-kafka>
-        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <embedded-cassandra-test>1.4.2</embedded-cassandra-test>
         <!-- plugins -->
 
         <!-- versions -->
@@ -167,7 +167,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
-                    <argLine>-Xms512m -Xmx1024m</argLine>
+                    <argLine>-Xmx1024m</argLine>
                 </configuration>
                 <executions>
                     <execution>
