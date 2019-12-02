@@ -22,7 +22,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
 import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
@@ -130,15 +130,17 @@ class ChainerSpec extends TestBase with LazyLogging {
   val messageEnvelopeTopic = "com.ubirch.messageenvelope"
   val eventLogTopic = "com.ubirch.eventlog"
 
-  def readMessage(topic: String, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 1000): List[String] =  {
-
+  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] =  {
     @tailrec
     def go(acc: Int): List[String] = {
       try {
         logger.info("Trying to get value.")
         consumeNumberStringMessagesFrom(topic, maxToRead)
       } catch {
+        case e: KafkaUnavailableException =>
+          throw e
         case e: TimeoutException =>
+          logger.warn("Starting retry")
           if(acc == 0){
             throw e
           } else {
@@ -146,6 +148,10 @@ class ChainerSpec extends TestBase with LazyLogging {
             go(acc - 1)
           }
       }
+    }
+
+    if(onStartWait > 0){
+      Thread.sleep(onStartWait)
     }
 
     go(maxRetries)
@@ -161,22 +167,22 @@ class ChainerSpec extends TestBase with LazyLogging {
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
       val config = InjectorHelper.get[Config]
 
+      val customerIds = List("Sun", "Earth", "Marz")
+      val customerRange = 0 to 3
+
+      val events = customerIds.flatMap { x =>
+        customerRange.map(_ =>
+
+          EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+            .withEventTime(new Date())
+            .withRandomNonce
+            .withCustomerId(x)
+            .withNewId
+            .withCategory(Values.UPP_CATEGORY)
+            .sign(config))
+      }
+
       withRunningKafka {
-
-        val customerIds = List("Sun", "Earth", "Marz")
-        val customerRange = 0 to 3
-
-        val events = customerIds.flatMap { x =>
-          customerRange.map(_ =>
-
-            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
-              .withEventTime(new Date())
-              .withRandomNonce
-              .withCustomerId(x)
-              .withNewId
-              .withCategory(Values.UPP_CATEGORY)
-              .sign(config))
-        }
 
         events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
@@ -189,7 +195,9 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val maxNumberToRead = 1 /* tree */
 
-        var messages: List[String] = readMessage(eventLogTopic)
+        val messages: List[String] = readMessage(eventLogTopic +1)
+
+        logger.info("Messages Read:" + messages)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
@@ -415,24 +423,24 @@ class ChainerSpec extends TestBase with LazyLogging {
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 10)
       val config = InjectorHelper.get[Config]
 
+      val customerIds = List("Sun")
+      val customerRange = 0 to 11
+
+      val events = customerIds.flatMap { x =>
+        customerRange.map(_ =>
+
+          EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+            .withEventTime(new Date())
+            .withRandomNonce
+            .withCustomerId(x)
+            .withNewId
+            .withCategory(Values.UPP_CATEGORY)
+            .sign(config))
+      }
+
+      val (e1s, e2s) = events.splitAt(7)
+
       withRunningKafka {
-
-        val customerIds = List("Sun")
-        val customerRange = 0 to 11
-
-        val events = customerIds.flatMap { x =>
-          customerRange.map(_ =>
-
-            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
-              .withEventTime(new Date())
-              .withRandomNonce
-              .withCustomerId(x)
-              .withNewId
-              .withCategory(Values.UPP_CATEGORY)
-              .sign(config))
-        }
-
-        val (e1s, e2s) = events.splitAt(7)
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
@@ -512,24 +520,24 @@ class ChainerSpec extends TestBase with LazyLogging {
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 11, mode = Master)
       val config = InjectorHelper.get[Config]
 
+      val customerIds = List("Sun")
+      val customerRange = 0 to 11
+
+      val events = customerIds.flatMap { x =>
+        customerRange.map(_ =>
+
+          EventLog(JString(UUIDHelper.randomUUID.toString))
+            .withEventTime(new Date())
+            .withRandomNonce
+            .withCustomerId(x)
+            .withNewId
+            .withCategory(Values.SLAVE_TREE_CATEGORY)
+            .sign(config))
+      }
+
+      val (e1s, e2s) = events.splitAt(7)
+
       withRunningKafka {
-
-        val customerIds = List("Sun")
-        val customerRange = 0 to 11
-
-        val events = customerIds.flatMap { x =>
-          customerRange.map(_ =>
-
-            EventLog(JString(UUIDHelper.randomUUID.toString))
-              .withEventTime(new Date())
-              .withRandomNonce
-              .withCustomerId(x)
-              .withNewId
-              .withCategory(Values.SLAVE_TREE_CATEGORY)
-              .sign(config))
-        }
-
-        val (e1s, e2s) = events.splitAt(7)
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
