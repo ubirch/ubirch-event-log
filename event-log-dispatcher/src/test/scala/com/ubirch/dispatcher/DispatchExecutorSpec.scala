@@ -3,16 +3,18 @@ package com.ubirch.dispatcher
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
+import com.typesafe.config.{Config, ConfigValueFactory}
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
-import com.ubirch.kafka.consumer.{ All, StringConsumer }
-import com.ubirch.models.{ EventLog, HeaderNames, Values }
+import com.ubirch.dispatcher.services.{DispatchInfo, DispatcherServiceBinder}
+import com.ubirch.kafka.consumer.{All, StringConsumer}
+import com.ubirch.models.{EventLog, HeaderNames, Values}
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
 import org.json4s.JsonAST.JString
+
+import scala.annotation.tailrec
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new DispatcherServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -32,6 +34,35 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class DispatchExecutorSpec extends TestBase with LazyLogging {
 
+  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] =  {
+    @tailrec
+    def go(acc: Int): List[String] = {
+      try {
+        logger.info("Trying to get value.")
+        val read = consumeNumberStringMessagesFrom(topic, maxToRead)
+        logger.info("[{}] messages read", read.size)
+        read
+      } catch {
+        case e: KafkaUnavailableException =>
+          throw e
+        case e: TimeoutException =>
+          logger.warn("Starting retry")
+          if(acc == 0){
+            throw e
+          } else {
+            Thread.sleep(sleepInBetween)
+            go(acc - 1)
+          }
+      }
+    }
+
+    if(onStartWait > 0){
+      Thread.sleep(onStartWait)
+    }
+
+    go(maxRetries)
+  }
+
   "Dispatch Spec" must {
 
     "consume and dispatch successfully 3000" in {
@@ -42,18 +73,18 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
+      val dispatchInfo = InjectorHelper.get[DispatchInfo].info
+
+      val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
+
+      val range = (1 to 3000)
+      val eventLogs = range.map { _ =>
+        EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
+      }
+
       withRunningKafka {
 
         val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
-
-        val dispatchInfo = InjectorHelper.get[DispatchInfo].info
-
-        val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
-
-        val range = (1 to 3000)
-        val eventLogs = range.map { _ =>
-          EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
-        }
 
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
@@ -67,14 +98,12 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(20000)
-
         var total = 0
 
         maybeDispatch match {
           case Some(s) =>
             s.topics.map { t =>
-              val fromTopic = consumeNumberStringMessagesFrom(t.name, range.size)
+              val fromTopic = readMessage(t.name, onStartWait = 10000 ,maxToRead = range.size)
               total = total + fromTopic.size
               assert(range.size == fromTopic.size)
             }
