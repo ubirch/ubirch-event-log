@@ -59,7 +59,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val range = 1 to 3000
+        val range = 1 to 300
         range.foreach { x =>
           val pmId = x
           val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
@@ -79,7 +79,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(10000)
+        Thread.sleep(500)
 
         assert(consumeNumberStringMessagesFrom(eventLogTopic, range.size).size == range.size)
 
