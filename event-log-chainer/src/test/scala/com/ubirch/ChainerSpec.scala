@@ -2,20 +2,20 @@ package com.ubirch
 
 import java.io.ByteArrayInputStream
 import java.util.Date
-import java.util.concurrent.Executor
+import java.util.concurrent.{Executor, TimeoutException}
 
 import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
+import com.typesafe.config.{Config, ConfigValueFactory}
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
+import com.ubirch.ConfPaths.{ConsumerConfPaths, ProducerConfPaths}
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
+import com.ubirch.chainer.services.httpClient.{WebClient, WebclientResponse}
 import com.ubirch.chainer.services.tree.TreeMonitor
-import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
-import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.chainer.util.{ChainerJsonSupport, PMHelper}
+import com.ubirch.kafka.consumer.{All, StringConsumer}
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
@@ -27,7 +27,9 @@ import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
+import scala.util.control.TailCalls.TailRec
 
 class WebClientProvider extends Provider[WebClient] {
   override def get(): WebClient = new WebClient {
@@ -128,6 +130,27 @@ class ChainerSpec extends TestBase with LazyLogging {
   val messageEnvelopeTopic = "com.ubirch.messageenvelope"
   val eventLogTopic = "com.ubirch.eventlog"
 
+  def readMessage(topic: String, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 1000): List[String] =  {
+
+    @tailrec
+    def go(acc: Int): List[String] = {
+      try {
+        logger.info("Trying to get value.")
+        consumeNumberStringMessagesFrom(topic, maxToRead)
+      } catch {
+        case e: TimeoutException =>
+          if(acc == 0){
+            throw e
+          } else {
+            Thread.sleep(sleepInBetween)
+            go(acc - 1)
+          }
+      }
+    }
+
+    go(maxRetries)
+  }
+
   "Chainer Spec" must {
 
     "consume, process and publish tree and event logs in Slave mode" in {
@@ -164,10 +187,9 @@ class ChainerSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(5000)
-
         val maxNumberToRead = 1 /* tree */
-        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
+
+        var messages: List[String] = readMessage(eventLogTopic)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
