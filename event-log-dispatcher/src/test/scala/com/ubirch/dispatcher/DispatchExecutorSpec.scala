@@ -3,17 +3,19 @@ package com.ubirch.dispatcher
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
+import com.typesafe.config.{Config, ConfigValueFactory}
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
-import com.ubirch.kafka.consumer.{ All, StringConsumer }
-import com.ubirch.models.{ EventLog, HeaderNames, Values }
+import com.ubirch.dispatcher.services.{DispatchInfo, DispatcherServiceBinder}
+import com.ubirch.kafka.consumer.{All, StringConsumer}
+import com.ubirch.models.{EventLog, HeaderNames, Values}
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
+import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.json4s.JsonAST.JString
 
+import scala.concurrent.duration._
 import scala.annotation.tailrec
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new DispatcherServiceBinder {
@@ -39,7 +41,11 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
     def go(acc: Int): List[String] = {
       try {
         logger.info("Trying to get value(s) from [{}]", topic)
-        val read = consumeNumberStringMessagesFrom(topic, maxToRead)
+        val read = {
+          consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 10.seconds)(
+            kafkaConfig,
+            new StringDeserializer())(topic)
+        }
         logger.info("[{}] messages read", read.size)
         read
       } catch {
@@ -88,9 +94,11 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
+        logger.info("Publishing events")
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
         }
+        logger.info("Finished publishing events")
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
