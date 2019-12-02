@@ -71,7 +71,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
   "Dispatch Spec" must {
 
-    "consume and dispatch successfully 3000" in {
+    "consume and dispatch successfully 300" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -138,15 +138,15 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
+      val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+
+      val dispatchInfo = InjectorHelper.get[DispatchInfo].info
+
+      val eventLogs = dispatchInfo.map { x =>
+        EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(x.category).withNewId
+      }
+
       withRunningKafka {
-
-        val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
-
-        val dispatchInfo = InjectorHelper.get[DispatchInfo].info
-
-        val eventLogs = dispatchInfo.map { x =>
-          EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(x.category).withNewId
-        }
 
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
@@ -203,9 +203,9 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
           .addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:aggregation")
       }
 
-      withRunningKafka {
+      val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
 
-        val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+      withRunningKafka {
 
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
