@@ -54,8 +54,10 @@ class EncoderExecutor @Inject() (
 
   val CUSTOMER_ID_FIELD = "customerId"
 
-  val topic = config.getStringAsOption(TOPIC_PATH).getOrElse("com.ubirch.eventlog")
+  val topic = config.getStringAsOption(TOPIC_PATH).getOrElse(throw new Exception("No Publishing Topic configured"))
   val scheduler = monix.execution.Scheduler(ec)
+
+  logger.info("publish_topic=[{}]", topic)
 
   override def process(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]]): Future[EncoderPipeData] = {
     consumerRecords.map { x =>
