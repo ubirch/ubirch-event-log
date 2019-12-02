@@ -166,7 +166,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
-                    <argLine>-Xms512m -Xmx1024m</argLine>
+                    <argLine>-Xms512m -Xmx1400M</argLine>
                 </configuration>
                 <executions>
                     <execution>
