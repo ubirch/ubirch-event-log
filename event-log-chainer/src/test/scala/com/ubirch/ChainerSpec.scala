@@ -195,7 +195,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val maxNumberToRead = 1 /* tree */
 
-        val messages: List[String] = readMessage(eventLogTopic +1)
+        val messages: List[String] = readMessage(eventLogTopic)
 
         logger.info("Messages Read:" + messages)
 
