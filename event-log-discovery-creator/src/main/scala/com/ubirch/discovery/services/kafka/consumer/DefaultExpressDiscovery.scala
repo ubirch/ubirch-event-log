@@ -89,10 +89,10 @@ class DefaultExpressDiscovery @Inject() (
   }
 
   def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
-    consumerRecords.foreach { x =>
-      Future(composed(x)).map{ json =>
+    val res = consumerRecords.map { x =>
+      Future(composed(x)).flatMap { json =>
         send(producerTopic, json)
-      } recover {
+      } recoverWith {
         case NonFatal(e: StrategyException) =>
           logger.error("Error Creating Relation (1): ", e)
           logger.error("Error Creating Relation (1.1): {}", x.value())
@@ -106,7 +106,9 @@ class DefaultExpressDiscovery @Inject() (
           throw e
       }
     }
-    Future.unit
+
+    Future.sequence(res).map(_ => ())
+
   }
 
 }
