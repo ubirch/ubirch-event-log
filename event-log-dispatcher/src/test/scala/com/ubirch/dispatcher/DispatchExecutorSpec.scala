@@ -85,7 +85,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
 
-      val range = 1 to 3000
+      val range = 1 to 300
       val eventLogs = range.map { _ =>
         EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
       }
@@ -110,7 +110,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
         var total = 0
 
-        Thread.sleep(10000)
+        Thread.sleep(5000)
 
         maybeDispatch match {
           case Some(s) =>
