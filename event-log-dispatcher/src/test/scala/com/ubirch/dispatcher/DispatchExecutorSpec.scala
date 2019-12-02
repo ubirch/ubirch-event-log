@@ -3,15 +3,15 @@ package com.ubirch.dispatcher
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{Config, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.dispatcher.services.{DispatchInfo, DispatcherServiceBinder}
-import com.ubirch.kafka.consumer.{All, StringConsumer}
-import com.ubirch.models.{EventLog, HeaderNames, Values}
+import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.models.{ EventLog, HeaderNames, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
+import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
 import org.json4s.JsonAST.JString
 
 import scala.annotation.tailrec
@@ -34,7 +34,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class DispatchExecutorSpec extends TestBase with LazyLogging {
 
-  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] =  {
+  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
     @tailrec
     def go(acc: Int): List[String] = {
       try {
@@ -47,7 +47,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
           throw e
         case e: TimeoutException =>
           logger.warn("Starting retry")
-          if(acc == 0){
+          if (acc == 0) {
             throw e
           } else {
             Thread.sleep(sleepInBetween)
@@ -56,7 +56,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
       }
     }
 
-    if(onStartWait > 0){
+    if (onStartWait > 0) {
       Thread.sleep(onStartWait)
     }
 
@@ -102,10 +102,12 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
         var total = 0
 
+        Thread.sleep(10000)
+
         maybeDispatch match {
           case Some(s) =>
             s.topics.map { t =>
-              val fromTopic = readMessage(t.name, onStartWait = 10000 ,maxToRead = range.size)
+              val fromTopic = readMessage(t.name, onStartWait = 0, maxToRead = range.size)
               total = total + fromTopic.size
               assert(range.size == fromTopic.size)
             }
