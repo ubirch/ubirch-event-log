@@ -181,18 +181,18 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
+      val dispatchInfo = InjectorHelper.get[DispatchInfo].info
+
+      val eventLogs = dispatchInfo.map { x =>
+        EventLog(JString(UUIDHelper.randomUUID.toString))
+          .withCategory(x.category)
+          .withNewId
+          .addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:aggregation")
+      }
+
       withRunningKafka {
 
         val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
-
-        val dispatchInfo = InjectorHelper.get[DispatchInfo].info
-
-        val eventLogs = dispatchInfo.map { x =>
-          EventLog(JString(UUIDHelper.randomUUID.toString))
-            .withCategory(x.category)
-            .withNewId
-            .addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:aggregation")
-        }
 
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
