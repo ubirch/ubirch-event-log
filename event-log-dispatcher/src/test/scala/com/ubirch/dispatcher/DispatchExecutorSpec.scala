@@ -38,7 +38,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
     @tailrec
     def go(acc: Int): List[String] = {
       try {
-        logger.info("Trying to get value.")
+        logger.info("Trying to get value(s) from [{}]", topic)
         val read = consumeNumberStringMessagesFrom(topic, maxToRead)
         logger.info("[{}] messages read", read.size)
         read
@@ -71,20 +71,22 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
+      val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+
       val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
 
       val dispatchInfo = InjectorHelper.get[DispatchInfo].info
 
       val maybeDispatch = dispatchInfo.find(d => d.category == Values.UPP_CATEGORY)
 
-      val range = (1 to 3000)
+      val range = 1 to 3000
       val eventLogs = range.map { _ =>
         EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(Values.UPP_CATEGORY).withNewId
       }
 
-      withRunningKafka {
+      logger.info("Topic: " + messageEnvelopeTopic)
 
-        val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
+      withRunningKafka {
 
         eventLogs.foreach { x =>
           publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
@@ -111,6 +113,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
             assert(1 != 1)
         }
 
+        logger.info("Testing last assert")
         assert(total == range.size * maybeDispatch.map(_.topics.size).getOrElse(0))
 
       }
