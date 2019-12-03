@@ -24,7 +24,7 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import scala.concurrent.ExecutionContext
 import scala.language.{ implicitConversions, postfixOps }
 
-class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new ServiceBinder {
+class InjectorHelperImpl(bootstrapServers: String, storeLookups: Boolean = true) extends InjectorHelper(List(new ServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = super.conf
       .withValue(
@@ -34,6 +34,10 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
       .withValue(
         "eventLog.kafkaProducer.bootstrapServers",
         ConfigValueFactory.fromAnyRef(bootstrapServers)
+      )
+      .withValue(
+        "eventLog.storeLookups",
+        ConfigValueFactory.fromAnyRef(storeLookups)
       )
   })
 }))
@@ -385,6 +389,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setConsumerRecordsController(Some(controller))
         consumer.setTopics(Set(topic))
+        consumer.setForceExit(false)
         consumer.setProps(configs)
 
         consumer.startPolling()
@@ -446,6 +451,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setConsumerRecordsController(Some(controller))
         consumer.setTopics(Set(topic))
+        consumer.setForceExit(false)
         consumer.setProps(configs)
 
         consumer.startPolling()
@@ -510,6 +516,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setConsumerRecordsController(Some(controller))
         consumer.setTopics(Set(topic))
+        consumer.setForceExit(false)
         consumer.setProps(configs)
         consumer.onPostCommit(i => committedN = i)
 
