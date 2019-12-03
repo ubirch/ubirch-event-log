@@ -42,7 +42,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
       try {
         logger.info("Trying to get value(s) from [{}]", topic)
         val read = {
-          consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 10.seconds)(
+          consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 20.seconds)(
             kafkaConfig,
             new StringDeserializer()
           )(topic)
