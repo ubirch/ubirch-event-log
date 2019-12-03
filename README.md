@@ -1,6 +1,6 @@
 # UBIRCH EVENT LOG
 
-The Event Log System is a collection of services that allow the chaining
+The Event Log System is a collection of services that allow the chaining of UPPs.
 
 ![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/event_log_pipeline_architecture.png "Event Log System")
 
