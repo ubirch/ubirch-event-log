@@ -9,6 +9,7 @@ import com.ubirch.kafka.util.Exceptions._
 import com.ubirch.kafka.util.Implicits._
 import com.ubirch.kafka.util.{ Callback, Callback0, VersionedLazyLogging }
 import com.ubirch.util.{ FutureHelper, ShutdownableThread }
+import monix.execution.Scheduler
 import org.apache.kafka.clients.consumer.{ OffsetAndMetadata, _ }
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.errors.TimeoutException
@@ -227,6 +228,8 @@ abstract class ConsumerRunner[K, V](name: String)
 
   implicit def ec: ExecutionContext
 
+  implicit lazy val scheduler: Scheduler = monix.execution.Scheduler(ec)
+
   override val version: AtomicInteger = ConsumerRunner.version
   //This one is made public for testing purposes
   @BeanProperty val isPaused: AtomicBoolean = new AtomicBoolean(false)
@@ -354,7 +357,6 @@ abstract class ConsumerRunner[K, V](name: String)
 
         } catch {
           case e: NeedForPauseException =>
-            implicit val scheduler = monix.execution.Scheduler(ec)
             val partitions = consumer.assignment()
             consumer.pause(partitions)
             getIsPaused.set(true)
@@ -410,26 +412,23 @@ abstract class ConsumerRunner[K, V](name: String)
     } catch {
       case e: MaxNumberOfCommitAttemptsException =>
         logger.error("MaxNumberOfCommitAttemptsException: {}", e.getMessage)
-        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: ConsumerCreationException =>
         logger.error("ConsumerCreationException: {}", e.getMessage)
         shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: EmptyTopicException =>
         logger.error("EmptyTopicException: {}", e.getMessage)
-        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case e: NeedForShutDownException =>
         logger.error("NeedForShutDownException: {}", e.getMessage)
-        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       case _: NullPointerException =>
         logger.error("NullPointerException: Received a NPE. Shutting down.")
         sys.exit(1)
       case e: Exception =>
         logger.error("Exception floor (0) ... Exception: [{}] Message: [{}]", e.getClass.getCanonicalName, Option(e.getMessage).getOrElse(""), e)
-        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
     } finally {
-      if (consumer != null) consumer.close()
-      if (getForceExit) {
-        sys.exit(1)
+      logger.info("Running -finally-")
+      if (consumer != null) {
+        consumer.close(java.time.Duration.of(getGracefulTimeout.length, java.time.temporal.ChronoUnit.MILLIS))
+        shutdown(getGracefulTimeout.length, getGracefulTimeout.unit)
       }
     }
   }
@@ -538,7 +537,17 @@ abstract class ConsumerRunner[K, V](name: String)
     }
   }
 
-  def startPolling(): Unit = start()
+  def startPolling(): Unit = {
+    if (getForceExit) {
+      scheduler.scheduleWithFixedDelay(1 second, 2 seconds) {
+        if (!getRunning) {
+          logger.info("The thread of [{}] is not running and forced exit is [{}]", name, getForceExit)
+          sys.exit(1)
+        }
+      }
+    }
+    start()
+  }
 
 }
 

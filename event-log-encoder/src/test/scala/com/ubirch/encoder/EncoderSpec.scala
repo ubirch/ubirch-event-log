@@ -4,19 +4,19 @@ import java.util.UUID
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{Config, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
-import com.ubirch.kafka.consumer.{All, BytesConsumer}
-import com.ubirch.models.{EventLog, LookupKey, Values}
+import com.ubirch.kafka.consumer.{ All, BytesConsumer }
+import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
-import org.apache.kafka.common.serialization.{Deserializer, Serializer, StringDeserializer}
+import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
+import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer }
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods.parse
 
@@ -46,7 +46,6 @@ class EncoderSpec extends TestBase with LazyLogging {
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
   implicit val de: Deserializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeDeserializer
 
-
   def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
     @tailrec
     def go(acc: Int): List[String] = {
@@ -55,7 +54,8 @@ class EncoderSpec extends TestBase with LazyLogging {
         val read = {
           consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 10.seconds)(
             kafkaConfig,
-            new StringDeserializer())(topic)
+            new StringDeserializer()
+          )(topic)
         }
         logger.info("[{}] messages read", read.size)
         read

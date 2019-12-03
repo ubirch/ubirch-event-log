@@ -230,7 +230,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
-
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.setProps(configs)
         consumer.startPolling()
 
@@ -250,6 +250,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated
@@ -269,6 +270,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated
