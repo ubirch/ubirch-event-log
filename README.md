@@ -29,7 +29,7 @@ The Event Log System is a collection of services that allow the chaining
 
 ## Install
 
-To build the application run the following command
+To build the application run the following command:
 
 ```
     mvn install
