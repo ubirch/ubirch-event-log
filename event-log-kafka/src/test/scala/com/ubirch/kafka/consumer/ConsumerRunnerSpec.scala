@@ -141,6 +141,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.startPolling()
@@ -194,6 +195,7 @@ class ConsumerRunnerSpec extends TestBase {
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
+        consumer.setForceExit(false)
         consumer.setConsumptionStrategy(All)
         consumer.startPolling()
 
@@ -435,7 +437,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
-        consumer.setForceExit(true)
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.setDelaySingleRecord(10 millis)
