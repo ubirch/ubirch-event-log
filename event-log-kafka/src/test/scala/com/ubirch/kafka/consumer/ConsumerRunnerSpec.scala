@@ -48,7 +48,7 @@ class ConsumerRunnerSpec extends TestBase {
 
       consumer.setKeyDeserializer(Some(new StringDeserializer()))
       consumer.setValueDeserializer(Some(new StringDeserializer()))
-
+      consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
       consumer.setProps(configs)
       consumer.startPolling()
 
@@ -75,11 +75,11 @@ class ConsumerRunnerSpec extends TestBase {
 
       }
 
+      consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
       consumer.setProps(configs)
       consumer.startPolling()
 
-      Thread.sleep(5000) // We wait here so the change is propagated
-
+      Thread.sleep(10000) // We wait here so the change is propagated
       assert(!consumer.getRunning)
 
     }
@@ -96,6 +96,7 @@ class ConsumerRunnerSpec extends TestBase {
 
       consumer.setKeyDeserializer(Some(new StringDeserializer()))
       consumer.setValueDeserializer(Some(new StringDeserializer()))
+      consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
       consumer.setProps(Map.empty)
       consumer.startPolling()
 
@@ -140,6 +141,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.startPolling()
@@ -193,6 +195,7 @@ class ConsumerRunnerSpec extends TestBase {
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
+        consumer.setForceExit(false)
         consumer.setConsumptionStrategy(All)
         consumer.startPolling()
 
@@ -434,6 +437,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.setDelaySingleRecord(10 millis)
@@ -509,6 +513,7 @@ class ConsumerRunnerSpec extends TestBase {
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
         consumer.setTopics(Set(topic))
+        consumer.setForceExit(false)
         consumer.setProps(configs)
         consumer.startPolling()
 
@@ -561,6 +566,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.startPolling()
@@ -618,6 +624,7 @@ class ConsumerRunnerSpec extends TestBase {
 
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
+        consumer.setForceExit(false)
         consumer.setTopics(Set(topic))
         consumer.setProps(configs)
         consumer.startPolling()
