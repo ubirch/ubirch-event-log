@@ -88,7 +88,8 @@ class DefaultExpressDiscovery @Inject() (
       }.get
   }
 
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
+  override def process: Process = Process.async { consumerRecords =>
+
     val res = consumerRecords.map { x =>
       Future(composed(x)).flatMap { json =>
         send(producerTopic, json)
