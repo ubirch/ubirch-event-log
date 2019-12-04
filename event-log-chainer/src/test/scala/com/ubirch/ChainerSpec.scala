@@ -2,27 +2,27 @@ package com.ubirch
 
 import java.io.ByteArrayInputStream
 import java.util.Date
-import java.util.concurrent.{Executor, TimeoutException}
+import java.util.concurrent.{ Executor, TimeoutException }
 
 import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{Config, ConfigValueFactory}
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ConsumerConfPaths, ProducerConfPaths}
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.chainer.services.httpClient.{WebClient, WebclientResponse}
+import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
-import com.ubirch.chainer.util.{ChainerJsonSupport, PMHelper}
-import com.ubirch.kafka.consumer.{All, StringConsumer}
+import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
+import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{EmbeddedKafkaConfig, KafkaUnavailableException}
+import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.asynchttpclient.Param
 import org.json4s.JsonAST._
