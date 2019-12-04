@@ -91,14 +91,23 @@ trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K
     }
 
     override type A = ProcessResult[K, V]
-    override def process(consumerRecord: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
-      thiz.process(consumerRecord).map(x => simpleProcessResult(x, consumerRecord))
+    override def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
+      thiz.process.invoke(consumerRecords).map(x => simpleProcessResult(x, consumerRecords))
     }
   }
 
-  def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
+  trait Process {
+    def invoke(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[R]
+  }
 
-  def start = consumption.startPolling()
+  object Process {
+    def apply(p: Vector[ConsumerRecord[K, V]] => R): Process = (consumerRecords: Vector[ConsumerRecord[K, V]]) => Future(p(consumerRecords))
+    def async(p: Vector[ConsumerRecord[K, V]] => Future[R]): Process = (consumerRecords: Vector[ConsumerRecord[K, V]]) => p(consumerRecords)
+  }
+
+  def process: Process
+
+  def start(): Unit = consumption.startPolling()
 
 }
 
