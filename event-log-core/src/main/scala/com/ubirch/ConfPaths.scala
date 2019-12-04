@@ -9,6 +9,10 @@ object ConfPaths {
     val THREAD_POOL_SIZE = "eventLog.executionContext.threadPoolSize"
   }
 
+  trait StoreConfPaths {
+    val STORE_LOOKUPS = "eventLog.storeLookups"
+  }
+
   trait CassandraClusterConfPaths {
     val CONTACT_POINTS = "eventLog.cassandra.cluster.contactPoints"
     val CONSISTENCY_LEVEL = "eventLog.cassandra.cluster.consistencyLevel"
@@ -48,6 +52,7 @@ object ConfPaths {
     val SERVICE_PK = "crypto.keys.ed25519.signingPrivateKey"
   }
 
+  object StoreConfPaths extends StoreConfPaths
   object ConsumerConfPaths extends ConsumerConfPaths
   object ProducerConfPaths extends ProducerConfPaths
 
