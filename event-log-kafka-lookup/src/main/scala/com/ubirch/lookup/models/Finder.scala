@@ -96,7 +96,7 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
 
   def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
 
-  def findBySignature(value: String): Future[Option[EventLogRow]] = {
+  def findBySignature(value: String): Future[Option[EventLogRow]] =
     gremlinFinder
       .simpleFind(Values.SIGNATURE, value, Values.HASH)
       .map(_.headOption)
@@ -104,7 +104,6 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
         case Some(hash) => findByPayload(hash)
         case None => Future.successful(None)
       }
-  }
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = gremlinFinder.findAnchorsWithPathAsVertices(id)
 
