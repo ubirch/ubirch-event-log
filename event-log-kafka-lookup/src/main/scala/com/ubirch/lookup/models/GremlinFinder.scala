@@ -71,6 +71,12 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   }
 
+  def simpleFind(matchProperty: String, value: String, returnProperty: String) =
+    g.V()
+      .has(Key[String](matchProperty.toLowerCase()), value)
+      .value(Key[String](returnProperty.toLowerCase()))
+      .promise()
+
   def getTimestampFromVertex(vertex: Vertex) =
     g.V(vertex)
       .value[Long](Values.TIMESTAMP)

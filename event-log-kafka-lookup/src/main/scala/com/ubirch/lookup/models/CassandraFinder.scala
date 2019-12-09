@@ -10,6 +10,8 @@ import scala.util.{ Failure, Success }
 @Singleton
 class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
+  //Be aware that this method is cassandra-oriented and will only give out results for
+  // queryType=Payload. For the Signature query, Lookups need to be enabled.
   def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] =
     queryType match {
       case Payload => eventsDAO.events.byIdAndCat(value, Values.UPP_CATEGORY).map(_.headOption)
@@ -28,6 +30,8 @@ class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionCon
   def findAnchorsThruLookup(treeEventLog: EventLogRow): Future[Seq[EventLogRow]] =
     eventsDAO.eventLogRowByLookupValueAndCategory(treeEventLog.id, Values.PUBLIC_CHAIN_CATEGORY)
 
+  //Be aware that this method is cassandra-oriented and will only give out results for
+  // queryType=Payload. For the Signature query, Lookups need to be enabled.
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
     val fres = findUPP(value, queryType).flatMap {
       case upp @ Some(uppEl) =>
