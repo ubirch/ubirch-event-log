@@ -10,27 +10,23 @@ import scala.util.{ Failure, Success }
 @Singleton
 class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] =
     queryType match {
       case Payload => eventsDAO.events.byIdAndCat(value, Values.UPP_CATEGORY).map(_.headOption)
       case Signature => eventsDAO.eventLogRowByLookupRowInfo(value, Signature.value, Values.UPP_CATEGORY)
     }
-  }
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] =
     eventsDAO.events.byIdAndCat(value, category).map(_.headOption)
 
-  def findSlaveTreeThruLookup(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
+  def findSlaveTreeThruLookup(uppEventLog: EventLogRow): Future[Option[EventLogRow]] =
     eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.SLAVE_TREE_ID, Values.SLAVE_TREE_CATEGORY)
-  }
 
-  def findMasterTreeThruLooup(uppEventLog: EventLogRow): Future[Option[EventLogRow]] = {
+  def findMasterTreeThruLooup(uppEventLog: EventLogRow): Future[Option[EventLogRow]] =
     eventsDAO.eventLogRowByLookupRowInfo(uppEventLog.id, Values.MASTER_TREE_ID, Values.MASTER_TREE_CATEGORY)
-  }
 
-  def findAnchorsThruLookup(treeEventLog: EventLogRow): Future[Seq[EventLogRow]] = {
+  def findAnchorsThruLookup(treeEventLog: EventLogRow): Future[Seq[EventLogRow]] =
     eventsDAO.eventLogRowByLookupValueAndCategory(treeEventLog.id, Values.PUBLIC_CHAIN_CATEGORY)
-  }
 
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
     val fres = findUPP(value, queryType).flatMap {
