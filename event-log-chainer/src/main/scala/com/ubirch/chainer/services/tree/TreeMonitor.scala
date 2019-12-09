@@ -60,7 +60,7 @@ class TreeMonitor @Inject() (
             logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
             tick
           case WhatTheHeck =>
-            logger.error(s"Tree(${mode.value} Warm-up failed.")
+            logger.error(s"Tree(${mode.value}) Warm-up failed.")
             throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
           case CreateGenesisTree =>
             treeUpgradeHook(forceUpgrade = true)
