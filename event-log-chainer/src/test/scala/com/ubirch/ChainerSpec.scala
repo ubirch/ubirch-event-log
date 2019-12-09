@@ -131,39 +131,6 @@ class ChainerSpec extends TestBase with LazyLogging {
   val messageEnvelopeTopic = "com.ubirch.messageenvelope"
   val eventLogTopic = "com.ubirch.eventlog"
 
-  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
-    @tailrec
-    def go(acc: Int): List[String] = {
-      try {
-        logger.info("Trying to get value.")
-        val read = {
-          consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 20.seconds)(
-            kafkaConfig,
-            new StringDeserializer()
-          )(topic)
-        }
-        read
-      } catch {
-        case e: KafkaUnavailableException =>
-          throw e
-        case e: TimeoutException =>
-          logger.warn("Starting retry")
-          if (acc == 0) {
-            throw e
-          } else {
-            Thread.sleep(sleepInBetween)
-            go(acc - 1)
-          }
-      }
-    }
-
-    if (onStartWait > 0) {
-      Thread.sleep(onStartWait)
-    }
-
-    go(maxRetries)
-  }
-
   "Chainer Spec" must {
 
     "consume, process and publish tree and event logs in Slave mode" in {

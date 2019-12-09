@@ -36,40 +36,6 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 
 class DispatchExecutorSpec extends TestBase with LazyLogging {
 
-  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
-    @tailrec
-    def go(acc: Int): List[String] = {
-      try {
-        logger.info("Trying to get value(s) from [{}]", topic)
-        val read = {
-          consumeNumberMessagesFromTopics(Set(topic), maxToRead, autoCommit = false, timeout = 20.seconds)(
-            kafkaConfig,
-            new StringDeserializer()
-          )(topic)
-        }
-        logger.info("[{}] messages read", read.size)
-        read
-      } catch {
-        case e: KafkaUnavailableException =>
-          throw e
-        case e: TimeoutException =>
-          logger.warn("Starting retry")
-          if (acc == 0) {
-            throw e
-          } else {
-            Thread.sleep(sleepInBetween)
-            go(acc - 1)
-          }
-      }
-    }
-
-    if (onStartWait > 0) {
-      Thread.sleep(onStartWait)
-    }
-
-    go(maxRetries)
-  }
-
   "Dispatch Spec" must {
 
     "consume and dispatch successfully 300" in {
