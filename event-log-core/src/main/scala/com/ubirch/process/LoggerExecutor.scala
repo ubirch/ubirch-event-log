@@ -30,6 +30,8 @@ class LoggerExecutor @Inject() (
 
   lazy val storeLookups: Boolean = config.getBoolean(StoreConfPaths.STORE_LOOKUPS)
 
+  logger.info("storing_lookups={}", storeLookups)
+
   import monix.eval._
 
   val circuitBreaker = TaskCircuitBreaker(
