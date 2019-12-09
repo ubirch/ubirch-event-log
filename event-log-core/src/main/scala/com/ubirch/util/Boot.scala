@@ -77,4 +77,12 @@ trait WithPrometheusMetrics {
 /**
   * Util that is used when starting the main service.
   */
-abstract class Boot(modules: List[Module] = ServiceBinder.modules) extends InjectorHelper(modules) with WithJVMHooks with WithPrometheusMetrics
+abstract class Boot(modules: List[Module] = ServiceBinder.modules) extends InjectorHelper(modules) with WithJVMHooks with WithPrometheusMetrics {
+  def *[T](block: => T): Unit =
+    try { block } catch {
+      case e: Exception =>
+        logger.error("Exiting after exception found = {}", e.getMessage)
+        Thread.sleep(5000)
+        sys.exit(1)
+    }
+}
