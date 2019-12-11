@@ -247,7 +247,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(5000)
+        Thread.sleep(7000)
 
         //Read Events
         val events = InjectorHelper.get[Events]
@@ -263,7 +263,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString1)
 
-        Thread.sleep(5000) //Wait for next consumption
+        Thread.sleep(7000) //Wait for next consumption
 
         val res2 = await(res)
 
@@ -280,7 +280,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         publishStringMessageToKafka(topic, entityAsString1Modified)
 
-        Thread.sleep(5000) //Wait for next consumption
+        Thread.sleep(7000) //Wait for next consumption
 
         val res3 = await(res)
 
