@@ -152,7 +152,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
         Future.successful(LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
       else {
 
-        val res = queryDepth match {
+        lazy val res = queryDepth match {
           case Simple => simple(key, value, queryType)(v1)
           case ShortestPath => shortestPath(key, value, queryType, responseForm, blockchainInfo)(v1)
           case UpperLower => upperLower(key, value, queryType, responseForm, blockchainInfo)(v1)

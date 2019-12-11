@@ -15,7 +15,7 @@ import scala.language.postfixOps
   */
 object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = * {
 
     logger.info("Starting Rest")
 
