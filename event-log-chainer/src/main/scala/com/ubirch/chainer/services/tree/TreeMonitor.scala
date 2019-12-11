@@ -8,10 +8,11 @@ import com.ubirch.models.EnrichedEventLog._
 import com.ubirch.models.{EventLog, HeaderNames}
 import com.ubirch.util.{FutureHelper, UUIDHelper}
 import javax.inject._
+import monix.execution.Cancelable
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.errors.InvalidTopicException
 import org.json4s.JsonAST.JString
 
+import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
@@ -42,21 +43,20 @@ class TreeMonitor @Inject() (
 
   def start = {
 
-    def tick = {
+    def tick =
       scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
         treeBillOfMaterialsHook
         treeUpgradeHook(forceUpgrade = false)
       }
-    }
 
-    def slaveWarmup = { () =>
+    def slaveWarmup: () => Future[Cancelable] = { () =>
       logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
       Future.successful(tick)
     }
 
-    def masterWarmup = { () =>
+    def masterWarmup: () => Future[Cancelable] = { () =>
 
-      def go = {
+      def go: Future[Cancelable] = {
         treeWarmUp
           .warmup
           .map {
@@ -70,17 +70,16 @@ class TreeMonitor @Inject() (
               logger.error(s"Tree(${mode.value}) Warm-up failed.")
               throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
           }
+          .recoverWith {
+            case e: java.util.concurrent.ExecutionException
+              if e.getCause != null && e.getCause.isInstanceOf[java.net.ConnectException] =>
+              go
+            case e: Exception =>
+              throw e
+          }
       }
 
-      go.recoverWith {
-        case e: java.util.concurrent.ExecutionException
-          if e.getCause != null && e.getCause.isInstanceOf[InvalidTopicException] =>
-          go
-
-        case e: Exception =>
-          println(e.getClass.getName)
-          go
-      }
+      go
 
     }
 
@@ -90,7 +89,7 @@ class TreeMonitor @Inject() (
       .onMaster(masterWarmup)
       .run
 
-    FutureHelper.await(doWarmup, 10 seconds)
+    FutureHelper.await(doWarmup, 30 minutes)
 
   }
 
