@@ -136,9 +136,9 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
           x.topics.map { t =>
             topicsProcessed = topicsProcessed + 1
-            val readMessage = consumeFirstStringMessageFrom(t.name)
+            val readM = readMessage(t.name).headOption.getOrElse("Nothing read")
             t.dataToSend.filter(_.isEmpty).map { _ =>
-              val dispatchRes = EventLogJsonSupport.FromString[EventLog](readMessage).get
+              val dispatchRes = EventLogJsonSupport.FromString[EventLog](readM).get
               assert(eventLogs.contains(dispatchRes))
               assert(eventLogs.map(_.category).contains(dispatchRes.category))
             }
