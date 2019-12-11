@@ -13,12 +13,11 @@ trait Finder extends LazyLogging {
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]]
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = {
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] =
     queryType match {
       case Payload => findByPayload(value)
       case Signature => findBySignature(value)
     }
-  }
 
   def findByPayload(value: String): Future[Option[EventLogRow]]
 
