@@ -29,9 +29,11 @@ import scala.language.postfixOps
 
 class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
 
-  override def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
+  def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
+
+  def findBySignature(value: String): Future[Option[EventLogRow]] = Future.successful(None)
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil))
 
@@ -40,9 +42,12 @@ class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val 
 
 class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
 
-  override def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
+  def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
+
+  //TODO: We need to find a way to mock gremlin with asynchronous calls.
+  def findBySignature(value: String): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, Signature)
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] =
     Future.successful((FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))

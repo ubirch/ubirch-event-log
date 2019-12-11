@@ -24,7 +24,7 @@ import scala.language.postfixOps
 
 object Service extends Boot(ChainerServiceBinder.modules) {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = * {
 
     val monitor = get[TreeMonitor]
     monitor.start
