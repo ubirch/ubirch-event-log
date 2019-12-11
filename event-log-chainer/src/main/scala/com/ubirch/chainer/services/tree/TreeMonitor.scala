@@ -3,16 +3,17 @@ package com.ubirch.chainer.services.tree
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
+import com.ubirch.chainer.models.{Chainer, Master, Mode, Slave}
 import com.ubirch.models.EnrichedEventLog._
-import com.ubirch.models.{ EventLog, HeaderNames }
-import com.ubirch.util.{ FutureHelper, UUIDHelper }
+import com.ubirch.models.{EventLog, HeaderNames}
+import com.ubirch.util.{FutureHelper, UUIDHelper}
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.errors.InvalidTopicException
 import org.json4s.JsonAST.JString
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 
 @Singleton
@@ -48,25 +49,45 @@ class TreeMonitor @Inject() (
       }
     }
 
+    def slaveWarmup = { () =>
+      logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
+      Future.successful(tick)
+    }
+
+    def masterWarmup = { () =>
+
+      def go = {
+        treeWarmUp
+          .warmup
+          .map {
+            case AllGood =>
+              logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
+              tick
+            case CreateGenesisTree =>
+              treeUpgradeHook(forceUpgrade = true)
+              tick
+            case WhatTheHeck =>
+              logger.error(s"Tree(${mode.value}) Warm-up failed.")
+              throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
+          }
+      }
+
+      go.recoverWith {
+        case e: java.util.concurrent.ExecutionException
+          if e.getCause != null && e.getCause.isInstanceOf[InvalidTopicException] =>
+          go
+
+        case e: Exception =>
+          println(e.getClass.getName)
+          go
+      }
+
+    }
+
     val doWarmup = Mode
       .foldF(mode)
-      .onSlave { () =>
-        logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
-        Future.successful(tick)
-      }
-      .onMaster { () =>
-        treeWarmUp.warmup.map {
-          case AllGood =>
-            logger.info(s"Tree(${mode.value}) Warm-up succeeded.")
-            tick
-          case WhatTheHeck =>
-            logger.error(s"Tree(${mode.value}) Warm-up failed.")
-            throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
-          case CreateGenesisTree =>
-            treeUpgradeHook(forceUpgrade = true)
-            tick
-        }
-      }
+      .onSlave(slaveWarmup)
+      .onMaster(masterWarmup)
       .run
 
     FutureHelper.await(doWarmup, 10 seconds)
