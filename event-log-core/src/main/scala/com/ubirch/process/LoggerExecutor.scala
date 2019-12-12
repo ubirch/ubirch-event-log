@@ -45,8 +45,7 @@ class LoggerExecutor @Inject() (
   override def apply(v1: Vector[ConsumerRecord[String, String]]): Future[PipeData] = {
     val promise = Promise[PipeData]()
     Task.gather(v1.map(x => circuitBreaker.protect(run(x)))).runOnComplete {
-      case Success(_) =>
-        promise.success(PipeData(v1, None))
+      case Success(_) => promise.success(PipeData(v1, None))
       case Failure(exception) => promise.failure(exception)
     }(scheduler)
     promise.future

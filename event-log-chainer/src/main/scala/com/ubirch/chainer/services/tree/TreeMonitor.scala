@@ -89,7 +89,7 @@ class TreeMonitor @Inject() (
       .onMaster(masterWarmup)
       .run
 
-    FutureHelper.await(doWarmup, 30 minutes)
+    FutureHelper.await(doWarmup, 10 minutes)
 
   }
 
