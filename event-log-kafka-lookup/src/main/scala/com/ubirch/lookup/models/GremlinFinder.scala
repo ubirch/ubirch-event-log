@@ -1,5 +1,7 @@
 package com.ubirch.lookup.models
 
+import java.util.Date
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
 import com.ubirch.models.Values
@@ -172,8 +174,12 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def asVerticesDecorated(path: List[Vertex], anchors: List[Vertex]) = {
     def parseTimestamp(anyTime: Any): String = {
       anyTime match {
-        case time if anyTime.isInstanceOf[Long] => TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
-        case time => time.asInstanceOf[String]
+        case time if anyTime.isInstanceOf[Long] =>
+          TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
+        case time if anyTime.isInstanceOf[Date] =>
+          time.toString
+        case time =>
+          time.asInstanceOf[String]
       }
     }
     def decorateType(anyTime: Any): Any = {
