@@ -30,30 +30,37 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
 
     val headTimestamp: Future[Option[Long]] = futureShortestPath.map(_.headOption).flatMap {
-      case Some(v) => getTimestampFromVertex(v)
+      case Some(v) =>
+        getTimestampFromVertexAsDate(v)
+          .map(_.map(_.getTime))
+          .recoverWith {
+            case e: Exception =>
+              logger.warn("Couldn't parse as Date. Defaulting to Long ")
+              getTimestampFromVertexAsLong(v)
+          }
       case None => Future.successful(None)
     }
 
-    val maybeLastMasterAndTime = for {
+    val maybeLastMasterAndTime: Future[Option[(Vertex, Long)]] = for {
       time <- headTimestamp
       master <- futureShortestPath.map(_.reversedTailHeadOption)
     } yield {
       master.map(x => (x, time.getOrElse(-1L)))
     }
 
-    val upper = maybeLastMasterAndTime.flatMap {
+    val upper: Future[List[Vertex]] = maybeLastMasterAndTime.flatMap {
       case Some((v, _)) =>
         getBlockchainsFromMasterVertex(v)
       case None =>
         Future.successful(Nil)
     }
 
-    val lowerPathHelper = maybeLastMasterAndTime.flatMap {
+    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeLastMasterAndTime.flatMap {
       case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
       case None => Future.successful(None)
     }
 
-    val lower = lowerPathHelper.flatMap {
+    val lower: Future[List[Vertex]] = lowerPathHelper.flatMap {
       case Some((ph, t)) =>
         ph.reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
@@ -79,9 +86,15 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .value(Key[String](returnProperty.toLowerCase()))
       .promise()
 
-  def getTimestampFromVertex(vertex: Vertex) =
+  def getTimestampFromVertexAsLong(vertex: Vertex): Future[Option[Long]] =
     g.V(vertex)
       .value[Long](Values.TIMESTAMP)
+      .promise()
+      .map(_.headOption)
+
+  def getTimestampFromVertexAsDate(vertex: Vertex): Future[Option[Date]] =
+    g.V(vertex)
+      .value[Date](Values.TIMESTAMP)
       .promise()
       .map(_.headOption)
 
