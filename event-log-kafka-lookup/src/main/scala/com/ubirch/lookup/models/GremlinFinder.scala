@@ -177,7 +177,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         case time if anyTime.isInstanceOf[Long] =>
           TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
         case time if anyTime.isInstanceOf[Date] =>
-          time.toString
+          TimeHelper.toIsoDateTime(time.asInstanceOf[Date].getTime)
         case time =>
           time.asInstanceOf[String]
       }
