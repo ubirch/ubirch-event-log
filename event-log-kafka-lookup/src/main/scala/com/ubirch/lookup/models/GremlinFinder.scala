@@ -99,7 +99,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .map(_.headOption)
 
   def outLT(master: Vertex, time: Long) = {
-    val timestamp = Key[Long](Values.TIMESTAMP)
+    val timestamp = Key[Date](Values.TIMESTAMP)
     g.V(master)
       .repeat(
         _.out() // In for other direction
@@ -109,7 +109,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .until(
         _.in()
           .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-          .has(timestamp, P.lt(time)) // Other P values like P.gt
+          .has(timestamp, P.lt(new Date(time))) // Other P values like P.gt
       )
       .path()
       .limit(1)
