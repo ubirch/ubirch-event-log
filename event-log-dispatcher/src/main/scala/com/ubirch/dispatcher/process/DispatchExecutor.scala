@@ -94,8 +94,14 @@ class DispatchExecutor @Inject() (
       (el, elj, consumerRecord.value())
     }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
 
-    val prs = Try(createProducerRecords(eventLog, eventLogJValue, eventLogAsString))
-      .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
+    val prs = try {
+      createProducerRecords(eventLog, eventLogJValue, eventLogAsString)
+    } catch {
+      case e: Exception =>
+        logger.error("Error Creating Producer Records 1 = {}", eventLogAsString)
+        logger.error("Error Creating Producer Records 2 = {}", e.getMessage)
+        throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog)))
+    }
 
     Task.gather(prs.map(x => Task.fromFuture(stringProducer.send(x))))
   }

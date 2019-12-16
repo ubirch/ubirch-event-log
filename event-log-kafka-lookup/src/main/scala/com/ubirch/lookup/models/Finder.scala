@@ -31,7 +31,7 @@ trait Finder extends LazyLogging {
           .map { case (path, blockchains) => (upp, path, blockchains) }
           .recover {
             case e: Exception =>
-              logger.error("Error talking Gremlin= {}", e.getMessage)
+              logger.error("Error talking Gremlin Shortest= {}", e.getMessage)
               (upp, List.empty, List.empty)
           }
 
@@ -61,7 +61,7 @@ trait Finder extends LazyLogging {
           }
           .recover {
             case e: Exception =>
-              logger.error("Error talking Gremlin= {}", e.getMessage)
+              logger.error("Error talking Gremlin Upper= {}", e.getMessage)
               (upp, List.empty, List.empty, List.empty, List.empty)
           }
 

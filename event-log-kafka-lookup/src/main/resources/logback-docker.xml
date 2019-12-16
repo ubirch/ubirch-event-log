@@ -41,7 +41,7 @@
     <logger name="org.apache.zookeeper" level="WARN"/>
     <logger name="io.netty" level="WARN"/>
 
-    <logger name="com.ubirch" level="INFO"/>
+    <logger name="com.ubirch" level="DEBUG"/>
 
     <root level="WARN">
         <appender-ref ref="JSONSTDOUT"/>

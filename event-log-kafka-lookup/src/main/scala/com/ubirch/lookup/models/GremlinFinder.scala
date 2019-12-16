@@ -1,5 +1,7 @@
 package com.ubirch.lookup.models
 
+import java.util.Date
+
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
 import com.ubirch.models.Values
@@ -28,30 +30,37 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
 
     val headTimestamp: Future[Option[Long]] = futureShortestPath.map(_.headOption).flatMap {
-      case Some(v) => getTimestampFromVertex(v)
+      case Some(v) =>
+        getTimestampFromVertexAsDate(v)
+          .map(_.map(_.getTime))
+          .recoverWith {
+            case e: Exception =>
+              logger.warn("Couldn't parse as Date. Defaulting to Long ")
+              getTimestampFromVertexAsLong(v)
+          }
       case None => Future.successful(None)
     }
 
-    val maybeLastMasterAndTime = for {
+    val maybeLastMasterAndTime: Future[Option[(Vertex, Long)]] = for {
       time <- headTimestamp
       master <- futureShortestPath.map(_.reversedTailHeadOption)
     } yield {
       master.map(x => (x, time.getOrElse(-1L)))
     }
 
-    val upper = maybeLastMasterAndTime.flatMap {
+    val upper: Future[List[Vertex]] = maybeLastMasterAndTime.flatMap {
       case Some((v, _)) =>
         getBlockchainsFromMasterVertex(v)
       case None =>
         Future.successful(Nil)
     }
 
-    val lowerPathHelper = maybeLastMasterAndTime.flatMap {
+    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeLastMasterAndTime.flatMap {
       case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
       case None => Future.successful(None)
     }
 
-    val lower = lowerPathHelper.flatMap {
+    val lower: Future[List[Vertex]] = lowerPathHelper.flatMap {
       case Some((ph, t)) =>
         ph.reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
@@ -77,14 +86,20 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .value(Key[String](returnProperty.toLowerCase()))
       .promise()
 
-  def getTimestampFromVertex(vertex: Vertex) =
+  def getTimestampFromVertexAsLong(vertex: Vertex): Future[Option[Long]] =
     g.V(vertex)
       .value[Long](Values.TIMESTAMP)
       .promise()
       .map(_.headOption)
 
+  def getTimestampFromVertexAsDate(vertex: Vertex): Future[Option[Date]] =
+    g.V(vertex)
+      .value[Date](Values.TIMESTAMP)
+      .promise()
+      .map(_.headOption)
+
   def outLT(master: Vertex, time: Long) = {
-    val timestamp = Key[Long](Values.TIMESTAMP)
+    val timestamp = Key[Date](Values.TIMESTAMP)
     g.V(master)
       .repeat(
         _.out() // In for other direction
@@ -94,7 +109,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .until(
         _.in()
           .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-          .has(timestamp, P.lt(time)) // Other P values like P.gt
+          .has(timestamp, P.lt(new Date(time))) // Other P values like P.gt
       )
       .path()
       .limit(1)
@@ -172,8 +187,12 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def asVerticesDecorated(path: List[Vertex], anchors: List[Vertex]) = {
     def parseTimestamp(anyTime: Any): String = {
       anyTime match {
-        case time if anyTime.isInstanceOf[Long] => TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
-        case time => time.asInstanceOf[String]
+        case time if anyTime.isInstanceOf[Long] =>
+          TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
+        case time if anyTime.isInstanceOf[Date] =>
+          TimeHelper.toIsoDateTime(time.asInstanceOf[Date].getTime)
+        case time =>
+          time.asInstanceOf[String]
       }
     }
     def decorateType(anyTime: Any): Any = {
