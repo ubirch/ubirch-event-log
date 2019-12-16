@@ -11,7 +11,7 @@ import scala.language.postfixOps
   */
 object Service extends Boot(DispatcherServiceBinder.modules) {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = * {
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)

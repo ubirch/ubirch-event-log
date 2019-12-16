@@ -6,7 +6,7 @@
     <!-- basic info -->
     <groupId>com.ubirch</groupId>
     <artifactId>event-log-kafka</artifactId>
-    <version>1.2.7-SNAPSHOT</version>
+    <version>1.2.8-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>Event Logger Kafka for the ubirch Platform</description>
     <url>https://ubirch.com</url>
@@ -34,7 +34,7 @@
         <connection>scm:git:git://github.com/ubirch/ubirch-event-log.git</connection>
         <developerConnection>scm:git:git@github.com:ubirch/ubirch-event-log.git</developerConnection>
         <url>https://github.com/ubirch/ubirch-event-log</url>
-        <tag>event-log-kafka-1.2.2</tag>
+        <tag>event-log-kafka-1.2.8-SNAPSHOT</tag>
     </scm>
 
     <distributionManagement>
@@ -348,8 +348,9 @@
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
+                                <phase>deploy</phase>
                                 <goals>
-                                    <goal>jar-no-fork</goal>
+                                    <goal>jar</goal>
                                 </goals>
                             </execution>
                         </executions>
@@ -361,6 +362,7 @@
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
+                                <phase>deploy</phase>
                                 <goals>
                                     <goal>jar</goal>
                                 </goals>

@@ -499,8 +499,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
     "check trace header" in {
       val data: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
 
-      val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
-      val date = sdf.parse("02-03-1986 16:00:00")
+      val date = JsonHelper.formats.dateFormat.parse("1986-03-02T16:00:00.333Z").getOrElse(new Date)
 
       val el = EventLog(data)
         .withNewId("my id")
@@ -513,7 +512,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
         .addTraceHeader("System ONE")
         .addTraceHeader("System TWO")
 
-      assert(el.toJson == """{"headers":{"trace":["System ONE","System TWO"]},"id":"my id","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T15:00:00.000Z","signature":"my signature","nonce":"","lookup_keys":[]}""")
+      assert(el.toJson == """{"headers":{"trace":["System ONE","System TWO"]},"id":"my id","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T16:00:00.333Z","signature":"my signature","nonce":"","lookup_keys":[]}""")
 
     }
 
@@ -522,8 +521,8 @@ class EventLogSpec extends TestBase with MockitoSugar {
       import LookupKey._
 
       val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
-      val sdf = new SimpleDateFormat("dd-M-yyyy hh:mm:ss")
-      val time = sdf.parse("02-03-1986 16:00:00")
+
+      val time = JsonHelper.formats.dateFormat.parse("1986-03-02T16:00:00.333Z").getOrElse(new Date)
 
       val id = "05918330-ca69-11e9-8a09-a924db2e4689"
 
@@ -556,7 +555,7 @@ class EventLogSpec extends TestBase with MockitoSugar {
       assert(el.lookupKeys == lookupKeys)
       assert(el.lookupKeys == Seq(LookupKey("name", "category", "key".asKey, Seq("value".asValue.addExtra("extra1" -> "extra-data", "extra2" -> "extra-data")))))
 
-      assert(el.toJson == """{"headers":{"hola":["HOLA"]},"id":"05918330-ca69-11e9-8a09-a924db2e4689","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T15:00:00.000Z","signature":"my signature","nonce":"my nonce","lookup_keys":[{"name":"name","category":"category","key":{"name":"key"},"value":[{"name":"value","extra":{"extra1":"extra-data","extra2":"extra-data"}}]}]}""".stripMargin)
+      assert(el.toJson == """{"headers":{"hola":["HOLA"]},"id":"05918330-ca69-11e9-8a09-a924db2e4689","customer_id":"my customer id","service_class":"my service class","category":"my category","event":{"numbers":[1,2,3,4]},"event_time":"1986-03-02T16:00:00.333Z","signature":"my signature","nonce":"my nonce","lookup_keys":[{"name":"name","category":"category","key":{"name":"key"},"value":[{"name":"value","extra":{"extra1":"extra-data","extra2":"extra-data"}}]}]}""".stripMargin)
 
     }
 

@@ -23,7 +23,7 @@ import scala.util.Random
   */
 object Service extends Boot(EncoderServiceBinder.modules) {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = * {
 
     val consumer = get[BytesConsumer]
     consumer.setConsumptionStrategy(All)

@@ -59,7 +59,7 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit va
     insert(EventLogRow.fromEventLog(eventLog), eventLog.lookupKeys.flatMap(x => LookupKeyRow.fromLookUpKey(x)))
   }
 
-  def insertFromEventLogFake(eventLog: EventLog): Future[Int] = {
+  def insertFromEventLogWithoutLookups(eventLog: EventLog): Future[Int] = {
     insert(EventLogRow.fromEventLog(eventLog), Nil)
   }
 

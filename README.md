@@ -29,7 +29,7 @@ The Event Log System is a collection of services that allow the chaining
 
 ## Install
 
-To build the application run the following command
+To build the application run the following command:
 
 ```
     mvn install
@@ -49,14 +49,18 @@ you will have to change it accordingly. The port that is assigned to Prometheus 
 every service at boot.
 
 ```
-  http://localhost:4321/
+  (1) http://localhost:4321/
 ```
 
   or
    
 ```  
-   watch -d "curl --silent http://localhost:4321 | grep ubirch"
+   (2) watch -d "curl --silent http://localhost:4321 | grep SERVICE-NAME"
 ```
+
+You can inspect the service name by running option (1) and finding "service" 
+
+
 
 
 

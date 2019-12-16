@@ -3,7 +3,7 @@ package com.ubirch.process
 import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ConsumerConfPaths
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, StoreConfPaths }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
@@ -28,6 +28,10 @@ class LoggerExecutor @Inject() (
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
+  lazy val storeLookups: Boolean = config.getBoolean(StoreConfPaths.STORE_LOOKUPS)
+
+  logger.info("storing_lookups={}", storeLookups)
+
   import monix.eval._
 
   val circuitBreaker = TaskCircuitBreaker(
@@ -48,6 +52,10 @@ class LoggerExecutor @Inject() (
     promise.future
   }
 
+  def store(eventLog: EventLog): Future[Int] =
+    if (storeLookups) events.insertFromEventLog(eventLog)
+    else events.insertFromEventLogWithoutLookups(eventLog)
+
   def run(consumerRecord: ConsumerRecord[String, String]) = {
 
     Task.defer {
@@ -56,7 +64,7 @@ class LoggerExecutor @Inject() (
         .getOrElse(throw ParsingIntoEventLogException("Error Parsing Into Event Log", PipeData(consumerRecord, None)))
 
       Task.fromFuture {
-        events.insertFromEventLogFake(el)
+        store(el)
           .map { x =>
             successCounter.counter.labels(metricsSubNamespace).inc()
             x
