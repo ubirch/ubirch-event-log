@@ -82,6 +82,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
         .addProperty(Values.SIGNATURE -> signature)
         .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .addProperty(Values.PRODUCER_ID -> device)
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
