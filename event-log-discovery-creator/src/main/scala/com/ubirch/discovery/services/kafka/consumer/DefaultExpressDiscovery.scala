@@ -15,7 +15,7 @@ import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.{ URLsHelper, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
@@ -88,29 +88,28 @@ class DefaultExpressDiscovery @Inject() (
       }.get
   }
 
-  def process(consumerRecords: Vector[ConsumerRecord[String, String]]): Future[Unit] = {
-    consumerRecords.foreach { x =>
-      run(x).recover {
+  override def process: Process = Process.async { consumerRecords =>
+
+    val res = consumerRecords.map { x =>
+      Future(composed(x)).flatMap { json =>
+        send(producerTopic, json)
+      } recoverWith {
         case NonFatal(e: StrategyException) =>
-          send(errorTopic, Error(e.eventLog.id, e.message, e.getClass.getName, e.eventLog.toJson).toEventLog(errorTopic).toJson)
           logger.error("Error Creating Relation (1): ", e)
           logger.error("Error Creating Relation (1.1): {}", x.value())
+          send(errorTopic, Error(e.eventLog.id, e.message, e.getClass.getName, e.eventLog.toJson).toEventLog(errorTopic).toJson)
         case NonFatal(e) =>
-          send(errorTopic, Error(UUIDHelper.randomUUID, e.getMessage, e.getClass.getName).toEventLog(errorTopic).toJson)
           logger.error("Error Creating Relation (2): ", e)
-        case e =>
           send(errorTopic, Error(UUIDHelper.randomUUID, e.getMessage, e.getClass.getName).toEventLog(errorTopic).toJson)
+        case e =>
           logger.error("Fatal Error Encountered: ", e)
+          send(errorTopic, Error(UUIDHelper.randomUUID, e.getMessage, e.getClass.getName).toEventLog(errorTopic).toJson)
           throw e
       }
     }
-    Future.unit
-  }
 
-  def run(consumerRecord: ConsumerRecord[String, String]) = {
-    Future(composed(consumerRecord)).flatMap { json =>
-      send(producerTopic, json)
-    }
+    Future.sequence(res).map(_ => ())
+
   }
 
 }

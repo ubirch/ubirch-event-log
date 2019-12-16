@@ -1,7 +1,7 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.EventLogRow
+import com.ubirch.models.{ EventLogRow, Values }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -13,7 +13,15 @@ trait Finder extends LazyLogging {
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]]
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]]
+  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] =
+    queryType match {
+      case Payload => findByPayload(value)
+      case Signature => findBySignature(value)
+    }
+
+  def findByPayload(value: String): Future[Option[EventLogRow]]
+
+  def findBySignature(value: String): Future[Option[EventLogRow]]
 
   def findUPPWithShortestPath(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct])] = {
     val fres = findUPP(value, queryType).flatMap {
@@ -23,7 +31,7 @@ trait Finder extends LazyLogging {
           .map { case (path, blockchains) => (upp, path, blockchains) }
           .recover {
             case e: Exception =>
-              logger.error("Error talking Gremlin= {}", e.getMessage)
+              logger.error("Error talking Gremlin Shortest= {}", e.getMessage)
               (upp, List.empty, List.empty)
           }
 
@@ -53,7 +61,7 @@ trait Finder extends LazyLogging {
           }
           .recover {
             case e: Exception =>
-              logger.error("Error talking Gremlin= {}", e.getMessage)
+              logger.error("Error talking Gremlin Upper= {}", e.getMessage)
               (upp, List.empty, List.empty, List.empty, List.empty)
           }
 
@@ -86,7 +94,16 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
-  def findUPP(value: String, queryType: QueryType): Future[Option[EventLogRow]] = cassandraFinder.findUPP(value, queryType)
+  def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
+
+  def findBySignature(value: String): Future[Option[EventLogRow]] =
+    gremlinFinder
+      .simpleFind(Values.SIGNATURE, value, Values.HASH)
+      .map(_.headOption)
+      .flatMap {
+        case Some(hash) => findByPayload(hash)
+        case None => Future.successful(None)
+      }
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = gremlinFinder.findAnchorsWithPathAsVertices(id)
 

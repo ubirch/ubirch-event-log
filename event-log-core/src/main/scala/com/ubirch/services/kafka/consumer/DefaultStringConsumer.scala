@@ -13,7 +13,7 @@ import com.ubirch.models.{ Error, EventLog }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter }
 import com.ubirch.util.Exceptions._
 import javax.inject._
 import org.apache.kafka.clients.consumer._
@@ -53,7 +53,7 @@ trait StringConsumerRecordsManager extends ConsumerRecordsManager[String, String
 class DefaultConsumerRecordsManager @Inject() (
     val reporter: Reporter,
     val executorFamily: ExecutorFamily,
-    @Named(DefaultConsumerRecordsManagerCounter.name) counter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
     config: Config
 )(implicit ec: ExecutionContext)
   extends StringConsumerRecordsManager
@@ -72,22 +72,22 @@ class DefaultConsumerRecordsManager @Inject() (
   def executorExceptionHandler: PartialFunction[Throwable, Future[PipeData]] = {
     case e: EmptyValueException =>
       logger.error("EmptyValueException: ", e)
-      counter.counter.labels(metricsSubNamespace, "EmptyValueException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name))
       Future.successful(e.pipeData)
     case e: ParsingIntoEventLogException =>
       logger.error("ParsingIntoEventLogException: ", e)
-      counter.counter.labels(metricsSubNamespace, "ParsingIntoEventLogException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: SigningEventLogException =>
       logger.error("SigningEventLogException: ", e)
-      counter.counter.labels(metricsSubNamespace, "SigningEventLogException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
     case e: StoringIntoEventLogException =>
       logger.error("StoringIntoEventLogException: ", e)
-      counter.counter.labels(metricsSubNamespace, "StoringIntoEventLogException").inc()
+      failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(
         Error(
           id = e.pipeData.eventLog.map(_.id).getOrElse(uuid.toString),

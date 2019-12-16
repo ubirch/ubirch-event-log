@@ -3,11 +3,11 @@ package com.ubirch.process
 import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.ConsumerConfPaths
+import com.ubirch.ConfPaths.{ ConsumerConfPaths, StoreConfPaths }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
-import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.EventLogJsonSupport
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import javax.inject._
@@ -18,10 +18,19 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
 @Singleton
-class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCounter.name) counter: Counter, config: Config)(implicit val ec: ExecutionContext)
+class LoggerExecutor @Inject() (
+    events: EventsDAO,
+    @Named(DefaultSuccessCounter.name) successCounter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
+    config: Config
+)(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[PipeData]] with LazyLogging {
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+
+  lazy val storeLookups: Boolean = config.getBoolean(StoreConfPaths.STORE_LOOKUPS)
+
+  logger.info("storing_lookups={}", storeLookups)
 
   import monix.eval._
 
@@ -43,6 +52,10 @@ class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCo
     promise.future
   }
 
+  def store(eventLog: EventLog): Future[Int] =
+    if (storeLookups) events.insertFromEventLog(eventLog)
+    else events.insertFromEventLogWithoutLookups(eventLog)
+
   def run(consumerRecord: ConsumerRecord[String, String]) = {
 
     Task.defer {
@@ -51,22 +64,22 @@ class LoggerExecutor @Inject() (events: EventsDAO, @Named(DefaultMetricsLoggerCo
         .getOrElse(throw ParsingIntoEventLogException("Error Parsing Into Event Log", PipeData(consumerRecord, None)))
 
       Task.fromFuture {
-        events.insertFromEventLog(el)
+        store(el)
           .map { x =>
-            counter.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
+            successCounter.counter.labels(metricsSubNamespace).inc()
             x
           }
           .recover {
             case e: NoHostAvailableException =>
-              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+              failureCounter.counter.labels(metricsSubNamespace).inc()
               logger.error("Error connecting to host: " + e)
               throw e
             case e: InvalidQueryException =>
-              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+              failureCounter.counter.labels(metricsSubNamespace).inc()
               logger.error("Error storing data (invalid query): " + e)
               throw e
             case e: Exception =>
-              counter.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+              failureCounter.counter.labels(metricsSubNamespace).inc()
               logger.error("Error storing data (other): " + e)
               throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
           }

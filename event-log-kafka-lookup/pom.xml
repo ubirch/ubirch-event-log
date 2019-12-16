@@ -21,7 +21,7 @@
 
         <!-- versions -->
 
-        <event-log-core.version>1.2.5</event-log-core.version>
+        <event-log-core.version>1.2.6</event-log-core.version>
         <gremlinScala.version>3.4.1.4</gremlinScala.version>
         <janusGraph.version>0.3.1</janusGraph.version>
         <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
@@ -154,6 +154,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
+                    <argLine>-Xms512m -Xmx1024m</argLine>
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
@@ -166,6 +167,7 @@
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
                     <filereports>WDF TestSuite.txt</filereports>
+                    <argLine>-Xmx1024m</argLine>
                 </configuration>
                 <executions>
                     <execution>

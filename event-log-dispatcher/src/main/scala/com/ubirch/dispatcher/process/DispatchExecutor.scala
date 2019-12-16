@@ -8,11 +8,11 @@ import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames, Values }
+import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames }
 import com.ubirch.process.Executor
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.services.metrics.{ Counter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
 import javax.inject._
@@ -29,7 +29,8 @@ import scala.util.{ Failure, Success, Try }
 class DispatchExecutor @Inject() (
     reporter: Reporter,
     @Named(DefaultDispatchingCounter.name) counterPerTopic: Counter,
-    @Named(DefaultMetricsLoggerCounter.name) results: Counter,
+    @Named(DefaultSuccessCounter.name) successCounter: Counter,
+    @Named(DefaultFailureCounter.name) failureCounter: Counter,
     dispatchInfo: DispatchInfo,
     config: Config,
     lifecycle: Lifecycle,
@@ -93,8 +94,14 @@ class DispatchExecutor @Inject() (
       (el, elj, consumerRecord.value())
     }.getOrElse(throw ParsingIntoEventLogException("Error Parsing Event Log", pipeData))
 
-    val prs = Try(createProducerRecords(eventLog, eventLogJValue, eventLogAsString))
-      .getOrElse(throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog))))
+    val prs = try {
+      createProducerRecords(eventLog, eventLogJValue, eventLogAsString)
+    } catch {
+      case e: Exception =>
+        logger.error("Error Creating Producer Records 1 = {}", eventLogAsString)
+        logger.error("Error Creating Producer Records 2 = {}", e.getMessage)
+        throw CreateProducerRecordException("Error Creating Producer Records", pipeData.withEventLogs(Vector(eventLog)))
+    }
 
     Task.gather(prs.map(x => Task.fromFuture(stringProducer.send(x))))
   }
@@ -111,16 +118,16 @@ class DispatchExecutor @Inject() (
 
       v1.foreach(x => run(x).runOnComplete {
         case Success(_) =>
-          results.counter.labels(metricsSubNamespace, Values.SUCCESS).inc()
+          successCounter.counter.labels(metricsSubNamespace).inc()
         case Failure(e: ParsingIntoEventLogException) =>
           logger.error("ParsingIntoEventLogException: " + e.getMessage)
-          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+          failureCounter.counter.labels(metricsSubNamespace).inc()
         case Failure(e: CreateProducerRecordException) =>
           logger.error("CreateProducerRecordException: " + e.getMessage)
-          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+          failureCounter.counter.labels(metricsSubNamespace).inc()
         case Failure(e) =>
           logger.error(s"Other=${e.getClass.getName}: " + e.getMessage)
-          results.counter.labels(metricsSubNamespace, Values.FAILURE).inc()
+          failureCounter.counter.labels(metricsSubNamespace).inc()
       })
 
       DispatcherPipeData.empty.withConsumerRecords(v1)

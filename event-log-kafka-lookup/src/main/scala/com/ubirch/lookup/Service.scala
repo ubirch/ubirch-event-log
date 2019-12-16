@@ -17,7 +17,7 @@ import scala.util.{ Failure, Success }
   */
 object Service extends Boot(LookupServiceBinder.modules) {
 
-  def main(args: Array[String]): Unit = {
+  def main(args: Array[String]): Unit = * {
 
     val consumer = get[StringConsumer]
 

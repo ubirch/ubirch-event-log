@@ -12,7 +12,7 @@ import com.ubirch.process.{ Executor, ExecutorFamily }
 import com.ubirch.services.execution.ExecutionImpl
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.services.metrics.DefaultConsumerRecordsManagerCounter
+import com.ubirch.services.metrics.DefaultFailureCounter
 import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
 import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver }
 import com.ubirch.{ Entities, TestBase }
@@ -33,7 +33,7 @@ import scala.language.{ implicitConversions, postfixOps }
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with ExecutionImpl {
 
   val config = ConfigFactory.load()
-  val counter = new DefaultConsumerRecordsManagerCounter(config)
+  val counter = new DefaultFailureCounter(config)
 
   def spawn(kafkaPort: Int): StringConsumer = {
     val lifeCycle = mock[DefaultLifecycle]
@@ -230,7 +230,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
         consumer.setKeyDeserializer(Some(new StringDeserializer()))
         consumer.setValueDeserializer(Some(new StringDeserializer()))
-
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.setProps(configs)
         consumer.startPolling()
 
@@ -250,6 +250,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated
@@ -269,6 +270,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
         val consumer = new StringConsumer() {}
 
         consumer.setProps(Map.empty)
+        consumer.setForceExit(false) // We disable the ForceExit so that the Test doesn't exit
         consumer.startPolling()
 
         Thread.sleep(5000) // We wait here so the change is propagated

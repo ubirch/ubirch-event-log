@@ -59,7 +59,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val range = 1 to 3000
+        val range = 1 to 300
         range.foreach { x =>
           val pmId = x
           val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
@@ -79,9 +79,11 @@ class EncoderSpec extends TestBase with LazyLogging {
         consumer.startPolling()
         //Consumer
 
-        Thread.sleep(10000)
+        Thread.sleep(500)
 
-        assert(consumeNumberStringMessagesFrom(eventLogTopic, range.size).size == range.size)
+        val readMessages = readMessage(eventLogTopic, maxToRead = range.size)
+
+        assert(readMessages.size == range.size)
 
       }
 
@@ -181,8 +183,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         Thread.sleep(5000)
 
-        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val readM = readMessage(eventLogTopic).headOption.getOrElse("")
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readM).get
         val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](pm).get.toString)
 
         val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
@@ -256,8 +258,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         Thread.sleep(5000)
 
-        val readMessage = consumeFirstStringMessageFrom(errorTopic)
-        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val readM = readMessage(errorTopic).headOption.getOrElse("")
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readM).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
         assert(error.message == "Error in the Encoding Process: No CustomerId found")

@@ -18,7 +18,7 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.producer.{ DefaultStringProducer, Reporter }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.services.metrics.DefaultMetricsLoggerCounter
+import com.ubirch.services.metrics.{ DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.{ SigningHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -265,7 +265,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
 
-      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+      val successCounter = new DefaultSuccessCounter(config)
+      val failureCounter = new DefaultFailureCounter(config)
+      val treePublisher = new TreePublisher(stringProducer.get(), successCounter, failureCounter, config)
 
       val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
@@ -328,7 +330,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
 
-      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+      val successCounter = new DefaultSuccessCounter(config)
+      val failureCounter = new DefaultFailureCounter(config)
+      val treePublisher = new TreePublisher(stringProducer.get(), successCounter, failureCounter, config)
 
       val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
@@ -393,7 +397,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
 
-      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+      val successCounter = new DefaultSuccessCounter(config)
+      val failureCounter = new DefaultFailureCounter(config)
+      val treePublisher = new TreePublisher(stringProducer.get(), successCounter, failureCounter, config)
 
       val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 
@@ -469,7 +475,11 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val stringProducer = new DefaultStringProducer(config, new DefaultLifecycle())
 
-      val treePublisher = new TreePublisher(stringProducer.get(), new DefaultMetricsLoggerCounter(config), config)
+      val successCounter = new DefaultSuccessCounter(config)
+
+      val failureCounter = new DefaultFailureCounter(config)
+
+      val treePublisher = new TreePublisher(stringProducer.get(), successCounter, failureCounter, config)
 
       val treeCreationTrigger = new TreeCreationTrigger(new AtomicInstantMonitor, config)
 

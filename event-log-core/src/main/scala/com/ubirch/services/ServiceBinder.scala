@@ -13,7 +13,7 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.kafka.consumer._
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
-import com.ubirch.services.metrics.{ Counter, DefaultConsumerRecordsManagerCounter, DefaultMetricsLoggerCounter }
+import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 
 import scala.concurrent.ExecutionContext
 
@@ -30,8 +30,8 @@ trait CassandraServices {
 }
 
 trait CounterServices {
-  def consumerRecordsManagerCounter: ScopedBindingBuilder
-  def metricsLoggerCounter: ScopedBindingBuilder
+  def successCounter: ScopedBindingBuilder
+  def failureCounter: ScopedBindingBuilder
 }
 
 trait ExecutionServices {
@@ -74,12 +74,12 @@ class ServiceBinder
   //Cassandra Cluster
 
   //Counters
-  def consumerRecordsManagerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultConsumerRecordsManagerCounter.name))
-    .to(classOf[DefaultConsumerRecordsManagerCounter])
-  def metricsLoggerCounter: ScopedBindingBuilder = bind(classOf[Counter])
-    .annotatedWith(Names.named(DefaultMetricsLoggerCounter.name))
-    .to(classOf[DefaultMetricsLoggerCounter])
+  def successCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultSuccessCounter.name))
+    .to(classOf[DefaultSuccessCounter])
+  def failureCounter: ScopedBindingBuilder = bind(classOf[Counter])
+    .annotatedWith(Names.named(DefaultFailureCounter.name))
+    .to(classOf[DefaultFailureCounter])
   //Counters
 
   //Execution
@@ -107,8 +107,8 @@ class ServiceBinder
     //Cassandra Cluster
 
     //Counters
-    consumerRecordsManagerCounter
-    metricsLoggerCounter
+    successCounter
+    failureCounter
     //Counters
 
     //Execution
