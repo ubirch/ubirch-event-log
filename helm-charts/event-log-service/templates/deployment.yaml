@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ include "event-log-service.fullname" . }}
+    labels:
+        app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+        helm.sh/chart: {{ include "event-log-service.chart" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+    replicas: {{ .Values.eventLog.replicaCount }}
+{{- if .Values.eventLog.strategy }}
+    strategy:
+{{ with .Values.eventLog.strategy }}
+{{ toYaml . | indent 8 }}
+{{ end }}
+{{ end }}
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+            app.kubernetes.io/instance: {{ .Release.Name }}
+    template:
+        metadata:
+            labels:
+                app.kubernetes.io/name: {{ include "event-log-service.name" . }}
+                app.kubernetes.io/instance: {{ .Release.Name }}
+        spec:
+            containers:
+                - name: {{ .Chart.Name }}
+                  image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+                  imagePullPolicy: {{ .Values.image.pullPolicy }}
+                  ports:
+                      - containerPort: {{ .Values.eventLog.server.port }}
+                      - containerPort: 9010
+                      - containerPort: 9020
+                      - containerPort: 4321
+                  readinessProbe:
+                    httpGet:
+                      path: "/health/ready"
+                      port: 8888
+                    initialDelaySeconds: 10
+                    periodSeconds: 10
+                  livenessProbe:
+                    httpGet:
+                      path: "/health/live"
+                      port: 8888
+                    initialDelaySeconds: 20
+                    periodSeconds: 60
+                  env:
+                      - name: EVTL_CS_KEYSPACE
+                        value: "{{ .Values.eventLog.cassandra.cluster.keyspace}}"
+                      - name: EVTL_CS_PREPSTM_CACHE
+                        value: "{{ .Values.eventLog.cassandra.cluster.preparedStatementCacheSize}}"
+                      - name: EVTL_CS_NODES
+                        value: "{{ .Values.eventLog.cassandra.cluster.contactPoints}}"
+                      - name: EVTL_CS_CONSISTENCY_LEVEL
+                        value: "{{ .Values.eventLog.cassandra.cluster.consistencyLevel}}"
+                      - name: EVTL_CS_SERIAL_CONSISTENCY_LEVEL
+                        value: "{{ .Values.eventLog.cassandra.cluster.serialConsistencyLevel}}"
+                      - name: EVTL_CS_USERNAME
+                        valueFrom:
+                            secretKeyRef:
+                                name: ubs.cassandra
+                                key: username
+                      - name: EVTL_CS_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: ubs.cassandra
+                                key: password
+                      - name: EVTL_CS_WITH_SSL
+                        value: "{{ .Values.eventLog.cassandra.cluster.withSsl}}"
+                      - name: EVTL_KFC_NODES
+                        value: "{{ .Values.eventLog.kafka.consumer.bootstrapServers}}"
+                      - name: EVTL_KFC_TOPIC
+                        value: "{{ .Values.eventLog.kafka.consumer.topic}}"
+                      - name: EVTL_KFC_GROUP
+                        value: "{{ .Values.eventLog.kafka.consumer.groupId}}"
+                      - name: EVTL_KFP_TOPIC
+                        value: "{{ .Values.eventLog.kafka.producer.topic}}"
+                      - name: EVTL_KFP_NODES
+                        value: "{{ .Values.eventLog.kafka.producer.bootstrapServers}}"
+                      - name: EVTL_KFC_ERROR_TOPIC
+                        value: "{{ .Values.eventLog.kafka.producer.errorTopic}}"
+                      - name: EVTL_PROM_HTTP_PORT
+                        value: "{{ .Values.eventLog.prometheus.port}}"
+                      - name: EVTL_JAVA_OPTS
+                        value: "{{ .Values.eventLog.javaopts}}"
+                      - name: EVTL_KFC_MAX_POLL_RECORDS
+                        value: "{{ .Values.eventLog.kafka.consumer.maxpoll}}"
+                      - name: EVTL_KFP_LINGER_MS
+                        value: "{{ .Values.eventLog.kafka.producer.linger }}"
+                      - name: EVTL_EXEC_THREAD_POOL_SIZE
+                        value: "{{ .Values.eventLog.exec.threadpoolsize }}"
+                      - name: EVTL_KFC_FETCH_MAX_BYTES_CONFIG
+                        value: "{{ .Values.eventLog.kafka.consumer.fetchMaxBytes }}"
+                      - name: EVTL_KFC_MAX_PARTITION_FETCH_BYTES_CONFIG
+                        value: "{{ .Values.eventLog.kafka.consumer.partitionFetchMaxBytes }}"
+                      - name: EVTL_HTTP_SERVER_PORT
+                        value: "{{ .Values.eventLog.server.port }}"
+                      - name: EVTL_HTTP_SERVER_BASE_URL
+                        value: "{{ .Values.eventLog.server.baseUrl }}"
+                      - name: EVTL_KFC_RECONNECT_BACKOFF_MS_CONFIG
+                        value: "{{ .Values.eventLog.kafka.consumer.reconnectBackoffMsConfig}}"
+                      - name: EVTL_KFC_RECONNECT_BACKOFF_MAX_MS_CONFIG
+                        value: "{{ .Values.eventLog.kafka.consumer.reconnectBackoffMaxMsConfig}}"
+                  resources:
+                    {{- toYaml .Values.resources | nindent 22 }}
+                {{- with .Values.nodeSelector }}
+            nodeSelector:
+                {{- toYaml . | nindent 8 }}
+            {{- end }}
+            {{- with .Values.affinity }}
+            affinity:
+            {{- toYaml . | nindent 8 }}
+            {{- end }}
+            {{- with .Values.tolerations }}
+            tolerations:
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
