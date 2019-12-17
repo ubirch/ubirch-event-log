@@ -20,6 +20,7 @@ object Values {
   val MASTER_TREE_LINK_ID = "master-tree-link-id"
   val PAYLOAD = "payload"
   val SIGNATURE = "signature"
+  val PRODUCER_ID = "producer-id"
   val DEVICE_ID = "device-id"
   val UPP_CHAIN = "upp-chain"
   val HASH = "hash"
