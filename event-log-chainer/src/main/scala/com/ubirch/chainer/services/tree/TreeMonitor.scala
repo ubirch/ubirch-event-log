@@ -3,18 +3,17 @@ package com.ubirch.chainer.services.tree
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
-import com.ubirch.chainer.models.{Chainer, Master, Mode, Slave}
+import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.models.EnrichedEventLog._
-import com.ubirch.models.{EventLog, HeaderNames}
-import com.ubirch.util.{FutureHelper, UUIDHelper}
+import com.ubirch.models.{ EventLog, HeaderNames }
+import com.ubirch.util.{ FutureHelper, UUIDHelper }
 import javax.inject._
 import monix.execution.Cancelable
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString
 
-import scala.annotation.tailrec
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
 @Singleton
@@ -71,8 +70,7 @@ class TreeMonitor @Inject() (
               throw new Exception(s"Tree(${mode.value}) Warm-up failed.")
           }
           .recoverWith {
-            case e: java.util.concurrent.ExecutionException
-              if e.getCause != null && e.getCause.isInstanceOf[java.net.ConnectException] =>
+            case e: java.util.concurrent.ExecutionException if e.getCause != null && e.getCause.isInstanceOf[java.net.ConnectException] =>
               go
             case e: Exception =>
               throw e

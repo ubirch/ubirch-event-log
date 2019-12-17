@@ -41,8 +41,8 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
   val b: Bindings = Bindings.instance
   val g: TraversalSource = graph.traversal
 
-  logger.info("[property] getNioPoolSize="+ cluster.getNioPoolSize)
-  logger.info("[property] getWorkerPoolSize="+ cluster.getWorkerPoolSize)
+  logger.info("[property] getNioPoolSize=" + cluster.getNioPoolSize)
+  logger.info("[property] getWorkerPoolSize=" + cluster.getWorkerPoolSize)
 
   def buildProperties(config: Config): PropertiesConfiguration = {
     val conf = new PropertiesConfiguration()
