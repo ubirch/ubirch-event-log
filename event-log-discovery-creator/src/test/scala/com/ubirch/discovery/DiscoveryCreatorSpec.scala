@@ -97,7 +97,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
         }
-        creator.start
+        creator.start()
 
         val range = 1 to 1
         val pms = range.map(_ => DiscoveryJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
@@ -114,6 +114,8 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         assert(relations.forall(_.edge.label != Option(Values.UPP_CATEGORY)))
         assert(relations.forall(_.edge.label != Option(Values.DEVICE_CATEGORY)))
         assert(relations.exists(_.edge.label == Option(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY)))
+        assert(relations.forall(x => x.vFrom.properties.size == 5))
+        assert(relations.forall(x => x.vTo.properties.size == 2))
 
         assert(relations.nonEmpty)
         assert(relations.size == 2) // We expect to relations: UPP-DEVICE, UPP-CHAIN
@@ -193,7 +195,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
           override def producerBootstrapServers: String = bootstrapServers
         }
 
-        creator.start
+        creator.start()
         import LookupKey._
 
         val id = UUIDHelper.randomUUID
