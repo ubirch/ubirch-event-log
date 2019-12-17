@@ -98,7 +98,8 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
     res.recover {
       case e: Exception =>
         //This is not necessary an error: When the upp is not found the predicate is not held and therefore it arrives here.
-        logger.debug("For Comprehension Res :  " + e.getMessage)
+        logger.error("For Comprehension Res (shortestPath): " + e.getMessage)
+        logger.error("For Comprehension Res (shortestPath): ", e)
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
     }
 
@@ -124,7 +125,8 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
     res.recover {
       case e: Exception =>
         //This is not necessary an error: When the upp is not found the predicate is not held and therefore it arrives here.
-        logger.debug("For Comprehension Res :  " + e.getMessage)
+        logger.error("For Comprehension Res (upperLower):  " + e.getMessage)
+        logger.error("For Comprehension Res (upperLower):  ", e)
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
 
     }
