@@ -85,9 +85,8 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
             .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
-            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         )
-        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY))
+        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     val maybeRelation2 = maybeChain.map { chain =>
       relation1
