@@ -18,6 +18,8 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[
 
   def metricsSubNamespace: String
 
+  def maxTimeAggregationSeconds: Long
+
   def controller: ConsumerRecordsController[K, V]
 
   lazy val consumption: ConsumerRunner[K, V] = {
@@ -29,6 +31,7 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[
     consumerImp.setValueDeserializer(Some(valueDeserializer))
     consumerImp.setConsumerRecordsController(Some(controller))
     consumerImp.setConsumptionStrategy(All)
+    consumerImp.setMaxTimeAggregationSeconds(maxTimeAggregationSeconds)
     consumerImp
   }
 }
@@ -69,7 +72,7 @@ trait WithMain {
   ek: ExpressKafkaApp[_, _, _] =>
 
   def main(args: Array[String]): Unit = {
-    start
+    start()
     val cd = new CountDownLatch(1)
     cd.await()
   }

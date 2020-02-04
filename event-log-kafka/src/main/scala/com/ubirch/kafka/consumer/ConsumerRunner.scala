@@ -56,7 +56,7 @@ trait WithProcessRecords[K, V] {
     def start(): Unit
 
     def aggregate(): Unit = {
-      val aggRes = batchCountDown.await(20, TimeUnit.SECONDS)
+      val aggRes = batchCountDown.await(maxTimeAggregationSeconds, TimeUnit.SECONDS)
       if (!aggRes) {
         logger.warn("Taking too much time aggregating ..")
       }
@@ -206,6 +206,8 @@ trait WithProcessRecords[K, V] {
     )
   }
 
+  def maxTimeAggregationSeconds: Long
+
 }
 
 /**
@@ -292,6 +294,8 @@ abstract class ConsumerRunner[K, V](name: String)
   @BeanProperty var gracefulTimeout: FiniteDuration = 5000 millis
 
   @BeanProperty var forceExit: Boolean = true
+
+  @BeanProperty var maxTimeAggregationSeconds: Long = 20
 
   protected var consumer: Consumer[K, V] = _
 
