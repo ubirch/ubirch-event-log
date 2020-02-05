@@ -130,8 +130,6 @@ trait WithProcessRecords[K, V] {
 
     protected val batchCountDownSize: Int = 1
 
-    val futureHelper = new FutureHelper()
-
     def start() {
       processRecords(consumerRecords.iterator().asScala.toVector)
       if (getDelayRecords > 0.millis) {
@@ -231,6 +229,8 @@ abstract class ConsumerRunner[K, V](name: String)
   implicit def ec: ExecutionContext
 
   implicit lazy val scheduler: Scheduler = monix.execution.Scheduler(ec)
+
+  lazy val futureHelper = new FutureHelper()
 
   override val version: AtomicInteger = ConsumerRunner.version
   //This one is made public for testing purposes
@@ -390,7 +390,7 @@ abstract class ConsumerRunner[K, V](name: String)
                   throw MaxNumberOfCommitAttemptsException("Error Committing", s"$commitAttempts attempts were performed. But none worked. Escalating ...", Left(e))
                 } else {
                   try {
-                    new FutureHelper().delay(getMaxCommitAttemptBackoff)(e.commitFunc())
+                    futureHelper.delay(getMaxCommitAttemptBackoff)(e.commitFunc())
                     break()
                   } catch {
                     case _: CommitTimeoutException =>
@@ -496,6 +496,7 @@ abstract class ConsumerRunner[K, V](name: String)
 
     } catch {
       case e: Exception =>
+        logger.info("Error Creating Consumer", e)
         throw ConsumerCreationException("Error Creating Consumer", e.getMessage)
     }
   }

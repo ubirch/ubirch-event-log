@@ -10,8 +10,7 @@ import com.ubirch.kafka.producer.{ ProducerBasicConfigs, ProducerRunner, WithPro
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
 trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[K, V] {
@@ -22,23 +21,13 @@ trait ExpressConsumer[K, V] extends ConsumerBasicConfigs with WithDeserializers[
 
   def controller: ConsumerRecordsController[K, V]
 
-  lazy val consumption: ConsumerRunner[K, V] = {
-    val consumerImp = ConsumerRunner.emptyWithMetrics[K, V](metricsSubNamespace)
-    consumerImp.setUseAutoCommit(false)
-    consumerImp.setTopics(consumerTopics)
-    consumerImp.setProps(consumerConfigs)
-    consumerImp.setKeyDeserializer(Some(keyDeserializer))
-    consumerImp.setValueDeserializer(Some(valueDeserializer))
-    consumerImp.setConsumerRecordsController(Some(controller))
-    consumerImp.setConsumptionStrategy(All)
-    consumerImp.setMaxTimeAggregationSeconds(maxTimeAggregationSeconds)
-    consumerImp
-  }
+  def consumption: ConsumerRunner[K, V]
+
 }
 
 trait ExpressProducer[K, V] extends ProducerBasicConfigs with WithSerializer[K, V] {
 
-  lazy val production = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
+  def production: ProducerRunner[K, V]
 
   def send(topic: String, value: V): Future[RecordMetadata] = production.send(new ProducerRecord[K, V](topic, value))
 
@@ -79,12 +68,18 @@ trait WithMain {
 
 }
 
-trait ConfigBase {
+object ConfigBase {
   lazy val conf: Config = ConfigFactory.load()
+}
+
+trait ConfigBase {
+  def conf: Config = ConfigBase.conf
 }
 
 trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K, V] {
   thiz =>
+
+  implicit def ec: ExecutionContext
 
   lazy val controller: ConsumerRecordsController[K, V] = new ConsumerRecordsController[K, V] {
 
@@ -97,6 +92,21 @@ trait ExpressKafka[K, V, R] extends ExpressConsumer[K, V] with ExpressProducer[K
     override def process(consumerRecords: Vector[ConsumerRecord[K, V]]): Future[ProcessResult[K, V]] = {
       thiz.process.invoke(consumerRecords).map(x => simpleProcessResult(x, consumerRecords))
     }
+  }
+
+  lazy val production: ProducerRunner[K, V] = ProducerRunner(producerConfigs, Some(keySerializer), Some(valueSerializer))
+
+  lazy val consumption: ConsumerRunner[K, V] = {
+    val impl = ConsumerRunner.emptyWithMetrics[K, V](metricsSubNamespace)
+    impl.setUseAutoCommit(false)
+    impl.setTopics(consumerTopics)
+    impl.setProps(consumerConfigs)
+    impl.setKeyDeserializer(Some(keyDeserializer))
+    impl.setValueDeserializer(Some(valueDeserializer))
+    impl.setConsumerRecordsController(Some(controller))
+    impl.setConsumptionStrategy(All)
+    impl.setMaxTimeAggregationSeconds(maxTimeAggregationSeconds)
+    impl
   }
 
   trait Process {
