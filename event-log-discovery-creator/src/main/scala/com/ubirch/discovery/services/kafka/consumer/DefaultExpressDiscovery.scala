@@ -51,6 +51,8 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
     ProducerShutdownHook.hookFunc(production)
   )
 
+  override def maxTimeAggregationSeconds: Long = 120
+
 }
 
 @Singleton
@@ -58,7 +60,7 @@ class DefaultExpressDiscovery @Inject() (
     config: Config,
     lifecycle: Lifecycle,
     relationStrategyImpl: RelationStrategyImpl
-)(implicit ec: ExecutionContext)
+)(implicit val ec: ExecutionContext)
   extends DefaultExpressDiscoveryBase(config, lifecycle) with LazyLogging {
 
   final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson

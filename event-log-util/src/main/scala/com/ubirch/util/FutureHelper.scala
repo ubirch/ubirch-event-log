@@ -10,7 +10,7 @@ import scala.concurrent.{ Await, ExecutionContext, Future, blocking }
   */
 class FutureHelper()(implicit ec: ExecutionContext) {
 
-  implicit val scheduler = monix.execution.Scheduler(ec)
+  val scheduler = monix.execution.Scheduler(ec)
 
   def withBlock[T](f: () => T): Future[T] = {
     Future {

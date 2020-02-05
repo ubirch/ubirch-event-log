@@ -84,20 +84,27 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 
   def shortestPath(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] = {
 
-    val res = for {
-      (Some(ev), path, maybeAnchors) <- finder.findUPPWithShortestPath(value, queryType)
+    val res: Future[LookupPipeData] = for {
+      (maybeEventLog, path, maybeAnchors) <- finder.findUPPWithShortestPath(value, queryType)
       decoratedAnchors <- decorateBlockchain(blockchainInfo, maybeAnchors)
     } yield {
       val anchors = responseForm match {
         case AnchorsNoPath => LookupExecutor.shortestPathAsJValue(decoratedAnchors)
         case AnchorsWithPath => LookupExecutor.shortestPathAsJValue(path, decoratedAnchors)
       }
-      LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, anchors)), None, None)
+
+      //This is set here, so we can eliminate a false positive response for when there is no upp record BUT the result is not an error
+      val result = maybeEventLog.map { ev =>
+        LookupResult.Found(key, queryType, ev.event, anchors)
+      }.getOrElse {
+        LookupResult.NotFound(key, queryType)
+      }
+
+      LookupPipeData(v1, Some(key), Some(queryType), Some(result), None, None)
     }
 
     res.recover {
       case e: Exception =>
-        //This is not necessary an error: When the upp is not found the predicate is not held and therefore it arrives here.
         logger.error("For Comprehension Res (shortestPath): " + e.getMessage)
         logger.error("For Comprehension Res (shortestPath): ", e)
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
@@ -108,7 +115,7 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
   def upperLower(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo)(v1: Vector[ConsumerRecord[String, String]]): Future[LookupPipeData] = {
 
     val res = for {
-      (Some(ev), upperPath, upperBlocks, lowerPath, lowerBlocks) <- finder.findUPPWithUpperLowerBounds(value, queryType)
+      (maybeEventLog, upperPath, upperBlocks, lowerPath, lowerBlocks) <- finder.findUPPWithUpperLowerBounds(value, queryType)
       decoratedUpperAnchors <- decorateBlockchain(blockchainInfo, upperBlocks)
       decoratedLowerAnchors <- decorateBlockchain(blockchainInfo, lowerBlocks)
     } yield {
@@ -119,12 +126,19 @@ class LookupExecutor @Inject() (finder: Finder)(implicit ec: ExecutionContext)
 
       }
 
-      LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, anchors)), None, None)
+      //This is set here, so we can eliminate a false positive response for when there is no upp record BUT the result is not an error
+      val result = maybeEventLog.map { ev =>
+        LookupResult.Found(key, queryType, ev.event, anchors)
+      }.getOrElse {
+        LookupResult.NotFound(key, queryType)
+      }
+
+      LookupPipeData(v1, Some(key), Some(queryType), Some(result), None, None)
+
     }
 
     res.recover {
       case e: Exception =>
-        //This is not necessary an error: When the upp is not found the predicate is not held and therefore it arrives here.
         logger.error("For Comprehension Res (upperLower):  " + e.getMessage)
         logger.error("For Comprehension Res (upperLower):  ", e)
         LookupPipeData(v1, Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
