@@ -2,13 +2,13 @@ package com.ubirch.services.healthcheck
 
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.HealthCheckConfPaths
-import com.ubirch.kafka.consumer.{BytesConsumer, ConsumerRunner, StringConsumer}
+import com.ubirch.kafka.consumer.{ BytesConsumer, ConsumerRunner, StringConsumer }
 import com.ubirch.kafka.express.ExpressKafka
-import com.ubirch.kafka.producer.{BytesProducer, ProducerRunner, StringProducer}
+import com.ubirch.kafka.producer.{ BytesProducer, ProducerRunner, StringProducer }
 import com.ubirch.niomon.healthcheck.HealthCheckServer.CheckerFn
-import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
+import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.util.InjectorHelper
-import javax.inject.{Inject, Singleton}
+import javax.inject.{ Inject, Singleton }
 import org.apache.kafka.clients.producer.Producer
 
 import scala.concurrent.ExecutionContext
@@ -51,7 +51,6 @@ class HealthCheck @Inject() (config: Config) extends HealthCheckConfPaths {
     }
   }
 
-
   def addChecksForGuiceManagedKafkaClientRunners(injectorHelper: InjectorHelper): Unit = {
     val kafkaProducers: Seq[ProducerRunner[_, _]] = Seq(
       injectorHelper.getAsTry[BytesProducer],
@@ -65,7 +64,7 @@ class HealthCheck @Inject() (config: Config) extends HealthCheckConfPaths {
 
     kafkaProducers.zipWithIndex.foreach { case (producerRunner, idx) =>
       val name = s"kafka-producer-$idx"
-     addChecksForProducerRunner(name, producerRunner)
+      addChecksForProducerRunner(name, producerRunner)
     }
 
     kafkaConsumers.zipWithIndex.foreach { case (consumerRunner, idx) =>
