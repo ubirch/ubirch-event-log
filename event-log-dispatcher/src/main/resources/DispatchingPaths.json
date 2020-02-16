@@ -204,5 +204,24 @@
         "data_to_send": null
       }
     ]
+  },
+  {
+    "category": "ETHEREUM-CLASSIC_TESTNET_ETHERERUM_CLASSIC_KOTTI_TESTNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
   }
 ]

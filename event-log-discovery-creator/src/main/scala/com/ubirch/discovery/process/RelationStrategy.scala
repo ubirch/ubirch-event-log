@@ -75,20 +75,18 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
     //"service", "device-id", "upp", "chain"
     deviceCounter.counter.labels("event_log_trace").inc()
     //logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
-
     val relation1 =
       Vertex(Values.UPP_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.SIGNATURE -> signature)
         .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
-        .addProperty(Values.PRODUCER_ID -> device)
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
             .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
         )
-        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY))
+        .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     val maybeRelation2 = maybeChain.map { chain =>
       relation1
