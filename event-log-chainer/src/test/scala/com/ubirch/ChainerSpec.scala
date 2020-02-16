@@ -2,7 +2,7 @@ package com.ubirch
 
 import java.io.ByteArrayInputStream
 import java.util.Date
-import java.util.concurrent.{ Executor, TimeoutException }
+import java.util.concurrent.Executor
 
 import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
@@ -16,20 +16,18 @@ import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
-import org.apache.kafka.common.serialization.StringDeserializer
+import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
-import scala.annotation.tailrec
-import scala.concurrent.duration._
 import scala.concurrent.Future
 
 class WebClientProvider extends Provider[WebClient] {

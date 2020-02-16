@@ -11,7 +11,7 @@ import com.ubirch.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.kafka.producer.ProducerShutdownHook
 import com.ubirch.models.EnrichedError._
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, Values }
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -30,28 +30,30 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
   with ProducerCreator
   with LazyLogging {
 
-  def keyDeserializer: Deserializer[String] = new StringDeserializer
+  val keyDeserializer: Deserializer[String] = new StringDeserializer
 
-  def valueDeserializer: Deserializer[String] = new StringDeserializer
+  val valueDeserializer: Deserializer[String] = new StringDeserializer
 
-  def keySerializer: Serializer[String] = new StringSerializer
+  val keySerializer: Serializer[String] = new StringSerializer
 
-  def valueSerializer: Serializer[String] = new StringSerializer
+  val valueSerializer: Serializer[String] = new StringSerializer
 
-  override def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+  override val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
-  def producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
+  val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
-  def errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
+  val errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
-  def consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
+  val consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
 
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),
     ProducerShutdownHook.hookFunc(production)
   )
 
-  override def maxTimeAggregationSeconds: Long = 120
+  override val prefix: String = Values.UBIRCH
+
+  override val maxTimeAggregationSeconds: Long = 120
 
 }
 

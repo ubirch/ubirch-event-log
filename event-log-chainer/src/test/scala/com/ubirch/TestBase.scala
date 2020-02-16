@@ -9,9 +9,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, MustMatchers, WordSpec }
 
 import scala.annotation.tailrec
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration.{ Duration, _ }
 import scala.concurrent.{ Await, Future }
-import scala.concurrent.duration._
 
 trait TestBase
   extends WordSpec
