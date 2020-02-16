@@ -7,16 +7,13 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.{ EventLog, HeaderNames, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
-import org.apache.kafka.common.serialization.StringDeserializer
+import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST.JString
-
-import scala.annotation.tailrec
-import scala.concurrent.duration._
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new DispatcherServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {

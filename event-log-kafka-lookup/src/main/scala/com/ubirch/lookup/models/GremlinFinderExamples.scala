@@ -3,12 +3,12 @@ package com.ubirch.lookup.models
 import java.util.Date
 
 import com.ubirch.lookup.services.LookupServiceBinder
+import com.ubirch.models.Values
 import com.ubirch.util.Boot
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
-import com.ubirch.models.Values
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
 

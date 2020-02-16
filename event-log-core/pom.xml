@@ -32,7 +32,7 @@
 
         <!-- versions -->
 
-        <event-log-kafka.version>1.2.9-SNAPSHOT</event-log-kafka.version>
+        <event-log-kafka.version>1.2.10-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>3.4.1</quill.cassandra.version>
@@ -58,7 +58,7 @@
 
         <dependency>
             <groupId>com.ubirch</groupId>
-            <artifactId>event-log-kafka</artifactId>
+            <artifactId>ubirch-kafka-express</artifactId>
             <version>${event-log-kafka.version}</version>
         </dependency>
 
