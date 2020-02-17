@@ -34,7 +34,7 @@ trait ExpressProducer[K, V] extends ProducerBasicConfigs with WithSerializer[K, 
 }
 
 trait WithShutdownHook extends WithConsumerShutdownHook with WithProducerShutdownHook {
-  ek: ExpressKafkaApp[_, _, _] =>
+  ek: ExpressKafka[_, _, _] =>
 
   Runtime.getRuntime.addShutdownHook(new Thread() {
     override def run(): Unit = {
