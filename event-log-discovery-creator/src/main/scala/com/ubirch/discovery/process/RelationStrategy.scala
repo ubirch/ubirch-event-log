@@ -96,7 +96,7 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
             .addProperty(Values.SIGNATURE -> chain)
             .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         )
-        .through(Edge(Values.CHAIN_CATEGORY))
+        .through(Edge(Values.CHAIN_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
 
