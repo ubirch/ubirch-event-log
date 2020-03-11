@@ -1,4 +1,4 @@
-package com.ubirch.util
+package com.ubirch.lookup.util
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -30,4 +30,3 @@ object Timer extends LazyLogging {
   }
 
 }
-
