@@ -1,14 +1,14 @@
 package com.ubirch.lookup.models
 
-import java.util.Date
+import java.text.SimpleDateFormat
 
 import com.ubirch.lookup.services.LookupServiceBinder
+import com.ubirch.models.Values
 import com.ubirch.util.Boot
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
-import com.ubirch.models.Values
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
 
@@ -17,13 +17,14 @@ object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
     implicit val ec = get[ExecutionContext]
 
     val gremlin = get[GremlinFinder]
-
-    val res = gremlin.findAnchorsWithPathAsVertices("M66G3UAGFRSHhJ0hKcfFX0INsGFhvvzI5QMolT331XGGBaKB7rH6xqh4yBZUQmRQsRS4yVcHIRZNegJCY6fgFg==")
-
+    val t0 = System.currentTimeMillis()
+    val res = gremlin.findAnchorsWithPathAsVertices("hCh65wOknIAFzs/QCLpoOF1gvNYnNv26Hn3bcfXqzqCwfpwGlDgPVvurtOyvmcTx5Y1Y4G7MhVxyaXgAzVjh0A==")
+    val t1 = System.currentTimeMillis()
     res.onComplete {
       case Success((a, b)) =>
         println("shortestPath: " + a.toString())
         println("upper: " + b.toString())
+        println(s"FindAnchorsWithPathAsVertices finished. Time to complete: ${t1 - t0}ms")
       case Failure(exception) =>
         logger.info("Hola")
         throw exception
@@ -41,7 +42,7 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
 
     val gremlin = get[GremlinFinder]
 
-    val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
+   val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
 
     val t = for {
       (_sp, _u, _lp, _l) <- res
@@ -52,13 +53,14 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
     } yield {
       (sx, ux, lp, lw)
     }
+    val timeFormatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
 
     t.onComplete {
       case Success((a, b, c, d)) =>
-        println("shortestPath: " + a.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("upper: " + b.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("lower-path: " + c.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("lower: " + d.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => new Date(y.toString.toLong)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("shortestPath: " + a.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("upper: " + b.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("lower-path: " + c.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("lower: " + d.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
       case Failure(exception) =>
         logger.info("Hola")
         throw exception
@@ -89,7 +91,6 @@ object FindUpperAndLowerAsVertices extends Boot(LookupServiceBinder.modules) {
         logger.info("Hola")
         throw exception
     }
-
   }
 
 }
