@@ -4,9 +4,10 @@ import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
+import com.ubirch.lookup.util.Timer
 import com.ubirch.models.Values
-import com.ubirch.util.{ TimeHelper, Timer }
-import gremlin.scala.{ Key, P, StepLabel, Vertex }
+import com.ubirch.util.TimeHelper
+import gremlin.scala.{Key, P, StepLabel, Vertex}
 import javax.inject._
 
 import scala.collection.JavaConverters._
