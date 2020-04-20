@@ -42,7 +42,7 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
 
     val gremlin = get[GremlinFinder]
 
-   val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
+    val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
 
     val t = for {
       (_sp, _u, _lp, _l) <- res

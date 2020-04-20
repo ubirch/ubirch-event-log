@@ -231,7 +231,6 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         assert(relations.size == range.size)
         assert(relations.exists(_.edge.properties.size == 1))
 
-
       }
 
     }
@@ -297,7 +296,6 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         assert(relations.nonEmpty)
         assert(relations.size == range.size)
         assert(relations.exists(_.edge.properties.size == 1))
-
 
       }
 
@@ -365,7 +363,6 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         assert(relations.nonEmpty)
         assert(relations.size == range.size)
         assert(relations.exists(_.edge.properties.size == 1))
-
 
       }
 
