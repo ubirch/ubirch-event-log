@@ -84,6 +84,13 @@
       },
       {
         "tags": [
+          "blockchain"
+        ],
+        "name": "ubirch-svalbard-evt-chain-etr-string",
+        "data_to_send": "id"
+      },
+      {
+        "tags": [
           "discovery"
         ],
         "name": "ubirch-svalbard-evt-discovery-creator-json",
@@ -207,6 +214,25 @@
   },
   {
     "category": "ETHEREUM-CLASSIC_TESTNET_ETHERERUM_CLASSIC_KOTTI_TESTNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "REGIOIT_BDR_BDR_NETWORK",
     "topics": [
       {
         "tags": [
