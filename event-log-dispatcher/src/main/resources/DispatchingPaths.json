@@ -249,5 +249,24 @@
         "data_to_send": null
       }
     ]
+  },
+  {
+    "category": "GOVDIGITAL_BDR_BDR_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
   }
 ]
