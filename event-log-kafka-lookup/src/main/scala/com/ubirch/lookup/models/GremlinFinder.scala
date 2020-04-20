@@ -4,9 +4,10 @@ import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
+import com.ubirch.lookup.util.Timer
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
-import gremlin.scala.{ Key, P, Vertex }
+import gremlin.scala.{ Key, P, StepLabel, Vertex }
 import javax.inject._
 
 import scala.collection.JavaConverters._
@@ -16,7 +17,12 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   import gremlin._
 
-  def findUpperAndLowerAsVertices(id: String) =
+  /**
+    * Same as findUpperAndLower but decorates the vertices in the path
+    * @param id Id of the vertex
+    * @return
+    */
+  def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] =
     for {
       (shortest, upper, lowerPath, lower) <- findUpperAndLower(id)
       (completePathShortest, completeBlockchainsUpper) <- asVerticesDecorated(shortest, upper)
@@ -25,10 +31,13 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       (completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower)
     }
 
-  def findUpperAndLower(id: String) = {
-
-    val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
-
+  /**
+    * Find the upper and lower bound blockchains associated to the given vertex
+    * @param id Id of the vertex
+    * @return A Future of 4 vertex List corresponding to the shortest path, upper path, lower path and ???
+    */
+  def findUpperAndLower(id: String): Future[(List[Vertex], List[Vertex], List[Vertex], List[Vertex])] = {
+    val futureShortestPath: Future[PathHelper] = shortestPathFromVertexToBlockchain(id).map(PathHelper)
     val headTimestamp: Future[Option[Long]] = futureShortestPath.map(_.headOption).flatMap {
       case Some(v) =>
         getTimestampFromVertexAsDate(v)
@@ -80,6 +89,13 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   }
 
+  /**
+    * Look for a vertex having the matchProperty:value and return the value of his returnProperty
+    * @param matchProperty Key of the lookup property
+    * @param value Value of the lookup property
+    * @param returnProperty Key of the desired property
+    * @return Value of the desired property
+    */
   def simpleFind(matchProperty: String, value: String, returnProperty: String) =
     g.V()
       .has(Key[String](matchProperty.toLowerCase()), value)
@@ -100,36 +116,43 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   def outLT(master: Vertex, time: Long) = {
     val timestamp = Key[Date](Values.TIMESTAMP)
-    g.V(master)
+    val res = Timer.time(g.V(master)
       .repeat(
-        _.out() // In for other direction
-          .hasLabel(Values.MASTER_TREE_CATEGORY)
+        _.out(
+          Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+          Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY
+        ) // In for other direction
           .simplePath()
       )
       .until(
-        _.in()
-          .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
+        _.inE(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY) // using vertex centered index
           .has(timestamp, P.lt(new Date(time))) // Other P values like P.gt
       )
       .path()
       .limit(1)
       .unfold[Vertex]()
-      .promise()
-
+      .promise())
+    res.logTimeTaken(s"outLT master:${master.id()}, time:$time")
+    res.result.get
   }
 
-  def shortestPathFromUPPToBlockchain(hash: String) =
-    shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
+  def shortestPathFromVertexToBlockchain(hash: String) = shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
 
-  def shortestPath(property: String, value: String, untilLabel: String) =
-    g.V()
+  def shortestPath(property: String, value: String, untilLabel: String) = {
+    val x = StepLabel[java.util.Set[Vertex]]("x")
+    //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
+    val res = Timer.time(g.V()
       .has(Key[String](property.toLowerCase()), value)
-      .repeat(_.in().simplePath())
+      .store(x)
+      .repeat(_.in().where(P.without[String](List("x"))).aggregate(x))
       .until(_.hasLabel(untilLabel))
-      .path()
       .limit(1)
+      .path()
       .unfold[Vertex]()
-      .promise()
+      .promise())
+    res.logTimeTaken(s"shortest path from kv: $property:$value to label: $untilLabel")
+    res.result.get
+  }
 
   def asVertices(path: List[Vertex], anchors: List[Vertex]) = {
 
@@ -217,29 +240,33 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   def toVertexStruct(vertices: List[Vertex]) = {
     val futureRes = vertices.map { v =>
-      val fmaps = g.V(v).valueMap().promise().map(_.headOption)
-      val flabel = g.V(v).label().promise().map(_.headOption)
-      val gremlinRes = for {
-        jmaps <- fmaps
-        label <- flabel
-      } yield {
-        val maps = jmaps
-          .map(_.asScala.toMap)
-          .map(_.map { x =>
-            try {
-              val key = x._1.toString
-              val value = x._2.asInstanceOf[java.util.ArrayList[Any]].asScala.headOption.getOrElse("NO VALUE")
-              key -> value
-            } catch {
-              case e: Exception =>
-                logger.error("Error creating VertexStruct")
-                throw e
-            }
-          })
-          .getOrElse(Map.empty[String, String])
-        label.map(x => (x, maps))
-      }
-      gremlinRes
+      val timedToVertexStruct = Timer.time({
+        val fmaps = g.V(v).valueMap().promise().map(_.headOption)
+        val flabel = g.V(v).label().promise().map(_.headOption)
+        val gremlinRes = for {
+          jmaps <- fmaps
+          label <- flabel
+        } yield {
+          val maps = jmaps
+            .map(_.asScala.toMap)
+            .map(_.map { x =>
+              try {
+                val key = x._1.toString
+                val value = x._2.asInstanceOf[java.util.ArrayList[Any]].asScala.headOption.getOrElse("NO VALUE")
+                key -> value
+              } catch {
+                case e: Exception =>
+                  logger.error("Error creating VertexStruct")
+                  throw e
+              }
+            })
+            .getOrElse(Map.empty[String, String])
+          label.map(x => (x, maps))
+        }
+        gremlinRes
+      })
+      timedToVertexStruct.logTimeTaken(s"convertex vertex ${v.id()} to vertexStruct")
+      timedToVertexStruct.getResult
     }
 
     Future.sequence(futureRes)
@@ -255,9 +282,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       (completePath, completeBlockchains)
     }
 
-  def findAnchorsWithPath(id: String) = {
-
-    val futureShortestPath = shortestPathFromUPPToBlockchain(id).map(PathHelper)
+  def findAnchorsWithPath(id: String): Future[(List[Vertex], List[Vertex])] = {
+    val futureShortestPath: Future[PathHelper] = shortestPathFromVertexToBlockchain(id).map(PathHelper)
 
     val maybeBlockchains = futureShortestPath.map(_.reversedTailHeadOption).flatMap {
       case Some(v) => getBlockchainsFromMasterVertex(v)
@@ -280,7 +306,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def getBlockchainsFromMasterVertex(master: Vertex) =
     g.V(master)
       .in()
-      .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
+      .has(Key[String](Values.TYPE), Values.PUBLIC_CHAIN_CATEGORY)
+      //.hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       .promise()
 
   case class PathHelper(path: List[Vertex]) {
