@@ -30,21 +30,21 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
   with ProducerCreator
   with LazyLogging {
 
-  def keyDeserializer: Deserializer[String] = new StringDeserializer
+  val keyDeserializer: Deserializer[String] = new StringDeserializer
 
-  def valueDeserializer: Deserializer[String] = new StringDeserializer
+  val valueDeserializer: Deserializer[String] = new StringDeserializer
 
-  def keySerializer: Serializer[String] = new StringSerializer
+  val keySerializer: Serializer[String] = new StringSerializer
 
-  def valueSerializer: Serializer[String] = new StringSerializer
+  val valueSerializer: Serializer[String] = new StringSerializer
 
-  override def metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+  override val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
-  def producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
+  val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
   def errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
-  def consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
+  val consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
 
   lifecycle.addStopHooks(
     ConsumerShutdownHook.hookFunc(consumerGracefulTimeout, consumption),
@@ -90,7 +90,7 @@ class DefaultExpressDiscovery @Inject() (
       }.get
   }
 
-  override def process: Process = Process.async { consumerRecords =>
+  override val process: Process = Process.async { consumerRecords =>
 
     val res = consumerRecords.map { x =>
       Future(composed(x)).flatMap { json =>
