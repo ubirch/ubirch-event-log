@@ -13,7 +13,7 @@ import scala.language.implicitConversions
   */
 case class EnrichedIterator[A](iterator: Iterator[A])(implicit ec: ExecutionContext) {
 
-  val futureHelper = new FutureHelper()
+  lazy val futureHelper = new FutureHelper()
 
   def delayOnNext(duration: FiniteDuration): Iterator[A] = iterator.map { x =>
     futureHelper.delay(duration)(x)
