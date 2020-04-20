@@ -150,7 +150,7 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
   }
 
   /**
-  * Create a list of SLAVE_TREE->SLAVE_TREE relation
+    * Create a list of SLAVE_TREE->SLAVE_TREE relation
     */
   def linkRelations = {
 
@@ -174,7 +174,6 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .getOrElse(Nil)
       .map(x => relation(x.name))
   }
-
 
   override def create: Seq[Relation] = {
     try {
@@ -244,7 +243,6 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       .getOrElse(Nil)
       .map(x => relation(x.name))
   }
-
 
   override def create: Seq[Relation] = {
     try {

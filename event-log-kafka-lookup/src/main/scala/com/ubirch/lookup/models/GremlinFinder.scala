@@ -7,11 +7,11 @@ import com.ubirch.lookup.services.Gremlin
 import com.ubirch.lookup.util.Timer
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
-import gremlin.scala.{Key, P, StepLabel, Vertex}
+import gremlin.scala.{ Key, P, StepLabel, Vertex }
 import javax.inject._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
 
@@ -118,7 +118,10 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val timestamp = Key[Date](Values.TIMESTAMP)
     val res = Timer.time(g.V(master)
       .repeat(
-        _.out("MASTER_TREE->SLAVE_TREE", "MASTER_TREE->MASTER_TREE") // In for other direction
+        _.out(
+          Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+          Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY
+        ) // In for other direction
           .simplePath()
       )
       .until(
