@@ -42,7 +42,7 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
 
   val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
-  val errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
+  def errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
   val consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
 

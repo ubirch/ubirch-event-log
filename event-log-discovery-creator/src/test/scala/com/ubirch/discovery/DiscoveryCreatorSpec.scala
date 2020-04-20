@@ -142,7 +142,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
 
       val consumerTopics: Set[String] = config.getString(ConsumerConfPaths.TOPIC_PATH).split(",").toSet.filter(_.nonEmpty).map(_.trim)
 
-      def errorTopic_ : String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
+      val errorTopic_ : String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
       val relationStrategy = new RelationStrategyImpl(new DefaultDeviceCounter(config))
 
