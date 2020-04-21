@@ -92,7 +92,7 @@ class DefaultExpressDiscovery @Inject() (
       }.get
   }
 
-  override def process: Process = Process.async { consumerRecords =>
+  override val process: Process = Process.async { consumerRecords =>
 
     val res = consumerRecords.map { x =>
       Future(composed(x)).flatMap { json =>
