@@ -4,7 +4,6 @@ import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.lookup.services.Gremlin
-import com.ubirch.lookup.util.Timer
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
 import gremlin.scala.{ Key, P, StepLabel, Vertex }
@@ -116,7 +115,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   def outLT(master: Vertex, time: Long) = {
     val timestamp = Key[Date](Values.TIMESTAMP)
-    val res = Timer.time(g.V(master)
+    g.V(master)
       .repeat(
         _.out(
           Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
@@ -131,9 +130,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .path()
       .limit(1)
       .unfold[Vertex]()
-      .promise())
-    res.logTimeTaken(s"outLT master:${master.id()}, time:$time")
-    res.result.get
+      .promise()
   }
 
   def shortestPathFromVertexToBlockchain(hash: String) = shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
@@ -141,7 +138,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def shortestPath(property: String, value: String, untilLabel: String) = {
     val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
-    val res = Timer.time(g.V()
+    g.V()
       .has(Key[String](property.toLowerCase()), value)
       .store(x)
       .repeat(_.in().where(P.without[String](List("x"))).aggregate(x))
@@ -149,9 +146,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       .limit(1)
       .path()
       .unfold[Vertex]()
-      .promise())
-    res.logTimeTaken(s"shortest path from kv: $property:$value to label: $untilLabel")
-    res.result.get
+      .promise()
   }
 
   def asVertices(path: List[Vertex], anchors: List[Vertex]) = {
@@ -240,33 +235,27 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   def toVertexStruct(vertices: List[Vertex]) = {
     val futureRes = vertices.map { v =>
-      val timedToVertexStruct = Timer.time({
-        val fmaps = g.V(v).valueMap().promise().map(_.headOption)
-        val flabel = g.V(v).label().promise().map(_.headOption)
-        val gremlinRes = for {
-          jmaps <- fmaps
-          label <- flabel
-        } yield {
-          val maps = jmaps
-            .map(_.asScala.toMap)
-            .map(_.map { x =>
-              try {
-                val key = x._1.toString
-                val value = x._2.asInstanceOf[java.util.ArrayList[Any]].asScala.headOption.getOrElse("NO VALUE")
-                key -> value
-              } catch {
-                case e: Exception =>
-                  logger.error("Error creating VertexStruct")
-                  throw e
-              }
-            })
-            .getOrElse(Map.empty[String, String])
-          label.map(x => (x, maps))
-        }
-        gremlinRes
-      })
-      timedToVertexStruct.logTimeTaken(s"convertex vertex ${v.id()} to vertexStruct")
-      timedToVertexStruct.getResult
+      val gremlinRes = for {
+        jmaps <- g.V(v).valueMap().promise().map(_.headOption)
+        label <- g.V(v).label().promise().map(_.headOption)
+      } yield {
+        val maps = jmaps
+          .map(_.asScala.toMap)
+          .map(_.map { x =>
+            try {
+              val key = x._1.toString
+              val value = x._2.asInstanceOf[java.util.ArrayList[Any]].asScala.headOption.getOrElse("NO VALUE")
+              key -> value
+            } catch {
+              case e: Exception =>
+                logger.error("Error creating VertexStruct")
+                throw e
+            }
+          })
+          .getOrElse(Map.empty[String, String])
+        label.map(x => (x, maps))
+      }
+      gremlinRes
     }
 
     Future.sequence(futureRes)
