@@ -74,12 +74,10 @@ case object UPPStrategy extends RelationStrategy with LazyLogging {
       Vertex(Values.UPP_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.SIGNATURE -> signature)
-        .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
-            .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
         )
         .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
@@ -89,7 +87,6 @@ case object UPPStrategy extends RelationStrategy with LazyLogging {
         .connectedTo(
           Vertex(Values.UPP_CATEGORY)
             .addProperty(Values.SIGNATURE -> chain)
-            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         )
         .through(Edge(Values.CHAIN_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
@@ -124,13 +121,11 @@ case object SlaveTreeStrategy extends RelationStrategy with LazyLogging {
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.UPP_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.SIGNATURE -> signature)
-            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
@@ -151,12 +146,10 @@ case object SlaveTreeStrategy extends RelationStrategy with LazyLogging {
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
@@ -192,12 +185,10 @@ case object MasterTreeStrategy extends RelationStrategy with LazyLogging {
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         )
         .through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
@@ -221,12 +212,10 @@ case object MasterTreeStrategy extends RelationStrategy with LazyLogging {
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.MASTER_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         ).through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
     }
 
@@ -257,13 +246,11 @@ case object PublicBlockchainStrategy extends RelationStrategy with LazyLogging {
 
     Vertex(Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.HASH -> eventLog.id)
-      .addProperty(Values.TYPE -> Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.PUBLIC_CHAIN_CATEGORY -> eventLog.category)
       .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
       .connectedTo(
         Vertex(Values.MASTER_TREE_CATEGORY)
           .addProperty(Values.HASH -> hash)
-          .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
       )
       .through(Edge(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
