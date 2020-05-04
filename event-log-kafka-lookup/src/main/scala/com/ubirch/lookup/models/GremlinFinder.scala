@@ -224,7 +224,6 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     asVertices(path, anchors).map { case (p, a) =>
       val _path = p.map(x =>
         x.map(Values.TIMESTAMP)(parseTimestamp)
-          .map(Values.TYPE)(decorateType)
           .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
 
       val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
@@ -295,7 +294,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def getBlockchainsFromMasterVertex(master: Vertex) =
     g.V(master)
       .in()
-      .has(Key[String](Values.TYPE), Values.PUBLIC_CHAIN_CATEGORY)
+      .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       //.hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       .promise()
 
