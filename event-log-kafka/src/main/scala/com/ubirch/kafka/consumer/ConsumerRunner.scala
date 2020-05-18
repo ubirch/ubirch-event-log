@@ -501,6 +501,8 @@ abstract class ConsumerRunner[K, V](name: String)
     }
   }
 
+  def getConsumerAsOpt: Option[Consumer[K, V]] = Option(consumer)
+
   @throws(classOf[EmptyTopicException])
   def subscribe(topics: List[String], consumerRebalanceListenerBuilder: Option[Consumer[K, V] => ConsumerRebalanceListener]): Unit = {
     if (topics.nonEmpty) {

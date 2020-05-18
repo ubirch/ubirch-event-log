@@ -3,6 +3,7 @@ package com.ubirch.util
 import com.google.inject.{ Guice, Injector, Module }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.ServiceBinder
+import com.ubirch.services.healthcheck.HealthCheck
 import com.ubirch.services.lifeCycle.JVMHook
 import com.ubirch.services.metrics.PrometheusMetrics
 import com.ubirch.util.Exceptions.{ InjectionException, InjectorCreationException }
@@ -75,9 +76,16 @@ trait WithPrometheusMetrics {
 }
 
 /**
+  * TODO: docs
+  */
+trait WithHealthCheck { self: InjectorHelper =>
+  get[HealthCheck].init(self)
+}
+
+/**
   * Util that is used when starting the main service.
   */
-abstract class Boot(modules: List[Module] = ServiceBinder.modules) extends InjectorHelper(modules) with WithJVMHooks with WithPrometheusMetrics {
+abstract class Boot(modules: List[Module] = ServiceBinder.modules) extends InjectorHelper(modules) with WithJVMHooks with WithPrometheusMetrics with WithHealthCheck {
   def *[T](block: => T): Unit =
     try { block } catch {
       case e: Exception =>
