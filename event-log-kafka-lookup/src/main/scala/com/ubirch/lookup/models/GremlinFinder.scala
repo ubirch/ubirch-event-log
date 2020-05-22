@@ -295,7 +295,6 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     g.V(master)
       .in()
       .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-      //.hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       .promise()
 
   case class PathHelper(path: List[Vertex]) {
