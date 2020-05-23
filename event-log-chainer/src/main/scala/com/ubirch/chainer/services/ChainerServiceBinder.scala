@@ -21,8 +21,8 @@ import com.ubirch.services.{ BasicServices, ExecutionServices, Kafka }
 import scala.concurrent.ExecutionContext
 
 /**
- * Represents a dependency binder
- */
+  * Represents a dependency binder
+  */
 class ChainerServiceBinder extends AbstractModule
   with BasicServices
   with ExecutionServices

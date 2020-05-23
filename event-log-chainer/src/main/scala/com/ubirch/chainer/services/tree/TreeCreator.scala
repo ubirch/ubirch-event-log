@@ -8,6 +8,11 @@ import javax.inject._
 
 import scala.concurrent.ExecutionContext
 
+/**
+  * Represents a creator of trees
+  * @param config Represents the configuration object
+  * @param ec Represents an execution context for this object
+  */
 class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
 
   import com.ubirch.chainer.models.Chainables.eventLogChainable

@@ -62,7 +62,7 @@ class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
   }
 
   def withHashZero(zeroHash: String): Chainer[T] = {
-    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already be created as it won't have any effect on the node.")
+    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already beem created as it won't have any effect on the node.")
     require(seedHashes.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer whose seed hashes have already been created")
     zero = zeroHash
     this

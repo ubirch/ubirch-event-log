@@ -15,10 +15,6 @@ trait EventLogValueStrategy extends ValueStrategy[EventLog] {
   def create(eventLog: EventLog): Seq[Value]
 }
 
-trait StringValueStrategy extends ValueStrategy[String] {
-  def create(zero: String): Seq[Value]
-}
-
 object ValueStrategy {
   def getStrategyForNormalLeaves(mode: Mode): EventLogValueStrategy = {
     mode match {
