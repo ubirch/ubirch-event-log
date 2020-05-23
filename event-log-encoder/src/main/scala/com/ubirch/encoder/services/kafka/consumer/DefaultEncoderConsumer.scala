@@ -16,6 +16,11 @@ import org.json4s.JValue
 
 import scala.concurrent.ExecutionContext
 
+/**
+  * Represents a data type used to pass data through the processing pipeline
+  * @param consumerRecords Represents the consumer records
+  * @param jValues Represents the json values
+  */
 case class EncoderPipeData(consumerRecords: Vector[ConsumerRecord[String, Array[Byte]]], jValues: Vector[JValue]) extends ProcessResult[String, Array[Byte]] {
   override val id: UUID = UUIDHelper.randomUUID
 }

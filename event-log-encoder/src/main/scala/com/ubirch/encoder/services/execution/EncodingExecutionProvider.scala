@@ -9,6 +9,10 @@ import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor }
 
+/**
+  * Represents a provider for an execution context
+  * @param config Represents a config object
+  */
 @Singleton
 class EncodingExecutionProvider @Inject() (config: Config) extends Provider[ExecutionContext] with Execution with ExecutionContextConfPaths {
 
