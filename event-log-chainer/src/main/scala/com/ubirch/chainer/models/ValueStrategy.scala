@@ -7,14 +7,24 @@ import com.ubirch.protocol.ProtocolMessage
 
 import scala.util.{ Failure, Success, Try }
 
+/**
+ * Represents a Strategy for creating values objects
+ * @tparam T Represents the incoming type
+ */
 trait ValueStrategy[T] {
   def create(value: T): Seq[Value]
 }
 
+/**
+ * Represents the kind of strategy for when the incoming object is an event log.
+ */
 trait EventLogValueStrategy extends ValueStrategy[EventLog] {
   def create(eventLog: EventLog): Seq[Value]
 }
 
+/**
+ * Companion object for the Value Strategy
+ */
 object ValueStrategy {
   def getStrategyForNormalLeaves(mode: Mode): EventLogValueStrategy = {
     mode match {
@@ -24,6 +34,9 @@ object ValueStrategy {
   }
 }
 
+/**
+ * Represents the strategy for a foundation tree
+ */
 case class SlaveTreeStrategy() extends EventLogValueStrategy with LazyLogging {
   override def create(eventLog: EventLog): Seq[Value] = {
 
@@ -52,6 +65,9 @@ case class SlaveTreeStrategy() extends EventLogValueStrategy with LazyLogging {
   }
 }
 
+/**
+ * Represents a default strategy, sort of like a pass-through.
+ */
 case class OtherStrategy() extends EventLogValueStrategy {
   override def create(eventLog: EventLog): Seq[Value] = Seq(Value(eventLog.id, Option(eventLog.category), Map.empty))
 }
