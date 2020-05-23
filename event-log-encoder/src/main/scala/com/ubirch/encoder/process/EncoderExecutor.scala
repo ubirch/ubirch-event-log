@@ -24,6 +24,7 @@ import com.ubirch.util._
 import javax.inject._
 import monix.eval.Task
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 import org.json4s.jackson.JsonMethods._
@@ -31,6 +32,16 @@ import org.json4s.jackson.JsonMethods._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 
+/**
+  * Represents a pipeline executor for the encoding process.
+  * @param reporter Represents a reporter for errors
+  * @param encodingsCounter Represents a Prometheus counter for the number of encodings
+  * @param successCounter Represents a Prometheus counter for the number of successes
+  * @param failureCounter Represents a Prometheus counter for the number of failures
+  * @param config Represents a config object
+  * @param stringProducer Represents a kafka string producer
+  * @param ec Represents an execution context
+  */
 @Singleton
 class EncoderExecutor @Inject() (
     reporter: Reporter,
@@ -46,16 +57,14 @@ class EncoderExecutor @Inject() (
   import LookupKey._
   import reporter.Types._
 
-  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
-
-  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
-
   override type A = EncoderPipeData
 
-  val CUSTOMER_ID_FIELD = "customerId"
+  lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
+  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
+  lazy val topic = config.getStringAsOption(TOPIC_PATH).getOrElse(throw new Exception("No Publishing Topic configured"))
+  lazy val scheduler = monix.execution.Scheduler(ec)
 
-  val topic = config.getStringAsOption(TOPIC_PATH).getOrElse(throw new Exception("No Publishing Topic configured"))
-  val scheduler = monix.execution.Scheduler(ec)
+  final val CUSTOMER_ID_FIELD = "customerId"
 
   logger.info("publish_topic=[{}]", topic)
 
@@ -80,14 +89,14 @@ class EncoderExecutor @Inject() (
     Future.successful(EncoderPipeData(consumerRecords, Vector.empty))
   }
 
-  def run(x: ConsumerRecord[String, Array[Byte]]) = {
+  def run(x: ConsumerRecord[String, Array[Byte]]): Task[RecordMetadata] = {
     Task.defer {
       var jValue: JValue = JNull
       try {
         val bytes = new ByteArrayInputStream(x.value())
         jValue = parse(bytes)
         val ldp = EncoderPipeData(Vector(x), Vector(jValue))
-        val maybePR = UPP(ldp).orElse(PublichBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
+        val maybePR = UPP(ldp).orElse(PublicBlockchain(ldp)).orElse(OrElse(ldp))(jValue).map { el =>
           val _el = if (sign) el.sign(config) else el
           EncoderJsonSupport.ToJson[EventLog](_el)
           ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
@@ -213,7 +222,7 @@ class EncoderExecutor @Inject() (
       maybeEventLog
   }
 
-  def PublichBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
+  def PublicBlockchain(encoderPipeData: EncoderPipeData): PartialFunction[JValue, Option[EventLog]] = {
     case jv if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
 
       encodingsCounter.counter.labels(metricsSubNamespace, Values.PUBLIC_CHAIN_CATEGORY).inc()
