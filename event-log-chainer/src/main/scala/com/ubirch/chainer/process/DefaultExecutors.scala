@@ -23,13 +23,12 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success, Try }
 
-
 /**
- * Represents an executor for filtering and triggering chaining processes
- * @param treeMonitor Represents a service for monitoring the periodicity for the creation of trees
- * @param config Represents a config object
- * @param ec Represents the asynchronous processing object.
- */
+  * Represents an executor for filtering and triggering chaining processes
+  * @param treeMonitor Represents a service for monitoring the periodicity for the creation of trees
+  * @param config Represents a config object
+  * @param ec Represents the asynchronous processing object.
+  */
 @Singleton
 class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]]
@@ -66,10 +65,10 @@ class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit 
 }
 
 /**
- * Represents an EventLog Parser
- * @param reporter Represents a helper for error reporting
- * @param ec Represents the asynchronous processing object.
- */
+  * Represents an EventLog Parser
+  * @param reporter Represents a helper for error reporting
+  * @param ec Represents the asynchronous processing object.
+  */
 @Singleton
 class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
@@ -110,11 +109,11 @@ class EventLogsParser @Inject() (reporter: Reporter)(implicit ec: ExecutionConte
 }
 
 /**
- * Represents an Eventlog signer for eventlogs created. Merkle trees are packaged into Eventlogs.
- * @param reporter Represents a helper for error reporting
- * @param config Represents a config object
- * @param ec Represents the asynchronous processing object.
- */
+  * Represents an Eventlog signer for eventlogs created. Merkle trees are packaged into Eventlogs.
+  * @param reporter Represents a helper for error reporting
+  * @param config Represents a config object
+  * @param ec Represents the asynchronous processing object.
+  */
 @Singleton
 class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
@@ -153,10 +152,10 @@ class EventLogsSigner @Inject() (reporter: Reporter, config: Config)(implicit ec
 }
 
 /**
- * Represents an Executor to create Trees
- * @param treeMonitor Represents a service for monitoring the periodicity for the creation of trees
- * @param ec Represents the asynchronous processing object.
- */
+  * Represents an Executor to create Trees
+  * @param treeMonitor Represents a service for monitoring the periodicity for the creation of trees
+  * @param ec Represents the asynchronous processing object.
+  */
 class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]]
   with LazyLogging {
@@ -175,11 +174,11 @@ class TreeCreatorExecutor @Inject() (treeMonitor: TreeMonitor)(implicit ec: Exec
 }
 
 /**
- * Represents a kafka committer
- * @param monitor Represents a service for monitoring the periodicity for the creation of trees
- * @param config Represents a config object
- * @param ec Represents the asynchronous processing object.
- */
+  * Represents a kafka committer
+  * @param monitor Represents a service for monitoring the periodicity for the creation of trees
+  * @param config Represents a config object
+  * @param ec Represents the asynchronous processing object.
+  */
 @Singleton
 class Commit @Inject() (monitor: TreeMonitor, config: Config)(implicit ec: ExecutionContext)
   extends Executor[Future[ChainerPipeData], Future[ChainerPipeData]] with ProducerConfPaths with LazyLogging {
@@ -236,13 +235,13 @@ trait ExecutorFamily {
 }
 
 /**
- * Simple Aggregated Family of Executors
- * @param filterEmpty Represents an executor for filtering and triggering chaining processes
- * @param eventLogParser Represents an EventLog Parser.
- * @param treeCreatorExecutor Represents an Executor to create Trees
- * @param eventLogSigner Represents an Eventlog signer for eventlogs created. Merkle trees are packaged into Eventlogs.
- * @param commit Represents a kafka committer
- */
+  * Simple Aggregated Family of Executors
+  * @param filterEmpty Represents an executor for filtering and triggering chaining processes
+  * @param eventLogParser Represents an EventLog Parser.
+  * @param treeCreatorExecutor Represents an Executor to create Trees
+  * @param eventLogSigner Represents an Eventlog signer for eventlogs created. Merkle trees are packaged into Eventlogs.
+  * @param commit Represents a kafka committer
+  */
 @Singleton
 class DefaultExecutorFamily @Inject() (
     val filterEmpty: FilterEmpty,

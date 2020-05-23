@@ -15,6 +15,18 @@ import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
+/**
+  * Represents a controller/façade that controls the pipeline and the tree creation
+  * @param treeWarmUp Represents a component for warming up the system
+  * @param treeCache Represents a component for caching trees
+  * @param treeCreator Represents a component for creating trees
+  * @param treeEventLogCreator Represents a component for creating event log out of trees
+  * @param treePublisher Represents a component for sending to kafka
+  * @param treeCreationTrigger Represents a component that say when it is OK to create a tree
+  * @param treeUpgrade Represents a components that controls the tree upgrade process
+  * @param config Represents the configuration object
+  * @param ec Represents an execution context for this object
+  */
 @Singleton
 class TreeMonitor @Inject() (
     treeWarmUp: TreeWarmUp,

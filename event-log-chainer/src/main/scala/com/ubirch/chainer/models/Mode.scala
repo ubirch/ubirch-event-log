@@ -3,8 +3,8 @@ package com.ubirch.chainer.models
 import com.ubirch.models.Values
 
 /**
- * Represents the kind of role the chainer has at boot up.
- */
+  * Represents the kind of role the chainer has at boot up.
+  */
 sealed trait Mode {
   val value: String
   val category: String
@@ -14,8 +14,8 @@ sealed trait Mode {
 }
 
 /**
- * It contains helper and convenience helpers to manage and work with the mode data structure
- */
+  * It contains helper and convenience helpers to manage and work with the mode data structure
+  */
 object Mode {
   def getMode(mode: String): Mode = {
     mode.toUpperCase match {
@@ -40,8 +40,8 @@ object Mode {
 }
 
 /**
- * It is the Slave or Foundation role. Basically it means that it is the basics for trees
- */
+  * It is the Slave or Foundation role. Basically it means that it is the basics for trees
+  */
 case object Slave extends Mode {
   override val value: String = "SLAVE"
   override val category: String = Values.SLAVE_TREE_CATEGORY
@@ -51,8 +51,8 @@ case object Slave extends Mode {
 }
 
 /**
- * Represents the outer most role, closet to the anchorings
- */
+  * Represents the outer most role, closet to the anchorings
+  */
 case object Master extends Mode {
   override val value: String = "MASTER"
   override val category: String = Values.MASTER_TREE_CATEGORY
