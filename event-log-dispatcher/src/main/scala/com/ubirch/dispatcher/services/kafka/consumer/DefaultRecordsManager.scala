@@ -26,7 +26,7 @@ case class DispatcherPipeData(
   override val id: UUID = UUIDHelper.randomUUID
 
   def withEventLogs(newEventLogs: Vector[EventLog]): DispatcherPipeData = {
-    copy(eventLog = eventLog)
+    copy(eventLog = newEventLogs)
   }
 
   def withConsumerRecords(newConsumerRecords: Vector[ConsumerRecord[String, String]]): DispatcherPipeData = {
