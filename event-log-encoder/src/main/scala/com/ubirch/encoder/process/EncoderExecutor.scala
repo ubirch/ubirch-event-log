@@ -110,124 +110,118 @@ class EncoderExecutor @Inject() (
 
   val UPP: PartialFunction[EncoderPipeData, Option[EventLog]] = {
 
-    case encoderPipeData @ EncoderPipeData(_, Vector(jv)) =>
+    case encoderPipeData @ EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
 
-      val mp = Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get)
-      if (mp.isSuccess) {
+      (for {
 
-        encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
+        messageEnvelope <- Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get)
 
-        val messageEnvelope: MessageEnvelope = mp.get
+        _ = encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
 
-        val jValueCustomerId = messageEnvelope.context \\ CUSTOMER_ID_FIELD
-        val customerId = jValueCustomerId.extractOpt[String]
+        customerId <- Try((messageEnvelope.context \\ CUSTOMER_ID_FIELD).extract[String])
           .filter(_.nonEmpty)
-          .getOrElse {
-            throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
+          .recoverWith {
+            case _ => throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
           }
 
-        val payloadToJson = EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket)
+        payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
 
-        val payload = payloadToJson.get
+        eventLog <- Try(messageEnvelope)
+          .map(_.ubirchPacket)
+          .filter(_.getHint == 0)
+          .map { _ =>
 
-        val maybeEventLog = if (messageEnvelope.ubirchPacket.getHint == 0) {
+            val payloadJsNode = Option(messageEnvelope)
+              .flatMap(x => Option(x.ubirchPacket))
+              .flatMap(x => Option(x.getPayload))
+              .getOrElse(throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData))
 
-          val payloadJsNode = Option(messageEnvelope)
-            .flatMap(x => Option(x.ubirchPacket))
-            .flatMap(x => Option(x.getPayload))
-            .getOrElse(throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData))
+            val payloadHash = fromJsonNode(payloadJsNode)
+              .extractOpt[String]
+              .filter(_.nonEmpty)
+              .getOrElse {
+                throw EventLogFromConsumerRecordException("Error building payload", encoderPipeData)
+              }
 
-          val payloadHash = fromJsonNode(payloadJsNode)
-            .extractOpt[String]
-            .filter(_.nonEmpty)
-            .getOrElse {
-              throw EventLogFromConsumerRecordException("Error building payload", encoderPipeData)
-            }
+            val maybeSignature = Option(messageEnvelope.ubirchPacket)
+              .flatMap(x => Option(x.getSignature))
+              .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
+              .flatMap {
+                case Success(value) if value.nonEmpty => Some(value)
+                case Success(_) => None
+                case Failure(e) =>
+                  logger.error("Error Parsing Into Event Log [Signature]: {}", e.getMessage)
+                  throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", encoderPipeData)
+              }
 
-          val maybeSignature = Option(messageEnvelope.ubirchPacket)
-            .flatMap(x => Option(x.getSignature))
-            .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
-            .flatMap {
-              case Success(value) if value.nonEmpty => Some(value)
-              case Success(_) => None
-              case Failure(e) =>
-                logger.error("Error Parsing Into Event Log [Signature]: {}", e.getMessage)
-                throw EventLogFromConsumerRecordException(s"Error parsing signature [${e.getMessage}] ", encoderPipeData)
-            }
+            val signatureLookupKey = maybeSignature.map { x =>
+              LookupKey(
+                name = Values.SIGNATURE,
+                category = Values.UPP_CATEGORY,
+                key = payloadHash.asKey,
+                value = Seq(x.asValue)
+              ).categoryAsKeyLabel
+                .nameAsValueLabelForAll
+            }.toSeq
 
-          val signatureLookupKey = maybeSignature.map { x =>
-            LookupKey(
-              name = Values.SIGNATURE,
-              category = Values.UPP_CATEGORY,
-              key = payloadHash.asKey,
-              value = Seq(x.asValue)
-            ).categoryAsKeyLabel
-              .nameAsValueLabelForAll
-          }.toSeq
+            val maybeDevice = Option(messageEnvelope.ubirchPacket)
+              .flatMap(x => Option(x).map(_.getUUID))
+              .map(x => Try(x.toString))
+              .flatMap {
+                case Success(value) if value.nonEmpty => Some(value)
+                case Success(_) => None
+                case Failure(e) =>
+                  logger.error("Error Parsing Into Event Log [deviceId]: {}", e.getMessage)
+                  throw EventLogFromConsumerRecordException(s"Error parsing deviceId [${e.getMessage}] ", encoderPipeData)
+              }
 
-          val maybeDevice = Option(messageEnvelope.ubirchPacket)
-            .flatMap(x => Option(x).map(_.getUUID))
-            .map(x => Try(x.toString))
-            .flatMap {
-              case Success(value) if value.nonEmpty => Some(value)
-              case Success(_) => None
-              case Failure(e) =>
-                logger.error("Error Parsing Into Event Log [deviceId]: {}", e.getMessage)
-                throw EventLogFromConsumerRecordException(s"Error parsing deviceId [${e.getMessage}] ", encoderPipeData)
-            }
+            val deviceLookupKey = maybeDevice.map { x =>
+              LookupKey(
+                name = Values.DEVICE_ID,
+                category = Values.DEVICE_CATEGORY,
+                key = x.asKey,
+                value = Seq(payloadHash.asValue)
+              ).categoryAsKeyLabel
+                .addValueLabelForAll(Values.UPP_CATEGORY)
+            }.toSeq
 
-          val deviceLookupKey = maybeDevice.map { x =>
-            LookupKey(
-              name = Values.DEVICE_ID,
-              category = Values.DEVICE_CATEGORY,
-              key = x.asKey,
-              value = Seq(payloadHash.asValue)
-            ).categoryAsKeyLabel
-              .addValueLabelForAll(Values.UPP_CATEGORY)
-          }.toSeq
+            val maybeChain = Option(messageEnvelope.ubirchPacket)
+              .flatMap(x => Option(x.getChain))
+              .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
+              .flatMap {
+                case Success(value) if value.nonEmpty => Some(value)
+                case Success(_) => None
+                case Failure(e) =>
+                  logger.error("Error Parsing Into Event Log [Chain]: {}", e.getMessage)
+                  throw EventLogFromConsumerRecordException(s"Error parsing chain [${e.getMessage}] ", encoderPipeData)
+              }
 
-          val maybeChain = Option(messageEnvelope.ubirchPacket)
-            .flatMap(x => Option(x.getChain))
-            .map(x => Try(org.bouncycastle.util.encoders.Base64.toBase64String(x)))
-            .flatMap {
-              case Success(value) if value.nonEmpty => Some(value)
-              case Success(_) => None
-              case Failure(e) =>
-                logger.error("Error Parsing Into Event Log [Chain]: {}", e.getMessage)
-                throw EventLogFromConsumerRecordException(s"Error parsing chain [${e.getMessage}] ", encoderPipeData)
-            }
+            val chainLookupKey = maybeChain.map { x =>
+              LookupKey(
+                name = Values.UPP_CHAIN,
+                category = Values.CHAIN_CATEGORY,
+                key = payloadHash.asKey,
+                value = Seq(x.asValue)
+              ).withKeyLabel(Values.UPP_CATEGORY)
+                .categoryAsValueLabelForAll
+            }.toSeq
 
-          val chainLookupKey = maybeChain.map { x =>
-            LookupKey(
-              name = Values.UPP_CHAIN,
-              category = Values.CHAIN_CATEGORY,
-              key = payloadHash.asKey,
-              value = Seq(x.asValue)
-            ).withKeyLabel(Values.UPP_CATEGORY)
-              .categoryAsValueLabelForAll
-          }.toSeq
+            EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
+              .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
+              .withCustomerId(customerId)
+              .withRandomNonce
+              .withNewId(payloadHash)
+              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
 
-          val el = EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
-            .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
-            .withCustomerId(customerId)
-            .withRandomNonce
-            .withNewId(payloadHash)
-            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
+          }
 
-          Some(el)
-
-        } else {
-          None
-        }
-
-        maybeEventLog
-      } else {
-        throw new MatchError(encoderPipeData)
-      }
+      } yield {
+        Option(eventLog)
+      }).get
   }
 
   val PublicBlockchain: PartialFunction[EncoderPipeData, Option[EventLog]] = {
-    case encoderPipeData @ EncoderPipeData(_, Vector(jv)) =>
+    case EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
       (for {
         blockchainResponse <- Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get)
         _ = encodingsCounter.counter.labels(metricsSubNamespace, Values.PUBLIC_CHAIN_CATEGORY).inc()
@@ -247,11 +241,11 @@ class EncoderExecutor @Inject() (
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
         Option(eventLog)
-      }).getOrElse(throw new MatchError(encoderPipeData))
+      }).get
   }
 
   val PublicKey: PartialFunction[EncoderPipeData, Option[EventLog]] = {
-    case encoderPipeData @ EncoderPipeData(_, Vector(jv)) =>
+    case EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[PublicKey](jv).get).isSuccess =>
       (for {
         publicKey <- Try(EncoderJsonSupport.FromJson[PublicKey](jv).get)
         _ = encodingsCounter.counter.labels(metricsSubNamespace, Values.PUBLIC_CHAIN_CATEGORY).inc()
@@ -271,7 +265,7 @@ class EncoderExecutor @Inject() (
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
         Option(eventLog)
-      }).getOrElse(throw new MatchError(encoderPipeData))
+      }).get
   }
 
   val OrElse: PartialFunction[EncoderPipeData, Option[EventLog]] = {
