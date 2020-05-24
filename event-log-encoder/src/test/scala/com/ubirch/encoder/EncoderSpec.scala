@@ -616,6 +616,61 @@ class EncoderSpec extends TestBase with LazyLogging {
     }
   }
 
+  "Encoder Spec for Public Key" must {
+
+    "consume public key response and publish event log with lookup key" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val publicKey =
+          """
+            |{
+            |  "hardware_id": "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0",
+            |  "public_key": "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19"
+            |}
+          """.stripMargin
+
+        publishStringMessageToKafka(messageEnvelopeTopic, publicKey)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
+        val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+
+        assert(eventLog.category == Values.PUB_KEY_CATEGORY)
+        assert(eventLog.event == parse(publicKey))
+        assert(eventLog.id == "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19")
+        assert(eventLog.lookupKeys == Seq(
+          LookupKey(
+            Values.PUB_KEY_CATEGORY,
+            Values.PUB_KEY_CATEGORY,
+            "e392457bdd63db37d00435bfdc0a0a7f4a85f3664b9439956a4f4f2310fd934df85ea4a02823d4674c891f224bcab8c8f2c117fdc8710ce78c928fc9de8d9e19".asKey,
+            Seq("51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0".asValue)
+          ).categoryAsKeyLabel
+            .addValueLabelForAll(Values.PUB_KEY_CATEGORY)
+        ))
+        assert(Option(eventLog.category) == eventLog.lookupKeys.map(_.name).headOption)
+        assert(eventLog.customerId == "51f6cfe400bd1062f8fcde5dc5c23aaac111e8124886ecf1f60c33015a35ccb0")
+
+      }
+
+    }
+  }
+
   "Encoder Spec for unsupported message" must {
 
     "fail when message not supported" in {
