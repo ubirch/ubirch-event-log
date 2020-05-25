@@ -92,9 +92,11 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
   extends Finder
   with LazyLogging {
 
-  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] =
+    cassandraFinder.findEventLog(value, category)
 
-  def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
+  def findByPayload(value: String): Future[Option[EventLogRow]] =
+    findEventLog(value, Values.UPP_CATEGORY)
 
   def findBySignature(value: String): Future[Option[EventLogRow]] =
     gremlinFinder
@@ -105,8 +107,10 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
         case None => Future.successful(None)
       }
 
-  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = gremlinFinder.findAnchorsWithPathAsVertices(id)
+  def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] =
+    gremlinFinder.findAnchorsWithPathAsVertices(id)
 
-  def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = gremlinFinder.findUpperAndLowerAsVertices(id)
+  def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] =
+    gremlinFinder.findUpperAndLowerAsVertices(id)
 
 }

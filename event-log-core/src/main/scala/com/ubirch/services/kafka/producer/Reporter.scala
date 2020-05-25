@@ -49,15 +49,15 @@ class Reporter @Inject() (stringProducer: StringProducer, config: Config)(implic
           Map.empty
         )
 
-          stringProducer
-            .send(record)
-            .map(x => Option(x)).recover {
-          case e: Exception =>
-            logger.error("Error Reporting Error 0: {}", topic)
-            logger.error("Error Reporting Error 1: {}", error)
-            logger.error("Error Reporting Error 2: ", e)
-            throw e
-        }
+        stringProducer
+          .send(record)
+          .map(x => Option(x)).recover {
+            case e: Exception =>
+              logger.error("Error Reporting Error 0: {}", topic)
+              logger.error("Error Reporting Error 1: {}", error)
+              logger.error("Error Reporting Error 2: ", e)
+              throw e
+          }
 
       }
 
