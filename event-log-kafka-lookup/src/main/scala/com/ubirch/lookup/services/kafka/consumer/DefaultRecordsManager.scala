@@ -50,15 +50,15 @@ class DefaultRecordsManager @Inject() (val reporter: Reporter, val executorFamil
 
     case e @ LookupExecutorException(_, pipeData, _) =>
       logger.error("LookupExecutorException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CreateProducerRecordException(_, pipeData) =>
       logger.error("CreateProducerRecordException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No Value")))
       Future.successful(pipeData)
     case e @ CommitException(_, pipeData) =>
       logger.error("CommitException: " + e.getMessage)
-      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value().toString).getOrElse("No Value")))
+      reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No Value")))
       Future.successful(pipeData)
 
   }
