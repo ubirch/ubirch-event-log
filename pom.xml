@@ -265,6 +265,7 @@
         <module>event-log-kafka-lookup</module>
         <module>event-log-dispatcher</module>
         <module>event-log-discovery-creator</module>
+        <module>verification-microservice</module>
     </modules>
 
     <profiles>
