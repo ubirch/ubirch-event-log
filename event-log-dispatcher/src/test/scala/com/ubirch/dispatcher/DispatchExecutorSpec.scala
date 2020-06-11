@@ -7,6 +7,7 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.{ EventLog, HeaderNames, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._

@@ -9,7 +9,7 @@ import com.ubirch.lookup.models._
 import com.ubirch.lookup.services.kafka.consumer.LookupPipeData
 import com.ubirch.lookup.util.Exceptions._
 import com.ubirch.lookup.util.LookupJsonSupport
-import com.ubirch.models.{ JValueGenericResponse, Values }
+import com.ubirch.models.Values
 import com.ubirch.process.Executor
 import com.ubirch.util._
 import javax.inject._

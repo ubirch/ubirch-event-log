@@ -6,6 +6,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.encoder.process.EncoderExecutor
 import com.ubirch.kafka.consumer._
+import com.ubirch.models.Values
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.UUIDHelper
@@ -43,7 +44,7 @@ class DefaultEncoderConsumer @Inject() (
   with LazyLogging {
 
   lazy val consumerConfigured = {
-    val consumerImp = BytesConsumer.emptyWithMetrics(metricsSubNamespace)
+    val consumerImp = BytesConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)
     consumerImp.setProps(consumerConfigs)

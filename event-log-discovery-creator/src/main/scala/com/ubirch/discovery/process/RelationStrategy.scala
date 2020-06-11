@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.Relation.Implicits._
 import com.ubirch.discovery.models.{ Edge, Relation, Vertex }
 import com.ubirch.discovery.util.DiscoveryJsonSupport
-import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, PublicKeyStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
+import com.ubirch.discovery.util.Exceptions._
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 

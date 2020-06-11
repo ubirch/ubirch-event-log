@@ -5,16 +5,15 @@ import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.discovery.models.Relation
 import com.ubirch.discovery.services.kafka.consumer.DefaultExpressDiscovery
 import com.ubirch.discovery.util.{ DiscoveryJsonSupport, PMHelper }
-import com.ubirch.kafka.MessageEnvelope
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.{ Error, EventLog, LookupKey, Value, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.util.{ PortGiver, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
 import org.json4s.JsonAST.{ JInt, JString }
 
 class DiscoveryCreatorSpec extends TestBase with LazyLogging {
@@ -134,7 +133,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         val creator = new DefaultExpressDiscovery(config, lifecycle) {
           override def consumerBootstrapServers: String = bootstrapServers
           override def producerBootstrapServers: String = bootstrapServers
-          override def errorTopic: String = errorTopic_
+          override val errorTopic: String = errorTopic_
         }
         creator.start
 

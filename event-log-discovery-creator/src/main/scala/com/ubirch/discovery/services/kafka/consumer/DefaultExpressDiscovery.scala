@@ -11,7 +11,7 @@ import com.ubirch.kafka.consumer.ConsumerShutdownHook
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.kafka.producer.ProducerShutdownHook
 import com.ubirch.models.EnrichedError._
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, Values }
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -42,7 +42,7 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
 
   val producerTopic: String = config.getString(ProducerConfPaths.TOPIC_PATH)
 
-  def errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
+  val errorTopic: String = config.getString(ProducerConfPaths.ERROR_TOPIC_PATH)
 
   val consumerGroupIdOnEmpty: String = "DefaultExpressDiscoveryBase"
 
@@ -51,7 +51,9 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
     ProducerShutdownHook.hookFunc(production)
   )
 
-  override def maxTimeAggregationSeconds: Long = 120
+  override val prefix: String = Values.UBIRCH
+
+  override val maxTimeAggregationSeconds: Long = 120
 
 }
 
