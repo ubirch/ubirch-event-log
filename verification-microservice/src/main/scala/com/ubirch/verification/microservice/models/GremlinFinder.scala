@@ -85,7 +85,7 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
       lp <- lowerPathHelper
       lw <- lower
     } yield {
-      (path, up, lp.map(x => x._1).map(_.path).getOrElse(Nil), lw)
+      (path.toList, up, lp.map(x => x._1).map(_.path).getOrElse(Nil), lw)
     }
 
   }
@@ -287,7 +287,7 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
     for {
       sp <- futureShortestPath.map(_.reversedTailReversed)
       bcs <- maybeBlockchains
-    } yield (sp, bcs)
+    } yield (sp.toList, bcs)
 
   }
 
