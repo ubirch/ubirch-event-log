@@ -4,9 +4,10 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
+import com.ubirch.kafka.util.FutureHelper
 import com.ubirch.models.EnrichedEventLog._
 import com.ubirch.models.{ EventLog, HeaderNames }
-import com.ubirch.util.{ FutureHelper, UUIDHelper }
+import com.ubirch.util.UUIDHelper
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JsonAST.JString

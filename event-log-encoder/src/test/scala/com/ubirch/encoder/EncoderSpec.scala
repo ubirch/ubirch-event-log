@@ -10,6 +10,7 @@ import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.{ All, BytesConsumer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.{ EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
