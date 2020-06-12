@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.Relation.Implicits._
 import com.ubirch.discovery.models.{ Edge, Relation, Vertex }
 import com.ubirch.discovery.util.DiscoveryJsonSupport
-import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
+import com.ubirch.discovery.util.Exceptions._
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
 
@@ -18,6 +18,7 @@ object RelationStrategy {
   def create(eventLog: EventLog): Seq[Relation] = {
     val strategy = eventLog match {
       case el if el.category == Values.UPP_CATEGORY => UPPStrategy
+      case el if el.category == Values.PUB_KEY_CATEGORY => PublicKeyStrategy
       case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy
       case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy
       case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy
@@ -105,6 +106,33 @@ case object UPPStrategy extends RelationStrategy with LazyLogging {
 
     }
 
+  }
+}
+
+case object PublicKeyStrategy extends RelationStrategy with LazyLogging {
+  override def create(eventLog: EventLog): Seq[Relation] = {
+    try {
+
+      Vertex(Values.PUB_KEY_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.DEVICE_CATEGORY)
+            .addProperty(Values.DEVICE_ID -> eventLog.customerId)
+            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+
+        )
+        .through(
+          Edge(Values.PUB_KEY_CATEGORY + "->" + Values.DEVICE_CATEGORY)
+            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        )
+        .lift
+
+    } catch {
+      case e: Exception =>
+        logger.error("Relation Creation Error: ", e)
+        throw PublicKeyStrategyException("Relation Creation Error", e.getMessage, eventLog)
+    }
   }
 }
 

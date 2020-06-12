@@ -8,12 +8,13 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
 import com.ubirch.kafka.util.Exceptions.CommitTimeoutException
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
-import com.ubirch.util.{ InjectorHelper, PortGiver, UUIDHelper }
+import com.ubirch.util.{ InjectorHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }

@@ -273,7 +273,7 @@ object SDKExample3 extends EventLogging with LazyLogging {
           .withCategory(Values.UPP_CATEGORY)
           .withCustomerId(x)
           .withRandomNonce
-          .addLookupKeys(LookupKey("name", "category", "key1".asKeyWithLabel("key1label"), Seq(("value1".asValueWithLabel("value1 label")))))
+          .addLookupKeys(LookupKey("name", "category", "key1".asKeyWithLabel("key1label"), Seq("value1".asValueWithLabel("value1 label"))))
 
         log0.commitAsync
       }

@@ -11,8 +11,18 @@ object Exceptions {
 
   //EXECUTION EXCEPTIONS
 
+  /**
+    * Represents an exception for when there was a problem encoding into an eventlog
+    * @param message Represents the error message.
+    * @param pipeData Represents a convenience for handling and keeping data through the pipeline
+    */
   case class EncodingException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
+  /**
+    * Represents an exception for when there was a problem generating json objects
+    * @param message Represents the error message.
+    * @param pipeData Represents a convenience for handling and keeping data through the pipeline
+    */
   case class JValueFromConsumerRecordException(message: String, pipeData: EncoderPipeData) extends ExecutionException(message)
 
   /**

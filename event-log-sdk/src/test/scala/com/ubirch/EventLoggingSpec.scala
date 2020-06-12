@@ -2,8 +2,9 @@ package com.ubirch
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.{ Configs, StringProducer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.sdk.EventLogging
-import com.ubirch.util.{ EventLogJsonSupport, PortGiver }
+import com.ubirch.util.EventLogJsonSupport
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.scalatest.mockito.MockitoSugar
 

@@ -64,13 +64,14 @@ object Relation {
   }
 
   case class EnrichedVertex(vFrom: Vertex) {
-    def connectedTo(vTo: Vertex) = Relation(vFrom, vTo)
+    def connectedTo(vTo: Vertex): Relation = Relation(vFrom, vTo)
     def ->(vTo: Vertex): Relation = connectedTo(vTo)
   }
 
   case class EnrichedRelation(relation: Relation) {
     def through(edge: Edge): Relation = relation.withEdge(edge)
     def *(edge: Edge): Relation = through(edge)
+    def lift: Seq[Relation] = List(relation)
   }
 
   object Implicits {

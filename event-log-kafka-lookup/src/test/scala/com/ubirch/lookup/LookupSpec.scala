@@ -8,6 +8,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.StringConsumer
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.lookup.models._
 import com.ubirch.lookup.process.LookupExecutor
 import com.ubirch.lookup.services.{ DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder }
