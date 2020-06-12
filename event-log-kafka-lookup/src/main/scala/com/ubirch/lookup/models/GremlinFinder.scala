@@ -42,7 +42,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         getTimestampFromVertexAsDate(v)
           .map(_.map(_.getTime))
           .recoverWith {
-            case e: Exception =>
+            case _: Exception =>
               logger.warn("Couldn't parse as Date. Defaulting to Long ")
               getTimestampFromVertexAsLong(v)
           }
@@ -69,7 +69,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
 
     val lower: Future[List[Vertex]] = lowerPathHelper.flatMap {
-      case Some((ph, t)) =>
+      case Some((ph, _)) =>
         ph.reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
           .getOrElse(Future.successful(Nil))
@@ -295,7 +295,6 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     g.V(master)
       .in()
       .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-      //.hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       .promise()
 
   case class PathHelper(path: List[Vertex]) {

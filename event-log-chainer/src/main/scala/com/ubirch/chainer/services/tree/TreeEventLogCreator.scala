@@ -15,6 +15,13 @@ import org.json4s.JsonAST.JValue
 import scala.concurrent.ExecutionContext
 import scala.util.{ Failure, Success, Try }
 
+/**
+  * Represents an event log creator out of the trees that are generated
+  * @param config Represents the configuration object
+  * @param treeCounter Represents a counter for trees
+  * @param leavesCounter Represents a counter for leaves
+  * @param ec Represents an execution context for this object
+  */
 @Singleton
 class TreeEventLogCreator @Inject() (
     config: Config,
