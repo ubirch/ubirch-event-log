@@ -11,14 +11,16 @@ import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.microservice.Api.{Failure, NotFound, Response, Success}
 import com.ubirch.verification.microservice.eventlog._
+import com.ubirch.verification.microservice.models._
 import io.udash.rest.raw.{HttpErrorException, JsonValue}
+import javax.inject.Named
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NoStackTrace
 
-class ApiImpl @Inject()(eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier, redisCache: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
+class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier, redisCache: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
 
   private val uppCache: RMapCache[Array[Byte], String] = redisCache.redisson.getMapCache("verifier-upp-cache")
 
@@ -91,7 +93,9 @@ class ApiImpl @Inject()(eventLogClient: EventLogClient, verifier: KeyServiceBase
       _ <- earlyResponseIf(chainRequestFailed)(successNoChain)
 
       chain = rawPacket(chainResponse.data.event)
-    } yield successNoChain.copy(prev = b64(chain))
+    } yield {
+      successNoChain.copy(prev = b64(chain))
+    }
 
     finalizeResponse(responseFuture, requestId)
   }

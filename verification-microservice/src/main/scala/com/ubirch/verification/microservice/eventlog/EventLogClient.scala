@@ -4,6 +4,7 @@ import com.avsystem.commons.serialization.GenCodec
 import com.avsystem.commons.serialization.json.{JsonBinaryFormat, JsonOptions, JsonStringInput, RawJson}
 import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
 import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.verification.microservice.models.{BlockchainInfo, QueryDepth, ResponseForm}
 import io.udash.rest.raw.JsonValue
 
 import scala.concurrent.Future

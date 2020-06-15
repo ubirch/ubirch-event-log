@@ -2,7 +2,7 @@ package com.ubirch.verification.microservice
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
-import com.ubirch.verification.microservice.eventlog.{AnchorsNoPath, Normal}
+import com.ubirch.verification.microservice.models.{AnchorsNoPath, Normal}
 import com.ubirch.verification.microservice.utils.udash.{VerificationServiceRestApiCompanion, cors}
 import io.udash.rest.openapi.adjusters.{adjustSchema, example}
 import io.udash.rest.openapi.{DataType, RefOr, RestSchema, Schema}

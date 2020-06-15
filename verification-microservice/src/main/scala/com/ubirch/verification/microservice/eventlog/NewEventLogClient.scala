@@ -6,7 +6,6 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{JValueGenericResponse, Values}
 import com.ubirch.util.ProducerRecordHelper
-import com.ubirch.verification.microservice.eventlog.EventLogClient.Data
 import com.ubirch.verification.microservice.models._
 import com.ubirch.verification.microservice.process.{LookupExecutor, LookupPipeDataNew}
 import com.ubirch.verification.microservice.util.Exceptions.{CreateProducerRecordException, LookupExecutorException}
@@ -14,11 +13,10 @@ import com.ubirch.verification.microservice.util.LookupJsonSupport
 import com.ubirch.verification.microservice.util.LookupJsonSupport.formats
 import javax.inject.Inject
 import monix.execution.{FutureUtils, Scheduler}
-import org.apache.kafka.clients.producer.ProducerRecord
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future, TimeoutException}
 
 class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
 
@@ -143,9 +141,19 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
   }
 
   override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-                              blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] = {
+                              blockchainInfo: BlockchainInfo = Normal): Future[EventLogClient.Response] =
 
-    val maybeQueryType: Option[QueryType] = Some(Payload)
+    getEvent(hash, queryDepth, responseForm, blockchainInfo, Some(Payload))
+
+
+  override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
+                                   blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+
+    getEvent(signature, queryDepth, responseForm, blockchainInfo, Some(Signature))
+
+
+  private def getEvent(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, maybeQueryType: Option[QueryType]) = {
+    //Todo: remove key
     val key = UUID.randomUUID().toString
     val value = hash.map(_.toChar).mkString
     //Todo: Check if this might be ok
@@ -170,7 +178,7 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
             case e: InvalidQueryException =>
               logger.error(s"Error querying db ($queryDepth): ", e)
               throw e
-            case e: scala.concurrent.TimeoutException =>
+            case e: TimeoutException =>
               logger.error(s"Timeout querying data ($queryDepth): ", e)
               val res = LookupResult.Error(key, queryType, s"Error processing request ($queryDepth): " + e.getMessage)
               LookupPipeDataNew(Some(value), Some(key), Some(queryType), Option(res), None, None)
@@ -190,38 +198,28 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
 
     val result: Future[LookupPipeDataNew] = maybeFutureRes.getOrElse(throw LookupExecutorException("No key or value was found", LookupPipeDataNew(Some(value), Some(key), maybeQueryType, None, None, None), ""))
     result.map(createResponseFromLookupPipeDataNew)
-
   }
 
-  def createResponseFromLookupPipeDataNew(lookupPipeDataNew: LookupPipeDataNew): EventLogClient.Response = {
+  private[microservice] def createResponseFromLookupPipeDataNew(lookupPipeDataNew: LookupPipeDataNew): EventLogClient.Response = {
     val topic = "irrelevant topic ;)"
 
-    val output: LookupPipeDataNew = lookupPipeDataNew.lookupResult
-      .map { x: LookupResult =>
-        val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
-        val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
-        //Todo: transform from JValue to ProtocolMessage
-        //        val event = x.event
-        //        val data = Data(x.key, x.queryType, new ProtocolMessage(), x.anchors.get)
-        //        OwnResponseHelper(x.success, x.message, lookupJValue)
-        (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
-      }
-      .map { case (x: LookupResult, y) =>
-        ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.HEADER -> x.queryType))
-      }
-      .map(x => lookupPipeDataNew.copy(producerRecord = Some(x)))
-      .getOrElse(throw CreateProducerRecordException("Empty Materials", lookupPipeDataNew))
-
+    val output: LookupPipeDataNew =
+      lookupPipeDataNew
+        .lookupResult
+        .map { x: LookupResult =>
+          val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
+          val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
+          (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
+        }
+        .map { case (x: LookupResult, y) =>
+          ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.HEADER -> x.queryType))
+        }
+        .map(producerRec => lookupPipeDataNew.copy(producerRecord = Some(producerRec)))
+        .getOrElse(throw CreateProducerRecordException("Empty Materials", lookupPipeDataNew))
 
     output.producerRecord
-      .map((x: ProducerRecord[String, String]) => EventLogClient.Response.fromJson(x.value())).get
+      .map(producerRec => EventLogClient.Response.fromJson(producerRec.value())).get
 
   }
 
-  override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-                                   blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] = {
-    ???
-  }
 }
-
-case class OwnResponseHelper(success: Boolean, message: String, data: Data)

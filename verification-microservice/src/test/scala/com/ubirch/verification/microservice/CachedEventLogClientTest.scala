@@ -3,6 +3,7 @@ package com.ubirch.verification.microservice
 import com.typesafe.config.ConfigFactory
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.microservice.eventlog._
+import com.ubirch.verification.microservice.models._
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
 import redis.embedded.RedisServer
 
