@@ -6,13 +6,13 @@ The Event Log System is a collection of services that allow the chaining
 
 * [Event Log Service](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-service)
 
-* [Event Log Dispatcher](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
+* [Event Log Dispatcher](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-dispatcher)
 
-* [Event Log Encoder](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
+* [Event Log Encoder](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-encoder)
 
-* [Event Log Chainer](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
+* [Event Log Chainer](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-chainer)
 
-* [Event Log Kafka Lookup](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
+* [Event Log Kafka Lookup](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-kafka-lookup)
 
 * [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
 
