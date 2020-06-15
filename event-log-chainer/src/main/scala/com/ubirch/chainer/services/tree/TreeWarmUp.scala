@@ -14,12 +14,33 @@ import org.joda.time.DateTime
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents a result for the warmup process
+  */
 sealed trait WarmUpResult
 
+/**
+  * Represents the state when all is good
+  */
 case object AllGood extends WarmUpResult
+
+/**
+  * Represents the state when a weird situation happened
+  */
 case object WhatTheHeck extends WarmUpResult
+
+/**
+  * Represents the state when the Genesis Tree has been created.
+  */
 case object CreateGenesisTree extends WarmUpResult
 
+/**
+  * Represents a component for warming up the process with previous trees.
+  * @param treeCache Represents a components for caching trees
+  * @param webClient Represents a simple web client to talk to the event log to get the genesis event log tree
+  * @param config Represents the configuration object
+  * @param ec Represents an execution context for this object
+  */
 @Singleton
 class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
@@ -36,7 +57,7 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
     for {
       mfe <- firstEver
-      mlt <- lastest
+      mlt <- latest
     } yield {
       (mfe.filter(_.nonEmpty), mlt.filter(_.nonEmpty)) match {
         case (Some(fe), None) =>
@@ -142,7 +163,7 @@ class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: 
 
   }
 
-  def lastest: Future[Option[String]] = {
+  def latest: Future[Option[String]] = {
 
     logger.info("Checking Latest Tree ...")
 

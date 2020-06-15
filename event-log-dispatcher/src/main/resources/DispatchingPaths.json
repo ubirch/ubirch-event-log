@@ -26,6 +26,32 @@
     ]
   },
   {
+    "category": "PUB_KEY",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "foundation"
+        ],
+        "name": "ubirch-svalbard-evt-foundation-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
     "category": "SLAVE_TREE",
     "topics": [
       {
@@ -80,6 +106,13 @@
           "blockchain"
         ],
         "name": "ubirch-svalbard-evt-chain-iota-string",
+        "data_to_send": "id"
+      },
+      {
+        "tags": [
+          "blockchain"
+        ],
+        "name": "ubirch-svalbard-evt-chain-etr-string",
         "data_to_send": "id"
       },
       {
@@ -207,6 +240,25 @@
   },
   {
     "category": "ETHEREUM-CLASSIC_TESTNET_ETHERERUM_CLASSIC_KOTTI_TESTNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "GOV_DIGITAL_TESTNET_GOV_DIGITAL_TESTNET_NETWORK",
     "topics": [
       {
         "tags": [

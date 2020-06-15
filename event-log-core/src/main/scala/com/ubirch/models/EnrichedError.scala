@@ -8,7 +8,9 @@ case class EnrichedError(error: Error) {
 
   def toEventLog(category: String): EventLog = {
     val payload = EventLogJsonSupport.ToJson[Error](error).get
-    EventLog(getClass.getName, category, payload).withIdAsCustomerId
+    EventLog(getClass.getName, category, payload)
+      .withNewId(error.id)
+      .withIdAsCustomerId
   }
 
 }

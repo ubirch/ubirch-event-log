@@ -21,6 +21,8 @@ object Exceptions {
 
   case class UPPStrategyException(override val message: String, override val reason: String, override val eventLog: EventLog) extends StrategyException(message, reason, eventLog)
 
+  case class PublicKeyStrategyException(override val message: String, override val reason: String, override val eventLog: EventLog) extends StrategyException(message, reason, eventLog)
+
   case class UnknownStrategyException(override val message: String, override val reason: String, override val eventLog: EventLog) extends StrategyException(message, reason, eventLog)
 
   //EXECUTION EXCEPTIONS

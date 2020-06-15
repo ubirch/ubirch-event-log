@@ -3,39 +3,36 @@ package com.ubirch.discovery.process
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.discovery.models.Relation.Implicits._
 import com.ubirch.discovery.models.{ Edge, Relation, Vertex }
-import com.ubirch.discovery.services.metrics.DefaultDeviceCounter
 import com.ubirch.discovery.util.DiscoveryJsonSupport
-import com.ubirch.discovery.util.Exceptions.{ MasterTreeStrategyException, SlaveTreeStrategyException, UPPStrategyException, UnknownStrategyException }
+import com.ubirch.discovery.util.Exceptions._
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.services.metrics.Counter
-import javax.inject._
 
 import scala.util.{ Failure, Success, Try }
 
 sealed trait RelationStrategy {
-  def eventLog: EventLog
-  def create: Seq[Relation]
+  def create(eventLog: EventLog): Seq[Relation]
 }
 
-@Singleton
-class RelationStrategyImpl @Inject() (@Named(DefaultDeviceCounter.name) deviceCounter: Counter) {
-
-  def getStrategy(eventLog: EventLog): RelationStrategy = {
-    eventLog match {
-      case el if el.category == Values.UPP_CATEGORY => UPPStrategy(el, deviceCounter)
-      case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy(el)
-      case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy(el)
-      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy(el)
-      case el => UnknownStrategy(el)
+object RelationStrategy {
+  def create(eventLog: EventLog): Seq[Relation] = {
+    val strategy = eventLog match {
+      case el if el.category == Values.UPP_CATEGORY => UPPStrategy
+      case el if el.category == Values.PUB_KEY_CATEGORY => PublicKeyStrategy
+      case el if el.category == Values.SLAVE_TREE_CATEGORY => SlaveTreeStrategy
+      case el if el.category == Values.MASTER_TREE_CATEGORY => MasterTreeStrategy
+      case el if el.lookupKeys.exists(_.category == Values.PUBLIC_CHAIN_CATEGORY) => PublicBlockchainStrategy
+      case _ => UnknownStrategy
     }
+    strategy.create(eventLog)
   }
-
 }
 
-case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends RelationStrategy with LazyLogging {
-
-  def get = {
+case object UPPStrategy extends RelationStrategy with LazyLogging {
+  /**
+    * Create a list of CHAIN and UPP->DEVICE relation
+    */
+  def get(eventLog: EventLog): Seq[Relation] = {
 
     val ubirchPacket = DiscoveryJsonSupport.FromJson[ProtocolMessage](eventLog.event).get
 
@@ -73,18 +70,15 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
       }
 
     //"service", "device-id", "upp", "chain"
-    deviceCounter.counter.labels("event_log_trace").inc()
     //logger.info("[event-log-trace] upp={} device={} chain={}", eventLog.id, device, maybeChain.getOrElse(""))
     val relation1 =
       Vertex(Values.UPP_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
         .addProperty(Values.SIGNATURE -> signature)
-        .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
-            .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
         )
         .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
@@ -94,18 +88,17 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
         .connectedTo(
           Vertex(Values.UPP_CATEGORY)
             .addProperty(Values.SIGNATURE -> chain)
-            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         )
-        .through(Edge(Values.CHAIN_CATEGORY))
+        .through(Edge(Values.CHAIN_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
 
     Seq(relation1) ++ maybeRelation2.toSeq
   }
 
-  override def create: Seq[Relation] = {
+  override def create(eventLog: EventLog): Seq[Relation] = {
     try {
-      get
+      get(eventLog)
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
@@ -116,9 +109,39 @@ case class UPPStrategy(eventLog: EventLog, deviceCounter: Counter) extends Relat
   }
 }
 
-case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
+case object PublicKeyStrategy extends RelationStrategy with LazyLogging {
+  override def create(eventLog: EventLog): Seq[Relation] = {
+    try {
 
-  def uppRelations = {
+      Vertex(Values.PUB_KEY_CATEGORY)
+        .addProperty(Values.HASH -> eventLog.id)
+        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        .connectedTo(
+          Vertex(Values.DEVICE_CATEGORY)
+            .addProperty(Values.DEVICE_ID -> eventLog.customerId)
+            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+
+        )
+        .through(
+          Edge(Values.PUB_KEY_CATEGORY + "->" + Values.DEVICE_CATEGORY)
+            .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
+        )
+        .lift
+
+    } catch {
+      case e: Exception =>
+        logger.error("Relation Creation Error: ", e)
+        throw PublicKeyStrategyException("Relation Creation Error", e.getMessage, eventLog)
+    }
+  }
+}
+
+case object SlaveTreeStrategy extends RelationStrategy with LazyLogging {
+
+  /**
+    * Create a list of SLAVE_TREE->UPP relation
+    */
+  def uppRelations(eventLog: EventLog) = {
 
     def relation(hash: String, signature: String) = {
 
@@ -126,14 +149,12 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.UPP_CATEGORY)
             .addProperty(Values.HASH -> hash)
             .addProperty(Values.SIGNATURE -> signature)
-            .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
 
@@ -144,20 +165,20 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .map(x => relation(x.name, x.extra(Values.SIGNATURE)))
   }
 
-  def linkRelations = {
+  /**
+    * Create a list of SLAVE_TREE->SLAVE_TREE relation
+    */
+  def linkRelations(eventLog: EventLog) = {
 
     def relation(hash: String) = {
-      //logger.info("[event-log-trace] foundation-tree-from={} foundation-tree-to={}", eventLog.id, hash)
 
       Vertex(Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
-        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
+        ).through(Edge(Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
 
@@ -168,29 +189,9 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
       .map(x => relation(x.name))
   }
 
-  def upgradeRelations = {
-
-    def relation(hash: String) =
-      Vertex(Values.SLAVE_TREE_CATEGORY)
-        .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
-        .connectedTo(
-          Vertex(Values.MASTER_TREE_CATEGORY)
-            .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
-        )
-        .through(Edge(Values.SLAVE_TREE_CATEGORY + "_UPGRADE"))
-
-    eventLog.lookupKeys
-      .find(x => x.category == Values.SLAVE_TREE_CATEGORY + "_UPGRADE" && x.name == Values.SLAVE_TREE_UPGRADE_ID)
-      .map(_.value)
-      .getOrElse(Nil)
-      .map(x => relation(x.name))
-  }
-
-  override def create: Seq[Relation] = {
+  override def create(eventLog: EventLog): Seq[Relation] = {
     try {
-      uppRelations ++ linkRelations ++ upgradeRelations
+      uppRelations(eventLog) ++ linkRelations(eventLog)
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
@@ -200,23 +201,24 @@ case class SlaveTreeStrategy(eventLog: EventLog) extends RelationStrategy with L
   }
 }
 
-case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
+case object MasterTreeStrategy extends RelationStrategy with LazyLogging {
 
-  def treeRelations = {
+  /**
+    * Create a list of MASTER_TREE->SLAVE_TREE relation
+    */
+  def treeRelations(eventLog: EventLog) = {
 
     def relation(hash: String) = {
       //logger.info("[event-log-trace] foundation-tree={} master-tree={}", hash, eventLog.id)
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.SLAVE_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.SLAVE_TREE_CATEGORY)
         )
-        .through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY))
+        .through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
     }
 
@@ -227,7 +229,10 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       .map(x => relation(x.name))
   }
 
-  def linkRelations = {
+  /**
+    * Create a list of MASTER_TREE->MASTER_TREE relation
+    */
+  def linkRelations(eventLog: EventLog) = {
 
     def relation(hash: String) = {
 
@@ -235,13 +240,11 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
 
       Vertex(Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
         .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
         .connectedTo(
           Vertex(Values.MASTER_TREE_CATEGORY)
             .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
-        ).through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
+        ).through(Edge(Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
     }
 
     eventLog.lookupKeys
@@ -251,30 +254,9 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
       .map(x => relation(x.name))
   }
 
-  def upgradeRelations = {
-
-    def relation(hash: String) =
-      Vertex(Values.MASTER_TREE_CATEGORY)
-        .addProperty(Values.HASH -> eventLog.id)
-        .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
-        .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
-        .connectedTo(
-          Vertex(Values.MASTER_TREE_CATEGORY)
-            .addProperty(Values.HASH -> hash)
-            .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
-        )
-        .through(Edge(Values.MASTER_TREE_CATEGORY + "_UPGRADE"))
-
-    eventLog.lookupKeys
-      .find(x => x.category == Values.MASTER_TREE_CATEGORY + "_UPGRADE" && x.name == Values.MASTER_TREE_UPGRADE_ID)
-      .map(_.value)
-      .getOrElse(Nil)
-      .map(x => relation(x.name))
-  }
-
-  override def create: Seq[Relation] = {
+  override def create(eventLog: EventLog): Seq[Relation] = {
     try {
-      treeRelations ++ linkRelations ++ upgradeRelations
+      treeRelations(eventLog) ++ linkRelations(eventLog)
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
@@ -283,33 +265,34 @@ case class MasterTreeStrategy(eventLog: EventLog) extends RelationStrategy with 
   }
 }
 
-case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy with LazyLogging {
-  def relation(hash: String) = {
+case object PublicBlockchainStrategy extends RelationStrategy with LazyLogging {
+  /**
+    * Create a list of PUBLIC_CHAIN->MASTER_TREE relation
+    */
+  def relation(eventLog: EventLog, hash: String) = {
     //logger.info("[event-log-trace] blockchain={} master-tree={} blockchain-name={}", eventLog.id, hash, eventLog.category)
 
     Vertex(Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.HASH -> eventLog.id)
-      .addProperty(Values.TYPE -> Values.PUBLIC_CHAIN_CATEGORY)
       .addProperty(Values.PUBLIC_CHAIN_CATEGORY -> eventLog.category)
       .addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime)
       .connectedTo(
         Vertex(Values.MASTER_TREE_CATEGORY)
           .addProperty(Values.HASH -> hash)
-          .addProperty(Values.TYPE -> Values.MASTER_TREE_CATEGORY)
       )
-      .through(Edge(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY))
+      .through(Edge(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
   }
 
-  def get = eventLog.lookupKeys
+  def get(eventLog: EventLog) = eventLog.lookupKeys
     .find(_.category == Values.PUBLIC_CHAIN_CATEGORY)
     .map(_.value)
     .getOrElse(Nil)
-    .map(x => relation(x.name))
+    .map(x => relation(eventLog, x.name))
 
-  override def create: Seq[Relation] = {
+  override def create(eventLog: EventLog): Seq[Relation] = {
     try {
-      get
+      get(eventLog)
     } catch {
       case e: Exception =>
         logger.error("Relation Creation Error: ", e)
@@ -318,8 +301,8 @@ case class PublicBlockchainStrategy(eventLog: EventLog) extends RelationStrategy
   }
 }
 
-case class UnknownStrategy(eventLog: EventLog) extends RelationStrategy {
-  override def create: Seq[Relation] =
+case object UnknownStrategy extends RelationStrategy {
+  override def create(eventLog: EventLog): Seq[Relation] =
     throw UnknownStrategyException("UnknownStrategyException", "There's no strategy for category " + eventLog.category, eventLog)
 }
 

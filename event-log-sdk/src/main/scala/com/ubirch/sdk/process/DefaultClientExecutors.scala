@@ -5,12 +5,13 @@ import java.util.concurrent.{ Future => JavaFuture }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.StringProducer
+import com.ubirch.kafka.util.FutureHelper
 import com.ubirch.models.EventLog
 import com.ubirch.process.Executor
 import com.ubirch.sdk.ConfPaths
 import com.ubirch.sdk.util.Exceptions._
 import com.ubirch.util.Implicits.enrichedConfig
-import com.ubirch.util.{ EventLogJsonSupport, FutureHelper, ProducerRecordHelper }
+import com.ubirch.util.{ EventLogJsonSupport, ProducerRecordHelper }
 import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.json4s.JValue
 
@@ -133,10 +134,8 @@ class CommitHandlerAsync(implicit ec: ExecutionContext)
   extends Executor[(JavaFuture[RecordMetadata], EventLog), Future[EventLog]]
   with LazyLogging {
 
-  val futureHelper = new FutureHelper()
-
   def get(javaFutureRecordMetadata: JavaFuture[RecordMetadata], eventLog: EventLog): Future[EventLog] = {
-    futureHelper.fromJavaFuture(javaFutureRecordMetadata).map { _ =>
+    FutureHelper.fromJavaFuture(javaFutureRecordMetadata).map { _ =>
       eventLog
     }.recover {
       case e: Exception =>

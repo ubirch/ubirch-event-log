@@ -17,6 +17,14 @@ import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * Represents a data that is used throughout the pipeline
+  * @param consumerRecords Represents the kafka consumer records
+  * @param eventLogs Represents the incoming event logs.
+  * @param chainers Represents the chainers that have be used to create a tree
+  * @param treeEventLogs Represents the generated trees are event logs
+  * @param recordsMetadata Represents the response for sending with Kafka
+  */
 case class ChainerPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
     eventLogs: Vector[EventLog],
@@ -26,6 +34,14 @@ case class ChainerPipeData(
 )
   extends EventLogsPipeData[String]
 
+/**
+  * Represents a default implementation of a consumer records manager used to assamble the pipeline of executors.
+  * @param reporter Represents a reporter for errors
+  * @param executorFamily Represents the family of executors for this manager
+  * @param failureCounter Represents a Prometheus counter for failures
+  * @param config Represents the configuration object
+  * @param ec Represents the execution context for this manager.
+  */
 @Singleton
 class DefaultChainerManager @Inject() (
     val reporter: Reporter,
