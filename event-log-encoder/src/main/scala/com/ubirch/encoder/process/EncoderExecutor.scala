@@ -250,14 +250,14 @@ class EncoderExecutor @Inject() (
         publicKey <- Try(EncoderJsonSupport.FromJson[PublicKey](jv).get)
         _ = encodingsCounter.counter.labels(metricsSubNamespace, Values.PUBLIC_CHAIN_CATEGORY).inc()
         eventLog = EventLog("EventLogFromConsumerRecord", Values.PUB_KEY_CATEGORY, jv)
-          .withCustomerId(publicKey.hardwareId)
+          .withCustomerId(publicKey.id)
           .withNewId(publicKey.publicKey)
           .withLookupKeys(Seq(
             LookupKey(
               name = Values.PUB_KEY_CATEGORY,
               category = Values.PUB_KEY_CATEGORY,
               key = publicKey.publicKey.asKey,
-              value = Seq(publicKey.hardwareId.asValue)
+              value = Seq(publicKey.id.asValue)
             ).categoryAsKeyLabel
               .addValueLabelForAll(Values.PUB_KEY_CATEGORY)
           ))
