@@ -9,9 +9,11 @@ import io.udash.rest.{DefaultRestImplicits, OpenApiFullInstances, RestOpenApiCom
 
 package object udash {
 
-  /** Normally for methods which take an `Array[Byte]` as an argument udash accepts only requests which have
+  /**
+    * Normally for methods which take an `Array[Byte]` as an argument udash accepts only requests which have
     * `application/octet-stream` content type. This class makes it so it accepts any content type and shows both
-    * `text/plain` and `application/octet-stream` in swagger ui. */
+    * `text/plain` and `application/octet-stream` in swagger ui.
+    */
   trait VerificationServiceRestImplicits extends DefaultRestImplicits {
     implicit val bodyForByteArray: AsRawReal[HttpBody, Array[Byte]] =
       AsRawReal.create(binary(_), body => body.readBytes(/* no content type specified */))

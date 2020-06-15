@@ -68,7 +68,7 @@
 
         <build.number>${timestamp}-dev</build.number>
 
-        <embedded-kafka>2.3.0</embedded-kafka>
+
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
         <!-- Lookup POM end -->
 
@@ -146,23 +146,13 @@
             <artifactId>ubirch-protocol-java</artifactId>
             <version>${ubirch-protocol.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-crypto</artifactId>
-            <version>${ubirch-crypto.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>
             <version>1.1-SNAPSHOT</version>
         </dependency>
 
-        <!-- kafka -->
-        <dependency>
-            <groupId>net.cakesolutions</groupId>
-            <artifactId>scala-kafka-client_${scala.major.version}</artifactId>
-            <version>2.1.0</version>
-        </dependency>
 
         <!-- caching -->
         <dependency>
@@ -230,6 +220,7 @@
         <!-- LOOKUP POM -->
 
         <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
+        <!-- Todo: should become deleted -->
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-kafka-envelope</artifactId>

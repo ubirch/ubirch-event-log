@@ -1,11 +1,12 @@
 package com.ubirch.verification.microservice.eventlog
 
 import com.ubirch.niomon.cache.RedisCache
-import javax.inject.Inject
+import com.ubirch.verification.microservice.models.{BlockchainInfo, QueryDepth, ResponseForm}
+import javax.inject.{Inject, Named}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CachedEventLogClient @Inject()(underlying: EventLogClient, redisCache: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient {
+class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, redisCache: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient {
 
   private val getEventByHashCached =
     redisCache
