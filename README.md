@@ -24,6 +24,13 @@ The Event Log System is a collection of services that allow the chaining
 
 * [Kafka Express](https://github.com/ubirch/ubirch-kafka-express)
 
+## Prerequisites 
+
+In order to run the applications, you will need a running instance of Kafka and Cassandra. 
+
+Please refer to [DB Migrations](https://github.com/ubirch/ubirch-cassandra-eval#db-migrations-management) in order to run the
+migration scripts.
+
 ## Install
 
 To build the application run the following command:
