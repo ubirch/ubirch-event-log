@@ -22,10 +22,7 @@ The Event Log System is a collection of services that allow the chaining
 
 * [Event Log Core](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
 
-* [Event Log Kafka](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-kafka)
-
-* [Event Log Util](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-util)
-
+* [Kafka Express](https://github.com/ubirch/ubirch-kafka-express)
 
 ## Install
 
