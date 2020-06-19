@@ -5,9 +5,11 @@ import java.util.Date
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
+import com.ubirch.verification.service.services.Gremlin
 import gremlin.scala.{Key, P, StepLabel, Vertex}
 import javax.inject._
 
+import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
@@ -95,26 +97,26 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
     * @return Value of the desired property
     */
   def simpleFind(matchProperty: String, value: String, returnProperty: String): Future[List[String]] =
-    g.V()
+    gremlin.g.V()
       .has(Key[String](matchProperty.toLowerCase()), value)
       .value(Key[String](returnProperty.toLowerCase()))
       .promise()
 
   def getTimestampFromVertexAsLong(vertex: Vertex): Future[Option[Long]] =
-    g.V(vertex)
+    gremlin.g.V(vertex)
       .value[Long](Values.TIMESTAMP)
       .promise()
       .map(_.headOption)
 
   def getTimestampFromVertexAsDate(vertex: Vertex): Future[Option[Date]] =
-    g.V(vertex)
+    gremlin.g.V(vertex)
       .value[Date](Values.TIMESTAMP)
       .promise()
       .map(_.headOption)
 
   def outLT(master: Vertex, time: Long): Future[List[Vertex]] = {
     val timestamp = Key[Date](Values.TIMESTAMP)
-    g.V(master)
+    gremlin.g.V(master)
       .repeat(
         _.out(
           Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
@@ -137,7 +139,7 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
   def shortestPath(property: String, value: String, untilLabel: String): Future[List[Vertex]] = {
     val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
-    g.V()
+    gremlin.g.V()
       .has(Key[String](property.toLowerCase()), value)
       .store(x)
       .repeat(_.in().where(P.without[String](List("x"))).aggregate(x))
@@ -237,8 +239,8 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
   def toVertexStruct(vertices: List[Vertex]): Future[List[VertexStruct]] = {
     val futureRes = vertices.map { v =>
       val gremlinRes = for {
-        jmaps <- g.V(v).valueMap().promise().map(_.headOption)
-        label <- g.V(v).label().promise().map(_.headOption)
+        jmaps <- gremlin.g.V(v).valueMap().promise().map(_.headOption)
+        label <- gremlin.g.V(v).label().promise().map(_.headOption)
       } yield {
         val maps = jmaps
           .map(_.asScala.toMap)
@@ -294,7 +296,7 @@ class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) e
     }
 
   def getBlockchainsFromMasterVertex(master: Vertex): Future[List[Vertex]] =
-    g.V(master)
+    gremlin.g.V(master)
       .in()
       .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       //.hasLabel(Values.PUBLIC_CHAIN_CATEGORY)

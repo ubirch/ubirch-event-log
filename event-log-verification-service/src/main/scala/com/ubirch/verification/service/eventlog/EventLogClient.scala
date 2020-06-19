@@ -11,19 +11,15 @@ import scala.concurrent.Future
 
 trait EventLogClient {
 
-  def getEventByHash(
-                      hash: Array[Byte],
-                      queryDepth: QueryDepth,
-                      responseForm: ResponseForm,
-                      blockchainInfo: BlockchainInfo
-                    ): Future[EventLogClient.Response]
+  def getEventByHash(hash: Array[Byte],
+                     queryDepth: QueryDepth,
+                     responseForm: ResponseForm,
+                     blockchainInfo: BlockchainInfo): Future[EventLogClient.Response]
 
-  def getEventBySignature(
-                           signature: Array[Byte],
-                           queryDepth: QueryDepth,
-                           responseForm: ResponseForm,
-                           blockchainInfo: BlockchainInfo
-                         ): Future[EventLogClient.Response]
+  def getEventBySignature(signature: Array[Byte],
+                          queryDepth: QueryDepth,
+                          responseForm: ResponseForm,
+                          blockchainInfo: BlockchainInfo): Future[EventLogClient.Response]
 }
 
 object EventLogClient {

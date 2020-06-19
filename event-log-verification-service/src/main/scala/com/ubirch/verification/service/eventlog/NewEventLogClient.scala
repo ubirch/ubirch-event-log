@@ -4,15 +4,18 @@ import java.util.UUID
 
 import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.{JValueGenericResponse, Values}
-import com.ubirch.util.ProducerRecordHelper
+import com.ubirch.util.{ProducerRecordHelper, UUIDHelper}
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.process.{LookupExecutor, LookupPipeDataNew}
 import com.ubirch.verification.service.util.Exceptions.{CreateProducerRecordException, LookupExecutorException}
 import com.ubirch.verification.service.util.LookupJsonSupport
 import com.ubirch.verification.service.util.LookupJsonSupport.formats
 import javax.inject.Inject
 import monix.execution.{FutureUtils, Scheduler}
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
+import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
@@ -220,4 +223,46 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
 
   }
 
+}
+
+object LookupExecutor {
+
+  def shortestPathAsJValue(maybeAnchors: Seq[VertexStruct]): JValue =
+    LookupJsonSupport.ToJson[Seq[VertexStruct]](maybeAnchors).get
+
+  def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]): JValue = {
+    val anchors = Map(Values.SHORTEST_PATH -> path, Values.BLOCKCHAINS -> maybeAnchors)
+    LookupJsonSupport.ToJson(anchors).get
+  }
+
+  def upperAndLowerAsJValue(upperPath: Seq[VertexStruct], upperBlocks: Seq[VertexStruct], lowerPath: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
+    val anchors = Map(
+      Values.UPPER_PATH -> upperPath,
+      Values.UPPER_BLOCKCHAINS -> upperBlocks,
+      Values.LOWER_PATH -> lowerPath,
+      Values.LOWER_BLOCKCHAINS -> lowerBlocks
+    )
+    LookupJsonSupport.ToJson(anchors).get
+  }
+
+  def upperAndLowerAsJValue(upperBlocks: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
+    val anchors = Map(
+      Values.UPPER_BLOCKCHAINS -> upperBlocks,
+      Values.LOWER_BLOCKCHAINS -> lowerBlocks
+    )
+    LookupJsonSupport.ToJson(anchors).get
+  }
+
+}
+
+case class LookupPipeDataNew(
+                              value: Option[String] = None,
+                              key: Option[String],
+                              queryType: Option[QueryType],
+                              lookupResult: Option[LookupResult],
+                              producerRecord: Option[ProducerRecord[String, String]],
+                              recordMetadata: Option[RecordMetadata],
+                              consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
+                            ) extends ProcessResult[String, String] {
+  val id: UUID = UUIDHelper.randomUUID
 }

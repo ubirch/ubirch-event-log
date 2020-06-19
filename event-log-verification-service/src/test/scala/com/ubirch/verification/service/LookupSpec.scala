@@ -12,7 +12,6 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
 import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.process.{LookupExecutor, LookupPipeDataNew}
 import com.ubirch.verification.service.services.{DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder}
 import com.ubirch.verification.service.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
@@ -189,7 +188,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
        |'34376336396166392D336533382D343665652D393063332D616265313364383335353266');
     """.stripMargin
 
-  val data =
+  val data: String =
     """
       |{
       |   "hint":0,
