@@ -12,7 +12,7 @@
     </parent>
 
     <!-- basic info -->
-    <artifactId>verification-microservice</artifactId>
+    <artifactId>event-log-verification-service</artifactId>
     <version>0.0.1</version>
     <name>${project.artifactId}</name>
     <description>Verification service for UPPs in the Ubirch Platform</description>
@@ -349,26 +349,25 @@
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
-            <!-- enable scalatest -->
-            <plugin>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest-maven-plugin</artifactId>
-                <version>${scalatest-maven-plugin.version}</version>
-                <configuration>
-                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-                    <junitxml>.</junitxml>
-                    <filereports>WDF TestSuite.txt</filereports>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>test</id>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
+            <!--            &lt;!&ndash; enable scalatest &ndash;&gt;-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.scalatest</groupId>-->
+            <!--                <artifactId>scalatest-maven-plugin</artifactId>-->
+            <!--                <version>${scalatest-maven-plugin.version}</version>-->
+            <!--                <configuration>-->
+            <!--                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>-->
+            <!--                    <junitxml>.</junitxml>-->
+            <!--                    <filereports>WDF TestSuite.txt</filereports>-->
+            <!--                </configuration>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>test</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>test</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>${maven-jar-plugin.version}</version>
@@ -411,14 +410,14 @@
                 </configuration>
             </plugin>
             <!-- for mvn deploy to work, disable the default deploy plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>${maven-deploy-plugin.version}</version>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-deploy-plugin</artifactId>-->
+            <!--                <version>${maven-deploy-plugin.version}</version>-->
+            <!--                <configuration>-->
+            <!--                    <skip>true</skip>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
 
             <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
             <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
