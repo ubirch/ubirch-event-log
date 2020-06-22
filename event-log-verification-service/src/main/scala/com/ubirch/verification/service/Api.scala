@@ -2,12 +2,12 @@ package com.ubirch.verification.service
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
-import com.ubirch.verification.service.models.{AnchorsNoPath, Normal}
-import com.ubirch.verification.service.utils.udash.{VerificationServiceRestApiCompanion, cors}
-import io.udash.rest.openapi.adjusters.{adjustSchema, example}
-import io.udash.rest.openapi.{DataType, RefOr, RestSchema, Schema}
-import io.udash.rest.raw.{HttpBody, IMapping, JsonValue, RestResponse}
-import io.udash.rest.{Query, _}
+import com.ubirch.verification.service.models.{ AnchorsNoPath, Normal }
+import com.ubirch.verification.service.utils.udash.{ VerificationServiceRestApiCompanion, cors }
+import io.udash.rest.openapi.adjusters.{ adjustSchema, example }
+import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
+import io.udash.rest.raw.{ HttpBody, IMapping, JsonValue, RestResponse }
+import io.udash.rest.{ Query, _ }
 
 import scala.concurrent.Future
 
@@ -30,19 +30,19 @@ trait Api {
   @CustomBody
   @POST("upp/verify/anchor")
   def verifyUPPWithUpperBound(
-                               hash: Array[Byte],
-                               @Query("response_form") responseForm: String = AnchorsNoPath.value,
-                               @Query("blockchain_info") blockchainInfo: String = Normal.value
-                             ): Future[Api.Response]
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value
+  ): Future[Api.Response]
 
   @cors
   @CustomBody
   @POST("upp/verify/record")
   def verifyUPPWithUpperAndLowerBound(
-                                       hash: Array[Byte],
-                                       @Query("response_form") responseForm: String = AnchorsNoPath.value,
-                                       @Query("blockchain_info") blockchainInfo: String = Normal.value
-                                     ): Future[Api.Response]
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value
+  ): Future[Api.Response]
 
 }
 
@@ -79,9 +79,9 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   object Response extends RestDataCompanion[Response] {
     // adds custom status codes
     implicit def asRestResp(implicit
-                            successAsRaw: AsRaw[HttpBody, Success],
-                            failureAsRaw: AsRaw[HttpBody, Failure]
-                           ): AsRaw[RestResponse, Response] = {
+        successAsRaw: AsRaw[HttpBody, Success],
+        failureAsRaw: AsRaw[HttpBody, Failure]
+    ): AsRaw[RestResponse, Response] = {
       AsRaw.create {
         case s: Success => successAsRaw.asRaw(s).defaultResponse.recoverHttpError
         case NotFound => RestResponse(404, IMapping.empty, HttpBody.empty)
@@ -106,7 +106,7 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   case object NotFound extends Response
 
   case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError",
-                     errorMessage: String = "signature verification failed") extends Response
+      errorMessage: String = "signature verification failed") extends Response
 
   object Failure extends RestDataCompanion[Failure]
 
