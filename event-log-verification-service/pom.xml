@@ -57,7 +57,6 @@
         <!-- plugins -->
 
         <!-- Lookup POM -->
-        <event-log-core.version>1.2.6</event-log-core.version>
         <gremlinScala.version>3.4.1.4</gremlinScala.version>
         <janusGraph.version>0.3.1</janusGraph.version>
         <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
@@ -108,7 +107,6 @@
 
         <json4s-jackson.version>3.6.5</json4s-jackson.version>
         <skinny-framework.version>3.0.1</skinny-framework.version>
-        <ubirch-crypto.version>2.1.0</ubirch-crypto.version>
         <ubirch-protocol.version>2.1.1</ubirch-protocol.version>
 
     </properties>
