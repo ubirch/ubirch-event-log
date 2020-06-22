@@ -10,8 +10,6 @@ import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames }
 import com.ubirch.process.Executor
-import com.ubirch.services.kafka.producer.Reporter
-import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
@@ -27,13 +25,11 @@ import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class DispatchExecutor @Inject() (
-    reporter: Reporter,
     @Named(DefaultDispatchingCounter.name) counterPerTopic: Counter,
     @Named(DefaultSuccessCounter.name) successCounter: Counter,
     @Named(DefaultFailureCounter.name) failureCounter: Counter,
     dispatchInfo: DispatchInfo,
     config: Config,
-    lifecycle: Lifecycle,
     stringProducer: StringProducer
 )(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]

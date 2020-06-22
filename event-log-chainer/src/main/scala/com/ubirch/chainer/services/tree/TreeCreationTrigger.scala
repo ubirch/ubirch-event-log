@@ -8,6 +8,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.ExecutionContext
 
+/**
+  * Represents an object that allows to trigger the creation of a tree.
+  * @param instantMonitor Represents a monitor of instances.
+  * @param config Represents the configuration object
+  * @param ec Represents an execution context for this object
+  */
 @Singleton
 class TreeCreationTrigger @Inject() (
     instantMonitor: InstantMonitor,

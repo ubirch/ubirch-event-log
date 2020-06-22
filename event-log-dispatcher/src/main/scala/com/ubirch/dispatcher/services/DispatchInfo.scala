@@ -5,6 +5,7 @@ import java.io.{ BufferedReader, IOException, InputStream, InputStreamReader }
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.models.Dispatch
+import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util.EventLogJsonSupport
 import javax.inject._
 
@@ -51,4 +52,14 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
     }
   }
 
+}
+
+object DispatchInfo {
+
+  def main(args: Array[String]): Unit = {
+
+    val di = new DispatchInfo(new ConfigProvider get ())
+    println("Current dispatching rules: \n" + di.info.zipWithIndex.map { case (d, i) => (i, d) }.mkString(", \n"))
+
+  }
 }

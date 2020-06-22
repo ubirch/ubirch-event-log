@@ -2,7 +2,7 @@ package com.ubirch
 
 import java.io.ByteArrayInputStream
 import java.util.Date
-import java.util.concurrent.{ Executor, TimeoutException }
+import java.util.concurrent.Executor
 
 import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
@@ -16,20 +16,19 @@ import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
+import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
-import net.manub.embeddedkafka.{ EmbeddedKafkaConfig, KafkaUnavailableException }
-import org.apache.kafka.common.serialization.StringDeserializer
+import net.manub.embeddedkafka.EmbeddedKafkaConfig
+import org.apache.commons.codec.binary.Hex
 import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
-import scala.annotation.tailrec
-import scala.concurrent.duration._
 import scala.concurrent.Future
 
 class WebClientProvider extends Provider[WebClient] {
@@ -59,45 +58,16 @@ class InjectorHelperImpl(
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
-        .withValue(
-          "eventLog.daysBack",
-          ConfigValueFactory.fromAnyRef(3)
-        )
-        .withValue(
-          "eventLog.split",
-          ConfigValueFactory.fromAnyRef(split)
-        )
-        .withValue(
-          "eventLog.mode",
-          ConfigValueFactory.fromAnyRef(mode.value)
-        )
-        .withValue(
-          "eventLog.minTreeRecords",
-          ConfigValueFactory.fromAnyRef(minTreeRecords)
-        )
-        .withValue(
-          "eventLog.treeEvery",
-          ConfigValueFactory.fromAnyRef(treeEvery)
-        )
-        .withValue(
-          "eventLog.treeUpgrade",
-          ConfigValueFactory.fromAnyRef(treeUpgrade)
-        )
-        .withValue(
-          ConsumerConfPaths.BOOTSTRAP_SERVERS,
-          ConfigValueFactory.fromAnyRef(bootstrapServers)
-        )
-        .withValue(
-          ProducerConfPaths.BOOTSTRAP_SERVERS,
-          ConfigValueFactory.fromAnyRef(bootstrapServers)
-        ).withValue(
-            ConsumerConfPaths.TOPIC_PATH,
-            ConfigValueFactory.fromAnyRef(consumerTopic)
-          )
-        .withValue(
-          ProducerConfPaths.TOPIC_PATH,
-          ConfigValueFactory.fromAnyRef(producerTopic)
-        )
+        .withValue("eventLog.daysBack", ConfigValueFactory.fromAnyRef(3))
+        .withValue("eventLog.split", ConfigValueFactory.fromAnyRef(split))
+        .withValue("eventLog.mode", ConfigValueFactory.fromAnyRef(mode.value))
+        .withValue("eventLog.minTreeRecords", ConfigValueFactory.fromAnyRef(minTreeRecords))
+        .withValue("eventLog.treeEvery", ConfigValueFactory.fromAnyRef(treeEvery))
+        .withValue("eventLog.treeUpgrade", ConfigValueFactory.fromAnyRef(treeUpgrade))
+        .withValue(ConsumerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
+        .withValue(ProducerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
+        .withValue(ConsumerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(consumerTopic))
+        .withValue(ProducerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(producerTopic))
     }
   })
 
@@ -133,7 +103,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
   "Chainer Spec" must {
 
-    "consume, process and publish tree and event logs in Slave mode" in {
+    "consume, process and publish tree and event logs in Slave mode with UPPs" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -154,6 +124,107 @@ class ChainerSpec extends TestBase with LazyLogging {
             .withNewId
             .withCategory(Values.UPP_CATEGORY)
             .sign(config))
+      }
+
+      withRunningKafka {
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        val maxNumberToRead = 1 /* tree */
+
+        val messages: List[String] = readMessage(eventLogTopic)
+
+        logger.info("Messages Read:" + messages)
+
+        val treeEventLogAsString = messages.headOption.getOrElse("")
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val chainer = ChainerSpec.getChainer(events)
+        val node = Chainer
+          .compress(chainer)
+          .map(x => ChainerJsonSupport.ToJson(x).get)
+          .getOrElse(JString("WHAT"))
+
+        val mode = Slave
+
+        lazy val valuesStrategy = ValueStrategy.getStrategyForNormalLeaves(mode)
+
+        assert(treeEventLogAsString.nonEmpty)
+        assert(treeEventLog.id.nonEmpty)
+        assert(treeEventLog.customerId == mode.customerId)
+        assert(treeEventLog.serviceClass == mode.serviceClass)
+        assert(treeEventLog.category == mode.category)
+        assert(treeEventLog.signature == SigningHelper.signAndGetAsHex(config, SigningHelper.getBytesFromString(node.toString)))
+        assert(treeEventLog.event == node)
+        assert(treeEventLog.headers == Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        ))
+        assert(treeEventLog.id == chainer.getNode.map(_.value).getOrElse("NO_ID"))
+        assert(treeEventLog.lookupKeys ==
+          Seq(
+            LookupKey(
+              mode.lookupName,
+              mode.category,
+              treeEventLog.id.asKeyWithLabel(mode.category),
+              chainer.seeds.flatMap(x => valuesStrategy.create(x))
+            )
+          ))
+        assert(treeEventLog.category == treeEventLog.lookupKeys.headOption.map(_.category).getOrElse("No CAT"))
+        assert(events.map(_.id).sorted == chainer.seeds.map(_.id).sorted)
+        assert(events.size == chainer.seeds.size)
+        assert(events.size == treeEventLog.lookupKeys.flatMap(_.value).size)
+        assert(maxNumberToRead == messages.size)
+        //assert(chainer.getNodes.map(_.value).size == customerIds.size) for when there's explicit grouping
+        assert(chainer.getNodes.map(_.value).size == 1)
+        assert(chainer.getHashes.flatten.size == events.size)
+
+      }
+
+    }
+
+    "consume, process and publish tree and event logs in Slave mode with Public Keys" in {
+
+      import java.security.KeyPairGenerator
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
+      val config = InjectorHelper.get[Config]
+
+      val customerIds = List("Sun", "Earth", "Marz")
+      val customerRange = 0 to 3
+
+      val events = customerIds.flatMap { x =>
+        customerRange.map { _ =>
+
+          val hid = UUIDHelper.randomUUID
+          val pubKey = Hex.encodeHexString(KeyPairGenerator.getInstance("DSA", "SUN").generateKeyPair().getPublic.getEncoded)
+
+          val publicKey =
+            s"""
+              |{
+              |  "hardware_id": "$hid",
+              |  "public_key": "$pubKey"
+              |}
+          """.stripMargin
+
+          EventLog(ChainerJsonSupport.getJValue(publicKey))
+            .withEventTime(new Date())
+            .withRandomNonce
+            .withCustomerId(x)
+            .withNewId(pubKey)
+            .withCategory(Values.PUB_KEY_CATEGORY)
+            .sign(config)
+
+        }
       }
 
       withRunningKafka {

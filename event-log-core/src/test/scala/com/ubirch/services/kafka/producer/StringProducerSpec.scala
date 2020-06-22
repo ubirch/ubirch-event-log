@@ -3,8 +3,9 @@ package com.ubirch.services.kafka.producer
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.producer.{ Configs, StringProducer }
 import com.ubirch.kafka.util.Exceptions.ProducerCreationException
+import com.ubirch.kafka.util.{ NameGiver, PortGiver }
 import com.ubirch.models.{ Error, EventLog }
-import com.ubirch.util.{ EventLogJsonSupport, NameGiver, PortGiver, ProducerRecordHelper }
+import com.ubirch.util.{ EventLogJsonSupport, ProducerRecordHelper }
 import com.ubirch.{ Entities, TestBase }
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer

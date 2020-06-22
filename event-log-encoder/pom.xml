@@ -7,12 +7,12 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
+        <version>1.5.0</version>
     </parent>
 
     <!-- basic info -->
     <artifactId>event-log-encoder</artifactId>
-    <version>1.2.0</version>
+    <version>1.5.0</version>
     <name>${project.artifactId}</name>
     <description>Event Log Encoder service for the ubirch Platform that understands MessageEnvelopes and Blockchain
         Responses
@@ -23,7 +23,7 @@
 
         <!-- versions -->
 
-        <event-log-core.version>1.2.6</event-log-core.version>
+        <event-log-core.version>1.5.0</event-log-core.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
