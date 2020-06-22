@@ -154,18 +154,19 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
     getEvent(signature, queryDepth, responseForm, blockchainInfo, Some(Signature))
 
   private def getEvent(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, maybeQueryType: Option[QueryType]) = {
-    //Todo: remove key
+    //Todo: remove key -> or rather define in API
     val key = UUID.randomUUID().toString
-    val value = hash.map(_.toChar).mkString
+    val value: String = new String(hash) //hash.map(_.toChar).mkString
     //Todo: Check if this might be ok
 
-    val maybeFutureRes: Option[Future[LookupPipeDataNew]] = for {
+    val maybeFutureRes = for {
       queryType <- maybeQueryType
     } yield {
 
       if (value.isEmpty || key.isEmpty)
-        Future.successful(LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
-      else {
+      //Todo: Api should not accept queries without hash
+      Future.successful(LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
+        else {
 
         lazy val res: Future[LookupPipeDataNew] = queryDepth match {
           case Simple => simple(key, value, queryType)
@@ -255,14 +256,12 @@ object LookupExecutor {
 
 }
 
-case class LookupPipeDataNew(
-                              value: Option[String] = None,
-                              key: Option[String],
-                              queryType: Option[QueryType],
-                              lookupResult: Option[LookupResult],
-                              producerRecord: Option[ProducerRecord[String, String]],
-                              recordMetadata: Option[RecordMetadata],
-                              consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
-                            ) extends ProcessResult[String, String] {
+case class LookupPipeDataNew(value: Option[String] = None,
+                             key: Option[String],
+                             queryType: Option[QueryType],
+                             lookupResult: Option[LookupResult],
+                             producerRecord: Option[ProducerRecord[String, String]],
+                             recordMetadata: Option[RecordMetadata],
+                             consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty) extends ProcessResult[String, String] {
   val id: UUID = UUIDHelper.randomUUID
 }

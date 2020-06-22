@@ -4,6 +4,8 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Module}
 import com.typesafe.config.Config
+import com.ubirch.niomon.cache.RedisCache
+import com.ubirch.niomon.healthcheck.HealthCheckServer
 import com.ubirch.services._
 import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService}
 import com.ubirch.services.config.ConfigProvider
@@ -11,6 +13,8 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle}
 import com.ubirch.verification.service.eventlog.{CachedEventLogClient, EventLogClient, NewEventLogClient}
 import com.ubirch.verification.service.models.{DefaultFinder, Finder}
+import com.ubirch.verification.service.util.{HealthCheckProvider, JettyServerProvider, VerificationRedisProvider}
+import com.ubirch.verification.service.utils.udash.JettyServer
 
 import scala.concurrent.ExecutionContext
 
@@ -41,6 +45,12 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
 
   def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("Cached")).to(classOf[CachedEventLogClient])
 
+  def redisCache: ScopedBindingBuilder = bind(classOf[RedisCache]).toProvider(classOf[VerificationRedisProvider])
+
+  def healthCheck: ScopedBindingBuilder = bind(classOf[HealthCheckServer]).toProvider(classOf[HealthCheckProvider])
+
+  def jettyServer: ScopedBindingBuilder = bind(classOf[JettyServer]).toProvider(classOf[JettyServerProvider])
+
   override def configure(): Unit = {
     lifecycle
     jvmHook
@@ -50,6 +60,11 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     executionContext
     gremlin
     finder
+    newEventLogClient
+    cachedEventLogClient
+    redisCache
+    healthCheck
+    jettyServer
   }
 
 }

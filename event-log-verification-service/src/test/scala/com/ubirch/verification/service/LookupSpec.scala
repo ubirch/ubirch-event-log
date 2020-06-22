@@ -5,7 +5,6 @@ import java.util.UUID
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.Module
 import com.google.inject.binder.ScopedBindingBuilder
-import com.google.inject.name.Names
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
@@ -224,8 +223,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
           override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
 
-          override def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("New")).to(classOf[NewEventLogClient])
-
         }
       }
 
@@ -272,7 +269,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
           override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
 
-          override def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("New")).to(classOf[NewEventLogClient])
         }
       }
 
