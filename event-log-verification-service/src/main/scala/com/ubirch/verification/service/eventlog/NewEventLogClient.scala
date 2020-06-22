@@ -5,8 +5,8 @@ import java.util.UUID
 import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.ProcessResult
-import com.ubirch.models.{JValueGenericResponse, Values}
-import com.ubirch.util.{ProducerRecordHelper, UUIDHelper}
+import com.ubirch.models.Values
+import com.ubirch.util.{JValueGenericResponse, ProducerRecordHelper, UUIDHelper}
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.util.Exceptions.{CreateProducerRecordException, LookupExecutorException}
 import com.ubirch.verification.service.util.LookupJsonSupport
