@@ -9,7 +9,7 @@ import com.ubirch.ConfPaths.ConsumerConfPaths
 import com.ubirch.kafka.consumer._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.kafka.util.VersionedLazyLogging
-import com.ubirch.models.{ Error, EventLog }
+import com.ubirch.models.{ Error, EventLog, Values }
 import com.ubirch.process._
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -163,7 +163,7 @@ class DefaultStringConsumer @Inject() (
   with WithConsumerShutdownHook {
 
   lazy val consumerConfigured = {
-    val consumerImp = StringConsumer.emptyWithMetrics(metricsSubNamespace)
+    val consumerImp = StringConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)
     consumerImp.setUseAutoCommit(false)
     consumerImp.setTopics(consumerTopics)
     consumerImp.setProps(consumerConfigs)

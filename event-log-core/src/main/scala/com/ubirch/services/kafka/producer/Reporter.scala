@@ -44,20 +44,20 @@ class Reporter @Inject() (stringProducer: StringProducer, config: Config)(implic
 
         val record = ProducerRecordHelper.toRecord(
           topic,
-          error.id.toString,
+          eventLog.id,
           eventLog.toJson,
           Map.empty
         )
 
-        val futureResp = stringProducer.send(record).map(x => Option(x))
-
-        futureResp.recover {
-          case e: Exception =>
-            logger.error("Error Reporting Error 0: {}", topic)
-            logger.error("Error Reporting Error 1: {}", error)
-            logger.error("Error Reporting Error 2: ", e)
-            throw e
-        }
+        stringProducer
+          .send(record)
+          .map(x => Option(x)).recover {
+            case e: Exception =>
+              logger.error("Error Reporting Error 0: {}", topic)
+              logger.error("Error Reporting Error 1: {}", error)
+              logger.error("Error Reporting Error 2: ", e)
+              throw e
+          }
 
       }
 

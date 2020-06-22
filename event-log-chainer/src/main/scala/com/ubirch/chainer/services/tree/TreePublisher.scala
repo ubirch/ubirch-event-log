@@ -23,7 +23,7 @@ class TreePublisher @Inject() (
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   def publish(topic: String, eventLog: EventLog): Future[RecordMetadata] = {
-    val pr = ProducerRecordHelper.toRecordFromEventLog(topic, eventLog.id.toString, eventLog)
+    val pr = ProducerRecordHelper.toRecordFromEventLog(topic, eventLog.id, eventLog)
     val futureSend = stringProducer.send(pr)
     futureSend.onComplete {
       case Success(_) =>

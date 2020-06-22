@@ -1,4 +1,4 @@
-package com.ubirch.models
+package com.ubirch.util
 
 import org.json4s.JValue
 
