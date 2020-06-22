@@ -18,16 +18,16 @@
     <description>Verification service for UPPs in the Ubirch Platform</description>
     <inceptionYear>2020</inceptionYear>
 
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
+    <!--    <distributionManagement>-->
+    <!--        <snapshotRepository>-->
+    <!--            <id>ossrh</id>-->
+    <!--            <url>https://oss.sonatype.org/content/repositories/snapshots</url>-->
+    <!--        </snapshotRepository>-->
+    <!--        <repository>-->
+    <!--            <id>ossrh</id>-->
+    <!--            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>-->
+    <!--        </repository>-->
+    <!--    </distributionManagement>-->
 
     <properties>
 
@@ -320,6 +320,7 @@
 
             <plugin>
                 <!-- see http://davidb.github.com/scala-maven-plugin -->
+                <!-- for building scala with maven -->
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>${scala-maven-plugin.version}</version>
@@ -331,6 +332,7 @@
                         </goals>
                         <configuration>
                             <args>
+                                <!-- is explicitly shown if set -->
                                 <arg>-unchecked</arg>
                                 <arg>-deprecation</arg>
                                 <arg>-dependencyfile</arg>
@@ -340,7 +342,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- disable surefire -->
+            <!-- to be able to use scalatest disable surefire (maven test) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -349,25 +351,26 @@
                     <skipTests>true</skipTests>
                 </configuration>
             </plugin>
-            <!--            &lt;!&ndash; enable scalatest &ndash;&gt;-->
-            <!--            <plugin>-->
-            <!--                <groupId>org.scalatest</groupId>-->
-            <!--                <artifactId>scalatest-maven-plugin</artifactId>-->
-            <!--                <version>${scalatest-maven-plugin.version}</version>-->
-            <!--                <configuration>-->
-            <!--                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>-->
-            <!--                    <junitxml>.</junitxml>-->
-            <!--                    <filereports>WDF TestSuite.txt</filereports>-->
-            <!--                </configuration>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <id>test</id>-->
-            <!--                        <goals>-->
-            <!--                            <goal>test</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--            </plugin>-->
+            <!-- enable scalatest -->
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>${scalatest-maven-plugin.version}</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- needed to produce jar with maven; naming Boot class-->
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>${maven-jar-plugin.version}</version>
@@ -409,15 +412,16 @@
                     </buildArgs>
                 </configuration>
             </plugin>
-            <!-- for mvn deploy to work, disable the default deploy plugin -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-deploy-plugin</artifactId>-->
-            <!--                <version>${maven-deploy-plugin.version}</version>-->
-            <!--                <configuration>-->
-            <!--                    <skip>true</skip>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
+            <!--  for mvn deploy to work, disable the default deploy plugin -->
+            <!-- Todo: maybe can become removed? when deploying -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
 
             <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
             <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
