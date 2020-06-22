@@ -1,4 +1,4 @@
-package com.ubirch.verification.service.utils
+package com.ubirch.verification.service.util
 
 import com.avsystem.commons.meta.MacroInstances
 import com.avsystem.commons.rpc.AsRawReal

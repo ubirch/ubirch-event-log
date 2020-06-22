@@ -1,4 +1,4 @@
-package com.ubirch.verification.service.services
+package com.ubirch.verification.service
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
@@ -11,10 +11,10 @@ import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultCl
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle}
-import com.ubirch.verification.service.eventlog.{CachedEventLogClient, EventLogClient, NewEventLogClient}
-import com.ubirch.verification.service.models.{DefaultFinder, Finder}
+import com.ubirch.verification.service.services.eventlog.{CachedEventLogClient, EventLogClient, NewEventLogClient}
+import com.ubirch.verification.service.services.{DefaultFinder, DefaultGremlinConnector, Finder, Gremlin}
+import com.ubirch.verification.service.util.udash.JettyServer
 import com.ubirch.verification.service.util.{HealthCheckProvider, JettyServerProvider, VerificationRedisProvider}
-import com.ubirch.verification.service.utils.udash.JettyServer
 
 import scala.concurrent.ExecutionContext
 

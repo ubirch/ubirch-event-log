@@ -2,8 +2,8 @@ package com.ubirch.verification.service
 
 import com.typesafe.config.ConfigFactory
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
+import com.ubirch.verification.service.services.eventlog._
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
 import redis.embedded.RedisServer
 

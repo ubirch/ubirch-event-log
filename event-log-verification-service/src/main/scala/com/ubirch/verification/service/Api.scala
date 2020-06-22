@@ -3,7 +3,7 @@ package com.ubirch.verification.service
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
 import com.ubirch.verification.service.models.{AnchorsNoPath, Normal}
-import com.ubirch.verification.service.utils.udash.{VerificationServiceRestApiCompanion, cors}
+import com.ubirch.verification.service.util.udash.{VerificationServiceRestApiCompanion, cors}
 import io.udash.rest.openapi.adjusters.{adjustSchema, example}
 import io.udash.rest.openapi.{DataType, RefOr, RestSchema, Schema}
 import io.udash.rest.raw.{HttpBody, IMapping, JsonValue, RestResponse}
