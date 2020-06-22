@@ -1,7 +1,8 @@
-package com.ubirch.verification.service.models
+package com.ubirch.verification.service.services
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{EventLogRow, EventsDAO, Values}
+import com.ubirch.verification.service.models.{Payload, QueryType, Signature}
 import javax.inject._
 
 import scala.concurrent.{ExecutionContext, Future}

@@ -1,11 +1,11 @@
-package com.ubirch.verification.service.models
+package com.ubirch.verification.service.services
 
 import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
-import com.ubirch.verification.service.services.Gremlin
+import com.ubirch.verification.service.models.VertexStruct
 import gremlin.scala.{Key, P, StepLabel, Vertex}
 import javax.inject._
 

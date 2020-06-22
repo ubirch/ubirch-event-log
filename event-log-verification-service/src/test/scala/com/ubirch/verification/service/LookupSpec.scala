@@ -9,9 +9,9 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
-import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.services.{DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder}
+import com.ubirch.verification.service.services.eventlog._
+import com.ubirch.verification.service.services.{CassandraFinder, DefaultTestingGremlinConnector, Finder, Gremlin}
 import com.ubirch.verification.service.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
 import javax.inject._

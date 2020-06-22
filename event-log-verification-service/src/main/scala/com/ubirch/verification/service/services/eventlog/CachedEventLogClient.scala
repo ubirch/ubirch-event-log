@@ -1,4 +1,4 @@
-package com.ubirch.verification.service.eventlog
+package com.ubirch.verification.service.services.eventlog
 
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.models.{BlockchainInfo, QueryDepth, ResponseForm}
@@ -24,17 +24,21 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
         s"s=[${sig.mkString(",")}]$qd$rf$bi"
       }, ec)
 
-  override def getEventByHash(hash: Array[Byte],
-                              queryDepth: QueryDepth,
-                              responseForm: ResponseForm,
-                              blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+  override def getEventByHash(
+                               hash: Array[Byte],
+                               queryDepth: QueryDepth,
+                               responseForm: ResponseForm,
+                               blockchainInfo: BlockchainInfo
+                             ): Future[EventLogClient.Response] =
 
     getEventByHashCached(hash, queryDepth, responseForm, blockchainInfo)
 
-  override def getEventBySignature(signature: Array[Byte],
-                                   queryDepth: QueryDepth,
-                                   responseForm: ResponseForm,
-                                   blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+  override def getEventBySignature(
+                                    signature: Array[Byte],
+                                    queryDepth: QueryDepth,
+                                    responseForm: ResponseForm,
+                                    blockchainInfo: BlockchainInfo
+                                  ): Future[EventLogClient.Response] =
 
     getEventBySignatureCached(signature, queryDepth, responseForm, blockchainInfo)
 }

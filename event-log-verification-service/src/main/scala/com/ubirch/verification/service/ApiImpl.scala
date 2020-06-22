@@ -10,8 +10,8 @@ import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.service.Api.{Failure, NotFound, Response, Success}
-import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
+import com.ubirch.verification.service.services.eventlog._
 import io.udash.rest.raw.{HttpErrorException, JsonValue}
 import javax.inject.{Named, Singleton}
 import org.msgpack.core.MessagePack

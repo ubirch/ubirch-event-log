@@ -10,8 +10,8 @@ import com.ubirch.client.util.curveFromString
 import com.ubirch.crypto.{GeneratorKeyFactory, PubKey}
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.Api.{Anchors, Failure, Success}
-import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
+import com.ubirch.verification.service.services.eventlog._
 import com.ubirch.verification.service.util.HealthCheckProvider
 import io.udash.rest.raw.JsonValue
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
