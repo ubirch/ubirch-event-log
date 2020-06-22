@@ -5,7 +5,7 @@ import com.avsystem.commons.rpc.AsRawReal
 import io.udash.rest.openapi._
 import io.udash.rest.raw.HttpBody
 import io.udash.rest.raw.HttpBody.binary
-import io.udash.rest.{DefaultRestImplicits, OpenApiFullInstances, RestOpenApiCompanion, addResponseHeader}
+import io.udash.rest.{ DefaultRestImplicits, OpenApiFullInstances, RestOpenApiCompanion, addResponseHeader }
 
 package object udash {
 
@@ -16,7 +16,7 @@ package object udash {
     */
   trait VerificationServiceRestImplicits extends DefaultRestImplicits {
     implicit val bodyForByteArray: AsRawReal[HttpBody, Array[Byte]] =
-      AsRawReal.create(binary(_), body => body.readBytes(/* no content type specified */))
+      AsRawReal.create(binary(_), body => body.readBytes( /* no content type specified */ ))
 
     implicit val ByteArrayMediaTypes: RestMediaTypes[Array[Byte]] =
       (resolver: SchemaResolver, schemaTransform: RestSchema[Array[Byte]] => RestSchema[_]) => {
@@ -33,7 +33,7 @@ package object udash {
   object VerificationServiceRestImplicits extends VerificationServiceRestImplicits
 
   abstract class VerificationServiceRestApiCompanion[Real]
-  (implicit inst: MacroInstances[VerificationServiceRestImplicits, OpenApiFullInstances[Real]])
+    (implicit inst: MacroInstances[VerificationServiceRestImplicits, OpenApiFullInstances[Real]])
     extends RestOpenApiCompanion[VerificationServiceRestImplicits, Real](VerificationServiceRestImplicits)
 
   class cors extends addResponseHeader("Access-Control-Allow-Origin", "*")

@@ -3,7 +3,7 @@ package com.ubirch.verification.service.services
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.lifeCycle.Lifecycle
-import gremlin.scala.{ScalaGraph, TraversalSource, _}
+import gremlin.scala.{ ScalaGraph, TraversalSource, _ }
 import javax.inject._
 import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.tinkerpop.gremlin.driver.Cluster
@@ -32,10 +32,10 @@ trait Gremlin {
 }
 
 @Singleton
-class DefaultGremlinConnector @Inject()(lifecycle: Lifecycle, config: Config)
+class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
   extends Gremlin
-    with LazyLogging
-    with GremlinConnectorPaths {
+  with LazyLogging
+  with GremlinConnectorPaths {
 
   lazy val cluster: Cluster = Cluster.open(buildProperties(config))
 

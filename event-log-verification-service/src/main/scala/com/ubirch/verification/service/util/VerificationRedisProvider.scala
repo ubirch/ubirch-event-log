@@ -5,7 +5,7 @@ import com.ubirch.niomon.cache.RedisCache
 import javax.inject._
 
 @Singleton
-class VerificationRedisProvider @Inject()(config: Config) extends Provider[RedisCache] {
+class VerificationRedisProvider @Inject() (config: Config) extends Provider[RedisCache] {
 
   private val redis = new RedisCache("verification", config)
 

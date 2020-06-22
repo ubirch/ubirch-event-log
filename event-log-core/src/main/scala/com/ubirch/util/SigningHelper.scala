@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import com.typesafe.config.Config
 import com.ubirch.ConfPaths.CryptoConfPaths
 import com.ubirch.crypto.utils.Curve
-import com.ubirch.crypto.{GeneratorKeyFactory, PrivKey}
+import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 import org.apache.commons.codec.binary.Hex
 
 /**

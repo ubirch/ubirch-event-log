@@ -3,17 +3,17 @@ package com.ubirch.verification.service.utils.udash
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.verification.service.Api
 import io.udash.rest.RestServlet
-import io.udash.rest.RestServlet.{DefaultHandleTimeout, DefaultMaxPayloadSize}
+import io.udash.rest.RestServlet.{ DefaultHandleTimeout, DefaultMaxPayloadSize }
 import io.udash.rest.openapi.OpenApi
 import io.udash.rest.raw.RawRest.HandleRequest
-import io.udash.rest.raw.{HttpMethod, PlainValue, RawRest, RestMetadata}
+import io.udash.rest.raw.{ HttpMethod, PlainValue, RawRest, RestMetadata }
 import javax.inject.Inject
 import org.eclipse.jetty
-import org.eclipse.jetty.servlet.{DefaultServlet, ServletContextHandler, ServletHolder}
+import org.eclipse.jetty.servlet.{ DefaultServlet, ServletContextHandler, ServletHolder }
 
 import scala.concurrent.duration.FiniteDuration
 
-class JettyServer @Inject()(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
+class JettyServer @Inject() (api: Api, docs: OpenApi, port: Int) extends StrictLogging {
 
   def corsAware(handle: HandleRequest): HandleRequest = request => {
     if (request.method == HttpMethod.OPTIONS)
@@ -30,11 +30,11 @@ class JettyServer @Inject()(api: Api, docs: OpenApi, port: Int) extends StrictLo
 
   }
 
-  def rest[RestApi: RawRest.AsRawRpc : RestMetadata](
-                                                      apiImpl: RestApi,
-                                                      handleTimeout: FiniteDuration = DefaultHandleTimeout,
-                                                      maxPayloadSize: Long = DefaultMaxPayloadSize
-                                                    ): RestServlet = {
+  def rest[RestApi: RawRest.AsRawRpc: RestMetadata](
+      apiImpl: RestApi,
+      handleTimeout: FiniteDuration = DefaultHandleTimeout,
+      maxPayloadSize: Long = DefaultMaxPayloadSize
+  ): RestServlet = {
     val handler: RawRest.HandleRequest = corsAware(RawRest.asHandleRequest[RestApi](apiImpl))
     new RestServlet(handler, handleTimeout, maxPayloadSize)
   }

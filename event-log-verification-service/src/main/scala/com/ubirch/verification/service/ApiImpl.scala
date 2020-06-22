@@ -7,22 +7,22 @@ import java.util.Base64
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
+import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.service.Api.{Failure, NotFound, Response, Success}
+import com.ubirch.verification.service.Api.{ Failure, NotFound, Response, Success }
 import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
-import io.udash.rest.raw.{HttpErrorException, JsonValue}
-import javax.inject.{Named, Singleton}
+import io.udash.rest.raw.{ HttpErrorException, JsonValue }
+import javax.inject.{ Named, Singleton }
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
-                        redisCache: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
+class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
+    redisCache: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
 
   private val uppCache: RMapCache[Array[Byte], String] = redisCache.redisson.getMapCache("verifier-upp-cache")
 
