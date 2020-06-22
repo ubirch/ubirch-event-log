@@ -33,7 +33,7 @@
 
         <!-- versions -->
         <build.number>${timestamp}-dev</build.number>
-        <event-log-core.version>1.2.6</event-log-core.version>
+        <event-log-core.version>1.5.0</event-log-core.version>
 
         <!-- Scalatra -->
         <scalatra.version>2.6.5</scalatra.version>
