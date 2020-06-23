@@ -1,7 +1,7 @@
 package com.ubirch.verification.service.util
 
 import com.ubirch.util.Exceptions.ExecutionException
-import com.ubirch.verification.service.eventlog.LookupPipeDataNew
+import com.ubirch.verification.service.services.eventlog.LookupPipeDataNew
 
 /**
   * Namespace that contains the exceptions of the SDK.

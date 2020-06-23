@@ -2,23 +2,23 @@ package com.ubirch.verification.service
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Base64, UUID }
+import java.util.{Base64, UUID}
 
-import com.fasterxml.jackson.databind.{ DeserializationFeature, ObjectMapper }
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import com.ubirch.client.util.curveFromString
-import com.ubirch.crypto.{ GeneratorKeyFactory, PubKey }
+import com.ubirch.crypto.{GeneratorKeyFactory, PubKey}
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.verification.service.Api.{ Anchors, Failure, Success }
-import com.ubirch.verification.service.eventlog._
+import com.ubirch.verification.service.Api.{Anchors, Failure, Success}
 import com.ubirch.verification.service.models._
+import com.ubirch.verification.service.services.eventlog._
 import com.ubirch.verification.service.util.HealthCheckProvider
 import io.udash.rest.raw.JsonValue
-import org.scalatest.{ BeforeAndAfterAll, FlatSpec, Matchers }
+import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import redis.embedded.RedisServer
 
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 
 class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 

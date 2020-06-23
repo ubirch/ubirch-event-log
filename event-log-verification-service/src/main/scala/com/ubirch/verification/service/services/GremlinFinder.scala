@@ -1,18 +1,18 @@
-package com.ubirch.verification.service.models
+package com.ubirch.verification.service.services
 
 import java.util.Date
 
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
-import com.ubirch.verification.service.services.Gremlin
-import gremlin.scala.{ Key, P, StepLabel, Vertex }
+import com.ubirch.verification.service.models.VertexStruct
+import gremlin.scala.{Key, P, StepLabel, Vertex}
 import javax.inject._
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
-class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
+class GremlinFinder @Inject()(gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
 
   /**
     * Same as findUpperAndLower but decorates the vertices in the path
