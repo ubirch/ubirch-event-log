@@ -20,9 +20,6 @@ class JettyServerProvider @Inject()(apiImpl: ApiImpl, config: Config) extends Pr
 
   private val jettyServer = new JettyServer(apiImpl, openApi, verificationConfig.getInt("http.port"))
 
-  override def get(): JettyServer = {
-    jettyServer.startAndJoin()
-    jettyServer
-  }
+  override def get(): JettyServer = jettyServer
 
 }
