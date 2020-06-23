@@ -1,7 +1,7 @@
-package com.ubirch.verification.service.utils.udash
+package com.ubirch.verification.service.util.udash
 
 import io.udash.rest.openapi.OpenApi
-import io.udash.rest.{ DefaultRestImplicits, GET, RestApiCompanion }
+import io.udash.rest.{DefaultRestImplicits, GET, RestApiCompanion}
 
 import scala.concurrent.Future
 

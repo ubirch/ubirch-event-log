@@ -1,14 +1,14 @@
-package com.ubirch.verification.service.models
+package com.ubirch.verification.service.services
 
 import java.text.SimpleDateFormat
 
 import com.ubirch.models.Values
 import com.ubirch.util.Boot
-import com.ubirch.verification.service.services.LookupServiceBinder
+import com.ubirch.verification.service.LookupServiceBinder
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
 

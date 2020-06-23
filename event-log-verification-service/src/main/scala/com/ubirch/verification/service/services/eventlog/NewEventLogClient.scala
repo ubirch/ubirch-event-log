@@ -1,4 +1,4 @@
-package com.ubirch.verification.service.eventlog
+package com.ubirch.verification.service.services.eventlog
 
 import java.util.UUID
 
@@ -6,20 +6,21 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.Values
-import com.ubirch.util.{ JValueGenericResponse, ProducerRecordHelper, UUIDHelper }
+import com.ubirch.util.{JValueGenericResponse, ProducerRecordHelper, UUIDHelper}
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.util.Exceptions.{ CreateProducerRecordException, LookupExecutorException }
+import com.ubirch.verification.service.services.Finder
+import com.ubirch.verification.service.util.Exceptions.{CreateProducerRecordException, LookupExecutorException}
 import com.ubirch.verification.service.util.LookupJsonSupport
 import com.ubirch.verification.service.util.LookupJsonSupport.formats
 import javax.inject.Inject
-import monix.execution.{ FutureUtils, Scheduler }
+import monix.execution.{FutureUtils, Scheduler}
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
+import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
+import scala.concurrent.{ExecutionContext, Future, TimeoutException}
 
 class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
 
@@ -256,14 +257,13 @@ object LookupExecutor {
 
 }
 
-case class LookupPipeDataNew(
-    value: Option[String] = None,
-    key: Option[String],
-    queryType: Option[QueryType],
-    lookupResult: Option[LookupResult],
-    producerRecord: Option[ProducerRecord[String, String]],
-    recordMetadata: Option[RecordMetadata],
-    consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
-) extends ProcessResult[String, String] {
+case class LookupPipeDataNew(value: Option[String] = None,
+                             key: Option[String],
+                             queryType: Option[QueryType],
+                             lookupResult: Option[LookupResult],
+                             producerRecord: Option[ProducerRecord[String, String]],
+                             recordMetadata: Option[RecordMetadata],
+                             consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
+                            ) extends ProcessResult[String, String] {
   val id: UUID = UUIDHelper.randomUUID
 }

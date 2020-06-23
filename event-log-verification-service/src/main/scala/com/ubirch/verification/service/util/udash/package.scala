@@ -1,11 +1,11 @@
-package com.ubirch.verification.service.utils
+package com.ubirch.verification.service.util
 
 import com.avsystem.commons.meta.MacroInstances
 import com.avsystem.commons.rpc.AsRawReal
 import io.udash.rest.openapi._
 import io.udash.rest.raw.HttpBody
 import io.udash.rest.raw.HttpBody.binary
-import io.udash.rest.{ DefaultRestImplicits, OpenApiFullInstances, RestOpenApiCompanion, addResponseHeader }
+import io.udash.rest.{DefaultRestImplicits, OpenApiFullInstances, RestOpenApiCompanion, addResponseHeader}
 
 package object udash {
 

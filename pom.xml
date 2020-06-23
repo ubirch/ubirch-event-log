@@ -6,8 +6,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!-- parent pom -->
-    <artifactId>event-log</artifactId>
     <groupId>com.ubirch</groupId>
+    <artifactId>event-log</artifactId>
     <version>1.5.0</version>
     <packaging>pom</packaging>
 
