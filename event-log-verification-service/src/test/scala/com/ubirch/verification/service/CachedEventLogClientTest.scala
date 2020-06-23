@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
-import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
+import org.scalatest.{ AsyncFlatSpec, BeforeAndAfterAll, Matchers }
 import redis.embedded.RedisServer
 
 import scala.concurrent.Future

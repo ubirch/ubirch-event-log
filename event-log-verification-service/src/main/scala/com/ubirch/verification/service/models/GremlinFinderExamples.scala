@@ -8,7 +8,7 @@ import com.ubirch.verification.service.services.LookupServiceBinder
 
 import scala.concurrent.ExecutionContext
 import scala.language.postfixOps
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
 

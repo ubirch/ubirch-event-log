@@ -1,14 +1,14 @@
 package com.ubirch.verification.service.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLogRow, EventsDAO, Values}
+import com.ubirch.models.{ EventLogRow, EventsDAO, Values }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 @Singleton
-class CassandraFinder @Inject()(eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
+class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
   //Be aware that this method is cassandra-oriented and will only give out results for
   // queryType=Payload. For the Signature query, Lookups need to be enabled.
@@ -34,11 +34,11 @@ class CassandraFinder @Inject()(eventsDAO: EventsDAO)(implicit ec: ExecutionCont
   // queryType=Payload. For the Signature query, Lookups need to be enabled.
   def findAll(value: String, queryType: QueryType): Future[(Option[EventLogRow], Option[EventLogRow], Seq[EventLogRow])] = {
     val fres = findUPP(value, queryType).flatMap {
-      case upp@Some(uppEl) =>
+      case upp @ Some(uppEl) =>
         findSlaveTreeThruLookup(uppEl).flatMap {
           case Some(slaveTreeEl) =>
             findMasterTreeThruLooup(slaveTreeEl).flatMap {
-              case tree@Some(masterTreeEl) =>
+              case tree @ Some(masterTreeEl) =>
                 findAnchorsThruLookup(masterTreeEl).map(ax => (upp, tree, ax))
               case None => Future.successful((upp, None, Seq.empty))
             }

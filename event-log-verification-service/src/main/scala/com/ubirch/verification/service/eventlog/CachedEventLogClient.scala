@@ -1,12 +1,12 @@
 package com.ubirch.verification.service.eventlog
 
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.verification.service.models.{BlockchainInfo, QueryDepth, ResponseForm}
-import javax.inject.{Inject, Named}
+import com.ubirch.verification.service.models.{ BlockchainInfo, QueryDepth, ResponseForm }
+import javax.inject.{ Inject, Named }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, redisCache: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient {
+class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, redisCache: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient {
 
   private val getEventByHashCached =
     redisCache
@@ -24,17 +24,21 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
         s"s=[${sig.mkString(",")}]$qd$rf$bi"
       }, ec)
 
-  override def getEventByHash(hash: Array[Byte],
-                              queryDepth: QueryDepth,
-                              responseForm: ResponseForm,
-                              blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+  override def getEventByHash(
+      hash: Array[Byte],
+      queryDepth: QueryDepth,
+      responseForm: ResponseForm,
+      blockchainInfo: BlockchainInfo
+  ): Future[EventLogClient.Response] =
 
     getEventByHashCached(hash, queryDepth, responseForm, blockchainInfo)
 
-  override def getEventBySignature(signature: Array[Byte],
-                                   queryDepth: QueryDepth,
-                                   responseForm: ResponseForm,
-                                   blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+  override def getEventBySignature(
+      signature: Array[Byte],
+      queryDepth: QueryDepth,
+      responseForm: ResponseForm,
+      blockchainInfo: BlockchainInfo
+  ): Future[EventLogClient.Response] =
 
     getEventBySignatureCached(signature, queryDepth, responseForm, blockchainInfo)
 }
