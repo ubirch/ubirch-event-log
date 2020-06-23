@@ -1,11 +1,11 @@
 package com.ubirch.verification.service.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLogRow, Values}
+import com.ubirch.models.{ EventLogRow, Values }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 trait Finder extends LazyLogging {
 
@@ -25,7 +25,7 @@ trait Finder extends LazyLogging {
 
   def findUPPWithShortestPath(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct])] = {
     val fres = findUPP(value, queryType).flatMap {
-      case upp@Some(uppEl) =>
+      case upp @ Some(uppEl) =>
 
         findAnchorsWithPathAsVertices(uppEl.id)
           .map { case (path, blockchains) => (upp, path, blockchains) }
@@ -53,7 +53,7 @@ trait Finder extends LazyLogging {
 
   def findUPPWithUpperLowerBounds(value: String, queryType: QueryType): Future[(Option[EventLogRow], Seq[VertexStruct], Seq[VertexStruct], Seq[VertexStruct], Seq[VertexStruct])] = {
     val fres = findUPP(value, queryType).flatMap {
-      case upp@Some(uppEl) =>
+      case upp @ Some(uppEl) =>
 
         findUpperAndLowerAsVertices(uppEl.id)
           .map { case (upperPath, upperBlocks, lowerPath, lowerBlocks) =>
@@ -88,9 +88,9 @@ trait Finder extends LazyLogging {
 }
 
 @Singleton
-class DefaultFinder @Inject()(cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit val ec: ExecutionContext)
+class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: GremlinFinder)(implicit val ec: ExecutionContext)
   extends Finder
-    with LazyLogging {
+  with LazyLogging {
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 

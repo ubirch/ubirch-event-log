@@ -3,12 +3,12 @@ package com.ubirch.verification.service.util
 import com.google.inject.Provider
 import com.typesafe.config.Config
 import com.ubirch.verification.service.utils.udash.JettyServer
-import com.ubirch.verification.service.{Api, ApiImpl}
-import io.udash.rest.openapi.{Info, Server}
+import com.ubirch.verification.service.{ Api, ApiImpl }
+import io.udash.rest.openapi.{ Info, Server }
 import javax.inject._
 
 @Singleton
-class JettyServerProvider @Inject()(apiImpl: ApiImpl, config: Config) extends Provider[JettyServer] {
+class JettyServerProvider @Inject() (apiImpl: ApiImpl, config: Config) extends Provider[JettyServer] {
 
   private val verificationConfig = config.getConfig("verification")
 

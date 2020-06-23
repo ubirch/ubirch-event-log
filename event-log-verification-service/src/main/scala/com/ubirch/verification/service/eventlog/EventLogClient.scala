@@ -1,25 +1,29 @@
 package com.ubirch.verification.service.eventlog
 
 import com.avsystem.commons.serialization.GenCodec
-import com.avsystem.commons.serialization.json.{JsonBinaryFormat, JsonOptions, JsonStringInput, RawJson}
-import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+import com.avsystem.commons.serialization.json.{ JsonBinaryFormat, JsonOptions, JsonStringInput, RawJson }
+import com.fasterxml.jackson.databind.{ DeserializationFeature, ObjectMapper }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.service.models.{BlockchainInfo, QueryDepth, ResponseForm}
+import com.ubirch.verification.service.models.{ BlockchainInfo, QueryDepth, ResponseForm }
 import io.udash.rest.raw.JsonValue
 
 import scala.concurrent.Future
 
 trait EventLogClient {
 
-  def getEventByHash(hash: Array[Byte],
-                     queryDepth: QueryDepth,
-                     responseForm: ResponseForm,
-                     blockchainInfo: BlockchainInfo): Future[EventLogClient.Response]
+  def getEventByHash(
+      hash: Array[Byte],
+      queryDepth: QueryDepth,
+      responseForm: ResponseForm,
+      blockchainInfo: BlockchainInfo
+  ): Future[EventLogClient.Response]
 
-  def getEventBySignature(signature: Array[Byte],
-                          queryDepth: QueryDepth,
-                          responseForm: ResponseForm,
-                          blockchainInfo: BlockchainInfo): Future[EventLogClient.Response]
+  def getEventBySignature(
+      signature: Array[Byte],
+      queryDepth: QueryDepth,
+      responseForm: ResponseForm,
+      blockchainInfo: BlockchainInfo
+  ): Future[EventLogClient.Response]
 }
 
 object EventLogClient {

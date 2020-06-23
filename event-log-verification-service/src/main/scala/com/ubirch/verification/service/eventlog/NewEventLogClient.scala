@@ -6,22 +6,22 @@ import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.Values
-import com.ubirch.util.{JValueGenericResponse, ProducerRecordHelper, UUIDHelper}
+import com.ubirch.util.{ JValueGenericResponse, ProducerRecordHelper, UUIDHelper }
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.util.Exceptions.{CreateProducerRecordException, LookupExecutorException}
+import com.ubirch.verification.service.util.Exceptions.{ CreateProducerRecordException, LookupExecutorException }
 import com.ubirch.verification.service.util.LookupJsonSupport
 import com.ubirch.verification.service.util.LookupJsonSupport.formats
 import javax.inject.Inject
-import monix.execution.{FutureUtils, Scheduler}
+import monix.execution.{ FutureUtils, Scheduler }
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ProducerRecord, RecordMetadata}
+import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future, TimeoutException}
+import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 
-class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
+class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
 
   implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
@@ -144,12 +144,12 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
   }
 
   override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-                              blockchainInfo: BlockchainInfo = Normal): Future[EventLogClient.Response] =
+      blockchainInfo: BlockchainInfo = Normal): Future[EventLogClient.Response] =
 
     getEvent(hash, queryDepth, responseForm, blockchainInfo, Some(Payload))
 
   override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-                                   blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+      blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
 
     getEvent(signature, queryDepth, responseForm, blockchainInfo, Some(Signature))
 
@@ -164,9 +164,9 @@ class NewEventLogClient @Inject()(finder: Finder)(implicit ec: ExecutionContext)
     } yield {
 
       if (value.isEmpty || key.isEmpty)
-      //Todo: Api should not accept queries without hash
-      Future.successful(LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
-        else {
+        //Todo: Api should not accept queries without hash
+        Future.successful(LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
+      else {
 
         lazy val res: Future[LookupPipeDataNew] = queryDepth match {
           case Simple => simple(key, value, queryType)
@@ -256,12 +256,14 @@ object LookupExecutor {
 
 }
 
-case class LookupPipeDataNew(value: Option[String] = None,
-                             key: Option[String],
-                             queryType: Option[QueryType],
-                             lookupResult: Option[LookupResult],
-                             producerRecord: Option[ProducerRecord[String, String]],
-                             recordMetadata: Option[RecordMetadata],
-                             consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty) extends ProcessResult[String, String] {
+case class LookupPipeDataNew(
+    value: Option[String] = None,
+    key: Option[String],
+    queryType: Option[QueryType],
+    lookupResult: Option[LookupResult],
+    producerRecord: Option[ProducerRecord[String, String]],
+    recordMetadata: Option[RecordMetadata],
+    consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
+) extends ProcessResult[String, String] {
   val id: UUID = UUIDHelper.randomUUID
 }

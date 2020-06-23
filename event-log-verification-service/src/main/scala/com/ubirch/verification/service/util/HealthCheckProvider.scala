@@ -1,11 +1,11 @@
 package com.ubirch.verification.service.util
 
 import com.typesafe.config.Config
-import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
+import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import javax.inject._
 
 @Singleton
-class HealthCheckProvider @Inject()(config: Config) extends Provider[HealthCheckServer] {
+class HealthCheckProvider @Inject() (config: Config) extends Provider[HealthCheckServer] {
 
   override def get(): HealthCheckServer = initHealthchecks(config.getConfig("verification"))
 

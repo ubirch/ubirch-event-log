@@ -11,7 +11,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
 import com.ubirch.verification.service.eventlog._
 import com.ubirch.verification.service.models._
-import com.ubirch.verification.service.services.{DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder}
+import com.ubirch.verification.service.services.{ DefaultTestingGremlinConnector, Gremlin, LookupServiceBinder }
 import com.ubirch.verification.service.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
 import javax.inject._
@@ -20,11 +20,11 @@ import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 //import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
-class FakeEmptyFinder @Inject()(cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
+class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
@@ -37,7 +37,7 @@ class FakeEmptyFinder @Inject()(cassandraFinder: CassandraFinder)(implicit val e
   def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil, Nil, Nil))
 }
 
-class FakeFoundFinder @Inject()(cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
+class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
 
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
 
