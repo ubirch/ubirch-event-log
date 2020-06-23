@@ -9,7 +9,7 @@ object Service extends Boot(LookupServiceBinder.modules) {
 
   def main(args: Array[String]): Unit = {
 
-    get[JettyServer]
+    get[JettyServer].startAndJoin()
 
   }
 
