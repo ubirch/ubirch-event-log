@@ -44,7 +44,7 @@
         <jetty-servlets.version>9.4.19.v20190610</jetty-servlets.version>
 
 
-        <!--        <guice.version>4.1.0</guice.version>-->
+<!--        <guice.version>4.1.0</guice.version>-->
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
