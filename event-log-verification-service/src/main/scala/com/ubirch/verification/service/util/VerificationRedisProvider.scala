@@ -7,7 +7,7 @@ import javax.inject._
 @Singleton
 class VerificationRedisProvider @Inject() (config: Config) extends Provider[RedisCache] {
 
-  private val redis = new RedisCache("verification", config)
+  private val redis = new RedisCache("event-log-verification-service", config)
 
   override def get(): RedisCache = redis
 

@@ -11,7 +11,7 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
   private val getEventByHashCached =
     redisCache
       .cachedF(underlying.getEventByHash _)
-      .buildCache("event-by-hash-cache", r => r.success)({ key =>
+      .buildCache("eventResponse-by-hash-cache", r => r.success)({ key =>
         val (hash, qd, rf, bi) = key
         s"h=[${hash.mkString(",")}]$qd$rf$bi"
       }, ec)
@@ -19,7 +19,7 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
   private val getEventBySignatureCached =
     redisCache
       .cachedF(underlying.getEventBySignature _)
-      .buildCache("event-by-signature-cache", r => r.success)({ key =>
+      .buildCache("eventResponse-by-signature-cache", r => r.success)({ key =>
         val (sig, qd, rf, bi) = key
         s"s=[${sig.mkString(",")}]$qd$rf$bi"
       }, ec)
