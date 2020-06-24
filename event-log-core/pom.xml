@@ -33,8 +33,8 @@
         <!-- versions -->
 
         <event-log-kafka.version>1.2.11-SNAPSHOT</event-log-kafka.version>
-        <guice.version>4.1.0</guice.version>
-        <guice.ext.version>4.1.0</guice.ext.version>
+        <guice.version>4.2.3</guice.version>
+        <guice.ext.version>4.2.3</guice.ext.version>
         <quill.cassandra.version>3.4.1</quill.cassandra.version>
         <joda-time.version>2.10</joda-time.version>
         <kafka-clients.version>2.3.0</kafka-clients.version>
