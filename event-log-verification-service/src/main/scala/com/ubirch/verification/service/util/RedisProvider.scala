@@ -9,15 +9,16 @@ import javax.inject._
 class RedisProvider @Inject()(config: Config) extends Provider[RedisOpt] with StrictLogging {
 
 
-  private val redis = {
+  private val redis: RedisOpt = {
 
-    val result = try {
-      Some(new RedisCache("verification", config))
-    } catch {
-      case ex: Throwable => logger.error("redis exception: ", ex)
-        None
-    }
-    RedisOpt(result)
+    val result =
+      try {
+        Some(new RedisCache("verification", config))
+      } catch {
+        case ex: Throwable => logger.error("redis exception: ", ex)
+          None
+      }
+    new RedisOpt(result)
   }
 
   override def get(): RedisOpt = redis
@@ -25,4 +26,4 @@ class RedisProvider @Inject()(config: Config) extends Provider[RedisOpt] with St
 }
 
 
-case class RedisOpt(redis: Option[RedisCache])
+class RedisOpt(redis: Option[RedisCache])

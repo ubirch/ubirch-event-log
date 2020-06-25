@@ -44,7 +44,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
 
   def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("Cached")).to(classOf[CachedEventLogClient])
 
-  def redisCache: ScopedBindingBuilder = bind(classOf[RedisOpt]).toProvider(classOf[RedisProvider])
+  def redisOpt: ScopedBindingBuilder = bind(classOf[RedisOpt]).toProvider(classOf[RedisProvider])
 
   def healthCheck: ScopedBindingBuilder = bind(classOf[HealthCheckServer]).toProvider(classOf[HealthCheckProvider])
 
@@ -61,7 +61,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     finder
     newEventLogClient
     cachedEventLogClient
-    redisCache
+    redisOpt
     healthCheck
     jettyServer
   }
