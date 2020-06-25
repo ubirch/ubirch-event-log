@@ -1,17 +1,17 @@
 package com.ubirch.verification.service
 
-import java.io.ByteArrayOutputStream
+import java.io.{ByteArrayOutputStream, IOException}
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
-import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.service.Api.{Failure, NotFound, Response, Success}
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
+import com.ubirch.verification.service.util.RedisOpt
 import io.udash.rest.raw.{HttpErrorException, JsonValue}
 import javax.inject.{Named, Singleton}
 import org.msgpack.core.MessagePack
@@ -22,9 +22,21 @@ import scala.util.control.NoStackTrace
 
 @Singleton
 class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
-                        redisCache: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
+                        redisOpt: RedisOpt, healthcheck: HealthCheckServer) extends Api with StrictLogging {
 
-  private val uppCache: RMapCache[Array[Byte], String] = redisCache.redisson.getMapCache("verifier-upp-cache")
+
+  private val uppCache: Option[RMapCache[Array[Byte], String]] =
+    try {
+      Some(
+        redisOpt
+          .redis
+          .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
+          .redisson.getMapCache("verifier-upp-cache"))
+    } catch {
+      case ex: Throwable => logger.error("redis error: ", ex)
+        None
+    }
+
 
   private val msgPackConfig = new MessagePack.PackerConfig().withStr8FormatSupport(false)
 
@@ -103,8 +115,21 @@ class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifie
   }
 
   def findCachedUpp(bytes: Array[Byte]): Future[Option[String]] = {
-    Future.successful(Option(uppCache.get(bytes)))
+
+    implicit val ec: ExecutionContext = ExecutionContext.global
+
+    Future.successful {
+      Option(
+        uppCache
+          .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
+          .get(bytes))
+    }.recover {
+      case ex: Throwable =>
+        logger.error("redis error ", ex)
+        None
+    }
   }
+
 
   def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
     implicit val ec: ExecutionContext = ExecutionContext.global
