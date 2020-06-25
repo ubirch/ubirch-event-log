@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigFactory
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
+import com.ubirch.verification.service.util.RedisOpt
 import org.scalatest.{AsyncFlatSpec, BeforeAndAfterAll, Matchers}
 import redis.embedded.RedisServer
 
@@ -77,7 +78,7 @@ class CachedEventLogClientTest extends AsyncFlatSpec with Matchers with BeforeAn
     }
 
     val redisCache = new RedisCache("test", ConfigFactory.load())
-    val cachedClient = new CachedEventLogClient(underlying, redisCache)
+    val cachedClient = new CachedEventLogClient(underlying, RedisOpt(Some(redisCache)))
 
     for {
       res1 <- cachedClient.getEventByHash(Array(1), Simple, AnchorsNoPath, Normal)
