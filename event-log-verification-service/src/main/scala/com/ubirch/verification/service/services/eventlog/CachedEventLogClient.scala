@@ -40,7 +40,8 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
     try {
       getEventByHashCached(hash, queryDepth, responseForm, blockchainInfo)
     } catch {
-      case ex: Throwable => logger.error("redis error ", ex)
+      case ex: Throwable =>
+        logger.error("redis error; ", ex)
         underlying.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
     }
   }
@@ -54,7 +55,8 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
 
       getEventBySignatureCached(signature, queryDepth, responseForm, blockchainInfo)
     } catch {
-      case ex: Throwable => logger.error("redis error ", ex)
+      case ex: Throwable =>
+        logger.error("redis error; ", ex)
         underlying.getEventBySignature(signature, queryDepth, responseForm, blockchainInfo)
     }
 }
