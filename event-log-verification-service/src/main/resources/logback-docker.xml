@@ -45,6 +45,9 @@
     <logger name="io.netty" level="WARN"/>
     <logger name="org.eclipse" level="WARN"/>
     <logger name="skinny.http" level="WARN"/>
+    <logger name="com.github.nosan.embedded.cassandra" level="WARN"/>
+    <logger name="com.datastax.driver" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
 
     <root level="DEBUG">
         <appender-ref ref="JSONSTDOUT"/>
