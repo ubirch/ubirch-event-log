@@ -78,7 +78,7 @@ class CachedEventLogClientTest extends AsyncFlatSpec with Matchers with BeforeAn
     }
 
     val redisCache = new RedisCache("test", ConfigFactory.load())
-    val cachedClient = new CachedEventLogClient(underlying, RedisOpt(Some(redisCache)))
+    val cachedClient = new CachedEventLogClient(underlying, new RedisOpt(Some(redisCache)))
 
     for {
       res1 <- cachedClient.getEventByHash(Array(1), Simple, AnchorsNoPath, Normal)

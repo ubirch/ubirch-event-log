@@ -97,7 +97,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load()
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -126,7 +126,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -163,7 +163,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -200,7 +200,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -239,7 +239,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -279,7 +279,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -320,7 +320,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -358,7 +358,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -390,7 +390,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), RedisOpt(Some(redisCache)), healthCheck)
+    val api = new ApiImpl(eventLog, new KeyServiceBasedVerifier(keyService), new RedisOpt(Some(redisCache)), healthCheck)
 
     Await.result(api.getUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere.get())
