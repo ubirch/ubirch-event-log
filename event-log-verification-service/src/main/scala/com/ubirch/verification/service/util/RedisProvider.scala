@@ -6,22 +6,12 @@ import com.ubirch.niomon.cache.RedisCache
 import javax.inject._
 
 @Singleton
-class RedisProvider @Inject()(config: Config) extends Provider[RedisOpt] with StrictLogging {
+class RedisProvider @Inject()(config: Config) extends Provider[RedisCache] with StrictLogging {
 
 
-  private val redis: RedisOpt = {
+  private val redis: RedisCache = new RedisCache("verification", config)
 
-    val result =
-      try {
-        Some(new RedisCache("verification", config))
-      } catch {
-        case ex: Throwable => logger.error("redis exception: ", ex)
-          None
-      }
-    new RedisOpt(result)
-  }
-
-  override def get(): RedisOpt = redis
+  override def get(): RedisCache = redis
 
 }
 

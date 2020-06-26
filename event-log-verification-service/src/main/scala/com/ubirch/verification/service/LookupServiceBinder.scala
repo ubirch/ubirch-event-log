@@ -4,6 +4,7 @@ import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
 import com.google.inject.{AbstractModule, Module}
 import com.typesafe.config.Config
+import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.HealthCheckServer
 import com.ubirch.services._
 import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService}
@@ -13,7 +14,7 @@ import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook,
 import com.ubirch.verification.service.services.eventlog.{CachedEventLogClient, EventLogClient, NewEventLogClient}
 import com.ubirch.verification.service.services.{DefaultFinder, DefaultGremlinConnector, Finder, Gremlin}
 import com.ubirch.verification.service.util.udash.JettyServer
-import com.ubirch.verification.service.util.{HealthCheckProvider, JettyServerProvider, RedisOpt, RedisProvider}
+import com.ubirch.verification.service.util.{HealthCheckProvider, JettyServerProvider, RedisProvider}
 
 import scala.concurrent.ExecutionContext
 
@@ -44,7 +45,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
 
   def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("Cached")).to(classOf[CachedEventLogClient])
 
-  def redisOpt: ScopedBindingBuilder = bind(classOf[RedisOpt]).toProvider(classOf[RedisProvider])
+  def redisOpt: ScopedBindingBuilder = bind(classOf[RedisCache]).toProvider(classOf[RedisProvider])
 
   def healthCheck: ScopedBindingBuilder = bind(classOf[HealthCheckServer]).toProvider(classOf[HealthCheckProvider])
 
