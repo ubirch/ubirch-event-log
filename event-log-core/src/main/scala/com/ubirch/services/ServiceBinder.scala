@@ -19,11 +19,8 @@ import scala.concurrent.ExecutionContext
 
 trait BasicServices {
   def lifecycle: ScopedBindingBuilder
-
   def jvmHook: ScopedBindingBuilder
-
   def config: ScopedBindingBuilder
-
   def executionContext: ScopedBindingBuilder
 }
 
