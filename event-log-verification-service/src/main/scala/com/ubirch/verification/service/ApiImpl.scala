@@ -6,12 +6,12 @@ import java.util.Base64
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
+import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.service.Api.{Failure, NotFound, Response, Success}
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
-import com.ubirch.verification.service.util.RedisOpt
 import io.udash.rest.raw.{HttpErrorException, JsonValue}
 import javax.inject.{Named, Singleton}
 import org.msgpack.core.MessagePack
@@ -22,16 +22,12 @@ import scala.util.control.NoStackTrace
 
 @Singleton
 class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
-                        redisOpt: RedisOpt, healthcheck: HealthCheckServer) extends Api with StrictLogging {
+                        redis: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
 
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
-      Some(
-        redisOpt
-          .redis
-          .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
-          .redisson.getMapCache("verifier-upp-cache"))
+      Some(redis.redisson.getMapCache("verifier-upp-cache"))
     } catch {
       case ex: Throwable => logger.error("redis error: ", ex)
         None
@@ -121,7 +117,7 @@ class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifie
     Future.successful {
       Option(
         uppCache
-          .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
+          .getOrElse(throw new IOException("uppCache couldn't become retrieved properly"))
           .get(bytes))
     }.recover {
       case ex: Throwable =>

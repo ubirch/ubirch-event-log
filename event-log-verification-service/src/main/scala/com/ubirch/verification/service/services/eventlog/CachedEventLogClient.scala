@@ -1,21 +1,17 @@
 package com.ubirch.verification.service.services.eventlog
 
-import java.io.IOException
-
 import com.typesafe.scalalogging.StrictLogging
+import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.models.{BlockchainInfo, QueryDepth, ResponseForm}
-import com.ubirch.verification.service.util.RedisOpt
 import javax.inject.{Inject, Named}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, redisOpt: RedisOpt)
+class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, redis: RedisCache)
                                     (implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
 
   private val getEventByHashCached =
-    redisOpt
-      .redis
-      .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
+    redis
       .cachedF(underlying.getEventByHash _)
       .buildCache("eventResponse-by-hash-cache", r => r.success)({ key =>
         val (hash, qd, rf, bi) = key
@@ -23,9 +19,7 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
       }, ec)
 
   private val getEventBySignatureCached =
-    redisOpt
-      .redis
-      .getOrElse(throw new IOException("redisCache couldn't become instantiated properly"))
+    redis
       .cachedF(underlying.getEventBySignature _)
       .buildCache("eventResponse-by-signature-cache", r => r.success)({ key =>
         val (sig, qd, rf, bi) = key
@@ -52,7 +46,6 @@ class CachedEventLogClient @Inject()(@Named("New") underlying: EventLogClient, r
                                    blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
 
     try {
-
       getEventBySignatureCached(signature, queryDepth, responseForm, blockchainInfo)
     } catch {
       case ex: Throwable =>
