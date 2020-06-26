@@ -1,6 +1,6 @@
 package com.ubirch.service
 
-import com.google.inject.{AbstractModule, Module}
+import com.google.inject.{ AbstractModule, Module }
 import com.ubirch.service.swagger.SwaggerProvider
 import org.scalatra.swagger.Swagger
 

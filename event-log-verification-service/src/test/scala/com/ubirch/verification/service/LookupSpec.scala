@@ -11,7 +11,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
-import com.ubirch.verification.service.services.{CassandraFinder, DefaultTestingGremlinConnector, Finder, Gremlin}
+import com.ubirch.verification.service.services.{ CassandraFinder, DefaultTestingGremlinConnector, Finder, Gremlin }
 import com.ubirch.verification.service.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
 import javax.inject._
@@ -20,7 +20,7 @@ import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 //import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
