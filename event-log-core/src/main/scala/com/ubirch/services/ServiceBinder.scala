@@ -92,7 +92,7 @@ class ServiceBinder
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
   //Kafka
 
-  def configure(): Unit = {
+  override def configure(): Unit = {
 
     //Basic Components
     lifecycle

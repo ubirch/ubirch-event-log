@@ -7,7 +7,7 @@ import org.scalatra.swagger.Swagger
 class ExtServiceBinder
   extends AbstractModule {
 
-  def configure(): Unit = {
+  override def configure(): Unit = {
     bind(classOf[Swagger]).toProvider(classOf[SwaggerProvider])
   }
 

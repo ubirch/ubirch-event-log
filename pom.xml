@@ -132,7 +132,7 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-crypto</artifactId>
-            <version>2.0.3</version>
+            <version>2.1.0</version>
         </dependency>
 
         <!-- ubirch -->
@@ -260,6 +260,7 @@
         <module>event-log-kafka-lookup</module>
         <module>event-log-dispatcher</module>
         <module>event-log-discovery-creator</module>
+        <module>event-log-verification-service</module>
     </modules>
 
     <profiles>

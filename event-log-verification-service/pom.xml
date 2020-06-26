@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- parent pom -->
+    <parent>
+        <artifactId>event-log</artifactId>
+        <groupId>com.ubirch</groupId>
+        <version>1.5.0</version>
+    </parent>
+
+    <!-- basic info -->
+    <artifactId>event-log-verification-service</artifactId>
+    <version>0.0.1</version>
+    <name>${project.artifactId}</name>
+    <description>Verification service for UPPs in the Ubirch Platform</description>
+    <inceptionYear>2020</inceptionYear>
+
+    <properties>
+
+        <!-- versions -->
+        <build.number>${timestamp}-dev</build.number>
+        <event-log-core.version>1.5.0</event-log-core.version>
+
+        <!-- Scalatra -->
+        <scalatra.version>2.6.5</scalatra.version>
+        <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
+        <scalactic.version>3.0.5</scalactic.version>
+        <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
+        <javaxServlet.version>3.1.0</javaxServlet.version>
+        <jetty-servlets.version>9.4.19.v20190610</jetty-servlets.version>
+
+        <!-- plugins -->
+        <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
+        <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
+        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
+        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <dockerfile-maven-plugin.version>1.4.4</dockerfile-maven-plugin.version>
+        <maven-deploy-plugin.version>2.8.2</maven-deploy-plugin.version>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+        <!-- plugins -->
+
+        <!-- Lookup POM -->
+        <gremlinScala.version>3.4.1.4</gremlinScala.version>
+        <janusGraph.version>0.3.1</janusGraph.version>
+        <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
+        <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
+        <json4s-native.version>3.6.0</json4s-native.version>
+        <json4s-jackson.version>3.6.1</json4s-jackson.version>
+        <json4s-ext>3.6.0</json4s-ext>
+
+        <build.number>${timestamp}-dev</build.number>
+
+
+        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <!-- Lookup POM end -->
+
+        <!-- Verification Microservice POM -->
+
+        <build.number>${timestamp}-dev</build.number>
+
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <timestamp>${maven.build.timestamp}</timestamp>
+        <maven.build.timestamp.format>yyyyMMdd</maven.build.timestamp.format>
+
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
+
+        <!-- Scala -->
+        <scala-maven-plugin.version>3.4.2</scala-maven-plugin.version>
+        <scala.major.version>2.12</scala.major.version>
+        <scala.minor.version>.6</scala.minor.version>
+        <scala.version>${scala.major.version}${scala.minor.version}</scala.version>
+
+        <typesafe.config.version>1.3.4</typesafe.config.version>
+
+        <!-- HTTP -->
+        <udash.version>0.8.0-RC2</udash.version>
+        <jetty.version>9.4.17.v20190418</jetty.version>
+
+        <!-- Logging -->
+        <slf4j-api.version>1.7.25</slf4j-api.version>
+        <scala-logging.version>3.9.2</scala-logging.version>
+        <logback-classic.version>1.2.3</logback-classic.version>
+        <logstash-logback-encoder.version>5.3</logstash-logback-encoder.version>
+
+        <!-- Testing -->
+        <scalatest.version>3.0.5</scalatest.version>
+
+        <json4s-jackson.version>3.6.5</json4s-jackson.version>
+        <skinny-framework.version>3.0.1</skinny-framework.version>
+        <ubirch-protocol.version>2.1.1</ubirch-protocol.version>
+
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>bintray-cakesolutions-maven</id>
+            <name>bintray</name>
+            <url>https://dl.bintray.com/cakesolutions/maven</url>
+        </repository>
+        <repository>
+            <id>ossrh</id>
+            <name>sonotype-snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+
+        <!-- scala, logging etc. -->
+        <dependency>
+            <groupId>com.typesafe.scala-logging</groupId>
+            <artifactId>scala-logging_${scala.major.version}</artifactId>
+            <version>${scala-logging.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>${typesafe.config.version}</version>
+        </dependency>
+
+        <!-- ubirch -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-protocol-java</artifactId>
+            <version>${ubirch-protocol.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-client-scala</artifactId>
+            <version>1.1-SNAPSHOT</version>
+        </dependency>
+
+
+        <!-- caching -->
+        <dependency>
+            <groupId>com.ubirch.niomon</groupId>
+            <artifactId>redis-cache</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- healthchecks -->
+        <dependency>
+            <groupId>com.ubirch.niomon</groupId>
+            <artifactId>health-check</artifactId>
+            <version>1.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <!-- HTTP -->
+        <dependency>
+            <groupId>io.udash</groupId>
+            <artifactId>udash-rest_${scala.major.version}</artifactId>
+            <version>${udash.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-server</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.skinny-framework</groupId>
+            <artifactId>skinny-http-client_${scala.major.version}</artifactId>
+            <version>${skinny-framework.version}</version>
+        </dependency>
+
+        <!-- the underlying logging framework -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j-api.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback-classic.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>${logstash-logback-encoder.version}</version>
+        </dependency>
+
+        <!-- test dependencies -->
+        <dependency>
+            <groupId>com.github.kstyrc</groupId>
+            <artifactId>embedded-redis</artifactId>
+            <version>0.6</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Verification Microservice POM END -->
+
+        <!-- LOOKUP POM -->
+
+        <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
+        <!-- Todo: should become deleted -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-kafka-envelope</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <!-- Json -->
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.compat.version}</artifactId>
+            <version>${json4s-native.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-ext_${scala.compat.version}</artifactId>
+            <version>${json4s-ext}</version>
+        </dependency>
+
+        <!-- Test -->
+
+        <dependency>
+            <groupId>com.github.nosan</groupId>
+            <artifactId>embedded-cassandra-test</artifactId>
+            <version>${embedded-cassandra-test}</version>
+        </dependency>
+
+        <!-- Gremlin -->
+        <dependency>
+            <groupId>com.michaelpollmeier</groupId>
+            <artifactId>gremlin-scala_${scala.compat.version}</artifactId>
+            <version>${gremlinScala.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-driver</artifactId>
+            <version>${tinkerPopDriver.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.tinkerpop.gremlin</groupId>
+            <artifactId>gremlin-java</artifactId>
+            <version>${tinkerPopJava.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.janusgraph</groupId>
+            <artifactId>janusgraph-core</artifactId>
+            <version>${janusGraph.version}</version>
+        </dependency>
+        <!-- /Gremlin -->
+        <!-- LOOKUP POM -->
+
+
+        <!-- Core -->
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>event-log-core</artifactId>
+            <version>${event-log-core.version}</version>
+        </dependency>
+
+        <!-- Scalatra -->
+
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra_2.12</artifactId>
+            <version>${scalatra.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.compat.version}</artifactId>
+            <version>${scalactic.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra-swagger_${scala.compat.version}</artifactId>
+            <version>${scalatraSwagger.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.scalatra/scalatra-scalatest -->
+        <dependency>
+            <groupId>org.scalatra</groupId>
+            <artifactId>scalatra-scalatest_${scala.compat.version}</artifactId>
+            <version>${scalatra-scalatest.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+
+        <plugins>
+
+            <plugin>
+                <!-- see http://davidb.github.com/scala-maven-plugin -->
+                <!-- for building scala with maven -->
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>${scala-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                        <configuration>
+                            <args>
+                                <!-- is explicitly shown if set -->
+                                <arg>-unchecked</arg>
+                                <arg>-deprecation</arg>
+                                <arg>-dependencyfile</arg>
+                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                            </args>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- to be able to use scalatest disable surefire (maven test) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <!-- enable scalatest -->
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>${scalatest-maven-plugin.version}</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- needed to produce jar with maven; naming Boot class-->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>com.ubirch.verification.service.Service</mainClass>
+                            <useUniqueVersions>false</useUniqueVersions>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- create and/or push the created docker image -->
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <buildDirectory>${project.build.outputDirectory}</buildDirectory>
+                    <repository>ubirch/${project.artifactId}</repository>
+                    <tag>${build.number}</tag>
+                    <buildArgs>
+                        <VERSION>${project.version}</VERSION>
+                        <BUILD>${build.number}</BUILD>
+                        <SERVICE_NAME>${project.name}</SERVICE_NAME>
+                        <JAR_LIBS>target/lib</JAR_LIBS>
+                        <JAR_FILE>target/${project.build.finalName}.${project.packaging}</JAR_FILE>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <!--  for mvn deploy to work, disable the default deploy plugin -->
+            <!-- Todo: maybe can become removed? when deploying -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>${maven-deploy-plugin.version}</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- copies helm charts folder to target/helm-charts and replaces the docker image tag -->
+            <!-- https://stackoverflow.com/questions/10923944/maven-resources-plugin-error-using-copy-resources-goal-resources-outputdire -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/helm-charts</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../helm-charts</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+
+</project>
