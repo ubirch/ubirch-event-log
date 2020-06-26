@@ -1,12 +1,12 @@
 package com.ubirch.verification.service.services
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLogRow, Values}
-import com.ubirch.verification.service.models.{Payload, QueryType, Signature, VertexStruct}
+import com.ubirch.models.{ EventLogRow, Values }
+import com.ubirch.verification.service.models.{ Payload, QueryType, Signature, VertexStruct }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 trait Finder extends LazyLogging {
 

@@ -1,15 +1,15 @@
 package com.ubirch.verification.service.services
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{EventLogRow, EventsDAO, Values}
-import com.ubirch.verification.service.models.{Payload, QueryType, Signature}
+import com.ubirch.models.{ EventLogRow, EventsDAO, Values }
+import com.ubirch.verification.service.models.{ Payload, QueryType, Signature }
 import javax.inject._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 @Singleton
-class CassandraFinder @Inject()(eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
+class CassandraFinder @Inject() (eventsDAO: EventsDAO)(implicit ec: ExecutionContext) extends LazyLogging {
 
   //Be aware that this method is cassandra-oriented and will only give out results for
   // queryType=Payload. For the Signature query, Lookups need to be enabled.

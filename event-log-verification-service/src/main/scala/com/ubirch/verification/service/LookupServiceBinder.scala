@@ -2,19 +2,19 @@ package com.ubirch.verification.service
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
-import com.google.inject.{AbstractModule, Module}
+import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.HealthCheckServer
 import com.ubirch.services._
-import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService}
+import com.ubirch.services.cluster.{ ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle}
-import com.ubirch.verification.service.services.eventlog.{CachedEventLogClient, EventLogClient, NewEventLogClient}
-import com.ubirch.verification.service.services.{DefaultFinder, DefaultGremlinConnector, Finder, Gremlin}
+import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
+import com.ubirch.verification.service.services.eventlog.{ CachedEventLogClient, EventLogClient, NewEventLogClient }
+import com.ubirch.verification.service.services.{ DefaultFinder, DefaultGremlinConnector, Finder, Gremlin }
 import com.ubirch.verification.service.util.udash.JettyServer
-import com.ubirch.verification.service.util.{HealthCheckProvider, JettyServerProvider, RedisProvider}
+import com.ubirch.verification.service.util.{ HealthCheckProvider, JettyServerProvider, RedisProvider }
 
 import scala.concurrent.ExecutionContext
 

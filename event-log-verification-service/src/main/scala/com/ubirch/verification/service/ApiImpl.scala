@@ -1,38 +1,37 @@
 package com.ubirch.verification.service
 
-import java.io.{ByteArrayOutputStream, IOException}
+import java.io.{ ByteArrayOutputStream, IOException }
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
+import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.service.Api.{Failure, NotFound, Response, Success}
+import com.ubirch.verification.service.Api.{ Failure, NotFound, Response, Success }
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
-import io.udash.rest.raw.{HttpErrorException, JsonValue}
-import javax.inject.{Named, Singleton}
+import io.udash.rest.raw.{ HttpErrorException, JsonValue }
+import javax.inject.{ Named, Singleton }
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
-                        redis: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
-
+class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
+    redis: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
       Some(redis.redisson.getMapCache("verifier-upp-cache"))
     } catch {
-      case ex: Throwable => logger.error("redis error: ", ex)
+      case ex: Throwable =>
+        logger.error("redis error: ", ex)
         None
     }
-
 
   private val msgPackConfig = new MessagePack.PackerConfig().withStr8FormatSupport(false)
 
@@ -118,14 +117,14 @@ class ApiImpl @Inject()(@Named("Cached") eventLogClient: EventLogClient, verifie
       Option(
         uppCache
           .getOrElse(throw new IOException("uppCache couldn't become retrieved properly"))
-          .get(bytes))
+          .get(bytes)
+      )
     }.recover {
       case ex: Throwable =>
         logger.error("redis error ", ex)
         None
     }
   }
-
 
   def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
     implicit val ec: ExecutionContext = ExecutionContext.global
