@@ -25,5 +25,3 @@ class RedisProvider @Inject()(config: Config) extends Provider[RedisOpt] with St
 
 }
 
-
-class RedisOpt(redis: Option[RedisCache])
