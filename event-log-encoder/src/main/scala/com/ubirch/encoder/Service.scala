@@ -28,7 +28,7 @@ object Service extends Boot(EncoderServiceBinder.modules) {
     val consumer = get[BytesConsumer]
     consumer.setConsumptionStrategy(All)
 
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 

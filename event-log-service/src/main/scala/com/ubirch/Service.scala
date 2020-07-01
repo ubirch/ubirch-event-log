@@ -19,13 +19,14 @@ object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
 
     logger.info("Starting Rest")
 
-    val restEndpoint = get[RestService]
-    restEndpoint.start
+    //val restEndpoint = get[RestService]
+    //restEndpoint.start
 
     logger.info("Starting consumer")
 
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
+    consumer.setForceExit(true)
 
     //Adding these configs to the consumer makes it add a back-off/back-pressure
     //strategy to the storage functions
@@ -38,7 +39,7 @@ object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
     //  consumer.setDelaySingleRecord(500 micro)
     //  consumer.setDelayRecords(10 millis)
 
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 
