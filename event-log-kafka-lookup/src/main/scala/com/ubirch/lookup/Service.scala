@@ -15,7 +15,7 @@ object Service extends Boot(LookupServiceBinder.modules) {
 
     val consumer = get[StringConsumer]
 
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 

@@ -16,7 +16,7 @@ object Service extends Boot(DispatcherServiceBinder.modules) {
     val consumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
 
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 
