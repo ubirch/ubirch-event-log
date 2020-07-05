@@ -281,7 +281,7 @@ class EventLogTrustCodeController @Inject() (
     val fres = cache.get[TrustCodeLoad](trustCodeId).flatMap {
       case Some(tc) =>
 
-        eventLogEndpoint.queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY).map{ els =>
+        eventLogEndpoint.queryByIdAndCat(trustCodeId, Values.UPP_CATEGORY).map { els =>
           TrustCodeGenericResponse(
             success = true,
             "Trust Code already initiated",

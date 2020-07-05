@@ -1,5 +1,7 @@
 package com.ubirch.models
 
+import com.ubirch.util.GenericResponseBase
+
 case class InfoGenericResponse(success: Boolean, message: String, data: Info) extends GenericResponseBase[Info]
 
 case class EventLogGenericResponse(success: Boolean, message: String, data: List[EventLog]) extends GenericResponseBase[List[EventLog]]

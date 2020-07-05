@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.ubirch</groupId>
         <artifactId>event-log</artifactId>
-        <version>1.2.0</version>
+        <version>1.5.0</version>
     </parent>
 
     <!-- basic info -->
