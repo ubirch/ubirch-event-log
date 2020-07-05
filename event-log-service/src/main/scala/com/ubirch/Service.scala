@@ -38,7 +38,7 @@ object Service extends Boot(ServiceBinder.modules ++ ExtServiceBinder.modules) {
     //  consumer.setDelaySingleRecord(500 micro)
     //  consumer.setDelayRecords(10 millis)
 
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 

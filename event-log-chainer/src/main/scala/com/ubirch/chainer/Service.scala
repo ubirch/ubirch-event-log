@@ -31,7 +31,7 @@ object Service extends Boot(ChainerServiceBinder.modules) {
 
     val consumer: StringConsumer = get[StringConsumer]
     consumer.setConsumptionStrategy(All)
-    consumer.start()
+    consumer.startWithExitControl()
 
   }
 

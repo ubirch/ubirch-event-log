@@ -15,7 +15,7 @@ object Service extends Boot(DiscoveryServiceBinder.modules) {
 
     val expressKafka = get[ExpressKafka[String, String, Unit]]
 
-    expressKafka.consumption.startPolling()
+    expressKafka.consumption.startWithExitControl()
 
   }
 
