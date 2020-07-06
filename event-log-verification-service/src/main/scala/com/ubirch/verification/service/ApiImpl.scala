@@ -26,7 +26,7 @@ class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifi
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
-      Some(redis.redisson.getMapCache("verifier-upp-cache"))
+      Some(redis.redisson.getMapCache("hashes_payload"))
     } catch {
       case ex: Throwable =>
         logger.error("redis error: ", ex)
