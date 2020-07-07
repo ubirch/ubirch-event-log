@@ -44,7 +44,7 @@
 
         <!-- Lookup POM -->
         <gremlinScala.version>3.4.1.4</gremlinScala.version>
-        <janusGraph.version>0.3.1</janusGraph.version>
+        <janusGraph.version>0.5.2</janusGraph.version>
         <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
         <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
