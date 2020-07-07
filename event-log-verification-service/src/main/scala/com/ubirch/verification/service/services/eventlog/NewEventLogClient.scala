@@ -234,7 +234,7 @@ object LookupExecutor {
     LookupJsonSupport.ToJson[Seq[VertexStruct]](maybeAnchors).get
 
   def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]): JValue = {
-    val anchors = Map(Values.SHORTEST_PATH -> path, Values.BLOCKCHAINS -> maybeAnchors)
+    val anchors = Map(Values.SHORTEST_PATH -> path.map(v => v.toDumbVertexStruct), Values.BLOCKCHAINS -> maybeAnchors.map(v => v.toDumbVertexStruct))
     LookupJsonSupport.ToJson(anchors).get
   }
 

@@ -5,8 +5,9 @@ import java.text.SimpleDateFormat
 import com.ubirch.models.Values
 import com.ubirch.util.Boot
 import com.ubirch.verification.service.LookupServiceBinder
+import com.ubirch.verification.service.models.VertexStruct
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
@@ -42,16 +43,12 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
 
     val gremlin = get[GremlinFinder]
 
-    val res = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
+    val res: Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw==")
 
     val t = for {
       (_sp, _u, _lp, _l) <- res
-      sx <- gremlin.toVertexStruct(_sp)
-      ux <- gremlin.toVertexStruct(_u)
-      lp <- gremlin.toVertexStruct(_lp)
-      lw <- gremlin.toVertexStruct(_l)
     } yield {
-      (sx, ux, lp, lw)
+      (_sp, _u, _lp, _l)
     }
     val timeFormatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
 
