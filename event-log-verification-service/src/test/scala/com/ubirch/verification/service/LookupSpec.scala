@@ -57,27 +57,27 @@ class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val 
 object FakeFoundFinder {
 
   val upperPath = List(
-    VertexStruct("UPP", properties = Map(
+    VertexStruct("1", "UPP", properties = Map(
       "next_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "signature" -> "bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==",
       "hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
       "prev_hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
       "type" -> "UPP"
     )),
-    VertexStruct("UPP", properties = Map(
+    VertexStruct("2", "UPP", properties = Map(
       "next_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
       "signature" -> "YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==",
       "hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "prev_hash" -> "",
       "type" -> "UPP"
     )),
-    VertexStruct("SLAVE_TREE", properties = Map(
+    VertexStruct("3", "SLAVE_TREE", properties = Map(
       "next_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
       "hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
       "prev_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "type" -> "SLAVE_TREE"
     )),
-    VertexStruct("MASTER_TREE", properties = Map(
+    VertexStruct("4", "MASTER_TREE", properties = Map(
       "next_hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
       "hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
       "prev_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
@@ -86,7 +86,7 @@ object FakeFoundFinder {
   )
 
   val upperBlockchains = List(
-    VertexStruct("PUBLIC_CHAIN", properties = Map(
+    VertexStruct("5", "PUBLIC_CHAIN", properties = Map(
       "public_chain" -> "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
       "hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
       "prev_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
@@ -96,6 +96,7 @@ object FakeFoundFinder {
 
   val lowerPath = List(
     VertexStruct(
+      "6",
       "MASTER_TREE",
       properties = Map(
         "next_hash" -> "375f8683023272f4b31afd134411daddee94212d1f70f376c15ae23979207f26ece737f7ede575dd6b0b088cb154eb25a1ba09d35e51cf05b9bceb3e5f4e765e",
@@ -105,6 +106,7 @@ object FakeFoundFinder {
       )
     ),
     VertexStruct(
+      "7",
       "MASTER_TREE",
       properties = Map(
         "next_hash" -> "ca96ca76c59753c27a100780d857bfdefe448ee16aa51aef6b3aa766bf28bb1e5bf355566124e830ef6641ef34f33a6b475641f4836dcbfe7b02c6edd6136eac",
@@ -114,6 +116,7 @@ object FakeFoundFinder {
       )
     ),
     VertexStruct(
+      "8",
       "MASTER_TREE",
       properties = Map(
         "next_hash" -> "MBCRQSNGBLVYHMJBKJHGFKFIDKVTFJHSMWUFPSCNOCUUIKQNML9H9KYQWBXUKCKNZIIOSUXPDORQZ9999",
@@ -125,7 +128,7 @@ object FakeFoundFinder {
   )
 
   val lowerBlockchains = List(
-    VertexStruct("PUBLIC_CHAIN", properties = Map(
+    VertexStruct("9", "PUBLIC_CHAIN", properties = Map(
       "public_chain" -> "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
       "hash" -> "MBCRQSNGBLVYHMJBKJHGFKFIDKVTFJHSMWUFPSCNOCUUIKQNML9H9KYQWBXUKCKNZIIOSUXPDORQZ9999",
       "prev_hash" -> "ca96ca76c59753c27a100780d857bfdefe448ee16aa51aef6b3aa766bf28bb1e5bf355566124e830ef6641ef34f33a6b475641f4836dcbfe7b02c6edd6136eac",
@@ -134,27 +137,27 @@ object FakeFoundFinder {
   )
 
   val simplePath = List(
-    VertexStruct("UPP", properties = Map(
+    VertexStruct("10", "UPP", properties = Map(
       "next_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "signature" -> "bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==",
       "hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
       "prev_hash" -> "/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==",
       "type" -> "UPP"
     )),
-    VertexStruct("UPP", properties = Map(
+    VertexStruct("11", "UPP", properties = Map(
       "next_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
       "signature" -> "YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==",
       "hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "prev_hash" -> "",
       "type" -> "UPP"
     )),
-    VertexStruct("SLAVE_TREE", properties = Map(
+    VertexStruct("12", "SLAVE_TREE", properties = Map(
       "next_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
       "hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
       "prev_hash" -> "eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==",
       "type" -> "SLAVE_TREE"
     )),
-    VertexStruct("MASTER_TREE", properties = Map(
+    VertexStruct("13", "MASTER_TREE", properties = Map(
       "next_hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
       "hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
       "prev_hash" -> "18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6",
@@ -162,7 +165,7 @@ object FakeFoundFinder {
     ))
   )
   val blockchains = List(
-    VertexStruct("PUBLIC_CHAIN", properties = Map(
+    VertexStruct("14", "PUBLIC_CHAIN", properties = Map(
       "public_chain" -> "IOTA_TESTNET_IOTA_TESTNET_NETWORK",
       "hash" -> "Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999",
       "prev_hash" -> "ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6",
@@ -197,7 +200,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
       |   "version":34
       |}
-              """.stripMargin
+    """.stripMargin
 
   val insertLookupSql: String =
     s"""
@@ -798,7 +801,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
-  """.stripMargin,
+        """.stripMargin,
         "drop table if exists lookups;",
         """
           |create table if not exists lookups (
@@ -808,7 +811,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    category text,
           |    PRIMARY KEY ((value, category), name)
           |);
-  """.stripMargin
+        """.stripMargin
       )
     )
   }
