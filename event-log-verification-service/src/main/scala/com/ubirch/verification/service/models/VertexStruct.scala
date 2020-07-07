@@ -5,6 +5,9 @@ import java.util.Date
 import scala.collection.JavaConverters._
 
 case class VertexStruct(id: String, label: String, properties: Map[String, Any]) {
+
+  def toDumbVertexStruct = DumbVertexStruct(label, properties)
+
   def getBoth(key1: String, key2: String): Option[(Any, Any)] = get(key1).flatMap(value1 => get(key2).map(value2 => (value1, value2)))
 
   def get(key: String): Option[Any] = properties.get(key)
@@ -51,3 +54,8 @@ object VertexStruct {
     VertexStruct(id, label, valueMap)
   }
 }
+
+/**
+* Simple class that mimicate the class above but without ID, that simplify the JSON process
+  */
+case class DumbVertexStruct(label: String, properties: Map[String, Any])
