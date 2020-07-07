@@ -1,6 +1,13 @@
 package com.ubirch.verification.service.models
 
-case class VertexStruct(label: String, properties: Map[String, Any]) {
+import java.util.Date
+
+import scala.collection.JavaConverters._
+
+case class VertexStruct(id: String, label: String, properties: Map[String, Any]) {
+
+  def toDumbVertexStruct = DumbVertexStruct(label, properties)
+
   def getBoth(key1: String, key2: String): Option[(Any, Any)] = get(key1).flatMap(value1 => get(key2).map(value2 => (value1, value2)))
 
   def get(key: String): Option[Any] = properties.get(key)
@@ -25,3 +32,30 @@ case class VertexStruct(label: String, properties: Map[String, Any]) {
     else this
   }
 }
+
+object VertexStruct {
+  def fromMap(mapFrom: java.util.Map[AnyRef, AnyRef]): VertexStruct = {
+    val newMap = mapFrom.asScala.toMap.map(p => p._1.toString -> p._2)
+    val id = newMap.get("id") match {
+      case Some(value) => value.toString
+      case None => "ERROR"
+    }
+    val label = newMap.get("label") match {
+      case Some(value) => value.asInstanceOf[String]
+      case None => "ERROR"
+    }
+    val valueMap = newMap.filter(p => p._1 != "id" && p._1 != "label").map { p =>
+      val value = p._2 match {
+        case date: Date => date
+        case whatever => whatever.toString
+      }
+      p._1 -> value
+    }
+    VertexStruct(id, label, valueMap)
+  }
+}
+
+/**
+* Simple class that mimicate the class above but without ID, that simplify the JSON process
+  */
+case class DumbVertexStruct(label: String, properties: Map[String, Any])
