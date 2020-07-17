@@ -79,6 +79,7 @@ case object UPPStrategy extends RelationStrategy with LazyLogging {
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
+            .addProperty(Values.LAST_HASH -> eventLog.id)
         )
         .through(Edge(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY).addProperty(Values.TIMESTAMP -> eventLog.eventTime.getTime))
 
