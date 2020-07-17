@@ -154,7 +154,13 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val shortestPath = gremlin.g.V()
       .has(Key[String](property.toLowerCase()), value)
       //.store(x)
-      .repeat(_.in().simplePath())
+      .repeat(_.in(
+      Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
+      Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
+      Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+      Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+      Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY
+    ).simplePath())
       .until(_.hasLabel(untilLabel))
       .limit(1)
       .path()
