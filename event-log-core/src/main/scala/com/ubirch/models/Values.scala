@@ -23,6 +23,7 @@ object Values {
   val SIGNATURE = "signature"
   val PRODUCER_ID = "producer-id"
   val DEVICE_ID = "device-id"
+  val LAST_HASH = "last-hash"
   val UPP_CHAIN = "upp-chain"
   val HASH = "hash"
   val PREV_HASH = "prev_hash"

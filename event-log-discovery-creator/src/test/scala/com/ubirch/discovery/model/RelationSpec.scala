@@ -144,12 +144,11 @@ class RelationSpec extends TestBase {
       val a = Vertex(Values.UPP_CATEGORY)
         .addProperty(Values.HASH -> eventId)
         .addProperty(Values.SIGNATURE -> signature)
-        .addProperty(Values.TYPE -> Values.UPP_CATEGORY)
         .addProperty(Values.TIMESTAMP -> time.getTime)
         .connectedTo(
           Vertex(Values.DEVICE_CATEGORY)
             .addProperty(Values.DEVICE_ID -> device)
-            .addProperty(Values.TYPE -> Values.DEVICE_CATEGORY)
+            .addProperty(Values.LAST_HASH -> eventId)
         )
         .through(Edge(Values.DEVICE_CATEGORY))
 
@@ -157,12 +156,11 @@ class RelationSpec extends TestBase {
         vFrom = Vertex(Option(Values.UPP_CATEGORY), Map(
           Values.HASH -> eventId,
           Values.SIGNATURE -> signature,
-          Values.TYPE -> Values.UPP_CATEGORY,
           Values.TIMESTAMP -> time.getTime
         )),
         vTo = Vertex(Option(Values.DEVICE_CATEGORY), Map(
           Values.DEVICE_ID -> device,
-          Values.TYPE -> Values.DEVICE_CATEGORY
+          Values.LAST_HASH -> eventId
         )),
         edge = Edge(Option(Values.DEVICE_CATEGORY), Map.empty)
       )
