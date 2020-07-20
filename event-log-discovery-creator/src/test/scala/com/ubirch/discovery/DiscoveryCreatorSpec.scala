@@ -105,7 +105,7 @@ class DiscoveryCreatorSpec extends TestBase with LazyLogging {
         assert(relations.exists(_.edge.label == Option(Values.UPP_CATEGORY + "->" + Values.DEVICE_CATEGORY)))
         assert(relations.exists(_.edge.properties.size == 1))
         assert(relations.forall(x => x.vFrom.properties.size == 3))
-        assert(relations.forall(x => x.vTo.properties.size == 1))
+        assert(relations.forall(x => x.vTo.properties.nonEmpty))
 
         assert(relations.nonEmpty)
         assert(relations.size == 2) // We expect to relations: UPP-DEVICE, UPP-CHAIN
