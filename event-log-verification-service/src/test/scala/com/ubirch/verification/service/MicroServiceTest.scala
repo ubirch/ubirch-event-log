@@ -17,6 +17,7 @@ import io.udash.rest.raw.JsonValue
 import org.scalatest.{ BeforeAndAfterAll, FlatSpec, Matchers }
 import redis.embedded.RedisServer
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 
