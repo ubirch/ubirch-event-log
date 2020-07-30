@@ -13,7 +13,7 @@ import org.eclipse.jetty.servlet.{ DefaultServlet, ServletContextHandler, Servle
 
 import scala.concurrent.duration.FiniteDuration
 
-class JettyServer @Inject() (api: Api, docs: OpenApi, port: Int) extends StrictLogging {
+class JettyServer(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
 
   def corsAware(handle: HandleRequest): HandleRequest = request => {
     if (request.method == HttpMethod.OPTIONS)

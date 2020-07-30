@@ -127,14 +127,8 @@
         <!-- ubirch -->
         <dependency>
             <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-protocol-java</artifactId>
-            <version>${ubirch-protocol.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>
-            <version>1.1-SNAPSHOT</version>
+            <version>1.2-SNAPSHOT</version>
         </dependency>
 
 
@@ -202,14 +196,6 @@
         <!-- Verification Microservice POM END -->
 
         <!-- LOOKUP POM -->
-
-        <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
-        <!-- Todo: should become deleted -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-kafka-envelope</artifactId>
-            <version>1.0.1</version>
-        </dependency>
 
         <!-- Json -->
         <dependency>
