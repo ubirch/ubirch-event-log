@@ -21,7 +21,6 @@ import org.json4s.jackson.JsonMethods.parse
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
-//import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 
 class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
@@ -35,6 +34,7 @@ class FakeEmptyFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil))
 
   def findUpperAndLowerAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful((Nil, Nil, Nil, Nil))
+
 }
 
 class FakeFoundFinder @Inject() (cassandraFinder: CassandraFinder)(implicit val ec: ExecutionContext) extends Finder {
