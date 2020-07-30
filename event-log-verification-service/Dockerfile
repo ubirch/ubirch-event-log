@@ -21,7 +21,8 @@ ENTRYPOINT [ \
   "/bin/bash", \
   "-c", \
   "exec /usr/bin/java \
-   -XX:MaxRAM=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) - 254*1024*1024 )) \
+    -XX:MaxRAM=$(($(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) * 95 / 100 )) \
+    -XX:MaxRAMFraction=1 \
    -Djava.awt.headless=true \
    -Djava.security.egd=file:/dev/./urandom \
    -Djava.rmi.server.hostname=localhost \
