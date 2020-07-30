@@ -21,8 +21,12 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifier: KeyServiceBasedVerifier,
-    redis: RedisCache, healthcheck: HealthCheckServer) extends Api with StrictLogging {
+class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient,
+                         verifier: KeyServiceBasedVerifier,
+                         redis: RedisCache,
+                         healthcheck: HealthCheckServer
+                        )(implicit ec: ExecutionContext)
+  extends Api with StrictLogging {
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
@@ -73,7 +77,6 @@ class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifi
     }
 
   def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[Response] = {
-    implicit val ec: ExecutionContext = ExecutionContext.global
 
     val requestId = bytesToPrintableId(hash)
 
@@ -111,8 +114,6 @@ class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifi
 
   def findCachedUpp(bytes: Array[Byte]): Future[Option[String]] = {
 
-    implicit val ec: ExecutionContext = ExecutionContext.global
-
     Future.successful {
       Option(
         uppCache
@@ -127,7 +128,6 @@ class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient, verifi
   }
 
   def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
-    implicit val ec: ExecutionContext = ExecutionContext.global
 
     val requestId = bytesToPrintableId(hash)
 
