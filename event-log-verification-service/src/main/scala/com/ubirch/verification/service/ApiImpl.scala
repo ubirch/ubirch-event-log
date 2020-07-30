@@ -21,11 +21,12 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject() (@Named("Cached") eventLogClient: EventLogClient,
-                         verifier: KeyServiceBasedVerifier,
-                         redis: RedisCache,
-                         healthcheck: HealthCheckServer
-                        )(implicit ec: ExecutionContext)
+class ApiImpl @Inject() (
+    @Named("Cached") eventLogClient: EventLogClient,
+    verifier: KeyServiceBasedVerifier,
+    redis: RedisCache,
+    healthcheck: HealthCheckServer
+)(implicit ec: ExecutionContext)
   extends Api with StrictLogging {
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =

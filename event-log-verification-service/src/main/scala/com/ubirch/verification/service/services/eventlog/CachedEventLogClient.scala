@@ -3,10 +3,11 @@ package com.ubirch.verification.service.services.eventlog
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.verification.service.models.{ BlockchainInfo, QueryDepth, ResponseForm }
-import javax.inject.{ Inject, Named }
+import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, redis: RedisCache)
   (implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
 

@@ -56,6 +56,6 @@ object VertexStruct {
 }
 
 /**
-* Simple class that mimicate the class above but without ID, that simplify the JSON process
+  * Simple class that mimicate the class above but without ID, that simplify the JSON process
   */
 case class DumbVertexStruct(label: String, properties: Map[String, Any])
