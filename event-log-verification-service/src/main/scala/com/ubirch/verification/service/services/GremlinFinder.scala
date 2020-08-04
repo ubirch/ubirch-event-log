@@ -15,7 +15,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
 
   /**
-    * Same as findUpperAndLower but decorates the vertices in the path
+    * Find the upper and lower bound blockchains associated to the given vertex and decorates the vertices in the path.
     *
     * @param id Id of the vertex
     * @return
@@ -146,8 +146,17 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
   }
 
-  def shortestPathFromVertexToBlockchain(hash: String): Future[List[VertexStruct]] = shortestPath(Values.HASH, hash, Values.PUBLIC_CHAIN_CATEGORY)
+  def shortestPathFromVertexToBlockchain(hash: String): Future[List[VertexStruct]] = shortestPathUppBlockchain(Values.HASH, hash)
 
+  /**
+  * Will look for the shortest path between the vertice that has the value {@param value} of the property with the
+    * name {@param property} until it finds a vertex with the label {@param untilLabel}. This version will only look
+    * for younger vertices, as it only goes "in"
+    * @param property The name of the starting vertex property.
+    * @param value The value of the starting vertex property.
+    * @param untilLabel The end label
+    * @return The path from the beginning to the end as a VertexStruct list
+    */
   def shortestPath(property: String, value: String, untilLabel: String): Future[List[VertexStruct]] = {
     //val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
@@ -162,6 +171,41 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY
       ).simplePath())
       .until(_.hasLabel(untilLabel))
+      .limit(1)
+      .path()
+      .unfold[Vertex]()
+      .elementMap
+      .promise()
+    for {
+      sp <- shortestPath
+    } yield {
+      sp.map(v => {
+        VertexStruct.fromMap(v)
+      })
+    }
+  }
+
+  /**
+  * Same as shortestPath but optimized for querying between upp and blockchain
+    */
+  def shortestPathUppBlockchain(property: String, value: String): Future[List[VertexStruct]] = {
+    //val x = StepLabel[java.util.Set[Vertex]]("x")
+    //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
+    val shortestPath = gremlin.g.V()
+      .has(Key[String](property.toLowerCase()), value)
+      //.store(x)
+      .in( Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY)
+      .repeat(_.in(
+        Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+        Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
+      ).simplePath())
+      .until(_.hasLabel(Values.MASTER_TREE_CATEGORY))
+      .limit(1)
+      .repeat(_.in(
+        Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
+        Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
+      ).simplePath())
+      .until(_.hasLabel(Values.PUBLIC_CHAIN_CATEGORY))
       .limit(1)
       .path()
       .unfold[Vertex]()
