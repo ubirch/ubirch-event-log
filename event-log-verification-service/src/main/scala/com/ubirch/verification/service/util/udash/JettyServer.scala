@@ -7,7 +7,6 @@ import io.udash.rest.RestServlet.{ DefaultHandleTimeout, DefaultMaxPayloadSize }
 import io.udash.rest.openapi.OpenApi
 import io.udash.rest.raw.RawRest.HandleRequest
 import io.udash.rest.raw.{ HttpMethod, PlainValue, RawRest, RestMetadata }
-import javax.inject.Inject
 import org.eclipse.jetty
 import org.eclipse.jetty.servlet.{ DefaultServlet, ServletContextHandler, ServletHolder }
 

@@ -215,8 +215,9 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
           val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
           (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
         }
-        .map { case (x: LookupResult, y) =>
-          ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.HEADER -> x.queryType))
+        .map {
+          case (x: LookupResult, y) =>
+            ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.HEADER -> x.queryType))
         }
         .map(producerRec => lookupPipeDataNew.copy(producerRecord = Some(producerRec)))
         .getOrElse(throw CreateProducerRecordException("Empty Materials", lookupPipeDataNew))
