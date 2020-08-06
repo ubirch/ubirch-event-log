@@ -32,7 +32,7 @@ class ApiImpl @Inject() (
 
   private val processingTimer: Summary = Summary
     .build("processing_time_seconds", "Message processing time in seconds")
-    .labelNames("endpoint")
+    .labelNames("service", "end_point")
     .quantile(0.9, 0.05)
     .quantile(0.95, 0.05)
     .quantile(0.99, 0.05)
@@ -162,39 +162,54 @@ class ApiImpl @Inject() (
     finalizeResponse(responseFuture, requestId)
   }
 
-  override def health: Future[String] = Future.successful("ok")
-
-  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
-
-  override def verifyUPP(hash: Array[Byte]): Future[Response] =
-    verifyBase(
-      hash,
-      Simple,
-      AnchorsNoPath,
-      Normal
-    )
-
-  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
-
-    val timer = processingTimer.labels("anchor").startTimer()
-
-    val res = verifyBase(
-      hash,
-      ShortestPath,
-      ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-      BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-    )
-
-    res.transform { r => timer.observeDuration(); r }
-
+  override def health: Future[String] = {
+    registerProcessingTime("health") { () =>
+      Future.successful("ok")
+    }
   }
 
-  override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
-    verifyBase(
-      hash,
-      UpperLower,
-      ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-      BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-    )
+  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = {
+    registerProcessingTime("upp") { () =>
+      lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+    }
+  }
+
+  override def verifyUPP(hash: Array[Byte]): Future[Response] = {
+    registerProcessingTime("simple") { () =>
+      verifyBase(
+        hash,
+        Simple,
+        AnchorsNoPath,
+        Normal
+      )
+    }
+  }
+
+  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
+    registerProcessingTime("anchor") { () =>
+      verifyBase(
+        hash,
+        ShortestPath,
+        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+      )
+    }
+  }
+
+  override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
+    registerProcessingTime("record") { () =>
+      verifyBase(
+        hash,
+        UpperLower,
+        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+      )
+    }
+  }
+
+  private def registerProcessingTime[T](endpoint: String)(f: () => Future[T]): Future[T] = {
+    val timer = processingTimer.labels("verification", endpoint).startTimer()
+    f().transform { r => timer.observeDuration(); r }
+  }
 
 }
