@@ -13,7 +13,7 @@ import com.ubirch.verification.controllers.Api.{ Failure, NotFound, Response, Su
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
-import io.prometheus.client.Summary
+import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
 import javax.inject.{ Named, Singleton }
 import org.msgpack.core.MessagePack
@@ -38,6 +38,10 @@ class ApiImpl @Inject() (
     .quantile(0.95, 0.05)
     .quantile(0.99, 0.05)
     .quantile(0.999, 0.05)
+    .register()
+
+  val requestReceived: Counter = Counter
+    .build("http_requests_count", "Number of http request received.")
     .register()
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
@@ -210,7 +214,8 @@ class ApiImpl @Inject() (
 
   private def registerProcessingTime[T](endpoint: String)(f: () => Future[T]): Future[T] = {
     val timer = processingTimer.labels("verification", endpoint).startTimer()
-    f().transform { r => timer.observeDuration(); r }
+    f().transform { r => requestReceived.inc(); timer.observeDuration(); r }
+
   }
 
 }
