@@ -9,10 +9,11 @@ import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import com.ubirch.client.util.curveFromString
 import com.ubirch.crypto.{ GeneratorKeyFactory, PubKey }
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.verification.service.Api.{ Anchors, Failure, Success }
+import com.ubirch.verification.service.controllers.Api.{ Anchors, Failure, Success }
+import com.ubirch.verification.service.controllers.ApiImpl
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
-import com.ubirch.verification.service.util.HealthCheckProvider
+import com.ubirch.verification.service.services.{ HealthCheckProvider, KeyServerClient, KeyServiceBasedVerifier }
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, FlatSpec, Matchers }

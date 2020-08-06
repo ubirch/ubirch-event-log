@@ -1,4 +1,4 @@
-package com.ubirch.verification.service
+package com.ubirch.verification.service.services
 
 import com.typesafe.config.Config
 import com.ubirch.client.keyservice.UbirchKeyService

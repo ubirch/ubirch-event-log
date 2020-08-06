@@ -1,4 +1,4 @@
-package com.ubirch.verification.service
+package com.ubirch.verification.service.controllers
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode

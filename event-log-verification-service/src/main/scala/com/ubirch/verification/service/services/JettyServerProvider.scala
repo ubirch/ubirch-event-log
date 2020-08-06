@@ -1,9 +1,9 @@
-package com.ubirch.verification.service.util
+package com.ubirch.verification.service.services
 
 import com.google.inject.Provider
 import com.typesafe.config.Config
+import com.ubirch.verification.service.controllers.{ Api, ApiImpl }
 import com.ubirch.verification.service.util.udash.JettyServer
-import com.ubirch.verification.service.{ Api, ApiImpl }
 import io.udash.rest.openapi.{ Info, Server }
 import javax.inject._
 

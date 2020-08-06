@@ -12,9 +12,8 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.verification.service.services.eventlog.{ CachedEventLogClient, EventLogClient, NewEventLogClient }
-import com.ubirch.verification.service.services.{ DefaultFinder, DefaultGremlinConnector, Finder, Gremlin }
+import com.ubirch.verification.service.services._
 import com.ubirch.verification.service.util.udash.JettyServer
-import com.ubirch.verification.service.util.{ HealthCheckProvider, JettyServerProvider, RedisProvider }
 
 import scala.concurrent.ExecutionContext
 

@@ -1,4 +1,4 @@
-package com.ubirch.verification.service.util
+package com.ubirch.verification.service.services
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.StrictLogging

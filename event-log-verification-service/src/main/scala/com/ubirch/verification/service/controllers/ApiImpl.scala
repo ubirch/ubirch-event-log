@@ -1,4 +1,4 @@
-package com.ubirch.verification.service
+package com.ubirch.verification.service.controllers
 
 import java.io.{ ByteArrayOutputStream, IOException }
 import java.nio.charset.StandardCharsets
@@ -9,8 +9,9 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.service.Api.{ Failure, NotFound, Response, Success }
+import com.ubirch.verification.service.controllers.Api.{ Failure, NotFound, Response, Success }
 import com.ubirch.verification.service.models._
+import com.ubirch.verification.service.services.KeyServiceBasedVerifier
 import com.ubirch.verification.service.services.eventlog._
 import io.prometheus.client.Summary
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
