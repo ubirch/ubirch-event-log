@@ -1,4 +1,4 @@
-package com.ubirch.verification.service
+package com.ubirch.verification.service.services
 
 import java.security.{ InvalidKeyException, NoSuchAlgorithmException }
 
