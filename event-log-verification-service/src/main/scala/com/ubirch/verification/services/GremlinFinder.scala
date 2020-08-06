@@ -52,6 +52,13 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       master.map(x => (x, time.getOrElse(-1L)))
     }
 
+    val maybeFirstMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
+      time <- headTimestamp
+      master <- futureShortestPath.map(_.firstMasterOption)
+    } yield {
+      master.map(x => (x, time.getOrElse(-1L)))
+    }
+
     val upper: Future[List[VertexStruct]] = maybeLastMasterAndTime.flatMap {
       case Some((v, _)) =>
         getBlockchainsFromMasterVertex(v)
@@ -59,7 +66,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
         Future.successful(Nil)
     }
 
-    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeLastMasterAndTime.flatMap {
+    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeFirstMasterAndTime.flatMap {
       case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
       case None => Future.successful(None)
     }
@@ -124,7 +131,6 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val res = gremlin.g.V(master.id)
       .repeat(
         _.out(
-          Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
           Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY
         ) // In for other direction
           .simplePath()
@@ -346,6 +352,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
     lazy val reversedTailReversed: Seq[VertexStruct] = reversedTail.reverse
     lazy val reversedTailHeadOption: Option[VertexStruct] = reversedTail.headOption
+    lazy val firstMasterOption: Option[VertexStruct] = path.find(v => v.label == Values.MASTER_TREE_CATEGORY)
   }
 
 }
