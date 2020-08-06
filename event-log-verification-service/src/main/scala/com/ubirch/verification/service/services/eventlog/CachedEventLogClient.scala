@@ -8,8 +8,7 @@ import javax.inject._
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, redis: RedisCache)
-  (implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
+class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, redis: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
 
   private val getEventByHashCached =
     redis

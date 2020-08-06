@@ -57,8 +57,9 @@ trait Finder extends LazyLogging {
       case upp @ Some(uppEl) =>
 
         findUpperAndLowerAsVertices(uppEl.id)
-          .map { case (upperPath, upperBlocks, lowerPath, lowerBlocks) =>
-            (upp, upperPath, upperBlocks, lowerPath, lowerBlocks)
+          .map {
+            case (upperPath, upperBlocks, lowerPath, lowerBlocks) =>
+              (upp, upperPath, upperBlocks, lowerPath, lowerBlocks)
           }
           .recover {
             case e: Exception =>

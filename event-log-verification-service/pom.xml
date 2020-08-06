@@ -24,14 +24,6 @@
         <build.number>${timestamp}-dev</build.number>
         <event-log-core.version>1.5.0</event-log-core.version>
 
-        <!-- Scalatra -->
-        <scalatra.version>2.6.5</scalatra.version>
-        <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
-        <scalactic.version>3.0.5</scalactic.version>
-        <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
-        <javaxServlet.version>3.1.0</javaxServlet.version>
-        <jetty-servlets.version>9.4.19.v20190610</jetty-servlets.version>
-
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
@@ -52,7 +44,6 @@
         <json4s-ext>3.6.0</json4s-ext>
 
         <build.number>${timestamp}-dev</build.number>
-
 
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
         <!-- Lookup POM end -->
@@ -250,38 +241,11 @@
         <!-- /Gremlin -->
         <!-- LOOKUP POM -->
 
-
         <!-- Core -->
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
-        </dependency>
-
-        <!-- Scalatra -->
-
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra_2.12</artifactId>
-            <version>${scalatra.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scalactic</groupId>
-            <artifactId>scalactic_${scala.compat.version}</artifactId>
-            <version>${scalactic.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra-swagger_${scala.compat.version}</artifactId>
-            <version>${scalatraSwagger.version}</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.scalatra/scalatra-scalatest -->
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra-scalatest_${scala.compat.version}</artifactId>
-            <version>${scalatra-scalatest.version}</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>

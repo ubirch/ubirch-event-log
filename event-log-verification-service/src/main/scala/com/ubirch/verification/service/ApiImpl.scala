@@ -12,6 +12,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.service.Api.{ Failure, NotFound, Response, Success }
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
+import io.prometheus.client.Summary
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
 import javax.inject.{ Named, Singleton }
 import org.msgpack.core.MessagePack
@@ -28,6 +29,15 @@ class ApiImpl @Inject() (
     healthcheck: HealthCheckServer
 )(implicit ec: ExecutionContext)
   extends Api with StrictLogging {
+
+  private val processingTimer: Summary = Summary
+    .build("processing_time_seconds", "Message processing time in seconds")
+    .labelNames("endpoint")
+    .quantile(0.9, 0.05)
+    .quantile(0.95, 0.05)
+    .quantile(0.99, 0.05)
+    .quantile(0.999, 0.05)
+    .register()
 
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
@@ -164,13 +174,20 @@ class ApiImpl @Inject() (
       Normal
     )
 
-  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
-    verifyBase(
+  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
+
+    val timer = processingTimer.labels("anchor").startTimer()
+
+    val res = verifyBase(
       hash,
       ShortestPath,
       ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
       BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
     )
+
+    res.transform { r => timer.observeDuration(); r }
+
+  }
 
   override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
     verifyBase(
