@@ -13,15 +13,16 @@ import com.ubirch.verification.service.Api.{ Anchors, Failure, Success }
 import com.ubirch.verification.service.models._
 import com.ubirch.verification.service.services.eventlog._
 import com.ubirch.verification.service.util.HealthCheckProvider
+import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
-import org.scalatest.{ BeforeAndAfterAll, FlatSpec, Matchers }
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, FlatSpec, Matchers }
 import redis.embedded.RedisServer
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 
-class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val anchors =
     """[
@@ -403,4 +404,8 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   override def beforeAll(): Unit = redis.start()
 
   override def afterAll(): Unit = redis.stop()
+
+  override protected def beforeEach(): Unit = {
+    CollectorRegistry.defaultRegistry.clear()
+  }
 }

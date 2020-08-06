@@ -6,10 +6,9 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
 import com.ubirch.verification.service.models.VertexStruct
-import gremlin.scala.{ Key, P, StepLabel, Vertex }
+import gremlin.scala.{ Key, P, Vertex }
 import javax.inject._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
 
 class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
@@ -66,7 +65,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
 
     val lower: Future[List[VertexStruct]] = lowerPathHelper.flatMap {
-      case Some((ph, t)) =>
+      case Some((ph, _)) =>
         ph.reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
           .getOrElse(Future.successful(Nil))
@@ -149,7 +148,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   def shortestPathFromVertexToBlockchain(hash: String): Future[List[VertexStruct]] = shortestPathUppBlockchain(Values.HASH, hash)
 
   /**
-  * Will look for the shortest path between the vertice that has the value {@param value} of the property with the
+    * Will look for the shortest path between the vertice that has the value {@param value} of the property with the
     * name {@param property} until it finds a vertex with the label {@param untilLabel}. This version will only look
     * for younger vertices, as it only goes "in"
     * @param property The name of the starting vertex property.
@@ -186,7 +185,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
   }
 
   /**
-  * Same as shortestPath but optimized for querying between upp and blockchain
+    * Same as shortestPath but optimized for querying between upp and blockchain
     */
   def shortestPathUppBlockchain(property: String, value: String): Future[List[VertexStruct]] = {
     //val x = StepLabel[java.util.Set[Vertex]]("x")
@@ -194,7 +193,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     val shortestPath = gremlin.g.V()
       .has(Key[String](property.toLowerCase()), value)
       //.store(x)
-      .in( Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY)
+      .in(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY)
       .repeat(_.in(
         Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
         Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
@@ -290,14 +289,15 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       }
     }
 
-    asVertices(path, anchors) match { case (p, a) =>
-      val _path = p.map(x =>
-        x.map(Values.TIMESTAMP)(parseTimestamp)
-          .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
+    asVertices(path, anchors) match {
+      case (p, a) =>
+        val _path = p.map(x =>
+          x.map(Values.TIMESTAMP)(parseTimestamp)
+            .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
 
-      val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
+        val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
 
-      (_path, _anchors)
+        (_path, _anchors)
     }
   }
 

@@ -32,8 +32,7 @@ package object udash {
 
   object VerificationServiceRestImplicits extends VerificationServiceRestImplicits
 
-  abstract class VerificationServiceRestApiCompanion[Real]
-    (implicit inst: MacroInstances[VerificationServiceRestImplicits, OpenApiFullInstances[Real]])
+  abstract class VerificationServiceRestApiCompanion[Real](implicit inst: MacroInstances[VerificationServiceRestImplicits, OpenApiFullInstances[Real]])
     extends RestOpenApiCompanion[VerificationServiceRestImplicits, Real](VerificationServiceRestImplicits)
 
   class cors extends addResponseHeader("Access-Control-Allow-Origin", "*")
