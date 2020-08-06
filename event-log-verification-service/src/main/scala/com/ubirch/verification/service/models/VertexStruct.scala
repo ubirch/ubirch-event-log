@@ -22,9 +22,10 @@ case class VertexStruct(id: String, label: String, properties: Map[String, Any])
 
   def replace(newProperty: (String, Any)): VertexStruct = map(newProperty._1)(_ => newProperty._2)
 
-  def map(key: String)(f: Any => Any): VertexStruct = copy(properties = this.properties.map { case (k, v) =>
-    val newV = if (k == key) f(v) else v
-    (k, newV)
+  def map(key: String)(f: Any => Any): VertexStruct = copy(properties = this.properties.map {
+    case (k, v) =>
+      val newV = if (k == key) f(v) else v
+      (k, newV)
   })
 
   def addLabelWhen(newLabel: String)(matching: String): VertexStruct = {
