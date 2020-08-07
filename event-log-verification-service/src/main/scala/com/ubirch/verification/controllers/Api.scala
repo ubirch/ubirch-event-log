@@ -78,6 +78,11 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   }
 
   object Response extends RestDataCompanion[Response] {
+
+    val OK: Int = 200
+    val BAD_REQUEST: Int = 400
+    val NOT_FOUND: Int = 404
+
     // adds custom status codes
     implicit def asRestResp(implicit
         successAsRaw: AsRaw[HttpBody, Success],
@@ -85,8 +90,8 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
     ): AsRaw[RestResponse, Response] = {
       AsRaw.create {
         case s: Success => successAsRaw.asRaw(s).defaultResponse.recoverHttpError
-        case NotFound => RestResponse(404, IMapping.empty, HttpBody.empty)
-        case f: Failure => failureAsRaw.asRaw(f).defaultResponse.copy(code = 400).recoverHttpError
+        case NotFound => RestResponse(NOT_FOUND, IMapping.empty, HttpBody.empty)
+        case f: Failure => failureAsRaw.asRaw(f).defaultResponse.copy(code = BAD_REQUEST).recoverHttpError
       }
     }
   }
