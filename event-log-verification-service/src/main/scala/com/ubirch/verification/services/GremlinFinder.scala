@@ -2,6 +2,7 @@ package com.ubirch.verification.services
 
 import java.util.Date
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
@@ -11,7 +12,13 @@ import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) extends LazyLogging {
+class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
+
+  /*
+  This variable is here to select which algorithm will be used to find the lower path: going back from the first found
+  Master Tree (false), or the last found (true)
+   */
+  lazy val safeMode: Boolean = config.getBoolean("eventLog.gremlin.safeMode")
 
   /**
     * Find the upper and lower bound blockchains associated to the given vertex and decorates the vertices in the path.
@@ -30,9 +37,24 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
   /**
     * Find the upper and lower bound blockchains associated to the given vertex
+    * Bellow an example of the final path.
+    * MT1 = first master tree found. Correspond to maybeFirstMasterAndTime
+    * MT2 = last master tree found. Correspond to maybeLastMasterAndTime
+    * BCU1/2 = example of 2 blockchains transactions associated to the master tree 2. Correspond to the upper bound
+    * There the anchoring time will be posterior than the created time of the UPP
+    * BCL1/BCL2 = example of 2 blockchains transactions associated to the master tree 2. Correspond to the lower bound
+    * There the anchoring time will be anterior than the created time of the UPP
+    *
+    *        BCL1/BCL2                                      BCU1/BCU2
+    *            |                                              |
+    *           MT0-----MT----MT----MT----MT1-----MT-----MT----MT2
+    *                                      |
+    *               FT---FT---FT----FT----FT
+    *               |
+    *              UPP
     *
     * @param id Id of the vertex
-    * @return A Future of 4 vertex List corresponding to the shortest path, upper path, lower path and ???
+    * @return A Future of 4 vertex List corresponding to the upper path, upper blockhains, lower path and lower blockchains
     */
   def findUpperAndLower(id: String): Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = {
     val futureShortestPath: Future[PathHelper] = shortestPathFromVertexToBlockchain(id).map(PathHelper)
@@ -52,26 +74,34 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
       master.map(x => (x, time.getOrElse(-1L)))
     }
 
-    val maybeFirstMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
-      time <- headTimestamp
-      master <- futureShortestPath.map(_.firstMasterOption)
-    } yield {
-      master.map(x => (x, time.getOrElse(-1L)))
-    }
-
-    val upper: Future[List[VertexStruct]] = maybeLastMasterAndTime.flatMap {
+    val upperBlockchains: Future[List[VertexStruct]] = maybeLastMasterAndTime.flatMap {
       case Some((v, _)) =>
         getBlockchainsFromMasterVertex(v)
       case None =>
         Future.successful(Nil)
     }
 
-    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeFirstMasterAndTime.flatMap {
-      case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
-      case None => Future.successful(None)
+    val lowerPathHelper: Future[Option[(PathHelper, Long)]] = {
+      if (safeMode) {
+        maybeLastMasterAndTime.flatMap {
+          case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
+          case None => Future.successful(None)
+        }
+      } else {
+        val maybeFirstMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
+          time <- headTimestamp
+          master <- futureShortestPath.map(_.firstMasterOption)
+        } yield {
+          master.map(x => (x, time.getOrElse(-1L)))
+        }
+        maybeFirstMasterAndTime.flatMap {
+          case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
+          case None => Future.successful(None)
+        }
+      }
     }
 
-    val lower: Future[List[VertexStruct]] = lowerPathHelper.flatMap {
+    val lowerBlockchains: Future[List[VertexStruct]] = lowerPathHelper.flatMap {
       case Some((ph, _)) =>
         ph.reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
@@ -82,9 +112,9 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
 
     for {
       path <- futureShortestPath.map(_.reversedTailReversed)
-      up <- upper
+      up <- upperBlockchains
       lp <- lowerPathHelper
-      lw <- lower
+      lw <- lowerBlockchains
     } yield {
       (path.toList, up, lp.map(x => x._1).map(_.path).getOrElse(Nil), lw)
     }
