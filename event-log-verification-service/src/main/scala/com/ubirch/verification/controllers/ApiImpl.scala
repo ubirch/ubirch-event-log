@@ -44,6 +44,11 @@ class ApiImpl @Inject() (
     .build("http_requests_count", "Number of http request received.")
     .register()
 
+  val responsesSent: Counter = Counter
+    .build("http_responses_count", "Number of http responses sent.")
+    .labelNames("status")
+    .register()
+
   private val uppCache: Option[RMapCache[Array[Byte], String]] =
     try {
       Some(redis.redisson.getMapCache("hashes_payload"))
@@ -168,19 +173,19 @@ class ApiImpl @Inject() (
   }
 
   override def health: Future[String] = {
-    registerProcessingTime("health") { () =>
+    registerMetrics("health") { () =>
       Future.successful("ok")
     }
   }
 
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = {
-    registerProcessingTime("upp") { () =>
+    registerMetrics("upp") { () =>
       lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
     }
   }
 
   override def verifyUPP(hash: Array[Byte]): Future[Response] = {
-    registerProcessingTime("simple") { () =>
+    registerMetrics("simple") { () =>
       verifyBase(
         hash,
         Simple,
@@ -191,7 +196,7 @@ class ApiImpl @Inject() (
   }
 
   override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
-    registerProcessingTime("anchor") { () =>
+    registerMetrics("anchor") { () =>
       verifyBase(
         hash,
         ShortestPath,
@@ -202,7 +207,7 @@ class ApiImpl @Inject() (
   }
 
   override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
-    registerProcessingTime("record") { () =>
+    registerMetrics("record") { () =>
       verifyBase(
         hash,
         UpperLower,
@@ -212,9 +217,23 @@ class ApiImpl @Inject() (
     }
   }
 
-  private def registerProcessingTime[T](endpoint: String)(f: () => Future[T]): Future[T] = {
+  private def registerMetrics[T](endpoint: String)(f: () => Future[T]): Future[T] = {
     val timer = processingTimer.labels("verification", endpoint).startTimer()
     f().transform { r => requestReceived.inc(); timer.observeDuration(); r }
+      .transform { r =>
+        r match {
+          case util.Success(value: Response) =>
+            value match {
+              case Success(_, _, _) => responsesSent.labels(Response.OK.toString).inc()
+              case NotFound => responsesSent.labels(Response.NOT_FOUND.toString).inc()
+              case Failure(_, _, _, _) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
+
+            }
+          case util.Success(_) => responsesSent.labels(Response.OK.toString).inc()
+          case util.Failure(_) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
+        }
+        r
+      }
 
   }
 
