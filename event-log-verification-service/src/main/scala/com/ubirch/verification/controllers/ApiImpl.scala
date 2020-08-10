@@ -40,11 +40,11 @@ class ApiImpl @Inject() (
     .quantile(0.999, 0.05)
     .register()
 
-  val requestReceived: Counter = Counter
+  private val requestReceived: Counter = Counter
     .build("http_requests_count", "Number of http request received.")
     .register()
 
-  val responsesSent: Counter = Counter
+  private val responsesSent: Counter = Counter
     .build("http_responses_count", "Number of http responses sent.")
     .labelNames("status")
     .register()
@@ -89,7 +89,7 @@ class ApiImpl @Inject() (
   /** exception for wrapping early responses in the DSL below */
   case class ResponseException(resp: Response) extends Exception with NoStackTrace
 
-  def finalizeResponse(responseFuture: Future[Api.Success], requestId: String)(implicit ec: ExecutionContext): Future[Response] =
+  private def finalizeResponse(responseFuture: Future[Api.Success], requestId: String)(implicit ec: ExecutionContext): Future[Response] =
     responseFuture.recover {
       case ResponseException(response) => response
       case e: Exception =>
@@ -97,7 +97,7 @@ class ApiImpl @Inject() (
         throw HttpErrorException(500, payload = s"InternalServerError: ${e.getClass.getSimpleName}: ${e.getMessage}", cause = e)
     }
 
-  def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[Response] = {
+  private def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[Response] = {
 
     val requestId = bytesToPrintableId(hash)
 
@@ -133,7 +133,7 @@ class ApiImpl @Inject() (
     finalizeResponse(responseFuture, requestId)
   }
 
-  def findCachedUpp(bytes: Array[Byte]): Future[Option[String]] = {
+  private def findCachedUpp(bytes: Array[Byte]): Future[Option[String]] = {
 
     Future.successful {
       Option(
@@ -148,7 +148,7 @@ class ApiImpl @Inject() (
     }
   }
 
-  def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
+  private def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
 
     val requestId = bytesToPrintableId(hash)
 
@@ -170,6 +170,26 @@ class ApiImpl @Inject() (
     } yield Success(b64(seal), null, anchors)
 
     finalizeResponse(responseFuture, requestId)
+  }
+
+  private def registerMetrics[T](endpoint: String)(f: () => Future[T]): Future[T] = {
+    val timer = processingTimer.labels("verification", endpoint).startTimer()
+    f().transform { r => requestReceived.inc(); timer.observeDuration(); r }
+      .transform { r =>
+        r match {
+          case util.Success(value: Response) =>
+            value match {
+              case Success(_, _, _) => responsesSent.labels(Response.OK.toString).inc()
+              case NotFound => responsesSent.labels(Response.NOT_FOUND.toString).inc()
+              case Failure(_, _, _, _) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
+
+            }
+          case util.Success(_) => responsesSent.labels(Response.OK.toString).inc()
+          case util.Failure(_) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
+        }
+        r
+      }
+
   }
 
   override def health: Future[String] = {
@@ -215,26 +235,6 @@ class ApiImpl @Inject() (
         BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
       )
     }
-  }
-
-  private def registerMetrics[T](endpoint: String)(f: () => Future[T]): Future[T] = {
-    val timer = processingTimer.labels("verification", endpoint).startTimer()
-    f().transform { r => requestReceived.inc(); timer.observeDuration(); r }
-      .transform { r =>
-        r match {
-          case util.Success(value: Response) =>
-            value match {
-              case Success(_, _, _) => responsesSent.labels(Response.OK.toString).inc()
-              case NotFound => responsesSent.labels(Response.NOT_FOUND.toString).inc()
-              case Failure(_, _, _, _) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
-
-            }
-          case util.Success(_) => responsesSent.labels(Response.OK.toString).inc()
-          case util.Failure(_) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
-        }
-        r
-      }
-
   }
 
 }
