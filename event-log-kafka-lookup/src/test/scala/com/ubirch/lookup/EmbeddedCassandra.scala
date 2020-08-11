@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 trait EmbeddedCassandra extends LazyLogging {
 
-  val factory = new LocalCassandraFactoryBuilder().build()
+  val factory = new LocalCassandraFactoryBuilder().setAllowRoot(true).build
 
   val cassandra = new TestCassandra(factory)
 
