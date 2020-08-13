@@ -1,30 +1,12 @@
 package com.ubirch.verification.models
 
 import com.ubirch.models.Values
-import org.apache.kafka.clients.consumer.ConsumerRecord
-
-import scala.collection.JavaConverters._
 
 trait Params {
   val value: String
 }
 
-object Params {
-  def get[T <: Params](maybeConsumerRecord: Option[ConsumerRecord[String, String]], paramsHelper: ParamsHelper[T]): Option[T] = {
-    maybeConsumerRecord
-      .flatMap(_.headers().headers(paramsHelper.HEADER).asScala.headOption)
-      .map(_.value())
-      .map(org.bouncycastle.util.Strings.fromUTF8ByteArray)
-      .filter(paramsHelper.isValid)
-      .flatMap(paramsHelper.fromString)
-  }
-
-  def getOrElse[T <: Params](maybeConsumerRecord: Option[ConsumerRecord[String, String]], paramsHelper: ParamsHelper[T], orElse: T): T =
-    get(maybeConsumerRecord, paramsHelper).getOrElse(orElse)
-
-}
-
-abstract class ParamsHelper[T <: Params](val HEADER: String) {
+trait ParamsHelper[T <: Params] {
   def isValid(value: String): Boolean = fromString(value).isDefined
 
   def fromString(value: String): Option[T] = options.find(_.value == value)
@@ -42,7 +24,7 @@ case object Signature extends QueryType {
   val value: String = Values.SIGNATURE
 }
 
-object QueryType extends ParamsHelper[QueryType]("query-type") {
+object QueryType extends ParamsHelper[QueryType] {
   def options: List[QueryType] = List(Payload, Signature)
 }
 
@@ -60,7 +42,7 @@ case object UpperLower extends QueryDepth {
   val value: String = Values.QUERY_DEPTH_SHORTEST_UPPER_LOWER
 }
 
-object QueryDepth extends ParamsHelper[QueryDepth]("query-depth") {
+object QueryDepth extends ParamsHelper[QueryDepth] {
   def options: List[QueryDepth] = List(Simple, ShortestPath, UpperLower)
 }
 
@@ -74,7 +56,7 @@ case object AnchorsNoPath extends ResponseForm {
   val value: String = Values.RESPONSE_ANCHORS_NO_PATH
 }
 
-object ResponseForm extends ParamsHelper[ResponseForm]("query-response-form-header") {
+object ResponseForm extends ParamsHelper[ResponseForm] {
   override def options: List[ResponseForm] = List(AnchorsWithPath, AnchorsNoPath)
 }
 
@@ -88,7 +70,7 @@ case object Normal extends BlockchainInfo {
   final val value: String = "normal"
 }
 
-object BlockchainInfo extends ParamsHelper[BlockchainInfo]("query-blockchain-info") {
+object BlockchainInfo extends ParamsHelper[BlockchainInfo] {
   override def options: List[BlockchainInfo] = List(Normal, Extended)
 }
 

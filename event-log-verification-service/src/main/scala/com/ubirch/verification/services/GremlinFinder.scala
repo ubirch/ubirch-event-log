@@ -12,6 +12,7 @@ import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+@Singleton
 class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
   /*
