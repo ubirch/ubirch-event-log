@@ -7,8 +7,8 @@ case class LookupResult(success: Boolean, value: String, queryType: String, mess
 
 object LookupResult {
 
-  def apply(success: Boolean, key: String, queryType: QueryType, message: String, event: JValue, anchors: JValue): LookupResult =
-    LookupResult(success, key, queryType.value, message, event, anchors)
+  def apply(success: Boolean, value: String, queryType: QueryType, message: String, event: JValue, anchors: JValue): LookupResult =
+    LookupResult(success, value, queryType.value, message, event, anchors)
 
   def NotFound(value: String, queryType: QueryType): LookupResult =
     LookupResult(success = true, value, queryType.value, "Nothing Found", JNull, JNull)
