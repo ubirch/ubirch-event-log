@@ -4,18 +4,14 @@ import java.util.UUID
 
 import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.kafka.consumer.ProcessResult
 import com.ubirch.models.Values
-import com.ubirch.util.{ JValueGenericResponse, ProducerRecordHelper, UUIDHelper }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.Finder
-import com.ubirch.verification.util.Exceptions.{ CreateProducerRecordException, LookupExecutorException }
+import com.ubirch.verification.util.Exceptions.LookupExecutorException
 import com.ubirch.verification.util.LookupJsonSupport
 import com.ubirch.verification.util.LookupJsonSupport.formats
 import javax.inject.Inject
 import monix.execution.{ FutureUtils, Scheduler }
-import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.clients.producer.{ ProducerRecord, RecordMetadata }
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
@@ -71,18 +67,15 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
 
   }
 
-  def simple(key: String, value: String, queryType: QueryType): Future[LookupPipeDataNew] =
+  def simple(key: String, value: String, queryType: QueryType): Future[LookupResult] =
     finder.findUPP(value, queryType).map {
-      case Some(ev) =>
-        LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.Found(key, queryType, ev.event, JNull)), None, None)
-
-      case None =>
-        LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
+      case Some(ev) => LookupResult.Found(key, queryType, ev.event, JNull)
+      case None => LookupResult.NotFound(key, queryType)
     }
 
-  def shortestPath(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupPipeDataNew] = {
+  def shortestPath(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
 
-    val res: Future[LookupPipeDataNew] = for {
+    val res: Future[LookupResult] = for {
       (maybeEventLog, path, maybeAnchors) <- finder.findUPPWithShortestPath(value, queryType)
       decoratedAnchors <- decorateBlockchain(blockchainInfo, maybeAnchors)
     } yield {
@@ -98,19 +91,19 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
         LookupResult.NotFound(key, queryType)
       }
 
-      LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(result), None, None)
+      result
     }
 
     res.recover {
       case e: Exception =>
         logger.error("For Comprehension Res (shortestPath): " + e.getMessage)
         logger.error("For Comprehension Res (shortestPath): ", e)
-        LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
+        LookupResult.NotFound(key, queryType)
     }
 
   }
 
-  def upperLower(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupPipeDataNew] = {
+  def upperLower(key: String, value: String, queryType: QueryType, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
 
     val res = for {
       (maybeEventLog, upperPath, upperBlocks, lowerPath, lowerBlocks) <- finder.findUPPWithUpperLowerBounds(value, queryType)
@@ -131,7 +124,7 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
         LookupResult.NotFound(key, queryType)
       }
 
-      LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(result), None, None)
+      result
 
     }
 
@@ -139,23 +132,23 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
       case e: Exception =>
         logger.error("For Comprehension Res (upperLower):  " + e.getMessage)
         logger.error("For Comprehension Res (upperLower):  ", e)
-        LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None)
+        LookupResult.NotFound(key, queryType)
 
     }
 
   }
 
   override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-      blockchainInfo: BlockchainInfo = Normal): Future[EventLogClient.Response] =
+      blockchainInfo: BlockchainInfo = Normal): Future[LookupResult] =
 
     getEvent(hash, queryDepth, responseForm, blockchainInfo, Some(Payload))
 
   override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm,
-      blockchainInfo: BlockchainInfo): Future[EventLogClient.Response] =
+      blockchainInfo: BlockchainInfo): Future[LookupResult] =
 
     getEvent(signature, queryDepth, responseForm, blockchainInfo, Some(Signature))
 
-  private def getEvent(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, maybeQueryType: Option[QueryType]) = {
+  private def getEvent(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, maybeQueryType: Option[QueryType]): Future[LookupResult] = {
     //Todo: remove key -> or rather define in API
     val key = UUID.randomUUID().toString
     val value: String = new String(hash) //hash.map(_.toChar).mkString
@@ -167,10 +160,10 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
 
       if (value.isEmpty || key.isEmpty)
         //Todo: Api should not accept queries without hash
-        Future.successful(LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(LookupResult.NotFound(key, queryType)), None, None))
+        Future.successful(LookupResult.NotFound(key, queryType))
       else {
 
-        lazy val res: Future[LookupPipeDataNew] = queryDepth match {
+        lazy val res: Future[LookupResult] = queryDepth match {
           case Simple => simple(key, value, queryType)
           case ShortestPath => shortestPath(key, value, queryType, responseForm, blockchainInfo)
           case UpperLower => upperLower(key, value, queryType, responseForm, blockchainInfo)
@@ -184,46 +177,20 @@ class NewEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext
               throw e
             case e: TimeoutException =>
               logger.error(s"Timeout querying data ($queryDepth): ", e)
-              val res = LookupResult.Error(key, queryType, s"Error processing request ($queryDepth): " + e.getMessage)
-              LookupPipeDataNew(Some(value), Some(key), Some(queryType), Option(res), None, None)
+              LookupResult.Error(key, queryType, s"Error processing request ($queryDepth): " + e.getMessage)
             case e: Exception =>
               logger.error(s"Error querying data ($queryDepth): ", e)
               val res = LookupResult.Error(key, queryType, s"Error processing request ($queryDepth): " + e.getMessage)
-              throw LookupExecutorException(
-                s"Error querying data ($queryDepth)",
-                LookupPipeDataNew(Some(value), Some(key), Some(queryType), Some(res), None, None),
-                e.getMessage
-              )
+              throw LookupExecutorException(s"Error querying data ($queryDepth)", Some(res), e.getMessage)
           }
 
       }
 
     }
 
-    val result: Future[LookupPipeDataNew] = maybeFutureRes.getOrElse(throw LookupExecutorException("No key or value was found", LookupPipeDataNew(Some(value), Some(key), maybeQueryType, None, None, None), ""))
-    result.map(createResponseFromLookupPipeDataNew)
-  }
+    val result: Future[LookupResult] = maybeFutureRes.getOrElse(throw LookupExecutorException("No key or value was found", None, ""))
 
-  def createResponseFromLookupPipeDataNew(lookupPipeDataNew: LookupPipeDataNew): EventLogClient.Response = {
-    val topic = "irrelevant topic ;)"
-
-    val output: LookupPipeDataNew =
-      lookupPipeDataNew
-        .lookupResult
-        .map { x: LookupResult =>
-          val lookupJValue = LookupJsonSupport.ToJson[LookupResult](x).get
-          val gr = JValueGenericResponse(success = x.success, x.message, lookupJValue)
-          (x, LookupJsonSupport.ToJson[JValueGenericResponse](gr))
-        }
-        .map {
-          case (x: LookupResult, y) =>
-            ProducerRecordHelper.toRecord(topic, x.key, y.toString, Map(QueryType.HEADER -> x.queryType))
-        }
-        .map(producerRec => lookupPipeDataNew.copy(producerRecord = Some(producerRec)))
-        .getOrElse(throw CreateProducerRecordException("Empty Materials", lookupPipeDataNew))
-
-    output.producerRecord
-      .map(producerRec => EventLogClient.Response.fromJson(producerRec.value())).get
+    result
 
   }
 
@@ -257,16 +224,4 @@ object LookupExecutor {
     LookupJsonSupport.ToJson(anchors).get
   }
 
-}
-
-case class LookupPipeDataNew(
-    value: Option[String] = None,
-    key: Option[String],
-    queryType: Option[QueryType],
-    lookupResult: Option[LookupResult],
-    producerRecord: Option[ProducerRecord[String, String]],
-    recordMetadata: Option[RecordMetadata],
-    consumerRecords: Vector[ConsumerRecord[String, String]] = Vector.empty
-) extends ProcessResult[String, String] {
-  val id: UUID = UUIDHelper.randomUUID
 }

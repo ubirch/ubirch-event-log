@@ -117,13 +117,6 @@
 
         <!-- ubirch -->
 
-        <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-kafka-envelope</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
-        </dependency>
-
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>

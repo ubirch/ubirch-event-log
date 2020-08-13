@@ -1,3 +1,4 @@
+/*
 package com.ubirch.verification
 
 import java.nio.charset.StandardCharsets
@@ -410,3 +411,4 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     CollectorRegistry.defaultRegistry.clear()
   }
 }
+*/

@@ -9,10 +9,11 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.controllers.Api.{ Failure, NotFound, Response, Success }
+import com.ubirch.verification.controllers.Api.{ Anchors, Failure, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
+import com.ubirch.verification.util.LookupJsonSupport
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
 import javax.inject.{ Named, Singleton }
@@ -102,16 +103,17 @@ class ApiImpl @Inject() (
     val requestId = bytesToPrintableId(hash)
 
     val responseFuture = for {
-      response: EventLogClient.Response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
+      response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received event log response[$queryDepth, $responseForm] : [$response]")
       _ <- earlyResponseIf(response == null)(NotFound)
       _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
 
-      upp = response.data.event
+      //TODO ADD TRY HERE
+      upp = LookupJsonSupport.FromJson[ProtocolMessage](response.event).get
       _ <- earlyResponseIf(upp == null)(NotFound)
       _ <- earlyResponseIf(!verifier.verifySuppressExceptions(upp))(Failure())
 
-      anchors = response.data.anchors
+      anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
       successNoChain = Success(b64(seal), null, anchors)
 
@@ -121,11 +123,12 @@ class ApiImpl @Inject() (
       chainResponse <- eventLogClient.getEventBySignature(b64(upp.getChain).getBytes(StandardCharsets.UTF_8), queryDepth = Simple, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received chain response: [$chainResponse]")
 
-      chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.data.event == null
+      chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.event == null
       _ = if (chainRequestFailed) logger.warn(s"[$requestId] chain request failed even though chain was set in the original packet")
       _ <- earlyResponseIf(chainRequestFailed)(successNoChain)
 
-      chain = rawPacket(chainResponse.data.event)
+      chainUPP = LookupJsonSupport.FromJson[ProtocolMessage](chainResponse.event).get
+      chain = rawPacket(chainUPP)
     } yield {
       successNoChain.copy(prev = b64(chain))
     }
@@ -161,10 +164,10 @@ class ApiImpl @Inject() (
       _ <- earlyResponseIf(response == null)(NotFound)
       _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
 
-      upp = response.data.event
+      upp = LookupJsonSupport.FromJson[ProtocolMessage](response.event).get
       _ <- earlyResponseIf(upp == null)(NotFound)
 
-      anchors = response.data.anchors
+      anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
 
     } yield Success(b64(seal), null, anchors)
