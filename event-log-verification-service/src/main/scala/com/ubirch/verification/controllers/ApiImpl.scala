@@ -28,8 +28,7 @@ class ApiImpl @Inject() (
     verifier: KeyServiceBasedVerifier,
     redis: RedisCache,
     healthcheck: HealthCheckServer
-)(implicit ec: ExecutionContext)
-  extends Api with StrictLogging {
+)(implicit ec: ExecutionContext) extends Api with StrictLogging {
 
   private val processingTimer: Summary = Summary
     .build("processing_time_seconds", "Message processing time in seconds")
@@ -83,7 +82,7 @@ class ApiImpl @Inject() (
   /** exception for wrapping early responses in the DSL below */
   case class ResponseException(resp: Response) extends Exception with NoStackTrace
 
-  private def finalizeResponse(responseFuture: Future[Api.Success], requestId: String)(implicit ec: ExecutionContext): Future[Response] =
+  private def finalizeResponse(responseFuture: Future[Api.Success], requestId: String): Future[Response] =
     responseFuture.recover {
       case ResponseException(response) => response
       case e: Exception =>
