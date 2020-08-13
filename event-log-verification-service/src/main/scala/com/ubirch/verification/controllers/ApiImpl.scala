@@ -2,7 +2,6 @@ package com.ubirch.verification.controllers
 
 import java.io.{ ByteArrayOutputStream, IOException }
 import java.nio.charset.StandardCharsets
-import java.util.Base64
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
@@ -13,7 +12,7 @@ import com.ubirch.verification.controllers.Api.{ Anchors, Failure, NotFound, Res
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
-import com.ubirch.verification.util.LookupJsonSupport
+import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
 import javax.inject.{ Named, Singleton }
@@ -77,12 +76,6 @@ class ApiImpl @Inject() (
     out.toByteArray
   }
 
-  private def b64(x: Array[Byte]): String = if (x != null) Base64.getEncoder.encodeToString(x) else null
-
-  private def bytesToPrintableId(x: Array[Byte]): String =
-    if (x.exists(c => !(c.toChar.isLetterOrDigit || c == '=' || c == '/' || c == '+'))) b64(x)
-    else new String(x, StandardCharsets.UTF_8)
-
   /** little utility function that makes the DSL below readable */
   private def earlyResponseIf(condition: Boolean)(response: => Response): Future[Unit] =
     if (condition) Future.failed(ResponseException(response)) else Future.unit
@@ -100,7 +93,7 @@ class ApiImpl @Inject() (
 
   private def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[Response] = {
 
-    val requestId = bytesToPrintableId(hash)
+    val requestId = HashHelper.bytesToPrintableId(hash)
 
     val responseFuture = for {
       response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
@@ -115,12 +108,12 @@ class ApiImpl @Inject() (
 
       anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
-      successNoChain = Success(b64(seal), null, anchors)
+      successNoChain = Success(HashHelper.b64(seal), null, anchors)
 
       _ <- earlyResponseIf(upp.getChain == null)(successNoChain)
 
       // overwritting the type of queryDepth to simple (cf UP-1454), as the full path of the chained UPP is not being used right now
-      chainResponse <- eventLogClient.getEventBySignature(b64(upp.getChain).getBytes(StandardCharsets.UTF_8), queryDepth = Simple, responseForm, blockchainInfo)
+      chainResponse <- eventLogClient.getEventBySignature(HashHelper.b64(upp.getChain).getBytes(StandardCharsets.UTF_8), queryDepth = Simple, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received chain response: [$chainResponse]")
 
       chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.event == null
@@ -130,7 +123,7 @@ class ApiImpl @Inject() (
       chainUPP = LookupJsonSupport.FromJson[ProtocolMessage](chainResponse.event).get
       chain = rawPacket(chainUPP)
     } yield {
-      successNoChain.copy(prev = b64(chain))
+      successNoChain.copy(prev = HashHelper.b64(chain))
     }
 
     finalizeResponse(responseFuture, requestId)
@@ -153,7 +146,7 @@ class ApiImpl @Inject() (
 
   private def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
 
-    val requestId = bytesToPrintableId(hash)
+    val requestId = HashHelper.bytesToPrintableId(hash)
 
     val responseFuture = for {
       cachedUpp <- if (disableRedisLookup) Future.successful(None) else findCachedUpp(hash)
@@ -170,7 +163,7 @@ class ApiImpl @Inject() (
       anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
 
-    } yield Success(b64(seal), null, anchors)
+    } yield Success(HashHelper.b64(seal), null, anchors)
 
     finalizeResponse(responseFuture, requestId)
   }
