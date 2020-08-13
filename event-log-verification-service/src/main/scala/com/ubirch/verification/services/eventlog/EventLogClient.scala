@@ -19,4 +19,5 @@ trait EventLogClient {
       responseForm: ResponseForm,
       blockchainInfo: BlockchainInfo
   ): Future[LookupResult]
+
 }
