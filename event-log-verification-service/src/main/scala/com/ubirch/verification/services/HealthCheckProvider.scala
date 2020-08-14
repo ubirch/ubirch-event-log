@@ -15,9 +15,6 @@ class HealthCheckProvider @Inject() (config: Config) extends Provider[HealthChec
     s.setLivenessCheck(Checks.notInitialized("business-logic"))
     s.setReadinessCheck(Checks.notInitialized("business-logic"))
 
-    s.setReadinessCheck(Checks.notInitialized("kafka-consumer"))
-    s.setReadinessCheck(Checks.notInitialized("kafka-producer"))
-
     if (config.getBoolean("health-check.enabled")) {
       s.run(config.getInt("health-check.port"))
     }

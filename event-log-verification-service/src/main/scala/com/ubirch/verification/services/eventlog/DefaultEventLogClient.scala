@@ -6,11 +6,10 @@ import com.ubirch.models.Values
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.Finder
 import com.ubirch.verification.util.Exceptions.LookupExecutorException
+import com.ubirch.verification.util.HashHelper
 import com.ubirch.verification.util.LookupJsonSupport.formats
-import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import javax.inject._
 import monix.execution.{ FutureUtils, Scheduler }
-import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
@@ -19,6 +18,8 @@ import scala.language.postfixOps
 
 @Singleton
 class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
+
+  import EventLogClient._
 
   implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
@@ -183,32 +184,6 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
 
     }
 
-  }
-
-  private def shortestPathAsJValue(maybeAnchors: Seq[VertexStruct]): JValue =
-    LookupJsonSupport.ToJson[Seq[VertexStruct]](maybeAnchors).get
-
-  private def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]): JValue = {
-    val anchors = Map(Values.SHORTEST_PATH -> path.map(v => v.toDumbVertexStruct), Values.BLOCKCHAINS -> maybeAnchors.map(v => v.toDumbVertexStruct))
-    LookupJsonSupport.ToJson(anchors).get
-  }
-
-  private def upperAndLowerAsJValue(upperPath: Seq[VertexStruct], upperBlocks: Seq[VertexStruct], lowerPath: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
-    val anchors = Map(
-      Values.UPPER_PATH -> upperPath,
-      Values.UPPER_BLOCKCHAINS -> upperBlocks,
-      Values.LOWER_PATH -> lowerPath,
-      Values.LOWER_BLOCKCHAINS -> lowerBlocks
-    )
-    LookupJsonSupport.ToJson(anchors).get
-  }
-
-  private def upperAndLowerAsJValue(upperBlocks: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
-    val anchors = Map(
-      Values.UPPER_BLOCKCHAINS -> upperBlocks,
-      Values.LOWER_BLOCKCHAINS -> lowerBlocks
-    )
-    LookupJsonSupport.ToJson(anchors).get
   }
 
 }
