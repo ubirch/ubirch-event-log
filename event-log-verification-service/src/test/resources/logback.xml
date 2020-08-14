@@ -30,8 +30,6 @@
         </encoder>
     </appender>
 
-    <logger name="org.apache.kafka" level="ERROR"/>
-    <logger name="org.apache.zookeeper" level="ERROR"/>
     <logger name="com.github.nosan.embedded.cassandra" level="ERROR"/>
     <logger name="io.netty" level="ERROR"/>
 
