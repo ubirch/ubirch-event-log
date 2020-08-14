@@ -102,6 +102,7 @@ class ApiImpl @Inject() (
 
       //TODO ADD TRY HERE
       upp = LookupJsonSupport.FromJson[ProtocolMessage](response.event).get
+      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
       _ <- earlyResponseIf(upp == null)(NotFound)
       _ <- earlyResponseIf(!verifier.verifySuppressExceptions(upp))(Failure())
 
