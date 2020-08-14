@@ -16,6 +16,7 @@ import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
 import javax.inject.{ Named, Singleton }
+import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
@@ -116,7 +117,7 @@ class ApiImpl @Inject() (
       chainResponse <- eventLogClient.getEventBySignature(HashHelper.b64(upp.getChain).getBytes(StandardCharsets.UTF_8), queryDepth = Simple, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received chain response: [$chainResponse]")
 
-      chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.event == null
+      chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.event == null || chainResponse.event == JNull
       _ = if (chainRequestFailed) logger.warn(s"[$requestId] chain request failed even though chain was set in the original packet")
       _ <- earlyResponseIf(chainRequestFailed)(successNoChain)
 
