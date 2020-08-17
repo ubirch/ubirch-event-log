@@ -48,14 +48,16 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
           case UpperLower => upperLower(hashAsString, queryType, responseForm, blockchainInfo)
         }
 
+        val timeout = 55 seconds
+
         FutureUtils
-          .timeout(res, 20 seconds)
+          .timeout(res, timeout)
           .recover {
             case e: InvalidQueryException =>
               logger.error(s"Error querying db ($queryDepth): ", e)
               throw e
             case e: TimeoutException =>
-              logger.error(s"Timeout querying data ($queryDepth): ", e)
+              logger.error(s"Timeout querying data ($queryDepth) after ${timeout.toString()}: ", e)
               LookupResult.Error(hashAsString, queryType, s"Error processing request ($queryDepth): " + e.getMessage)
             case e: Exception =>
               logger.error(s"Error querying data ($queryDepth): ", e)
@@ -100,8 +102,7 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
 
     res.recover {
       case e: Exception =>
-        logger.error("For Comprehension Res (shortestPath): " + e.getMessage)
-        logger.error("For Comprehension Res (shortestPath): ", e)
+        logger.error(s"For Comprehension Res (shortestPath): message=${e.getMessage} ", e)
         LookupResult.NotFound(value, queryType)
     }
 
@@ -178,8 +179,7 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
 
     res.recover {
       case e: Exception =>
-        logger.error("For Comprehension Res (upperLower):  " + e.getMessage)
-        logger.error("For Comprehension Res (upperLower):  ", e)
+        logger.error(s"For Comprehension Res (upperLower): message=${e.getMessage} ", e)
         LookupResult.NotFound(value, queryType)
 
     }
