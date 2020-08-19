@@ -10,15 +10,13 @@ import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
 import com.ubirch.verification.models._
-import com.ubirch.verification.services.eventlog.EventLogClient.Response
-import com.ubirch.verification.services.eventlog.{ EventLogClient, LookupExecutor, LookupPipeDataNew, NewEventLogClient }
+import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services.{ CassandraFinder, DefaultTestingGremlinConnector, Finder, Gremlin }
 import com.ubirch.verification.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
 import javax.inject._
-import org.apache.kafka.common.serialization.StringSerializer
-import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
+import org.json4s.{ JNull, JValue }
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -204,34 +202,24 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
     """.stripMargin
 
   val insertLookupSql: String =
-    s"""
-       |INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${Values.UPP_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');
-    """.stripMargin
-
-  implicit val se: StringSerializer = new StringSerializer
+    s"""INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${Values.UPP_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');""".stripMargin
 
   "Lookup Spec" must {
 
-    "consume and process successfully when Found" in {
+    "process successfully when Found" in {
 
-      cassandra.executeScripts(
-        CqlScript.statements(
-          insertEventSql
-        )
-      )
+      cassandra.executeScripts(CqlScript.statements(insertEventSql))
 
       val modules: List[Module] = List {
         new LookupServiceBinder {
-
           override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
 
           override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
-
         }
       }
 
       val injector = new InjectorHelper(modules) {}
-      val newEventLogClient = injector.get(classOf[NewEventLogClient])
+      val eventLogClient = injector.get[EventLogClient]
 
       val value = "c29tZSBieXRlcyEAAQIDnw=="
       val queryType = Payload
@@ -239,32 +227,24 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       val responseForm = AnchorsWithPath
       val blockchainInfo = Normal
 
-      val eventlogClientResponse: Future[Response] = newEventLogClient.getEventByHash(value.getBytes, queryDepth, responseForm, blockchainInfo)
+      val expectedResp = LookupResult.Found(
+        value = value,
+        queryType = queryType,
+        event = LookupJsonSupport.getJValue(data),
+        anchors = EventLogClient.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
+      )
 
-      eventlogClientResponse.map { resp =>
-        val expectedLookup = LookupResult.Found(
-          key = resp.data.key,
-          queryType = queryType,
-          event = LookupJsonSupport.getJValue(data),
-          anchors = LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
-        )
-        val lookupPipeDataNew = LookupPipeDataNew(Some(value), Some(resp.data.key), Some(queryType), Option(expectedLookup), None, None)
-        val expectedResp = newEventLogClient.createResponseFromLookupPipeDataNew(lookupPipeDataNew)
-        logger.info(s"$resp")
-        assert(expectedResp.success == resp.success)
-        assert(expectedResp.message == resp.message)
-        assert(expectedResp.data.key == resp.data.key)
-        assert(expectedResp.data.query_type == resp.data.query_type)
-        assert(expectedResp.data.anchors == resp.data.anchors)
-        assert(expectedResp.data.event.getChain == resp.data.event.getChain)
-        assert(expectedResp.data.event.getHint == resp.data.event.getHint)
-        assert(expectedResp.data.event.getPayload == resp.data.event.getPayload)
-        assert(expectedResp.data.event.getSignature.sameElements(resp.data.event.getSignature))
-        assert(expectedResp.data.event.getSigned.sameElements(resp.data.event.getSigned))
-      }
+      val response = await(eventLogClient.getEventByHash(value.getBytes, queryDepth, responseForm, blockchainInfo), 5 seconds)
+
+      assert(expectedResp.success == response.success)
+      assert(expectedResp.message == response.message)
+      assert(expectedResp.queryType == response.queryType)
+      assert(expectedResp.anchors == response.anchors)
+      assert(expectedResp.event == response.event)
+
     }
 
-    "consume and process successfully when NotFound" in {
+    "process successfully when NotFound" in {
 
       val modules: List[Module] = List {
         new LookupServiceBinder {
@@ -279,138 +259,27 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       val value = "c29tZSBieXRlcyEAAQIDnw=="
       val queryType = Payload
 
+      val expectedResp = LookupResult.NotFound(
+        value = value,
+        queryType = queryType
+      )
+
       val injector = new InjectorHelper(modules) {}
-      val newEventLogClient = injector.get(classOf[NewEventLogClient])
+      val eventLogClient = injector.get[EventLogClient]
 
-      val eventlogClientResponse: Future[EventLogClient.Response] = newEventLogClient.getEventByHash(value.getBytes, Simple, AnchorsNoPath, Normal)
-      //
+      val response = await(eventLogClient.getEventByHash(value.getBytes, Simple, AnchorsNoPath, Normal), 5 seconds)
 
-      eventlogClientResponse.map { resp =>
-        val expectedLookup = LookupResult.NotFound(key = resp.data.key, queryType = queryType)
-        val lookupPipeDataNew = LookupPipeDataNew(Some(value), Some(resp.data.key), Some(queryType), Option(expectedLookup), None, None)
-        val expectedResp = newEventLogClient.createResponseFromLookupPipeDataNew(lookupPipeDataNew)
-
-        logger.info(s"$resp")
-        assert(expectedResp.success == resp.success)
-        assert(expectedResp.message == resp.message)
-        assert(expectedResp.data.key == resp.data.key)
-        assert(expectedResp.data.query_type == resp.data.query_type)
-        assert(expectedResp.data.anchors == resp.data.anchors)
-        assertThrows[NullPointerException](resp.data.event.getChain)
-        assertThrows[NullPointerException](resp.data.event.getHint)
-        assertThrows[NullPointerException](resp.data.event.getPayload)
-        assertThrows[NullPointerException](resp.data.event.getSignature)
-        assertThrows[NullPointerException](resp.data.event.getSigned)
-      }
+      assert(expectedResp.success == response.success)
+      assert(expectedResp.message == response.message)
+      assert(expectedResp.queryType == response.queryType)
+      assert(expectedResp.anchors == response.anchors)
+      assert(expectedResp.anchors == JNull)
+      assert(expectedResp.event == response.event)
+      assert(expectedResp.event == JNull)
 
     }
 
-    //    "consume and process successfully when NotFound when key and value are empty" in {
-    //
-    //      val modules: List[Module] = List {
-    //        new LookupServiceBinder {
-    //
-    //          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
-    //
-    //          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
-    //
-    //        }
-    //      }
-    //
-    //
-    //        val key = ""
-    //        val value = ""
-    //        val queryType = Payload
-    //        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.HEADER -> queryType.value))
-    //        publishToKafka(pr)
-    //
-    //
-    //
-    //        assert(readMessage == """{"success":true,"message":"Nothing Found","data":{"success":true,"key":"","query_type":"payload","message":"Nothing Found","event":null,"anchors":null}}""")
-    //
-    //      }
-    //
-    //    }
-
-    //    "consume and process successfully when Found with Type Signature when no lookup found" in {
-    //
-    //      cassandra.executeScripts(
-    //        CqlScript.statements(
-    //          insertEventSql
-    //        )
-    //      )
-    //
-    //      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-    //
-    //      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
-    //
-    //      val modules: List[Module] = List {
-    //        new LookupServiceBinder {
-    //
-    //          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
-    //
-    //          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeEmptyFinder])
-    //
-    //          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-    //            override def conf: Config = {
-    //              super.conf
-    //                .withValue(
-    //                  "eventLog.kafkaConsumer.bootstrapServers",
-    //                  ConfigValueFactory.fromAnyRef(bootstrapServers)
-    //                )
-    //                .withValue(
-    //                  "eventLog.kafkaProducer.bootstrapServers",
-    //                  ConfigValueFactory.fromAnyRef(bootstrapServers)
-    //                )
-    //            }
-    //          })
-    //        }
-    //      }
-    //
-    //      val injector = new InjectorHelper(modules) {}
-    //
-    //      withRunningKafka {
-    //
-    //        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup_request"
-    //        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
-    //
-    //        val key = UUIDHelper.randomUUID.toString
-    //        val value = "c29tZSBieXRlcyEAAQIDnw=="
-    //        val queryType = Signature
-    //        val pr = ProducerRecordHelper.toRecord(messageEnvelopeTopic, key, value, Map(QueryType.HEADER -> queryType.value))
-    //        publishToKafka(pr)
-    //
-    //        //Consumer
-    //        val consumer = injector.get[StringConsumer]
-    //        consumer.setTopics(Set(messageEnvelopeTopic))
-    //
-    //        consumer.startPolling()
-    //        //Consumer
-    //
-    //        Thread.sleep(5000)
-    //
-    //        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-    //
-    //        val data = LookupJsonSupport.getJValue(
-    //          """
-    //            |{
-    //            |   "hint":0,
-    //            |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
-    //            |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
-    //            |   "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
-    //            |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
-    //            |   "version":34
-    //            |}
-    //          """.stripMargin
-    //        )
-    //
-    //        assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":null}}""")
-    //
-    //      }
-    //
-    //    }
-
-    "consume and process successfully when Found with Type Signature" in {
+    "process successfully when Found with Type Signature" in {
 
       cassandra.executeScripts(
         CqlScript.statements(
@@ -427,6 +296,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
 
         }
+
       }
 
       val value = "5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg=="
@@ -436,35 +306,22 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       val blockchainInfo = Normal
 
       val injector = new InjectorHelper(modules) {}
-      val newEventLogClient = injector.get(classOf[NewEventLogClient])
+      val eventLogClient = injector.get[EventLogClient]
 
-      val eventlogClientResponse: Future[EventLogClient.Response] = newEventLogClient.getEventBySignature(value.getBytes, queryDepth, responseForm, blockchainInfo)
+      val response = await(eventLogClient.getEventBySignature(value.getBytes, queryDepth, responseForm, blockchainInfo), 5 seconds)
 
-      eventlogClientResponse.map { resp =>
-        val expectedLookup = LookupResult.Found(
-          key = resp.data.key,
-          queryType = queryType,
-          event = LookupJsonSupport.getJValue(data),
-          anchors = LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
-        )
-        val lookupPipeDataNew = LookupPipeDataNew(Some(value), Some(resp.data.key), Some(queryType), Option(expectedLookup), None, None)
-        val expectedResp = newEventLogClient.createResponseFromLookupPipeDataNew(lookupPipeDataNew)
-        logger.info(s"$resp")
-        assert(expectedResp.success == resp.success)
-        assert(expectedResp.message == resp.message)
-        assert(expectedResp.data.key == resp.data.key)
-        assert(expectedResp.data.query_type == resp.data.query_type)
-        assert(expectedResp.data.anchors == resp.data.anchors)
-        assert(expectedResp.data.event.getChain == resp.data.event.getChain)
-        assert(expectedResp.data.event.getHint == resp.data.event.getHint)
-        assert(expectedResp.data.event.getPayload == resp.data.event.getPayload)
-        assert(expectedResp.data.event.getSignature.sameElements(resp.data.event.getSignature))
-        assert(expectedResp.data.event.getSigned.sameElements(resp.data.event.getSigned))
-      }
+      val expectedResp = LookupResult.Found(
+        value = value,
+        queryType = queryType,
+        event = LookupJsonSupport.getJValue(data),
+        anchors = EventLogClient.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
+      )
 
-      //            val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-      //
-      //            assert(readMessage == s"""{"success":true,"message":"Query Successfully Processed","data":{"success":true,"key":"$key","query_type":"signature","message":"Query Successfully Processed","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":{"shortest_path":[{"label":"UPP","properties":{"next_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","signature":"bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==","hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","prev_hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","type":"UPP"}},{"label":"UPP","properties":{"next_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","signature":"YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==","hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","prev_hash":"","type":"UPP"}},{"label":"SLAVE_TREE","properties":{"next_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","prev_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","type":"SLAVE_TREE"}},{"label":"MASTER_TREE","properties":{"next_hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","prev_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","type":"MASTER_TREE"}}],"blockchains":[{"label":"PUBLIC_CHAIN","properties":{"public_chain":"IOTA_TESTNET_IOTA_TESTNET_NETWORK","hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","prev_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","type":"PUBLIC_CHAIN"}}]}}}""".stripMargin)
+      assert(expectedResp.success == response.success)
+      assert(expectedResp.message == response.message)
+      assert(expectedResp.queryType == response.queryType)
+      assert(expectedResp.anchors == response.anchors)
+      assert(expectedResp.event == response.event)
 
     }
 
@@ -483,25 +340,19 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         """.stripMargin
       )
 
-      val anchors = LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
+      val anchors = EventLogClient.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains)
 
-      val value = EventLogJsonSupport.ToJson(LookupResult(success = true, "key", Payload, "", Option(data), Option(anchors))).toString
+      val value = LookupJsonSupport.ToJson(LookupResult(success = true, "value", Payload, "", data, anchors)).toString
 
-      println(value)
-
-      val expected = """{"success":true,"key":"key","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":{"shortest_path":[{"label":"UPP","properties":{"next_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","signature":"bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==","hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","prev_hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","type":"UPP"}},{"label":"UPP","properties":{"next_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","signature":"YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==","hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","prev_hash":"","type":"UPP"}},{"label":"SLAVE_TREE","properties":{"next_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","prev_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","type":"SLAVE_TREE"}},{"label":"MASTER_TREE","properties":{"next_hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","prev_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","type":"MASTER_TREE"}}],"blockchains":[{"label":"PUBLIC_CHAIN","properties":{"public_chain":"IOTA_TESTNET_IOTA_TESTNET_NETWORK","hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","prev_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","type":"PUBLIC_CHAIN"}}]}}""".stripMargin
+      val expected = """{"success":true,"value":"value","query_type":"payload","message":"","event":{"hint":0,"payload":"c29tZSBieXRlcyEAAQIDnw==","signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==","signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==","uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d","version":34},"anchors":{"shortest_path":[{"label":"UPP","properties":{"next_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","signature":"bCWe6UOwYCJlZ5nEQmiQrqzW7PwMl2DSi1loPNwMmukD9lnTm7xACePNP4BzzWt3NSvqTqC/Nqka/GBDVXDZAg==","hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","prev_hash":"/gQVsIcokNP8DF9J8dAz7u7QxMzCODjmZLWIyCI93Zw8j6WQsy9QTX2HgpRL5S3nuO40vldfvWERLiE3axJiXQ==","type":"UPP"}},{"label":"UPP","properties":{"next_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","signature":"YTKC9pYsKHaaxoz4g6r6MXgHq96eodAZWG5HaYHkPDX4hubgVtry36pypJORTGsYGujAfgtkhFyP1yYjdZZgDg==","hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","prev_hash":"","type":"UPP"}},{"label":"SLAVE_TREE","properties":{"next_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","prev_hash":"eUhr08+42ZL5KTwV6+QrbZ+HLGKgxGLHONd9WuZ6bt/wf/hBdMxHjPa+3Kb8aUC9yvhGHotGXZrvQZ2wpSe2HQ==","type":"SLAVE_TREE"}},{"label":"MASTER_TREE","properties":{"next_hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","prev_hash":"18f8491f333b8ecf1bdb34db094284cb9416acc1ad04654617a05cdbb7686862f52f9963a681d11bb76e5bce680483f15f6916736855827bcf5fb11424d91fc6","type":"MASTER_TREE"}}],"blockchains":[{"label":"PUBLIC_CHAIN","properties":{"public_chain":"IOTA_TESTNET_IOTA_TESTNET_NETWORK","hash":"Y9JAJGOZGLUQQFJOLEFVFUMTQILTZ9IKRPCFNEAGQEPRZPOWERJAQUQDCXHEUOCICGCSYCUBWDKBZ9999","prev_hash":"ec0a1fbd0b5be6dd8ef1095293053e4d62b7348f37ed29beede57066900de3e38d1d3de8769bc0d1b29f8f4593dcdb97e1bcf7b8b3b8227542b826fe993634a6","type":"PUBLIC_CHAIN"}}]}}""".stripMargin
 
       assert(value == expected)
 
     }
 
-    "consume and process successfully when Found with Anchors" in {
+    "process successfully when Found with Anchors" in {
 
       import LookupKey._
-
-      //      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      //      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
 
       val modules: List[Module] = List {
         new LookupServiceBinder {
@@ -514,7 +365,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       }
 
       val injector = new InjectorHelper(modules) {}
-
       val eventsDAO = injector.get[EventsDAO]
 
       //We insert the PM Event
@@ -538,7 +388,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
       val pmAsJson = LookupJsonSupport.ToJson[ProtocolMessage](pm).get
 
-      val el = EventLog("EventLogFromConsumerRecord", Values.UPP_CATEGORY, pmAsJson)
+      val el = EventLog("EventLogFromLookup", Values.UPP_CATEGORY, pmAsJson)
         .withLookupKeys(signatureLookupKey)
         .withCustomerId("1234")
         .withRandomNonce
@@ -588,7 +438,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       }
       val txid = UUIDHelper.timeBasedUUID.toString
 
-      val blockTx = EventLog("EventLogFromConsumerRecord", "blockchain_tx_id", tx)
+      val blockTx = EventLog("EventLogFromLookup", "blockchain_tx_id", tx)
         .withNewId(txid)
         .withLookupKeys(Seq(
           LookupKey(
@@ -618,157 +468,65 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       assert(allLookups.sortBy(_.name) == lookupKeys.flatMap(LookupKeyRow.fromLookUpKey).sortBy(_.name))
       assert(allLookups.size == 4)
     }
+
+    "process successfully when Found with UpperLower" in {
+
+      cassandra.executeScripts(
+        CqlScript.statements(
+          insertEventSql
+        )
+      )
+
+      val modules: List[Module] = List {
+        new LookupServiceBinder {
+
+          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
+
+          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
+
+        }
+      }
+
+      val injector = new InjectorHelper(modules) {}
+
+      val eventLogClient = injector.get[EventLogClient]
+
+      val value = "c29tZSBieXRlcyEAAQIDnw=="
+      val queryType = Payload
+      val queryDepth = UpperLower
+      val responseForm = AnchorsWithPath
+      val blockchainInfo = Normal
+
+      val response = await(eventLogClient.getEventByHash(
+        value.getBytes(),
+        queryDepth,
+        responseForm,
+        blockchainInfo
+      ), 5 seconds)
+
+      val data =
+        """
+          |{
+          |   "hint":0,
+          |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
+          |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
+          |   "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
+          |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
+          |   "version":34
+          |}""".stripMargin
+
+      val expectedLookup = LookupResult.Found(
+        value = value,
+        queryType = queryType,
+        event = LookupJsonSupport.getJValue(data),
+        anchors = EventLogClient.upperAndLowerAsJValue(FakeFoundFinder.upperPath, FakeFoundFinder.upperBlockchains, FakeFoundFinder.lowerPath, FakeFoundFinder.lowerBlockchains)
+      )
+
+      assert(response == expectedLookup)
+
+    }
+
   }
-
-  //Blockchain TX
-
-  //      withRunningKafka {
-  ////
-  ////        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup_request"
-  ////        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
-  //
-  //        val key = UUIDHelper.randomUUID.toString
-  //        val value = pmId
-  //        val queryType = Payload
-  //        val queryDepth = ShortestPath
-  //        val responseForm = AnchorsWithPath
-  //        val blockchainInfo = Normal
-  //
-  //        val pr = ProducerRecordHelper.toRecord(
-  //          messageEnvelopeTopic,
-  //          key,
-  //          value,
-  //          Map(
-  //            QueryType.HEADER -> queryType.value,
-  //            QueryDepth.HEADER -> queryDepth.value,
-  //            ResponseForm.HEADER -> responseForm.value,
-  //            BlockchainInfo.HEADER -> blockchainInfo.value
-  //          )
-  //        )
-  //        publishToKafka(pr)
-  //
-  //        //Consumer
-  //        val consumer = injector.get[StringConsumer]
-  //        consumer.setTopics(Set(messageEnvelopeTopic))
-  //
-  //        consumer.startPolling()
-  //        //Consumer
-  //
-  //        Thread.sleep(5000)
-  //
-  //        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-  //
-  //        val expectedLookup = LookupResult.Found(key, queryType, pmAsJson, LookupExecutor.shortestPathAsJValue(FakeFoundFinder.simplePath, FakeFoundFinder.blockchains))
-  //        val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-  //        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-  //        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
-  //
-  //        assert(expectedGenericResponseAsJson == readMessage)
-  //        assert(masterTree.category == masterTree.lookupKeys.headOption.map(_.category).getOrElse("No Cat"))
-  //
-  //      }
-  //
-  //    }
-
-  //    "consume and process successfully when Found with UpperLower" in {
-  //
-  //      cassandra.executeScripts(
-  //        CqlScript.statements(
-  //          insertEventSql
-  //        )
-  //      )
-  //
-  //      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-  //
-  //      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
-  //
-  //      val modules: List[Module] = List {
-  //        new LookupServiceBinder {
-  //
-  //          override def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultTestingGremlinConnector])
-  //
-  //          override def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[FakeFoundFinder])
-  //
-  //          override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-  //            override def conf: Config = {
-  //              super.conf
-  ////                .withValue(
-  ////                  "eventLog.kafkaConsumer.bootstrapServers",
-  ////                  ConfigValueFactory.fromAnyRef(bootstrapServers)
-  ////                )
-  ////                .withValue(
-  ////                  "eventLog.kafkaProducer.bootstrapServers",
-  ////                  ConfigValueFactory.fromAnyRef(bootstrapServers)
-  ////                )
-  //            }
-  //          })
-  //        }
-  //      }
-  //
-  //      val injector = new InjectorHelper(modules) {}
-  //
-  ////      withRunningKafka {
-  ////
-  ////        val messageEnvelopeTopic = "com.ubirch.eventlog.lookup_request"
-  ////        val eventLogTopic = "com.ubirch.eventlog.lookup_response"
-  ////
-  ////        val key = UUIDHelper.randomUUID.toString
-  ////        val value = "c29tZSBieXRlcyEAAQIDnw=="
-  ////        val queryType = Payload
-  ////        val queryDepth = UpperLower
-  ////        val responseForm = AnchorsWithPath
-  ////        val blockchainInfo = Normal
-  ////
-  ////        val pr = ProducerRecordHelper.toRecord(
-  ////          messageEnvelopeTopic,
-  ////          key,
-  ////          value,
-  ////          Map(
-  ////            QueryType.HEADER -> queryType.value,
-  ////            QueryDepth.HEADER -> queryDepth.value,
-  ////            ResponseForm.HEADER -> responseForm.value,
-  ////            BlockchainInfo.HEADER -> blockchainInfo.value
-  ////          )
-  ////        )
-  ////        publishToKafka(pr)
-  ////
-  ////        //Consumer
-  ////        val consumer = injector.get[StringConsumer]
-  ////        consumer.setTopics(Set(messageEnvelopeTopic))
-  ////
-  ////        consumer.startPolling()
-  ////        //Consumer
-  ////
-  ////        Thread.sleep(5000)
-  ////
-  ////        val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
-  ////
-  ////        val data =
-  ////          """
-  ////            |{
-  ////            |   "hint":0,
-  ////            |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
-  ////            |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
-  ////            |   "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
-  ////            |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
-  ////            |   "version":34
-  ////            |}
-  ////          """.stripMargin
-  ////
-  ////        val expectedLookup = LookupResult.Found(
-  ////          key = key,
-  ////          queryType = queryType,
-  ////          event = LookupJsonSupport.getJValue(data),
-  ////          anchors = LookupExecutor.upperAndLowerAsJValue(FakeFoundFinder.upperPath, FakeFoundFinder.upperBlockchains, FakeFoundFinder.lowerPath, FakeFoundFinder.lowerBlockchains)
-  ////        )
-  ////        val expectedLookupJValue = LookupJsonSupport.ToJson[LookupResult](expectedLookup).get
-  ////        val expectedGenericResponse = JValueGenericResponse.Success("Query Successfully Processed", expectedLookupJValue)
-  ////        val expectedGenericResponseAsJson = LookupJsonSupport.ToJson[JValueGenericResponse](expectedGenericResponse).toString
-  ////
-  ////        assert(expectedGenericResponseAsJson == readMessage)
-  ////
-  ////      }
-  ////
 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
@@ -822,3 +580,4 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
   }
 
 }
+

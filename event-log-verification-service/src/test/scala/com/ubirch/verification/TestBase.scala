@@ -1,6 +1,5 @@
 package com.ubirch.verification
 
-import net.manub.embeddedkafka.EmbeddedKafka
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ AsyncWordSpec, BeforeAndAfterAll, BeforeAndAfterEach, MustMatchers }
 
@@ -12,8 +11,7 @@ trait TestBase
   with ScalaFutures
   with BeforeAndAfterEach
   with BeforeAndAfterAll
-  with MustMatchers
-  with EmbeddedKafka {
+  with MustMatchers {
 
   def await[T](future: Future[T]): T = await(future, Duration.Inf)
 
