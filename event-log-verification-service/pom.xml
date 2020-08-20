@@ -238,6 +238,12 @@
             <artifactId>janusgraph-core</artifactId>
             <version>${janusGraph.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.janusgraph</groupId>
+            <artifactId>janusgraph-cql</artifactId>
+            <version>${janusGraph.version}</version>
+        </dependency>
         <!-- /Gremlin -->
         <!-- LOOKUP POM -->
 
