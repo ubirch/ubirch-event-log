@@ -1,5 +1,7 @@
 package com.ubirch.verification.services
 
+import java.io.PrintWriter
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.lifeCycle.Lifecycle
@@ -10,7 +12,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
 import org.janusgraph.core.JanusGraphFactory
 
 import scala.concurrent.Future
-import java.io.{ File, PrintWriter }
+import scala.io.Source
 
 trait GremlinConnectorPaths {
   val JANUSGRAPH_PROPERTIES_PATH = "eventLog.gremlin.properties"
@@ -33,14 +35,12 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
 
   val janusgraphPropertiesPath: Label = config.getString(JANUSGRAPH_PROPERTIES_PATH)
 
-  val maybeTrustStore: Option[File] = createOptionTrustStore()
-
-  val janusPropsUpdates: String = maybeTrustStore match {
-    case Some(trustStore) => janusgraphPropertiesPath.replaceAll("/etc/opt/janusgraph/truststore.jks", trustStore.getAbsolutePath)
-    case None => janusgraphPropertiesPath
+  val maybeTrustStorePath: Option[String] = Option(config.getString(CASSANDRA_TRUSTSTORE_PATH)) match {
+    case Some(trustStore) => if (!trustStore.isEmpty) Some(trustStore) else None
+    case None => None
   }
 
-  val janusProps: File = createTempFile(janusPropsUpdates)
+  val janusProps: java.io.File = duplicateJanusPropsWithUpdatedTruststorePath(janusgraphPropertiesPath, maybeTrustStorePath)
 
   implicit val graph: ScalaGraph = JanusGraphFactory.open(janusProps.getAbsolutePath)
   val b: Bindings = Bindings.instance
@@ -50,28 +50,19 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
     graph.close()
   }
 
-  private def createOptionTrustStore(): Option[File] = {
-    Option(config.getString(CASSANDRA_TRUSTSTORE_PATH)) match {
-      case Some(trustStore) => if (!trustStore.isEmpty) {
-        Option(createTempFile(contents = trustStore, prefix = Option("truststore"), suffix = Option("jks")))
-      } else None
-      case None => None
-    }
-  }
-
-  private def createTempFile(contents: String, prefix: Option[String] = None, suffix: Option[String] = None): File = {
-    val tempFi = File.createTempFile(
-      prefix.getOrElse("prefix-"),
-      suffix.getOrElse("-suffix")
+  private def duplicateJanusPropsWithUpdatedTruststorePath(janusPropsPath: String, maybeTrustStorePath: Option[String]): java.io.File = {
+    val tempFi = java.io.File.createTempFile(
+      "janus-",
+      "-properties"
     )
     tempFi.deleteOnExit()
-    new PrintWriter(tempFi) {
-      try {
-        write(contents)
-      } finally {
-        close()
-      }
-    }
+    val w = new PrintWriter(tempFi)
+    val janusPropsFile = Source.fromFile(janusPropsPath)
+    janusPropsFile.getLines
+      .map { x => if (x.contains("proxy")) s"# $x" else x }
+      .foreach(x => w.println(x))
+    janusPropsFile.close()
+    w.close()
     logger.debug("temp file created at: " + tempFi.getAbsolutePath)
     tempFi
   }
