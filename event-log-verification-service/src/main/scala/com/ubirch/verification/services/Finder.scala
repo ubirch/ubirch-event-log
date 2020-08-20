@@ -101,8 +101,7 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
   def findBySignature(value: String): Future[Option[EventLogRow]] =
     gremlinFinder
       .simpleFind(Values.SIGNATURE, value, Values.HASH)
-      .map(_.headOption)
-      .flatMap {
+      .headOption match {
         case Some(hash) => findByPayload(hash)
         case None => Future.successful(None)
       }

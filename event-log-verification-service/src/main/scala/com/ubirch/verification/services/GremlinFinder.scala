@@ -115,11 +115,11 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     * @param returnProperty Key of the desired property
     * @return Value of the desired property
     */
-  def simpleFind(matchProperty: String, value: String, returnProperty: String): Future[List[String]] =
+  def simpleFind(matchProperty: String, value: String, returnProperty: String): List[String] =
     gremlin.g.V()
       .has(Key[String](matchProperty.toLowerCase()), value)
       .value(Key[String](returnProperty.toLowerCase()))
-      .promise()
+      .l()
 
   def getTimestampFromVertexAsLong(vertex: VertexStruct): Option[Long] =
     vertex.properties.get("timestamp") match {
@@ -181,7 +181,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     * @param untilLabel The end label
     * @return The path from the beginning to the end as a VertexStruct list
     */
-  def shortestPath(property: String, value: String, untilLabel: String): Future[List[VertexStruct]] = {
+  def shortestPath(property: String, value: String, untilLabel: String): List[VertexStruct] = {
     //val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
     val shortestPath = gremlin.g.V()
@@ -199,14 +199,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
       .path()
       .unfold[Vertex]()
       .elementMap
-      .promise()
-    for {
-      sp <- shortestPath
-    } yield {
-      sp.map(v => {
-        VertexStruct.fromMap(v)
-      })
-    }
+      .l()
+    shortestPath.map(v => VertexStruct.fromMap(v))
   }
 
   /**
