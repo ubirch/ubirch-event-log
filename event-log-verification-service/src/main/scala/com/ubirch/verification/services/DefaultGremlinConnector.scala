@@ -5,22 +5,16 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.services.lifeCycle.Lifecycle
 import gremlin.scala.{ ScalaGraph, TraversalSource, _ }
 import javax.inject._
-import org.apache.commons.configuration.PropertiesConfiguration
-import org.apache.tinkerpop.gremlin.driver.Cluster
-import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
 import org.apache.tinkerpop.gremlin.process.traversal.Bindings
-import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
+import org.janusgraph.core.JanusGraphFactory
 
 import scala.concurrent.Future
+import java.io.{ File, PrintWriter }
 
 trait GremlinConnectorPaths {
-  val HOSTS = "eventLog.gremlin.hosts"
-  val PORTS = "eventLog.gremlin.port"
-  val CLASS_NAME = "eventLog.gremlin.serializer.className"
-  val MAX_WAIT_FOR_CONNECTION = "eventLog.gremlin.connectionPool.maxWaitForConnection"
-  val RECONNECT_INTERVAL = "eventLog.gremlin.connectionPool.reconnectInterval"
-  val IO_REGISTRIES = "eventLog.gremlin.serializer.config.ioRegistries"
+  val JANUSGRAPH_PROPERTIES_PATH = "eventLog.gremlin.properties"
+  val CASSANDRA_TRUSTSTORE_PATH = "eventLog.gremlin.truststore"
 }
 
 trait Gremlin {
@@ -37,35 +31,53 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
   with LazyLogging
   with GremlinConnectorPaths {
 
-  lazy val cluster: Cluster = Cluster.open(buildProperties(config))
+  val janusgraphPropertiesPath: Label = config.getString(JANUSGRAPH_PROPERTIES_PATH)
 
-  implicit val graph: ScalaGraph = EmptyGraph.instance.asScala.configure(_.withRemote(DriverRemoteConnection.using(cluster)))
+  val maybeTrustStore: Option[File] = createOptionTrustStore()
+
+  val janusPropsUpdates: String = maybeTrustStore match {
+    case Some(trustStore) => janusgraphPropertiesPath.replaceAll("/etc/opt/janusgraph/truststore.jks", trustStore.getAbsolutePath)
+    case None => janusgraphPropertiesPath
+  }
+
+  val janusProps: File = createTempFile(janusPropsUpdates)
+
+  implicit val graph: ScalaGraph = JanusGraphFactory.open(janusProps.getAbsolutePath)
   val b: Bindings = Bindings.instance
   val g: TraversalSource = graph.traversal
 
-  logger.info("[property] getNioPoolSize=" + cluster.getNioPoolSize)
-  logger.info("[property] getWorkerPoolSize=" + cluster.getWorkerPoolSize)
-
-  def buildProperties(config: Config): PropertiesConfiguration = {
-    val conf = new PropertiesConfiguration()
-    conf.addProperty("hosts", config.getString(HOSTS))
-    conf.addProperty("port", config.getString(PORTS))
-    conf.addProperty("serializer.className", config.getString(CLASS_NAME))
-    conf.addProperty("connectionPool.maxWaitForConnection", config.getString(MAX_WAIT_FOR_CONNECTION))
-    conf.addProperty("connectionPool.reconnectInterval", config.getString(RECONNECT_INTERVAL))
-    // no idea why the following line needs to be duplicated. Doesn't work without
-    // cf https://stackoverflow.com/questions/45673861/how-can-i-remotely-connect-to-a-janusgraph-server first answer, second comment ¯\_ツ_/¯
-    conf.addProperty("serializer.config.ioRegistries", config.getAnyRef(IO_REGISTRIES).asInstanceOf[java.util.ArrayList[String]])
-    conf.addProperty("serializer.config.ioRegistries", config.getStringList(IO_REGISTRIES))
-    conf
+  def closeConnection(): Unit = {
+    graph.close()
   }
 
-  def closeConnection(): Unit = {
-    cluster.close()
+  private def createOptionTrustStore(): Option[File] = {
+    Option(config.getString(CASSANDRA_TRUSTSTORE_PATH)) match {
+      case Some(trustStore) => if (!trustStore.isEmpty) {
+        Option(createTempFile(contents = trustStore, prefix = Option("truststore"), suffix = Option("jks")))
+      } else None
+      case None => None
+    }
+  }
+
+  private def createTempFile(contents: String, prefix: Option[String] = None, suffix: Option[String] = None): File = {
+    val tempFi = File.createTempFile(
+      prefix.getOrElse("prefix-"),
+      suffix.getOrElse("-suffix")
+    )
+    tempFi.deleteOnExit()
+    new PrintWriter(tempFi) {
+      try {
+        write(contents)
+      } finally {
+        close()
+      }
+    }
+    logger.debug("temp file created at: " + tempFi.getAbsolutePath)
+    tempFi
   }
 
   lifecycle.addStopHook { () =>
-    logger.info("Shutting down connection with Janus: " + cluster.toString)
+    logger.info("Shutting down embedded Janusgraph: " + graph.toString)
     Future.successful(closeConnection())
   }
 
