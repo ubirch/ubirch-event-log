@@ -32,6 +32,7 @@ ENTRYPOINT [ \
    -Dcom.sun.management.jmxremote.local.only=false \
    -Dcom.sun.management.jmxremote.authenticate=false \
    -Dcom.sun.management.jmxremote.ssl=false \
+   -javaagent:src/main/resources/jmxExporter/jmx_prometheus_javaagent-0.13.jar=9020:jmxExporter/jmx_exporter_config.yml \
    -Dconfig.resource=application-docker.conf \
    -Dlogback.configurationFile=logback-docker.xml \
    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9020 \
