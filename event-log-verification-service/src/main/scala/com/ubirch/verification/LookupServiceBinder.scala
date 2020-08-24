@@ -26,7 +26,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def clusterService: ScopedBindingBuilder = bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[DefaultFinder])
-  def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultGremlinConnector])
+  def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultEmbeddedJanusgraph])
   def eventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).to(classOf[DefaultEventLogClient])
   def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("Cached")).to(classOf[CachedEventLogClient])
   def redisOpt: ScopedBindingBuilder = bind(classOf[RedisCache]).toProvider(classOf[RedisProvider])
