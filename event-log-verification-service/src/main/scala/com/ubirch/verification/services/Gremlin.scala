@@ -1,6 +1,6 @@
 package com.ubirch.verification.services
 
-import gremlin.scala.{ScalaGraph, TraversalSource}
+import gremlin.scala.{ ScalaGraph, TraversalSource }
 import org.apache.tinkerpop.gremlin.process.traversal.Bindings
 
 trait Gremlin {
