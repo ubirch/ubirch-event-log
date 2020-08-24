@@ -2,13 +2,13 @@ package com.ubirch.verification.services.eventlog
 
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.verification.models.{ BlockchainInfo, QueryDepth, ResponseForm }
+import com.ubirch.verification.models.{ BlockchainInfo, LookupResult, QueryDepth, ResponseForm }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, redis: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
+class CachedEventLogClient @Inject() (underlying: EventLogClient, redis: RedisCache)(implicit ec: ExecutionContext) extends EventLogClient with StrictLogging {
 
   private val getEventByHashCached =
     redis
@@ -31,7 +31,7 @@ class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, 
       queryDepth: QueryDepth,
       responseForm: ResponseForm,
       blockchainInfo: BlockchainInfo
-  ): Future[EventLogClient.Response] = {
+  ): Future[LookupResult] = {
 
     try {
       getEventByHashCached(hash, queryDepth, responseForm, blockchainInfo)
@@ -47,7 +47,7 @@ class CachedEventLogClient @Inject() (@Named("New") underlying: EventLogClient, 
       queryDepth: QueryDepth,
       responseForm: ResponseForm,
       blockchainInfo: BlockchainInfo
-  ): Future[EventLogClient.Response] =
+  ): Future[LookupResult] =
 
     try {
       getEventBySignatureCached(signature, queryDepth, responseForm, blockchainInfo)
