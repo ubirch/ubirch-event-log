@@ -37,7 +37,7 @@
         <!-- Lookup POM -->
         <gremlinScala.version>3.4.4.5</gremlinScala.version>
         <janusGraph.version>0.5.2</janusGraph.version>
-        <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
+        <tinkerPopDriver.version>3.4.8</tinkerPopDriver.version>
         <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
@@ -116,13 +116,6 @@
         </dependency>
 
         <!-- ubirch -->
-
-        <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-kafka-envelope</artifactId>
-            <version>1.0.4-SNAPSHOT</version>
-        </dependency>
 
         <dependency>
             <groupId>com.ubirch</groupId>
