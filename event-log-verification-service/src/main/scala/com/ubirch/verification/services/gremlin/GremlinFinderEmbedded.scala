@@ -1,19 +1,22 @@
-package com.ubirch.verification.services
+package com.ubirch.verification.services.gremlin
 
 import java.util.Date
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.Values
-import com.ubirch.util.TimeHelper
 import com.ubirch.verification.models.VertexStruct
-import gremlin.scala.{ Key, P, Vertex }
+import com.ubirch.verification.services.gremlin.GremlinFinder._
+import gremlin.scala.Key
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
+/**
+  * This finder is to be used when using an embedded janusgraph
+  */
 @Singleton
-class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
+class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implicit ec: ExecutionContext) extends GremlinFinder with LazyLogging {
 
   /*
   This variable is here to select which algorithm will be used to find the lower path: going back from the first found
@@ -116,31 +119,10 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     * @param returnProperty Key of the desired property
     * @return Value of the desired property
     */
-  def simpleFind(matchProperty: String, value: String, returnProperty: String): List[String] =
-    gremlin.g.V()
-      .has(Key[String](matchProperty.toLowerCase()), value)
-      .value(Key[String](returnProperty.toLowerCase()))
-      .l()
-
-  def getTimestampFromVertexAsLong(vertex: VertexStruct): Option[Long] =
-    vertex.properties.get("timestamp") match {
-      case Some(value) =>
-        value match {
-          case date: String => Some(date.toLong)
-          case _ => None
-        }
-      case None => None
-    }
-
-  def getTimestampFromVertexAsDate(vertex: VertexStruct): Option[Date] =
-    vertex.properties.get("timestamp") match {
-      case Some(value) =>
-        value match {
-          case date: Date => Some(date)
-          case _ => None
-        }
-      case None => None
-    }
+  def simpleFind(matchProperty: String, value: String, returnProperty: String): Future[List[String]] =
+    Future.successful(gremlin.g.V()
+      .simpleFindReturnElement(matchProperty.toLowerCase(), value, returnProperty.toLowerCase())
+      .l())
 
   /**
     * This function finds a master tree (connected to blockchains) whose date is inferior to the one passed as the argument
@@ -150,23 +132,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     * @return The path between the starting point and the master tree.
     */
   def outLT(master: VertexStruct, time: Long): List[VertexStruct] = {
-    val timestamp = Key[Date](Values.TIMESTAMP)
-    val date = new Date(time)
     val res = gremlin.g.V(master.id)
-      .repeat(
-        _.out(
-          Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY
-        ) // In for other direction
-          .simplePath()
-      )
-      .until(
-        _.inE(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY) // using vertex centered index
-          .has(timestamp, P.lt(date)) // Other P values like P.gt
-      )
-      .limit(1)
-      .path()
-      .unfold[Vertex]()
-      .elementMap
+      .toPreviousMasterWithBlockchain(time)
       .l()
     res.map(v => VertexStruct.fromMap(v))
   }
@@ -186,20 +153,8 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     //val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
     val shortestPath = gremlin.g.V()
-      .has(Key[String](property.toLowerCase()), value)
-      //.store(x)
-      .repeat(_.in(
-        Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
-        Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
-        Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
-        Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
-        Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY
-      ).simplePath())
-      .until(_.hasLabel(untilLabel))
-      .limit(1)
-      .path()
-      .unfold[Vertex]()
-      .elementMap
+      .findVertex(property.toLowerCase(), value)
+      .shortestPathToLabel(untilLabel)
       .l()
     shortestPath.map(v => VertexStruct.fromMap(v))
   }
@@ -211,108 +166,10 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
     //val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
     val shortestPath = gremlin.g.V()
-      .has(Key[String](property.toLowerCase()), value)
-      //.store(x)
-      .in(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY)
-      .repeat(_.in(
-        Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
-        Values.SLAVE_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
-      ).simplePath())
-      .until(_.hasLabel(Values.MASTER_TREE_CATEGORY))
-      .limit(1)
-      .repeat(_.in(
-        Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
-        Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY,
-      ).simplePath())
-      .until(_.hasLabel(Values.PUBLIC_CHAIN_CATEGORY))
-      .limit(1)
-      .path()
-      .unfold[Vertex]()
-      .elementMap
+      .findVertex(property.toLowerCase(), value)
+      .shortestPathUppBlockchain
       .l()
     shortestPath.map(v => VertexStruct.fromMap(v))
-  }
-
-  def asVertices(path: List[VertexStruct], anchors: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
-
-    def withPrevious(hashes: List[Any]) = Map(Values.PREV_HASH -> hashes.mkString(","))
-
-    def withNext(hashes: List[Any]) = Map(Values.NEXT_HASH -> hashes.mkString(","))
-
-    val pathLinks =
-      path
-        .foldLeft(List.empty[VertexStruct]) { (acc, current) =>
-
-          val next = acc
-            .reverse
-            .headOption
-            .map(_.properties)
-            .flatMap(_.get(Values.HASH))
-            .map(x => withPrevious(List(x)))
-            .getOrElse(withPrevious(List("")))
-
-          acc ++ List(current.addProperties(next))
-        }
-        .foldRight(List.empty[VertexStruct]) { (current, acc) =>
-
-          val next = acc
-            .headOption
-            .map(_.properties)
-            .flatMap(_.get(Values.HASH))
-            .map(x => withNext(List(x)))
-            .getOrElse(withNext(List("")))
-
-          current.addProperties(next) +: acc
-        }
-
-    val blockchainHashes = anchors.map(_.properties.getOrElse(Values.HASH, ""))
-    val upToMaster = pathLinks.reverse
-    val lastMaster = upToMaster.headOption.map(_.addProperties(withNext(blockchainHashes))).toList
-    val lastMasterHash = lastMaster.map(x => x.properties.getOrElse(Values.HASH, ""))
-
-    val completePath = {
-      val cp = if (upToMaster.isEmpty) Nil
-      else upToMaster.tail.reverse
-
-      cp ++ lastMaster
-    }
-    val completeBlockchains = anchors.map(_.addProperties(withPrevious(lastMasterHash)))
-
-    (completePath, completeBlockchains)
-
-  }
-
-  def asVerticesDecorated(path: List[VertexStruct], anchors: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
-    def parseTimestamp(anyTime: Any): String = {
-      anyTime match {
-        case time if anyTime.isInstanceOf[Long] =>
-          TimeHelper.toIsoDateTime(time.asInstanceOf[Long])
-        case time if anyTime.isInstanceOf[Date] =>
-          TimeHelper.toIsoDateTime(time.asInstanceOf[Date].getTime)
-        case time =>
-          time.asInstanceOf[String]
-      }
-    }
-
-    def decorateType(anyTime: Any): Any = {
-      anyTime match {
-        case time if anyTime.isInstanceOf[String] =>
-          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
-          else time.toString
-        case time => time
-      }
-    }
-
-    asVertices(path, anchors) match {
-      case (p, a) =>
-        val _path = p.map(x =>
-          x.map(Values.TIMESTAMP)(parseTimestamp)
-            .addLabelWhen(Values.FOUNDATION_TREE_CATEGORY)(Values.SLAVE_TREE_CATEGORY))
-
-        val _anchors = a.map(_.map(Values.TIMESTAMP)(parseTimestamp))
-
-        (_path, _anchors)
-    }
   }
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = {
@@ -333,24 +190,9 @@ class GremlinFinder @Inject() (gremlin: Gremlin, config: Config)(implicit ec: Ex
 
   def getBlockchainsFromMasterVertex(master: VertexStruct): List[VertexStruct] = {
     val blockchains = gremlin.g.V(master.id)
-      .in()
-      .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
-      .elementMap
+      .blockchainsFromMasterVertex
       .l()
     blockchains.map(b => VertexStruct.fromMap(b))
-  }
-
-  case class PathHelper(path: List[VertexStruct]) {
-    lazy val reversed: Seq[VertexStruct] = path.reverse
-    lazy val headOption: Option[VertexStruct] = path.headOption
-    lazy val reversedHeadOption: Option[VertexStruct] = reversed.headOption
-    lazy val reversedTail: Seq[VertexStruct] =
-      if (reversed.isEmpty) Nil
-      else reversed.tail
-
-    lazy val reversedTailReversed: Seq[VertexStruct] = reversedTail.reverse
-    lazy val reversedTailHeadOption: Option[VertexStruct] = reversedTail.headOption
-    lazy val firstMasterOption: Option[VertexStruct] = path.find(v => v.label == Values.MASTER_TREE_CATEGORY)
   }
 
 }

@@ -13,6 +13,7 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.verification.services._
 import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, DefaultEventLogClient, EventLogClient }
+import com.ubirch.verification.services.gremlin.{ DefaultEmbeddedJanusgraph, Gremlin, GremlinFinder, GremlinFinderEmbedded }
 import com.ubirch.verification.util.udash.JettyServer
 
 import scala.concurrent.ExecutionContext
@@ -26,6 +27,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def clusterService: ScopedBindingBuilder = bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   def finder: ScopedBindingBuilder = bind(classOf[Finder]).to(classOf[DefaultFinder])
+  def gremlinFinder: ScopedBindingBuilder = bind(classOf[GremlinFinder]).to(classOf[GremlinFinderEmbedded])
   def gremlin: ScopedBindingBuilder = bind(classOf[Gremlin]).to(classOf[DefaultEmbeddedJanusgraph])
   def eventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).to(classOf[DefaultEventLogClient])
   def cachedEventLogClient: ScopedBindingBuilder = bind(classOf[EventLogClient]).annotatedWith(Names.named("Cached")).to(classOf[CachedEventLogClient])
@@ -34,6 +36,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def jettyServer: ScopedBindingBuilder = bind(classOf[JettyServer]).toProvider(classOf[JettyServerProvider])
 
   override def configure(): Unit = {
+    gremlinFinder
     lifecycle
     jvmHook
     config

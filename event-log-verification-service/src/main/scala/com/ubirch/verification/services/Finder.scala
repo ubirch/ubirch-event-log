@@ -3,6 +3,7 @@ package com.ubirch.verification.services
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLogRow, Values }
 import com.ubirch.verification.models.{ Payload, QueryType, Signature, VertexStruct }
+import com.ubirch.verification.services.gremlin.{ GremlinFinderEmbedded, GremlinFinder }
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -101,7 +102,8 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
   def findBySignature(value: String): Future[Option[EventLogRow]] =
     gremlinFinder
       .simpleFind(Values.SIGNATURE, value, Values.HASH)
-      .headOption match {
+      .map(_.headOption)
+      .flatMap {
         case Some(hash) => findByPayload(hash)
         case None => Future.successful(None)
       }

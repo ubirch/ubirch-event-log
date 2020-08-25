@@ -1,4 +1,4 @@
-package com.ubirch.verification.services
+package com.ubirch.verification.services.gremlin
 
 import java.text.SimpleDateFormat
 
@@ -17,7 +17,7 @@ object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
 
     implicit val ec: ExecutionContext = get[ExecutionContext]
 
-    val gremlin = get[GremlinFinder]
+    val gremlin = get[GremlinFinderEmbedded]
     val t0 = System.currentTimeMillis()
     val res = gremlin.findAnchorsWithPathAsVertices("hCh65wOknIAFzs/QCLpoOF1gvNYnNv26Hn3bcfXqzqCwfpwGlDgPVvurtOyvmcTx5Y1Y4G7MhVxyaXgAzVjh0A==")
     val t1 = System.currentTimeMillis()
@@ -41,7 +41,7 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
 
     implicit val ec: ExecutionContext = get[ExecutionContext]
 
-    val gremlin = get[GremlinFinder]
+    val gremlin = get[GremlinFinderEmbedded]
 
     val res: Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful(gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw=="))
 
@@ -73,7 +73,7 @@ object FindUpperAndLowerAsVertices extends Boot(LookupServiceBinder.modules) {
 
     implicit val ec: ExecutionContext = get[ExecutionContext]
 
-    val gremlin = get[GremlinFinder]
+    val gremlin = get[GremlinFinderEmbedded]
 
     val res = gremlin.findUpperAndLowerAsVertices("M66G3UAGFRSHhJ0hKcfFX0INsGFhvvzI5QMolT331XGGBaKB7rH6xqh4yBZUQmRQsRS4yVcHIRZNegJCY6fgFg==")
 
