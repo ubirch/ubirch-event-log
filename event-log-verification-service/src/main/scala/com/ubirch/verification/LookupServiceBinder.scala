@@ -13,7 +13,7 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.verification.services._
 import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, DefaultEventLogClient, EventLogClient }
-import com.ubirch.verification.services.gremlin.{ DefaultEmbeddedJanusgraph, Gremlin, GremlinFinder, GremlinFinderEmbedded }
+import com.ubirch.verification.services.janus.{ DefaultEmbeddedJanusgraph, Gremlin, GremlinFinder, GremlinFinderEmbedded }
 import com.ubirch.verification.util.udash.JettyServer
 
 import scala.concurrent.ExecutionContext

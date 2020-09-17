@@ -1,4 +1,4 @@
-package com.ubirch.verification.services.gremlin
+package com.ubirch.verification.services.janus
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging

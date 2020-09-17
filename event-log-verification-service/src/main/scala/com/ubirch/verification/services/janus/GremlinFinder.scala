@@ -1,4 +1,4 @@
-package com.ubirch.verification.services.gremlin
+package com.ubirch.verification.services.janus
 
 import java.util
 import java.util.Date
@@ -42,56 +42,73 @@ trait GremlinFinder {
   */
 object GremlinFinder {
 
-  def asVertices(path: List[VertexStruct], anchors: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
+  def asVertices(path: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
 
     def withPrevious(hashes: List[Any]) = Map(Values.PREV_HASH -> hashes.mkString(","))
-
     def withNext(hashes: List[Any]) = Map(Values.NEXT_HASH -> hashes.mkString(","))
 
-    val pathLinks =
-      path
-        .foldLeft(List.empty[VertexStruct]) { (acc, current) =>
+    def getPreviousHash(processed: List[VertexStruct]) = processed.lastOption.map(_.properties)
+      .flatMap(_.get(Values.HASH))
+      .map(x => withPrevious(List(x)))
+      .getOrElse(withPrevious(List("")))
 
-          val next = acc
-            .reverse
-            .headOption
-            .map(_.properties)
-            .flatMap(_.get(Values.HASH))
-            .map(x => withPrevious(List(x)))
-            .getOrElse(withPrevious(List("")))
+    def getNextHash(nextVertices: List[VertexStruct]) = nextVertices.headOption
+      .map(_.properties)
+      .flatMap(_.get(Values.HASH))
+      .map(x => withNext(List(x)))
+      .getOrElse(withNext(List("")))
 
-          acc ++ List(current.addProperties(next))
-        }
-        .foldRight(List.empty[VertexStruct]) { (current, acc) =>
-
-          val next = acc
-            .headOption
-            .map(_.properties)
-            .flatMap(_.get(Values.HASH))
-            .map(x => withNext(List(x)))
-            .getOrElse(withNext(List("")))
-
-          current.addProperties(next) +: acc
-        }
-
-    val blockchainHashes = anchors.map(_.properties.getOrElse(Values.HASH, ""))
-    val upToMaster = pathLinks.reverse
-    val lastMaster = upToMaster.headOption.map(_.addProperties(withNext(blockchainHashes))).toList
-    val lastMasterHash = lastMaster.map(x => x.properties.getOrElse(Values.HASH, ""))
-
-    val completePath = {
-      val cp = if (upToMaster.isEmpty) Nil
-      else upToMaster.tail.reverse
-
-      cp ++ lastMaster
+    def process(accu: List[VertexStruct], processed: List[VertexStruct], lastLastMtHash: Option[String]): List[VertexStruct] = {
+      accu match {
+        case Nil => processed
+        case ::(current, nextVertices) =>
+          current.label match {
+            case Values.MASTER_TREE_CATEGORY =>
+              val currentHash = current.properties.getOrElse(Values.HASH, "").asInstanceOf[String]
+              val previousHash = lastLastMtHash match {
+                case Some(hash) => withPrevious(List(hash))
+                case None => getPreviousHash(processed)
+              }
+              val nextHash = nextVertices match {
+                case Nil => getNextHash(nextVertices)
+                case x =>
+                  if (x.head.label == Values.PUBLIC_CHAIN_CATEGORY) {
+                    def getGroupBc(list: List[VertexStruct], accuHashes: List[String]): List[String] = {
+                      list match {
+                        case Nil => accuHashes
+                        case ::(head, tl) => if (head.label == Values.PUBLIC_CHAIN_CATEGORY) {
+                          getGroupBc(tl, accuHashes :+ head.properties.getOrElse(Values.HASH, "").asInstanceOf[String])
+                        } else {
+                          accuHashes
+                        }
+                      }
+                    }
+                    withNext(getGroupBc(x, Nil))
+                  } else {
+                    getNextHash(nextVertices)
+                  }
+              }
+              val processedHash = current.addProperties(previousHash).addProperties(nextHash)
+              process(nextVertices, processed :+ processedHash, Some(currentHash))
+            case Values.PUBLIC_CHAIN_CATEGORY =>
+              val previousHash = lastLastMtHash.getOrElse("ERROR")
+              val processedHash = current.addProperties(withPrevious(List(previousHash)))
+              process(nextVertices, processed :+ processedHash, lastLastMtHash)
+            case _ =>
+              val previousHash = getPreviousHash(processed)
+              val nextHash = getNextHash(nextVertices)
+              val processedHash = current.addProperties(previousHash).addProperties(nextHash)
+              process(nextVertices, processed :+ processedHash, lastLastMtHash)
+          }
+      }
     }
-    val completeBlockchains = anchors.map(_.addProperties(withPrevious(lastMasterHash)))
-
-    (completePath, completeBlockchains)
-
+    val res = process(path, Nil, None)
+    val blockchains = res.filter(p => p.label == Values.PUBLIC_CHAIN_CATEGORY)
+    val rest = res.filterNot(p => p.label == Values.PUBLIC_CHAIN_CATEGORY)
+    (rest, blockchains)
   }
 
-  def asVerticesDecorated(path: List[VertexStruct], anchors: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
+  def asVerticesDecorated(path: List[VertexStruct]): (List[VertexStruct], List[VertexStruct]) = {
     def parseTimestamp(anyTime: Any): String = {
       anyTime match {
         case time if anyTime.isInstanceOf[Long] =>
@@ -103,16 +120,7 @@ object GremlinFinder {
       }
     }
 
-    def decorateType(anyTime: Any): Any = {
-      anyTime match {
-        case time if anyTime.isInstanceOf[String] =>
-          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
-          else time.toString
-        case time => time
-      }
-    }
-
-    asVertices(path, anchors) match {
+    asVertices(path) match {
       case (p, a) =>
         val _path = p.map(x =>
           x.map(Values.TIMESTAMP)(parseTimestamp)
@@ -168,6 +176,45 @@ object GremlinFinder {
       .elementMap
 
     /**
+      * Creates a traversal from the previousTraversal to a new blockchain whose name is not in the alreadyFoundBlockchains list.
+      * @param alreadyFoundBlockchains List of blockchain names that have already been found.
+      * @param inDirection Specify on which direction the graph will be traversed. True = in, false = out.
+      * @return The updated traversal.
+      */
+    def nextBlockchainsFromMasterThatAreNotAlreadyFound(alreadyFoundBlockchains: List[String], inDirection: Boolean): Aux[util.Map[AnyRef, AnyRef], HNil] = {
+
+      previousConstructor.repeat(
+        _.inOrOut(
+          inDirection,
+          Values.MASTER_TREE_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY
+        )
+          .simplePath()
+      )
+        .until(
+          _.in(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addHasNotSteps(alreadyFoundBlockchains)
+        )
+        .timeLimit(1000L) // 1 second time limit
+        .limit(1)
+        .in(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addHasNotSteps(alreadyFoundBlockchains)
+        .path()
+        .unfold[Vertex]()
+        .elementMap
+    }
+
+    protected def inOrOut(upDirection: Boolean, value: String): Aux[Vertex, HNil] = if (upDirection) previousConstructor.in(value) else previousConstructor.out(value)
+
+    protected def addHasNotSteps(alreadyFoundBlockchains: List[String], accu: GremlinScala.Aux[Vertex, HNil] = previousConstructor): GremlinScala.Aux[Vertex, HNil] = {
+
+      val publicChainKey = Key[String](Values.PUBLIC_CHAIN_PROPERTY)
+
+      alreadyFoundBlockchains match {
+        case Nil => accu
+        case ::(head, tl) =>
+          addHasNotSteps(tl, accu.hasNot(publicChainKey, head))
+      }
+    }
+
+    /**
       * Find ONE upp that has the given property and associated value.
       * @param property The property desired.
       * @param value    Value of the property. Only works if the value is a string.
@@ -196,7 +243,7 @@ object GremlinFinder {
     /**
       * Optimized shortest path between a UPP and a blockchain. Still in the IN direction
       */
-    def shortestPathUppBlockchain = previousConstructor
+    def shortestPathFromUppToBlockchain: Aux[util.Map[AnyRef, AnyRef], HNil] = previousConstructor
       .in(Values.SLAVE_TREE_CATEGORY + "->" + Values.UPP_CATEGORY)
       .repeat(_.in(
         Values.MASTER_TREE_CATEGORY + "->" + Values.SLAVE_TREE_CATEGORY,
