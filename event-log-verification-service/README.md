@@ -2,6 +2,11 @@
 
 **Note**: For the following examples, you should take into account the environment you are working on. DEV, DEMO or PRO and change the URL accordingly.
 
+**Note**: Verifications 2, 3, and 4, check for the validity of the upp in terms of signature of the upp, chain and unpacking.
+
+This system talks internally to the Identity Service: https://github.com/ubirch/ubirch-id-service to retrieve the available keys.
+
+
 ## (1) https://verify.demo.ubirch.com/api/upp
 
 This endpoint basically only queries for the existence of the upp. It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check.
@@ -20,7 +25,7 @@ curl -s -X POST https://verify.demo.ubirch.com/api/upp -d '24gpRTHckCjMTMxR17dBH
 
 ## (2) https://verify.demo.ubirch.com/api/upp/verify
 
-This query checks for the existence of the upp in our backend and additionally, it checks the "chain" and the validity of the "keys"
+This query checks for the existence of the upp in our backend and additionally, it checks the "chain" and the validity of the "keys" (That the UPP can be verified by one of the available keys for the particualar device/entity.)
 
 _Example_
 
@@ -37,7 +42,7 @@ curl -s -X POST https://verify.demo.ubirch.com/api/upp/verify -d '24gpRTHckCjMTM
 
 ## (3) https://verify.demo.ubirch.com/api/upp/verify/anchor
 
-This performs all that (2) does and additionally allows to get the upper bounds or the closet blockchains transactions in the near future. You can get a compacted version or full version based on the params below.
+This query checks for the existence of the upp in our backend, it checks the "chain" and the validity of the "keys" (That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper bounds or the closet blockchains transactions in the near future. You can get a compacted version or full version based on the params below.
 
 optional params
 
@@ -142,7 +147,9 @@ curl -s -X POST 'https://verify.dev.ubirch.com/api/upp/verify/anchor?response_fo
 
 ## (4) https://verify.dev.ubirch.com/api/upp/verify/record
 
-This gets the upper and lower bounds for a upp.
+This query checks for the existence of the upp in our backend and additionally, it checks the "chain" and the validity of the "keys" (That the UPP can be verified by one of the available keys for the particualar device/entity.)
+
+This query checks for the existence of the upp in our backend, it checks the "chain" and the validity of the "keys" (That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper and lower bounds or the closet blockchains transactions in the near future and past. You can get a compacted version or full version based on the params below.
 
 optional params
 
