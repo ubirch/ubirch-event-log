@@ -1,8 +1,8 @@
 package com.ubirch.verification
 
+import com.google.inject.{ AbstractModule, Module }
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
-import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.HealthCheckServer
