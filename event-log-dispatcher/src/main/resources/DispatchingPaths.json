@@ -91,28 +91,7 @@
         "tags": [
           "blockchain"
         ],
-        "name": "ubirch-svalbard-evt-chain-eth-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-etc-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-iota-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-etr-string",
+        "name": "ubirch-svalbard-evt-anchor-mgt-string",
         "data_to_send": "id"
       },
       {
