@@ -170,11 +170,14 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
     */
   def findOtherAnchors(pathAccu: List[VertexStruct], lastMt: VertexStruct, blockchainsFound: List[String], inDirection: Boolean, numberDifferentAnchors: Int): List[VertexStruct] = {
 
-    val newPath: List[VertexStruct] = gremlin.g.V(lastMt.id)
-      .nextBlockchainsFromMasterThatAreNotAlreadyFound(blockchainsFound, inDirection)
-      .l()
-      .map(v => VertexStruct.fromMap(v))
-
+    val newPath: List[VertexStruct] = try {
+      gremlin.g.V(lastMt.id)
+        .nextBlockchainsFromMasterThatAreNotAlreadyFound(blockchainsFound, inDirection)
+        .l()
+        .map(v => VertexStruct.fromMap(v))
+    } catch {
+      case _: Throwable => Nil // this catch is here in case an error is thrown by nextBlockchainsFromMasterThatAreNotAlreadyFound, meaning that the algorithm reached the end of the graph
+    }
     val newBcx = newPath.filter(v => v.label == Values.PUBLIC_CHAIN_CATEGORY)
 
     val newBlockchainNames = getBlockchainNamesFromBcx(newBcx).map(_._2)
@@ -192,6 +195,7 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
         val lastMt = pathAccuUpdated.filter(p => p.label == Values.MASTER_TREE_CATEGORY).last
         findOtherAnchors(pathAccuUpdated, lastMt, allBcxSoFar, inDirection, numberDifferentAnchors)
       }
+
     }
   }
 
