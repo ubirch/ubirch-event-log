@@ -176,7 +176,9 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
         .l()
         .map(v => VertexStruct.fromMap(v))
     } catch {
-      case _: Throwable => Nil // this catch is here in case an error is thrown by nextBlockchainsFromMasterThatAreNotAlreadyFound, meaning that the algorithm reached the end of the graph
+      case e: Throwable =>
+        logger.warn("Error in nextBlockchainsFromMasterThatAreNotAlreadyFound", e)
+        Nil // this catch is here in case an error is thrown by nextBlockchainsFromMasterThatAreNotAlreadyFound, meaning that the algorithm reached the end of the graph
     }
     val newBcx = newPath.filter(v => v.label == Values.PUBLIC_CHAIN_CATEGORY)
 
