@@ -1,4 +1,4 @@
-package com.ubirch.verification.services.gremlin
+package com.ubirch.verification.services.janus
 
 import java.text.SimpleDateFormat
 
@@ -43,21 +43,19 @@ object FindUpperAndLower extends Boot(LookupServiceBinder.modules) {
 
     val gremlin = get[GremlinFinderEmbedded]
 
-    val res: Future[(List[VertexStruct], List[VertexStruct], List[VertexStruct], List[VertexStruct])] = Future.successful(gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw=="))
+    val res: Future[(List[VertexStruct], List[VertexStruct])] = Future.successful(gremlin.findUpperAndLower("88gHo6x2R9IujZP7y0hMAjBQfQ9mpIDcVuRvV6bynP+YYqoANg7n8V/ZbbhQxCWBCh/UGqzFqMoaTf075rtJRw=="))
 
     val t = for {
-      (_sp, _u, _lp, _l) <- res
+      (_sp, _u) <- res
     } yield {
-      (_sp, _u, _lp, _l)
+      (_sp, _u)
     }
     val timeFormatter = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy")
 
     t.onComplete {
-      case Success((a, b, c, d)) =>
-        println("shortestPath: " + a.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("upper: " + b.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("lower-path: " + c.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
-        println("lower: " + d.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+      case Success((a, b)) =>
+        println("lowerPath: " + a.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
+        println("upperPath: " + b.map(x => (x.label, x.get(Values.TIMESTAMP).map(y => timeFormatter.parse(y.toString)), x.get(Values.HASH).map(_.toString).getOrElse(""))).mkString("\n"))
       case Failure(exception) =>
         logger.info("Hola")
         throw exception

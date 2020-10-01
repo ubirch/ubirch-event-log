@@ -25,6 +25,7 @@ object Values {
   val DEVICE_ID = "device-id"
   val LAST_HASH = "last-hash"
   val UPP_CHAIN = "upp-chain"
+  val PUBLIC_CHAIN_PROPERTY = "public_chain"
   val HASH = "hash"
   val PREV_HASH = "prev_hash"
   val NEXT_HASH = "next_hash"
