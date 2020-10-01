@@ -148,6 +148,7 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
       case None =>
         Nil
     }
+    logger.debug("Lookup over, upperThings = " + upperThings.path.distinct.map(v => v.label).mkString(", ") + " lowerThings = " + lowerThings.map(v => v.label).mkString(", "))
     (upperThings.path.distinct, lowerThings)
 
   }
@@ -259,11 +260,22 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
   def shortestPathUppBlockchain(property: String, value: String): List[VertexStruct] = {
     //val x = StepLabel[java.util.Set[Vertex]]("x")
     //g.V().has("hash", hash).store("x").repeat(__.in().where(without("x")).aggregate("x")).until(hasLabel("PUBLIC_CHAIN")).limit(1).path().profile()
-    val shortestPath = gremlin.g.V()
-      .findVertex(property.toLowerCase(), value)
-      .shortestPathFromUppToBlockchain
-      .l()
-    shortestPath.map(v => VertexStruct.fromMap(v))
+
+    val vertex = gremlin.g.V().findVertex(property.toLowerCase(), value).l().head
+    logger.debug("vFound: " + vertex.id())
+    val path = gremlin.g.V(vertex).shortestPathToLabel(Values.PUBLIC_CHAIN_CATEGORY).l()
+    //    val shortestPath = gremlin.g.V()
+    //      .findVertex(property.toLowerCase(), value)
+    //      .shortestPathToLabel(Values.PUBLIC_CHAIN_CATEGORY)
+    //      .l()
+    logger.debug("shortesPathRaw = " + path.map(v => v.get("hash").toString))
+    if (path.isEmpty) {
+      import scala.collection.JavaConverters._
+      logger.debug("shortPathRaw empty")
+      val em = gremlin.g.V().findVertex(property.toLowerCase(), value).elementMap.l().head
+      logger.debug("em = " + em.asScala.mkString(", "))
+    }
+    path.map(v => VertexStruct.fromMap(v))
   }
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = {

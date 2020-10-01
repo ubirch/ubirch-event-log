@@ -83,37 +83,55 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
       case None => Future.successful(None)
     }
 
-    val maybeLastMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
+    val futureMaybeLastMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
       time <- headTimestamp
       master <- futureShortestPath.map(_.reversedTailHeadOption)
     } yield {
       master.map(x => (x, time.getOrElse(-1L)))
     }
 
-    val futureFirstUpperBlockchains: Future[List[VertexStruct]] = maybeLastMasterAndTime.flatMap {
+    val futureFirstUpperBlockchains: Future[List[VertexStruct]] = futureMaybeLastMasterAndTime.flatMap {
       case Some((v, _)) =>
         getBlockchainsFromMasterVertex(v)
       case None =>
         Future.successful(Nil)
     }
 
-    val futureLastMaster = maybeLastMasterAndTime.map(x => x.get._1) // TODO: make that safe like in embedded if we switch to it at one point
-
     val futureBcxNamesSoFar = getBlockchainNamesFromFutureBcx(futureFirstUpperBlockchains).map(x => x.map(q => q._2))
 
-    val upperThings: Future[(Future[PathHelper], Future[List[VertexStruct]])] = futureBcxNamesSoFar.map { bcx =>
-      if (bcx.size >= numberDifferentAnchors) {
-        (futureShortestPath, futureFirstUpperBlockchains)
+    val unflattenedUpperThings: Future[Future[PathHelper]] = for {
+      bcxNamesSoFar <- futureBcxNamesSoFar
+      maybeLastMasterAndTime <- futureMaybeLastMasterAndTime
+    } yield {
+      if (bcxNamesSoFar.size >= numberDifferentAnchors) {
+        logger.debug("UpperThings: already found enough blockchains")
+        for {
+          shortestPathRaw <- futureShortestPathRaw
+          firstUpperBlockchains <- futureFirstUpperBlockchains
+        } yield {
+          PathHelper(shortestPathRaw ++ firstUpperBlockchains)
+        }
       } else {
-        val path = findOtherAnchors(futureShortestPathRaw, futureLastMaster, futureBcxNamesSoFar, inDirection = true, numberDifferentAnchors)
-        val blockchains = path.map(x => x.filter(v => v.label == Values.PUBLIC_CHAIN_CATEGORY))
-        (path.map(PathHelper), blockchains)
+        maybeLastMasterAndTime match {
+          case Some(masterAndTime) =>
+            findOtherAnchors(
+              futurePathAccu = futureShortestPathRaw,
+              futureLastMt = Future.successful(masterAndTime._1),
+              futureBlockchainsFound = futureBcxNamesSoFar,
+              inDirection = true,
+              numberDifferentAnchors = numberDifferentAnchors
+            ).map(PathHelper)
+          case None =>
+            Future.successful(PathHelper(Nil))
+        }
       }
     }
 
-    val lowerPathHelper: Future[Option[(List[VertexStruct], Long)]] = {
+    val futureUpperThings: Future[PathHelper] = unflattenedUpperThings.flatten
+
+    val futureLowerPathHelper: Future[Option[(List[VertexStruct], Long)]] = {
       if (safeMode) {
-        maybeLastMasterAndTime.flatMap {
+        futureMaybeLastMasterAndTime.flatMap {
           case Some((v, t)) => outLT(v, t).map(x => Option(x, t))
           case None => Future.successful(None)
         }
@@ -131,7 +149,7 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
       }
     }
 
-    val lowerThings: Future[List[VertexStruct]] = lowerPathHelper.flatMap {
+    val lowerThings: Future[List[VertexStruct]] = futureLowerPathHelper.flatMap {
       case Some((ph, _)) =>
         val fLowerBcs = PathHelper(ph).reversedHeadOption
           .map(x => getBlockchainsFromMasterVertex(x))
@@ -144,11 +162,11 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
             //val a = lowerPathHelper.map(x => x.get._1)
             val lowPathForNow = for {
               lowerBcs <- fLowerBcs
-              lowPath <- lowerPathHelper.map(x => x.get._1)
+              lowPath <- futureLowerPathHelper.map(x => x.get._1)
             } yield {
               lowPath ++ lowerBcs
             }
-            val path = findOtherAnchors(lowPathForNow, lowerPathHelper.map(x => x.get._1.last), futureBcxLowNameSoFar.map(x => x.map(y => y._2)), inDirection = false, numberDifferentAnchors)
+            val path = findOtherAnchors(lowPathForNow, futureLowerPathHelper.map(x => x.get._1.last), futureBcxLowNameSoFar.map(x => x.map(y => y._2)), inDirection = false, numberDifferentAnchors)
             path
           }
         }
@@ -159,10 +177,10 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
     //val a = lowerThings.map(_.unzip match { case (x, y) => (x.flatten, y.flatten) })
 
     for {
-      upperPath <- upperThings.flatMap(x => x._1)
+      upperPath <- futureUpperThings
       lowerPath <- lowerThings
     } yield {
-      (upperPath.path, lowerPath)
+      (upperPath.path.distinct, lowerPath)
     }
   }
 
@@ -187,10 +205,16 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
     val futureNewPath = for {
       alreadyFoundBcx <- futureBlockchainsFound
       lastMt <- futureLastMt
-      path <- gremlin.g.V(lastMt.id)
-        .nextBlockchainsFromMasterThatAreNotAlreadyFound(alreadyFoundBcx, inDirection)
-        .promise()
-        .map(lv => lv.map(v => VertexStruct.fromMap(v)))
+      path <- try {
+        gremlin.g.V(lastMt.id)
+          .nextBlockchainsFromMasterThatAreNotAlreadyFound(alreadyFoundBcx, inDirection)
+          .promise()
+          .map(lv => lv.map(v => VertexStruct.fromMap(v)))
+      } catch {
+        case e: Throwable =>
+          logger.warn("Error in nextBlockchainsFromMasterThatAreNotAlreadyFound", e)
+          Future.successful(Nil) // this catch is here in case an error is thrown by nextBlockchainsFromMasterThatAreNotAlreadyFound, meaning that the algorithm reached the end of the graph
+      }
     } yield {
       path
     }
@@ -210,7 +234,7 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
       pathAccu <- futurePathAccu
       newPath <- futureNewPath
     } yield {
-      pathAccu ++ newPath.tail
+      pathAccu ++ newPath.drop(1) //using drop(1) instead of tail in case newPath is empty
     }
 
     val a = for {
