@@ -1,4 +1,4 @@
-package com.ubirch.verification.services.gremlin
+package com.ubirch.verification.services.janus
 
 import java.io.PrintWriter
 
@@ -52,7 +52,7 @@ class DefaultEmbeddedJanusgraph @Inject() (lifecycle: Lifecycle, config: Config)
     val janusPropsFile = Source.fromFile(janusPropsPath)
     janusPropsFile.getLines
       .map { x => if (x.contains("proxy")) s"# $x" else x }
-      .foreach(x => w.println(x))
+      .foreach(x => w.println(x)) // DO NOT remove this println. It prints to the file!
     janusPropsFile.close()
     w.close()
     logger.debug("temp file created at: " + tempFi.getAbsolutePath)

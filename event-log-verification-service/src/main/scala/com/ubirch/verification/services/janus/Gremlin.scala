@@ -1,4 +1,4 @@
-package com.ubirch.verification.services.gremlin
+package com.ubirch.verification.services.janus
 
 import gremlin.scala.{ ScalaGraph, TraversalSource }
 import org.apache.tinkerpop.gremlin.process.traversal.Bindings
