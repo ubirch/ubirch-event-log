@@ -273,5 +273,24 @@
         "data_to_send": null
       }
     ]
+  },
+  {
+    "category": "BLOXBERG_TESTNET_BLOXBERG_TESTNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
   }
 ]
