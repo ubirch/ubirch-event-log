@@ -129,7 +129,7 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
     val lowerThings: List[VertexStruct] = lowerPathHelper match {
       case Some((ph, _)) =>
         val lowerBcs: List[VertexStruct] = PathHelper(ph).reversedHeadOption
-          .map(x => getBlockchainsFromMasterVertex(x))
+          .map(x => getBlockchainsFromMasterVertexTimeLowerThan(x, headTimestamp.getOrElse(-1L)))
           .getOrElse(Nil)
         val bcxLowNameSoFar: List[(VertexStruct, String)] = getBlockchainNamesFromBcx(lowerBcs)
         if (bcxLowNameSoFar.map(x => x._2).size >= numberDifferentAnchors) {
@@ -297,6 +297,13 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
   def getBlockchainsFromMasterVertex(master: VertexStruct): List[VertexStruct] = {
     val blockchains = gremlin.g.V(master.id)
       .blockchainsFromMasterVertex
+      .l()
+    blockchains.map(b => VertexStruct.fromMap(b))
+  }
+
+  def getBlockchainsFromMasterVertexTimeLowerThan(master: VertexStruct, time: Long): List[VertexStruct] = {
+    val blockchains = gremlin.g.V(master.id)
+      .blockchainsFromMasterDateInferiorTo(time)
       .l()
     blockchains.map(b => VertexStruct.fromMap(b))
   }
