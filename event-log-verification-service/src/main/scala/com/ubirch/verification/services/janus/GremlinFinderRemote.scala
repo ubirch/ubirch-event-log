@@ -151,17 +151,26 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
 
     val lowerThings: Future[List[VertexStruct]] = futureLowerPathHelper.flatMap {
       case Some((ph, _)) =>
-        val fLowerBcs = PathHelper(ph).reversedHeadOption
-          .map(x => getBlockchainsFromMasterVertex(x))
-          .getOrElse(Future.successful(Nil))
-        val futureBcxLowNameSoFar = getBlockchainNamesFromFutureBcx(fLowerBcs)
-        futureBcxLowNameSoFar.flatMap { bcxLowNameSoFar =>
+        val fLowerBcs =
+          for {
+            time <- headTimestamp
+          } yield {
+            PathHelper(ph).reversedHeadOption
+              .map(x => getBlockchainsFromMasterVertexTimeLowerThan(x, time.getOrElse(-1L)))
+              .getOrElse(Future.successful(Nil))
+          }
+        val futureBcxLowNameSoFar = getBlockchainNamesFromFutureBcx(fLowerBcs.flatten)
+
+        val res = for {
+          bcxLowNameSoFar <- futureBcxLowNameSoFar
+          lowerBcs <- fLowerBcs.flatten
+        } yield {
           if (bcxLowNameSoFar.map(x => x._2).size >= numberDifferentAnchors) {
-            Future.successful(ph)
+            Future.successful(ph ++ lowerBcs)
           } else {
             //val a = lowerPathHelper.map(x => x.get._1)
             val lowPathForNow = for {
-              lowerBcs <- fLowerBcs
+              lowerBcs <- fLowerBcs.flatten
               lowPath <- futureLowerPathHelper.map(x => x.get._1)
             } yield {
               lowPath ++ lowerBcs
@@ -170,6 +179,7 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
             path
           }
         }
+        res.flatten
       case None =>
         Future.successful(Nil)
     }
@@ -368,6 +378,17 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
   def getBlockchainsFromMasterVertex(master: VertexStruct): Future[List[VertexStruct]] = {
     val futureBlockchains = gremlin.g.V(master.id)
       .blockchainsFromMasterVertex
+      .promise()
+    for {
+      blockchains <- futureBlockchains
+    } yield {
+      blockchains.map(b => VertexStruct.fromMap(b))
+    }
+  }
+
+  def getBlockchainsFromMasterVertexTimeLowerThan(master: VertexStruct, time: Long): Future[List[VertexStruct]] = {
+    val futureBlockchains = gremlin.g.V(master.id)
+      .blockchainsFromMasterDateInferiorTo(time)
       .promise()
     for {
       blockchains <- futureBlockchains

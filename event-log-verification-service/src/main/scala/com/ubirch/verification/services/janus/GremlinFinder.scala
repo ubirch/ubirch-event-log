@@ -175,6 +175,15 @@ object GremlinFinder {
       .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
       .elementMap
 
+    def blockchainsFromMasterDateInferiorTo(time: Long): Aux[util.Map[AnyRef, AnyRef], HNil] = {
+      val timestamp = Key[Date](Values.TIMESTAMP)
+      val date = new Date(time)
+      previousConstructor.in()
+        .hasLabel(Values.PUBLIC_CHAIN_CATEGORY)
+        .has(timestamp, P.lt(date))
+        .elementMap
+    }
+
     /**
       * Creates a traversal from the previousTraversal to a new blockchain whose name is not in the alreadyFoundBlockchains list.
       * @param alreadyFoundBlockchains List of blockchain names that have already been found.
