@@ -1,7 +1,7 @@
 drop  KEYSPACE event_log;
 CREATE KEYSPACE event_log WITH replication = {'class': 'SimpleStrategy','replication_factor': '2'};
 
-CREATE KEYSPACE event_log WITH replication = {'class': 'NetworkTopologyStrategy','DC_AZURE_WEST_EUROPE_01': '3'};
+CREATE KEYSPACE event_log WITH replication = {'class': 'NetworkTopologyStrategy','AZURE_WEST_EUROPE_DC1': '3'};
 
 drop table if exists events;
 
