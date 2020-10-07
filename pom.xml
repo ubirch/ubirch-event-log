@@ -93,10 +93,10 @@
         <io.prometheus.simpleclient_graphite_bridge.version>0.6.0</io.prometheus.simpleclient_graphite_bridge.version>
 
         <!-- plugins -->
-        <scalariform.version>0.2.2</scalariform.version>
+        <scalariform.version>0.2.3</scalariform.version>
         <maven-dependency-plugin.version>2.8</maven-dependency-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
-        <scalatest-maven-plugin.version>1.0</scalatest-maven-plugin.version>
+        <scalatest-maven-plugin.version>2.0.0</scalatest-maven-plugin.version>
         <!-- plugins -->
 
         <!-- versions -->

@@ -24,14 +24,6 @@
         <build.number>${timestamp}-dev</build.number>
         <event-log-core.version>1.5.0</event-log-core.version>
 
-        <!-- Scalatra -->
-        <scalatra.version>2.6.5</scalatra.version>
-        <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
-        <scalactic.version>3.0.5</scalactic.version>
-        <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
-        <javaxServlet.version>3.1.0</javaxServlet.version>
-        <jetty-servlets.version>9.4.19.v20190610</jetty-servlets.version>
-
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
         <maven-surefire-plugin.version>2.7</maven-surefire-plugin.version>
@@ -43,16 +35,15 @@
         <!-- plugins -->
 
         <!-- Lookup POM -->
-        <gremlinScala.version>3.4.1.4</gremlinScala.version>
-        <janusGraph.version>0.3.1</janusGraph.version>
-        <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
+        <gremlinScala.version>3.4.4.5</gremlinScala.version>
+        <janusGraph.version>0.5.2</janusGraph.version>
+        <tinkerPopDriver.version>3.4.8</tinkerPopDriver.version>
         <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
 
         <build.number>${timestamp}-dev</build.number>
-
 
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
         <!-- Lookup POM end -->
@@ -73,7 +64,7 @@
         <!-- Scala -->
         <scala-maven-plugin.version>3.4.2</scala-maven-plugin.version>
         <scala.major.version>2.12</scala.major.version>
-        <scala.minor.version>.6</scala.minor.version>
+        <scala.minor.version>.8</scala.minor.version>
         <scala.version>${scala.major.version}${scala.minor.version}</scala.version>
 
         <typesafe.config.version>1.3.4</typesafe.config.version>
@@ -125,16 +116,11 @@
         </dependency>
 
         <!-- ubirch -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-protocol-java</artifactId>
-            <version>${ubirch-protocol.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>
-            <version>1.1-SNAPSHOT</version>
+            <version>1.2-SNAPSHOT</version>
         </dependency>
 
 
@@ -203,14 +189,6 @@
 
         <!-- LOOKUP POM -->
 
-        <!-- https://mvnrepository.com/artifact/com.ubirch/ubirch-kafka-envelope -->
-        <!-- Todo: should become deleted -->
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-kafka-envelope</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-
         <!-- Json -->
         <dependency>
             <groupId>org.json4s</groupId>
@@ -253,41 +231,20 @@
             <artifactId>janusgraph-core</artifactId>
             <version>${janusGraph.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.janusgraph</groupId>
+            <artifactId>janusgraph-cql</artifactId>
+            <version>${janusGraph.version}</version>
+        </dependency>
         <!-- /Gremlin -->
         <!-- LOOKUP POM -->
-
 
         <!-- Core -->
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
-        </dependency>
-
-        <!-- Scalatra -->
-
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra_2.12</artifactId>
-            <version>${scalatra.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scalactic</groupId>
-            <artifactId>scalactic_${scala.compat.version}</artifactId>
-            <version>${scalactic.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra-swagger_${scala.compat.version}</artifactId>
-            <version>${scalatraSwagger.version}</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.scalatra/scalatra-scalatest -->
-        <dependency>
-            <groupId>org.scalatra</groupId>
-            <artifactId>scalatra-scalatest_${scala.compat.version}</artifactId>
-            <version>${scalatra-scalatest.version}</version>
-            <scope>test</scope>
         </dependency>
 
     </dependencies>
@@ -357,7 +314,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>com.ubirch.verification.service.Service</mainClass>
+                            <mainClass>com.ubirch.verification.Service</mainClass>
                             <useUniqueVersions>false</useUniqueVersions>
                         </manifest>
                     </archive>

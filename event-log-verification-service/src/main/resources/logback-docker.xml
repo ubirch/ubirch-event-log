@@ -37,6 +37,9 @@
 
     <logger name="com.ubirch" level="ALL"/>
     <logger name="com.ubirch.niomon.cache.RedisCache" level="WARN"/>
+    <logger name="com.ubirch.verification.services.KeyServerClient" level="WARN"/>
+    <logger name="com.ubirch.verification.services.KeyServiceBasedVerifier" level="WARN"/>
+
     <logger name="org.apache.commons" level="WARN"/>
     <logger name="httpclient.wire" level="WARN"/>
     <logger name="org.redisson" level="WARN"/>
@@ -44,6 +47,7 @@
     <logger name="skinny.http" level="WARN"/>
     <logger name="com.github.nosan.embedded.cassandra" level="WARN"/>
     <logger name="org.apache.tinkerpop.gremlin.driver.ConnectionPool" level="WARN"/>
+    <logger name="org.apache.tinkerpop.gremlin.driver.Client" level="WARN"/>
     <logger name="com.datastax.driver" level="WARN"/>
     <logger name="io.netty" level="WARN"/>
     <logger name="io.getquill.CassandraAsyncContext" level="WARN"/>
