@@ -8,5 +8,6 @@ This system talks internally to the Identity Service: https://github.com/ubirch/
 
 * [Endpoints V1](V1.md)
 * [Endpoints V2](V2.md)
+* [Access Token For Endpoints V2](AccessToken.md)
 
 
