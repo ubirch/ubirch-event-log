@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.controllers.Api.{ Anchors, Failure, NotFound, Response, Success }
+import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, NotFound, Response, Success, Forbidden }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
@@ -178,6 +178,8 @@ class ApiImpl @Inject() (
             value match {
               case Success(_, _, _) => responsesSent.labels(Response.OK.toString).inc()
               case NotFound => responsesSent.labels(Response.NOT_FOUND.toString).inc()
+              case AuthorizationHeaderNotFound => responsesSent.labels(Response.UNAUTHORIZED.toString).inc()
+              case Forbidden => responsesSent.labels(Response.FORBIDDEN.toString).inc()
               case Failure(_, _, _, _) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
 
             }
@@ -189,6 +191,16 @@ class ApiImpl @Inject() (
 
   }
 
+  private def isTokenValid(token: String) = token.length > 5
+
+  private def authorization[T](authToken: String)(f: () => Future[Response]): () => Future[Response] = {
+    authToken match {
+      case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
+      case _ if isTokenValid(authToken) => f
+      case _ => () => Future.successful(Forbidden)
+    }
+  }
+
   override def health: Future[String] = {
     registerMetrics("health") { () =>
       Future.successful("ok")
@@ -197,7 +209,7 @@ class ApiImpl @Inject() (
 
   //V1
 
-  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = {
+  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
     registerMetrics("upp") { () =>
       lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
     }
@@ -237,42 +249,50 @@ class ApiImpl @Inject() (
   }
 
   //V2
-  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
-    registerMetrics("v2.upp") { () =>
-      lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
+    registerMetrics("v2.upp") {
+      authorization(authToken) { () =>
+        lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+      }
     }
   }
 
-  override def verifyUPPV2(hash: Array[Byte]): Future[Response] = {
-    registerMetrics("v2.simple") { () =>
-      verifyBase(
-        hash,
-        Simple,
-        AnchorsNoPath,
-        Normal
-      )
+  override def verifyUPPV2(hash: Array[Byte], authToken: String): Future[Response] = {
+    registerMetrics("v2.simple") {
+      authorization(authToken) { () =>
+        verifyBase(
+          hash,
+          Simple,
+          AnchorsNoPath,
+          Normal
+        )
+      }
     }
   }
 
-  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
-    registerMetrics("v2.anchor") { () =>
-      verifyBase(
-        hash,
-        ShortestPath,
-        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-      )
+  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    registerMetrics("v2.anchor") {
+      authorization(authToken) { () =>
+        verifyBase(
+          hash,
+          ShortestPath,
+          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+        )
+      }
     }
   }
 
-  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
-    registerMetrics("v2.record") { () =>
-      verifyBase(
-        hash,
-        UpperLower,
-        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-      )
+  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    registerMetrics("v2.record") {
+      authorization(authToken) { () =>
+        verifyBase(
+          hash,
+          UpperLower,
+          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+        )
+      }
     }
   }
 
