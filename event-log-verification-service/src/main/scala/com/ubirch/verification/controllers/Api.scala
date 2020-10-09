@@ -18,6 +18,7 @@ trait Api {
   @tags("health")
   def health: Future[String]
 
+  //V1
   @cors
   @CustomBody
   @POST("upp")
@@ -58,6 +59,52 @@ trait Api {
     "You can get a compacted version or full version based on the params below.")
   @tags("v1")
   def verifyUPPWithUpperAndLowerBound(
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value
+  ): Future[Api.Response]
+
+  //V2
+  @cors
+  @CustomBody
+  @POST("v2/upp")
+  @description(
+    "This endpoint basically only queries for the existence of the upp. \n " +
+      "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
+  )
+  @tags("v2")
+  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false): Future[Api.Response]
+
+  @cors
+  @CustomBody // without that this api endpoint would expect json `{"payload": []}`
+  @POST("v2/upp/verify")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
+  @tags("v2")
+  def verifyUPPV2(hash: Array[Byte]): Future[Api.Response]
+
+  @cors
+  @CustomBody
+  @POST("v2/upp/verify/anchor")
+  @description("This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper bounds or the closet blockchains transactions in the near future. \n " +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v2")
+  def verifyUPPWithUpperBoundV2(
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value
+  ): Future[Api.Response]
+
+  @cors
+  @CustomBody
+  @POST("v2/upp/verify/record")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity.)\n\n" +
+    "This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" " +
+    "\n (That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper and lower bounds or the closet blockchains transactions in the near future and past. \n" +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v2")
+  def verifyUPPWithUpperAndLowerBoundV2(
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value
