@@ -13,8 +13,11 @@ class JettyServerProvider @Inject() (apiImpl: ApiImpl, config: Config) extends P
   private val verificationConfig = config.getConfig("verification")
 
   private val openApi = Api.openapiMetadata.openapi(
-    Info("Event Log Verification Service", "1.0.0",
-      description = "Event Log Verification Service with a REST endpoint that accesses Log Service"),
+    Info(
+      title = "Event Log Verification Service",
+      version = "1.0.0",
+      description = "Event Log Verification Service with a REST endpoint that accesses Log Service"
+    ),
     servers = List(Server(verificationConfig.getString("swaggerBaseUrl")))
   )
 
