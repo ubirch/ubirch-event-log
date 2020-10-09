@@ -121,6 +121,7 @@ trait Api extends V1 with V2 {
 }
 
 object Api extends VerificationServiceRestApiCompanion[Api] {
+
   private val exampleAnchor = Anchors(JsonValue(
     """[
     {
