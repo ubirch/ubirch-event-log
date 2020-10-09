@@ -195,6 +195,8 @@ class ApiImpl @Inject() (
     }
   }
 
+  //V1
+
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = {
     registerMetrics("upp") { () =>
       lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
@@ -225,6 +227,46 @@ class ApiImpl @Inject() (
 
   override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
     registerMetrics("record") { () =>
+      verifyBase(
+        hash,
+        UpperLower,
+        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+      )
+    }
+  }
+
+  //V2
+  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
+    registerMetrics("v2.upp") { () =>
+      lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+    }
+  }
+
+  override def verifyUPPV2(hash: Array[Byte]): Future[Response] = {
+    registerMetrics("v2.simple") { () =>
+      verifyBase(
+        hash,
+        Simple,
+        AnchorsNoPath,
+        Normal
+      )
+    }
+  }
+
+  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
+    registerMetrics("v2.anchor") { () =>
+      verifyBase(
+        hash,
+        ShortestPath,
+        ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+        BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+      )
+    }
+  }
+
+  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = {
+    registerMetrics("v2.record") { () =>
       verifyBase(
         hash,
         UpperLower,
