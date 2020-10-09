@@ -6,7 +6,7 @@ import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
 import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
-import io.udash.rest.raw.{ HttpBody, IMapping, JsonValue, RestResponse }
+import io.udash.rest.raw.{ HttpBody, IMapping, JsonValue, PlainValue, RestResponse }
 import io.udash.rest.{ Query, _ }
 
 import scala.concurrent.Future
@@ -73,14 +73,14 @@ trait Api {
       "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
   )
   @tags("v2")
-  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false): Future[Api.Response]
+  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false, @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
 
   @cors
   @CustomBody // without that this api endpoint would expect json `{"payload": []}`
   @POST("v2/upp/verify")
   @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
   @tags("v2")
-  def verifyUPPV2(hash: Array[Byte]): Future[Api.Response]
+  def verifyUPPV2(hash: Array[Byte], @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
 
   @cors
   @CustomBody
@@ -92,7 +92,8 @@ trait Api {
   def verifyUPPWithUpperBoundV2(
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
-      @Query("blockchain_info") blockchainInfo: String = Normal.value
+      @Query("blockchain_info") blockchainInfo: String = Normal.value,
+      @Header("authorization") authToken: String = "No-Header-Found"
   ): Future[Api.Response]
 
   @cors
@@ -107,7 +108,8 @@ trait Api {
   def verifyUPPWithUpperAndLowerBoundV2(
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
-      @Query("blockchain_info") blockchainInfo: String = Normal.value
+      @Query("blockchain_info") blockchainInfo: String = Normal.value,
+      @Header("authorization") authToken: String = "No-Header-Found"
   ): Future[Api.Response]
 
 }
@@ -147,6 +149,8 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
     val OK: Int = 200
     val BAD_REQUEST: Int = 400
     val NOT_FOUND: Int = 404
+    val UNAUTHORIZED: Int = 401
+    val FORBIDDEN: Int = 403
 
     // adds custom status codes
     implicit def asRestResp(implicit
@@ -156,29 +160,26 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
       AsRaw.create {
         case s: Success => successAsRaw.asRaw(s).defaultResponse.recoverHttpError
         case NotFound => RestResponse(NOT_FOUND, IMapping.empty, HttpBody.empty)
+        case AuthorizationHeaderNotFound => RestResponse(UNAUTHORIZED, IMapping("WWW-Authenticate" -> PlainValue("""Bearer realm="Verification Access" """.trim)), HttpBody.empty)
+        case Forbidden => RestResponse(FORBIDDEN, IMapping.empty, HttpBody.empty)
         case f: Failure => failureAsRaw.asRaw(f).defaultResponse.copy(code = BAD_REQUEST).recoverHttpError
       }
     }
   }
 
-  case class Success(upp: String, prev: String, anchors: Anchors) extends Response
-
-  object Success extends RestDataCompanion[Success]
-
-  // TODO: change that from JsonValue to something more appropriate when Carlos finishes the backend
   case class Anchors(json: JsonValue)
-
   object Anchors extends RestDataWrapperCompanion[JsonValue, Anchors] {
     implicit val schema: RestSchema[Anchors] = RestSchema.plain(Schema(`type` = DataType.Object))
 
     implicit def jsonNodeToAnchors(jsonNode: JsonNode): Anchors = Anchors(JsonValue(jsonNode.toString))
   }
+  case class Success(upp: String, prev: String, anchors: Anchors) extends Response
+  object Success extends RestDataCompanion[Success]
 
+  case object AuthorizationHeaderNotFound extends Response
+  case object Forbidden extends Response
   case object NotFound extends Response
-
-  case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError",
-      errorMessage: String = "signature verification failed") extends Response
-
+  case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
 
 }
