@@ -12,12 +12,7 @@ import io.udash.rest.{ Query, _ }
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
-trait Api {
-  @cors
-  @GET
-  @tags("health")
-  def health: Future[String]
-
+trait V1 {
   //V1
   @cors
   @CustomBody
@@ -63,7 +58,9 @@ trait Api {
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value
   ): Future[Api.Response]
+}
 
+trait V2 {
   //V2
   @cors
   @CustomBody
@@ -111,6 +108,15 @@ trait Api {
       @Query("blockchain_info") blockchainInfo: String = Normal.value,
       @Header("authorization") authToken: String = "No-Header-Found"
   ): Future[Api.Response]
+
+}
+
+trait Api extends V1 with V2 {
+
+  @cors
+  @GET
+  @tags("health")
+  def health: Future[String]
 
 }
 
