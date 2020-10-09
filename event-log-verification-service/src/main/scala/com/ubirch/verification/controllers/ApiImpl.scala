@@ -191,7 +191,13 @@ class ApiImpl @Inject() (
 
   }
 
-  private def isTokenValid(token: String) = token.length > 5
+  private def isTokenValid(token: String): Boolean = token.split(" ").toList match {
+    case List(x, y) =>
+      val isBearer = x.toLowerCase == "bearer"
+      val isTokenFine = y.length > 5
+      isBearer && isTokenFine
+    case _ => false
+  }
 
   private def authorization[T](authToken: String)(f: () => Future[Response]): () => Future[Response] = {
     authToken match {
