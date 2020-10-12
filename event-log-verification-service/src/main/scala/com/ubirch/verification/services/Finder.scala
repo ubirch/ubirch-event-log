@@ -3,7 +3,7 @@ package com.ubirch.verification.services
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.models.{ EventLogRow, Values }
 import com.ubirch.verification.models.{ Payload, QueryType, Signature, VertexStruct }
-import com.ubirch.verification.services.janus.{ GremlinFinderEmbedded, GremlinFinder }
+import com.ubirch.verification.services.janus.GremlinFinder
 import javax.inject._
 
 import scala.concurrent.{ ExecutionContext, Future }

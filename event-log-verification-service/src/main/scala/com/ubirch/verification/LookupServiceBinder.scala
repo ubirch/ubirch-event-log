@@ -1,8 +1,8 @@
 package com.ubirch.verification
 
-import com.google.inject.{ AbstractModule, Module }
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
+import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.HealthCheckServer
@@ -34,6 +34,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def redisOpt: ScopedBindingBuilder = bind(classOf[RedisCache]).toProvider(classOf[RedisProvider])
   def healthCheck: ScopedBindingBuilder = bind(classOf[HealthCheckServer]).toProvider(classOf[HealthCheckProvider])
   def jettyServer: ScopedBindingBuilder = bind(classOf[JettyServer]).toProvider(classOf[JettyServerProvider])
+  def tokenPubKey: ScopedBindingBuilder = bind(classOf[TokenPublicKey]).to(classOf[DefaultTokenPublicKey])
 
   override def configure(): Unit = {
     gremlinFinder
@@ -50,6 +51,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     redisOpt
     healthCheck
     jettyServer
+    tokenPubKey
   }
 
 }

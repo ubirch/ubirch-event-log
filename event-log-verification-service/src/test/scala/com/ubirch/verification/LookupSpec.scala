@@ -11,8 +11,8 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.util._
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog.EventLogClient
-import com.ubirch.verification.services.{ CassandraFinder, Finder }
 import com.ubirch.verification.services.janus.{ DefaultTestingGremlinConnector, Gremlin }
+import com.ubirch.verification.services.{ CassandraFinder, Finder }
 import com.ubirch.verification.util.LookupJsonSupport
 import io.prometheus.client.CollectorRegistry
 import javax.inject._

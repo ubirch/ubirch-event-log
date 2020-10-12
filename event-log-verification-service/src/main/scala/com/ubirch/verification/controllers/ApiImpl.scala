@@ -8,10 +8,10 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, NotFound, Response, Success, Forbidden }
+import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
-import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
+import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenPublicKey }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -25,6 +25,7 @@ import scala.util.control.NoStackTrace
 
 @Singleton
 class ApiImpl @Inject() (
+    tokenPublicKey: TokenPublicKey,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
     redis: RedisCache,
@@ -194,7 +195,7 @@ class ApiImpl @Inject() (
   private def isTokenValid(token: String): Boolean = token.split(" ").toList match {
     case List(x, y) =>
       val isBearer = x.toLowerCase == "bearer"
-      val isTokenFine = y.length > 5
+      val isTokenFine = TokenVerification.decodeAndVerify(y, tokenPublicKey.publicKey)
       isBearer && isTokenFine
     case _ => false
   }
