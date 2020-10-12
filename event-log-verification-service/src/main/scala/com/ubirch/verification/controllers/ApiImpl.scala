@@ -192,18 +192,24 @@ class ApiImpl @Inject() (
 
   }
 
-  private def isTokenValid(token: String): Boolean = token.split(" ").toList match {
+  private def getToken(token: String): Option[(Map[String, String], OtherClaims)] = token.split(" ").toList match {
     case List(x, y) =>
       val isBearer = x.toLowerCase == "bearer"
-      val isTokenFine = TokenVerification.decodeAndVerify(y, tokenPublicKey.publicKey)
-      isBearer && isTokenFine
-    case _ => false
+      val token = TokenVerification.decodeAndVerify(y, tokenPublicKey.publicKey)
+      if (isBearer && token.isDefined) {
+        token
+      } else {
+        None
+      }
+
+    case _ => None
   }
 
-  private def authorization[T](authToken: String)(f: () => Future[Response]): () => Future[Response] = {
+  private def authorization[T](authToken: String)(f: Option[(Map[String, String], OtherClaims)] => Future[Response]): () => Future[Response] = {
+    lazy val token = getToken(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
-      case _ if isTokenValid(authToken) => f
+      case _ if token.isDefined => () => f(token)
       case _ => () => Future.successful(Forbidden)
     }
   }
@@ -258,7 +264,7 @@ class ApiImpl @Inject() (
   //V2
   override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
     registerMetrics("v2.upp") {
-      authorization(authToken) { () =>
+      authorization(authToken) { _ =>
         lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
       }
     }
@@ -266,7 +272,7 @@ class ApiImpl @Inject() (
 
   override def verifyUPPV2(hash: Array[Byte], authToken: String): Future[Response] = {
     registerMetrics("v2.simple") {
-      authorization(authToken) { () =>
+      authorization(authToken) { _ =>
         verifyBase(
           hash,
           Simple,
@@ -279,7 +285,7 @@ class ApiImpl @Inject() (
 
   override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
     registerMetrics("v2.anchor") {
-      authorization(authToken) { () =>
+      authorization(authToken) { _ =>
         verifyBase(
           hash,
           ShortestPath,
@@ -292,7 +298,7 @@ class ApiImpl @Inject() (
 
   override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
     registerMetrics("v2.record") {
-      authorization(authToken) { () =>
+      authorization(authToken) { _ =>
         verifyBase(
           hash,
           UpperLower,

@@ -12,5 +12,6 @@ object Exceptions {
   case class LookupExecutorException(message: String, result: Option[LookupResult], reason: String) extends ExecutionException(message)
 
   case class InvalidOtherClaims(message: String, value: String) extends ExecutionException(message)
+  case class InvalidAllClaims(message: String, value: String) extends ExecutionException(message)
 
 }
