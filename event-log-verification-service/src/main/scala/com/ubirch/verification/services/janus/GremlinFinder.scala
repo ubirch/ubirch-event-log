@@ -6,8 +6,8 @@ import java.util.Date
 import com.ubirch.models.Values
 import com.ubirch.util.TimeHelper
 import com.ubirch.verification.models.VertexStruct
-import gremlin.scala.{ GremlinScala, Key, P, Vertex }
 import gremlin.scala.GremlinScala.Aux
+import gremlin.scala.{ GremlinScala, Key, P, Vertex }
 import shapeless.HNil
 
 import scala.concurrent.Future

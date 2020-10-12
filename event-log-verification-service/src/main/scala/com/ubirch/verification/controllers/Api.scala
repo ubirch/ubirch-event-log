@@ -6,7 +6,7 @@ import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
 import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
-import io.udash.rest.raw.{ HttpBody, IMapping, JsonValue, PlainValue, RestResponse }
+import io.udash.rest.raw._
 import io.udash.rest.{ Query, _ }
 
 import scala.concurrent.Future
