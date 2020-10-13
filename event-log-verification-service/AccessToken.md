@@ -50,10 +50,7 @@ This token has the following header:
 {
   "iss": "ubirch",
   "sub": "King Dude - Concert",
-  "aud": [
-    "7d6018c0-f10b-4330-99fb-cd29f52ae9fa", // The Anchorer if found
-    "bb505d32-b5ec-4f8d-816d-761ce82f3657" // The Verifier
-  ],
+  "aud": "bb505d32-b5ec-4f8d-816d-761ce82f3657",
   "exp": 2233738785,
   "iat": 1602599745,
   "jti": "2881e5f8-3d4b-4a1d-be78-b67837a383fa",
@@ -66,7 +63,7 @@ This token has the following header:
 Where 
     'iss' is Principal Entity that signs the tokens
     'sub' is the purpose or subject for this token. 
-    'aud' a list of UUIDs that correspond to the tenants in the system. Index 0 is the Anchorer if known. 
+    'aud' target tenant. 
     'exp' is the expiration time
     'iat' is the initial time
     'jti' is a unique uuid id for the token

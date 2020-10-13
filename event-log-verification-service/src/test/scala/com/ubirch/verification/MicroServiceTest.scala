@@ -13,7 +13,7 @@ import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
 import com.ubirch.verification.controllers.{ Api, ApiImpl }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog.EventLogClient
-import com.ubirch.verification.services.{ DefaultTokenPublicKey, HealthCheckProvider, KeyServerClient, KeyServiceBasedVerifier }
+import com.ubirch.verification.services._
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
@@ -94,8 +94,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load()
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     res should equal(Success(
@@ -127,8 +128,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -145,8 +147,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -167,8 +170,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -191,8 +195,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -228,8 +233,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -267,8 +273,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -307,8 +314,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -348,8 +356,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -386,8 +395,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -418,15 +428,16 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.getUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere.get())
 
   }
 
-  it should "successfully pass parameters through when default are modified for getUPP2" taggedAs (Tag("problem")) in {
+  it should "successfully pass parameters through when default are modified for getUPP2" taggedAs Tag("problem") in {
 
     val wasHere = new AtomicBoolean(false)
 
@@ -448,14 +459,18 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
 
     val config = ConfigFactory.load()
       .withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
-      .withValue("verification.tokenPublicKey", ConfigValueFactory.fromAnyRef("301e451af507a78bb65df9691f1984af2f0884b79a19b72dab0ba8614f8be7dc58bdf38e8f94f7ae7d4732df948972a45056f9674f224e17379ab5e50a775889"))
+      .withValue("verification.jwt.tokenPublicKey", ConfigValueFactory.fromAnyRef("301e451af507a78bb65df9691f1984af2f0884b79a19b72dab0ba8614f8be7dc58bdf38e8f94f7ae7d4732df948972a45056f9674f224e17379ab5e50a775889"))
+      .withValue("verification.jwt.env", ConfigValueFactory.fromAnyRef("dev"))
+      .withValue("verification.jwt.issuer", ConfigValueFactory.fromAnyRef("ubirch"))
+      .withValue("verification.jwt.roles", ConfigValueFactory.fromAnyRef("verifier"))
 
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
-    val pubKeyToken = new DefaultTokenPublicKey(config)
-    val api = new ApiImpl(pubKeyToken, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new ApiImpl(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiI3ZDYwMThjMC1mMTBiLTQzMzAtOTlmYi1jZDI5ZjUyYWU5ZmEiLCJhdWQiOiJiYjUwNWQzMi1iNWVjLTRmOGQtODE2ZC03NjFjZTgyZjM2NTciLCJleHAiOjIyMzM2NDU1NjYsImlhdCI6MTYwMjUwNjUyNiwianRpIjoiMjg4MWU1ZjgtM2Q0Yi00YTFkLWJlNzgtYjY3ODM3YTM4M2ZhIiwicm9sZSI6InZlcmlmaWVyIn0.W_aiHrW083-dYZhD8OUfFRuF90Z6U4uINnUj6L5qCrLOuvVy-FABsLFTrztp9-X0IArTVx9AJphA4X0wPjMLWA"
+    val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ1YmlyY2giLCJzdWIiOiJLaW5nIER1ZGUgLSBDb25jZXJ0IiwiYXVkIjoiYmI1MDVkMzItYjVlYy00ZjhkLTgxNmQtNzYxY2U4MmYzNjU3IiwiZXhwIjoyMjMzNzQ1ODUyLCJpYXQiOjE2MDI2MDY4MTIsImp0aSI6IjI4ODFlNWY4LTNkNGItNGExZC1iZTc4LWI2NzgzN2EzODNmYSIsInJvbGUiOiJ2ZXJpZmllciIsImVudiI6ImRldiJ9.fGF9OIbfhZ9cMy-yx3aTH2rtdscBlXnqV9ZqFNpz_t4vpeAglz5TKE-p2AIm1v_djyw60NIBs6jFdTWeWxUd9w"
     val res = Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     assert(res.isInstanceOf[Success])

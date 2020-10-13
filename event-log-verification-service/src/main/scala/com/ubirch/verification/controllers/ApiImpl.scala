@@ -11,7 +11,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
-import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenPublicKey }
+import com.ubirch.verification.services.{ KeyServiceBasedVerifier, OtherClaims, TokenVerification }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -25,7 +25,7 @@ import scala.util.control.NoStackTrace
 
 @Singleton
 class ApiImpl @Inject() (
-    tokenPublicKey: TokenPublicKey,
+    tokenVerification: TokenVerification,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
     redis: RedisCache,
@@ -195,7 +195,7 @@ class ApiImpl @Inject() (
   private def getToken(token: String): Option[(Map[String, String], OtherClaims)] = token.split(" ").toList match {
     case List(x, y) =>
       val isBearer = x.toLowerCase == "bearer"
-      val token = TokenVerification.decodeAndVerify(y, tokenPublicKey.publicKey)
+      val token = tokenVerification.decodeAndVerify(y)
       if (isBearer && token.isDefined) {
         token
       } else {
