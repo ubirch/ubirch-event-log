@@ -15,7 +15,7 @@ trait TokenPublicKey {
 @Singleton
 class DefaultTokenPublicKey @Inject() (config: Config) extends TokenPublicKey {
 
-  private val publicKeyAsHex = config.getString("verification.tokenPublicKey")
+  private val publicKeyAsHex = config.getString("verification.jwt.tokenPublicKey")
 
   val pubKey: PubKey = GeneratorKeyFactory.getPubKey(publicKeyAsHex, Curve.PRIME256V1)
 

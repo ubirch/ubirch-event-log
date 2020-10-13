@@ -35,6 +35,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def healthCheck: ScopedBindingBuilder = bind(classOf[HealthCheckServer]).toProvider(classOf[HealthCheckProvider])
   def jettyServer: ScopedBindingBuilder = bind(classOf[JettyServer]).toProvider(classOf[JettyServerProvider])
   def tokenPubKey: ScopedBindingBuilder = bind(classOf[TokenPublicKey]).to(classOf[DefaultTokenPublicKey])
+  def tokenVerification: ScopedBindingBuilder = bind(classOf[TokenVerification]).to(classOf[DefaultTokenVerification])
 
   override def configure(): Unit = {
     gremlinFinder
@@ -52,6 +53,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     healthCheck
     jettyServer
     tokenPubKey
+    tokenVerification
   }
 
 }
