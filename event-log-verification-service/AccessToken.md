@@ -34,7 +34,7 @@ The <response> codes could be:
 #### Example
 
 ```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI3ZDYwMThjMC1mMTBiLTQzMzAtOTlmYi1jZDI5ZjUyYWU5ZmEiLCJhdWQiOiJiYjUwNWQzMi1iNWVjLTRmOGQtODE2ZC03NjFjZTgyZjM2NTciLCJleHAiOjE2MDI0NjM4MzcsImlhdCI6MTYwMjI0NzgzNywianRpIjoiMjg4MWU1ZjgtM2Q0Yi00YTFkLWJlNzgtYjY3ODM3YTM4M2ZhIiwicm9sZSI6InZlcmlmaWVyIn0.H5BKlNZtgvKBrq8AKABtpwAoRhDTBHPimX-QOuRNmRY
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ1YmlyY2giLCJzdWIiOiJLaW5nIER1ZGUgLSBDb25jZXJ0IiwiYXVkIjpbIjdkNjAxOGMwLWYxMGItNDMzMC05OWZiLWNkMjlmNTJhZTlmYSIsImJiNTA1ZDMyLWI1ZWMtNGY4ZC04MTZkLTc2MWNlODJmMzY1NyJdLCJleHAiOjIyMzM3Mzg3ODUsImlhdCI6MTYwMjU5OTc0NSwianRpIjoiMjg4MWU1ZjgtM2Q0Yi00YTFkLWJlNzgtYjY3ODM3YTM4M2ZhIiwicm9sZSI6InZlcmlmaWVyIiwiZW52IjoicHJvZCJ9.FdlORYWyctbuf6PertT-mr2bgl_hhQcyac12yleZ-N_X7qgBCkWq4ozyTuSKV6GwAhtfT8tBGXbC0Eu8F6dAUQ
 ```
 
 This token has the following header:
@@ -48,23 +48,30 @@ This token has the following header:
 
 ```json
 {
-  "iss": "7d6018c0-f10b-4330-99fb-cd29f52ae9fa",
-  "aud": "bb505d32-b5ec-4f8d-816d-761ce82f3657",
-  "exp": 1602463837,
-  "iat": 1602247837,
+  "iss": "ubirch",
+  "sub": "King Dude - Concert",
+  "aud": [
+    "7d6018c0-f10b-4330-99fb-cd29f52ae9fa", // The Anchorer if found
+    "bb505d32-b5ec-4f8d-816d-761ce82f3657" // The Verifier
+  ],
+  "exp": 2233738785,
+  "iat": 1602599745,
   "jti": "2881e5f8-3d4b-4a1d-be78-b67837a383fa",
-  "role": "verifier"
+  "role": "verifier",
+  "env": "prod"
 }
 ```
 
 ```
 Where 
-    'iss' is the Tenant/Customer Id, type UUID
-    'aud' is the Hardware/Devide Id/Identity Id, type UUID
+    'iss' is Principal Entity that signs the tokens
+    'sub' is the purpose or subject for this token. 
+    'aud' a list of UUIDs that correspond to the tenants in the system. Index 0 is the Anchorer if known. 
     'exp' is the expiration time
     'iat' is the initial time
     'jti' is a unique uuid id for the token
     'role' is the role that was assigned to this token
+    'env' is the stage of the verification system
 ```
         
 
