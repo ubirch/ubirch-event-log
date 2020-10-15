@@ -24,7 +24,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject() (
+class DefaultApi @Inject() (
     tokenVerification: TokenVerification,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
