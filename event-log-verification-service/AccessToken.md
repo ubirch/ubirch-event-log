@@ -1,4 +1,6 @@
-## Access Token
+## Access Token (Work In Process)
+
+WIP: The definition and concepts that are presented here are work in process and might change.
 
 In order for a verification request be received and executed, the initiator  must provide proof that it has been granted with the required permissions. In order to do so, its verification request must contain an Authorization header. 
 
