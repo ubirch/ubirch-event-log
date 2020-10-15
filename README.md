@@ -1,10 +1,11 @@
-# UBIRCH EVENT LOG
+# UBIRCH EVENT LOG ECO-SYSTEM
 
-The Event Log System is a collection of services that allow the chaining
+The Event Log System is a collection of services that allow the collection of merkle trees to be connected 
+with each other and that can be anchored in blockchains.
 
-![Event Log Components](https://raw.githubusercontent.com/ubirch/ubirch-event-log/master/.images/event_log_pipeline_architecture.png "Event Log System")
+![Event Log Components](.images/event_log_pipeline_architecture.png)
 
-* [Event Log Service](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-service)
+* [Event Log Service](./event-log-service)
 
 * [Event Log Dispatcher](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-dispatcher)
 
