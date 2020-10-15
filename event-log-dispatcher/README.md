@@ -98,28 +98,7 @@ The dispatching is based on the EventLog Category and it is a json-based definit
         "tags": [
           "blockchain"
         ],
-        "name": "ubirch-svalbard-evt-chain-eth-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-etc-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-iota-string",
-        "data_to_send": "id"
-      },
-      {
-        "tags": [
-          "blockchain"
-        ],
-        "name": "ubirch-svalbard-evt-chain-etr-string",
+        "name": "ubirch-svalbard-evt-anchor-mgt-string",
         "data_to_send": "id"
       },
       {
@@ -282,8 +261,45 @@ The dispatching is based on the EventLog Category and it is a json-based definit
         "data_to_send": null
       }
     ]
+  },
+  {
+    "category": "GOV-DIGITAL_MAINNET_GOV_DIGITAL_MAINNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "BLOXBERG_TESTNET_BLOXBERG_TESTNET_NETWORK",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-log-json",
+        "data_to_send": null
+      },
+      {
+        "tags": [
+          "discovery"
+        ],
+        "name": "ubirch-svalbard-evt-discovery-creator-json",
+        "data_to_send": null
+      }
+    ]
   }
 ]
-
 ```
 

@@ -7,21 +7,23 @@ with each other and that can be anchored in blockchains.
 
 * [Event Log Service](./event-log-service)
 
-* [Event Log Dispatcher](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-dispatcher)
+* [Event Log Dispatcher](./event-log-dispatcher)
 
-* [Event Log Encoder](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-encoder)
+* [Event Log Encoder](./event-log-encoder)
 
-* [Event Log Chainer](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-chainer)
+* [Event Log Chainer](./event-log-chainer)
 
-* [Event Log Kafka Lookup](https://github.com/ubirch/ubirch-event-log/tree/master/event-log-kafka-lookup)
+* [Event Log Kafka Lookup](./event-log-kafka-lookup)
 
-* [Event Log SDK](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-sdk)
+* [Event Log SDK](./event-log-sdk)
 
-* [Event Log Discovery Creator](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-discovery-creator)
+* [Event Log Discovery Creator](./event-log-discovery-creator)
+
+* [Event Log Verification](./event-log-verification-service)
 
 ## Helper Libs
 
-* [Event Log Core](https://github.com/ubirch/ubirch-event-log/blob/master/event-log-core)
+* [Event Log Core](./event-log-core)
 
 * [Kafka Express](https://github.com/ubirch/ubirch-kafka-express)
 
