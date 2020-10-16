@@ -80,7 +80,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     override def getPublicKey(uuid: UUID): List[PubKey] = List(cert)
   }
 
-  "ApiImpl" should "successfully validate handle a valid packet" in {
+  "DefaultApi" should "successfully validate handle a valid packet" in {
     val eventLog: EventLogClient = new EventLogClient {
       override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
         Future.successful(LookupResult.Found(value = HashHelper.bytesToPrintableId(hash), Payload, upp, anchors))

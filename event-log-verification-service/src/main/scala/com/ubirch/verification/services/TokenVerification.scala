@@ -9,8 +9,6 @@ import pdi.jwt.{ Jwt, JwtAlgorithm }
 
 import scala.util.Try
 
-case class OtherClaims(role: Symbol, env: Symbol)
-
 trait TokenVerification {
   def decodeAndVerify(jwt: String): Option[(Map[String, String], OtherClaims)]
 }
