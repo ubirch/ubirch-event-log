@@ -26,7 +26,11 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
 
   private val validEnv = Symbol(config.getString("verification.jwt.env"))
   private val validIssuer = config.getString("verification.jwt.issuer")
-  private val validRoles = config.getString("verification.jwt.roles").split(",").toSet.map(x => Symbol(x))
+  private val validRoles = config.getString("verification.jwt.roles")
+    .replace(" ", "")
+    .split(",")
+    .toSet
+    .map(x => Symbol(x))
 
   def decodeAndVerify(jwt: String): Option[(Map[String, String], OtherClaims)] = {
     (for {
