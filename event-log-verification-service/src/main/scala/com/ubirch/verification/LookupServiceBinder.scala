@@ -37,6 +37,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def jettyServer: ScopedBindingBuilder = bind(classOf[JettyServer]).toProvider(classOf[JettyServerProvider])
   def tokenPubKey: ScopedBindingBuilder = bind(classOf[TokenPublicKey]).to(classOf[DefaultTokenPublicKey])
   def tokenVerification: ScopedBindingBuilder = bind(classOf[TokenVerification]).to(classOf[DefaultTokenVerification])
+  def tokenCreation: ScopedBindingBuilder = bind(classOf[TokenCreation]).to(classOf[DefaultTokenCreation])
   def api: ScopedBindingBuilder = bind(classOf[Api]).to(classOf[DefaultApi])
 
   override def configure(): Unit = {
