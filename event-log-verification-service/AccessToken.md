@@ -1,6 +1,6 @@
 ## Access Token (Work In Process)
 
-WIP: The definition and concepts that are presented here are work in process and might change.
+_**WIP**_: The definition and concepts that are presented here are work in process and might change.
 
 In order for a verification request be received and executed, the initiator  must provide proof that it has been granted with the required permissions. In order to do so, its verification request must contain an Authorization header. 
 
@@ -72,6 +72,12 @@ Where
     'role' is the role that was assigned to this token
     'env' is the stage of the verification system
 ```
+
+
+#### Helper to Create Key Pairs and JWT
+
+As a simple tool to generate testing token and/or key pairs, you can take a look at:
+_/com/ubirch/verification/services/TokenCreation.scala_
         
 
 
