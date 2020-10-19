@@ -4,11 +4,12 @@ import java.time.Clock
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
+import com.ubirch.crypto.{GeneratorKeyFactory, PrivKey}
 import com.ubirch.crypto.utils.Curve
 import com.ubirch.verification.util.LookupJsonSupport
-import javax.inject.{ Inject, Singleton }
-import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim }
+import javax.inject.{Inject, Singleton}
+import org.bouncycastle.util.encoders.Hex
+import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
 import scala.util.Try
 
@@ -76,7 +77,15 @@ object DefaultTokenCreation {
 
     args.toList.filter(_.nonEmpty) match {
       case List(pr) => go(pr).foreach(print)
-      case _ => throw new IllegalArgumentException("No priv key found.")
+      case _ =>
+        println("Generating key pair: ECDSA with PRIME256V1")
+
+        val privKey = GeneratorKeyFactory.getPrivKey(Curve.PRIME256V1)
+        println("private_key:" + Hex.toHexString(privKey.getPrivateKey.getEncoded))
+        println("private_key_raw:" + Hex.toHexString(privKey.getRawPrivateKey))
+        println("pubkey_key:" + Hex.toHexString(privKey.getPublicKey.getEncoded))
+        println("pubkey_key_raw:" + Hex.toHexString(privKey.getRawPublicKey))
+
     }
 
   }
