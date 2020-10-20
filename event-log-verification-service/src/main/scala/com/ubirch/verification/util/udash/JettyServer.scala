@@ -30,11 +30,11 @@ class JettyServer(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
   }
 
   def rest[RestApi: RawRest.AsRawRpc: RestMetadata](
-      apiImpl: RestApi,
+      api: RestApi,
       handleTimeout: FiniteDuration = DefaultHandleTimeout,
       maxPayloadSize: Long = DefaultMaxPayloadSize
   ): RestServlet = {
-    val handler: RawRest.HandleRequest = corsAware(RawRest.asHandleRequest[RestApi](apiImpl))
+    val handler: RawRest.HandleRequest = corsAware(RawRest.asHandleRequest[RestApi](api))
     new RestServlet(handler, handleTimeout, maxPayloadSize)
   }
 

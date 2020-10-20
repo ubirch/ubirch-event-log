@@ -4,32 +4,40 @@ import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
 import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
-import io.udash.rest.openapi.adjusters.{ adjustSchema, example }
+import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, pathSummary, summary, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
-import io.udash.rest.raw.{ HttpBody, IMapping, JsonValue, RestResponse }
+import io.udash.rest.raw._
 import io.udash.rest.{ Query, _ }
 
 import scala.concurrent.Future
 import scala.language.implicitConversions
 
-trait Api {
-  @cors
-  @GET
-  def health: Future[String]
-
+trait V1 {
+  //V1
   @cors
   @CustomBody
   @POST("upp")
+  @description(
+    "This endpoint basically only queries for the existence of the upp. \n " +
+      "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
+  )
+  @tags("v1")
   def getUPP(hash: Array[Byte], @Query disableRedisLookup: Boolean = false): Future[Api.Response]
 
   @cors
   @CustomBody // without that this api endpoint would expect json `{"payload": []}`
   @POST("upp/verify")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
+  @tags("v1")
   def verifyUPP(hash: Array[Byte]): Future[Api.Response]
 
   @cors
   @CustomBody
   @POST("upp/verify/anchor")
+  @description("This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper bounds or the closet blockchains transactions in the near future. \n " +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v1")
   def verifyUPPWithUpperBound(
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
@@ -39,15 +47,81 @@ trait Api {
   @cors
   @CustomBody
   @POST("upp/verify/record")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity.)\n\n" +
+    "This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" " +
+    "\n (That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper and lower bounds or the closet blockchains transactions in the near future and past. \n" +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v1")
   def verifyUPPWithUpperAndLowerBound(
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value
   ): Future[Api.Response]
+}
+
+trait V2 {
+  //V2
+  @cors
+  @CustomBody
+  @POST("v2/upp")
+  @description(
+    "This endpoint basically only queries for the existence of the upp. \n " +
+      "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
+  )
+  @tags("v2")
+  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false, @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+
+  @cors
+  @CustomBody // without that this api endpoint would expect json `{"payload": []}`
+  @POST("v2/upp/verify")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
+  @tags("v2")
+  def verifyUPPV2(hash: Array[Byte], @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+
+  @cors
+  @CustomBody
+  @POST("v2/upp/verify/anchor")
+  @description("This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper bounds or the closet blockchains transactions in the near future. \n " +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v2")
+  def verifyUPPWithUpperBoundV2(
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value,
+      @Header("authorization") authToken: String = "No-Header-Found"
+  ): Future[Api.Response]
+
+  @cors
+  @CustomBody
+  @POST("v2/upp/verify/record")
+  @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" \n " +
+    "(That the UPP can be verified by one of the available keys for the particualar device/entity.)\n\n" +
+    "This query checks for the existence of the upp in our backend, it checks the \"chain\" and the validity of the \"keys\" " +
+    "\n (That the UPP can be verified by one of the available keys for the particualar device/entity) and retrieves the upper and lower bounds or the closet blockchains transactions in the near future and past. \n" +
+    "You can get a compacted version or full version based on the params below.")
+  @tags("v2")
+  def verifyUPPWithUpperAndLowerBoundV2(
+      hash: Array[Byte],
+      @Query("response_form") responseForm: String = AnchorsNoPath.value,
+      @Query("blockchain_info") blockchainInfo: String = Normal.value,
+      @Header("authorization") authToken: String = "No-Header-Found"
+  ): Future[Api.Response]
+
+}
+
+trait Api extends V1 with V2 {
+
+  @cors
+  @GET
+  @tags("health")
+  def health: Future[String]
 
 }
 
 object Api extends VerificationServiceRestApiCompanion[Api] {
+
   private val exampleAnchor = Anchors(JsonValue(
     """[
     {
@@ -82,6 +156,8 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
     val OK: Int = 200
     val BAD_REQUEST: Int = 400
     val NOT_FOUND: Int = 404
+    val UNAUTHORIZED: Int = 401
+    val FORBIDDEN: Int = 403
 
     // adds custom status codes
     implicit def asRestResp(implicit
@@ -91,29 +167,26 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
       AsRaw.create {
         case s: Success => successAsRaw.asRaw(s).defaultResponse.recoverHttpError
         case NotFound => RestResponse(NOT_FOUND, IMapping.empty, HttpBody.empty)
+        case AuthorizationHeaderNotFound => RestResponse(UNAUTHORIZED, IMapping("WWW-Authenticate" -> PlainValue("""Bearer realm="Verification Access" """.trim)), HttpBody.empty)
+        case Forbidden => RestResponse(FORBIDDEN, IMapping.empty, HttpBody.empty)
         case f: Failure => failureAsRaw.asRaw(f).defaultResponse.copy(code = BAD_REQUEST).recoverHttpError
       }
     }
   }
 
-  case class Success(upp: String, prev: String, anchors: Anchors) extends Response
-
-  object Success extends RestDataCompanion[Success]
-
-  // TODO: change that from JsonValue to something more appropriate when Carlos finishes the backend
   case class Anchors(json: JsonValue)
-
   object Anchors extends RestDataWrapperCompanion[JsonValue, Anchors] {
     implicit val schema: RestSchema[Anchors] = RestSchema.plain(Schema(`type` = DataType.Object))
 
     implicit def jsonNodeToAnchors(jsonNode: JsonNode): Anchors = Anchors(JsonValue(jsonNode.toString))
   }
+  case class Success(upp: String, prev: String, anchors: Anchors) extends Response
+  object Success extends RestDataCompanion[Success]
 
+  case object AuthorizationHeaderNotFound extends Response
+  case object Forbidden extends Response
   case object NotFound extends Response
-
-  case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError",
-      errorMessage: String = "signature verification failed") extends Response
-
+  case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
 
 }

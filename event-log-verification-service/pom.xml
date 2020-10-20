@@ -85,6 +85,7 @@
         <json4s-jackson.version>3.6.5</json4s-jackson.version>
         <skinny-framework.version>3.0.1</skinny-framework.version>
         <ubirch-protocol.version>2.1.1</ubirch-protocol.version>
+        <jwt-core.version>4.2.0</jwt-core.version>
 
     </properties>
 
@@ -122,7 +123,6 @@
             <artifactId>ubirch-client-scala</artifactId>
             <version>1.2-SNAPSHOT</version>
         </dependency>
-
 
         <!-- caching -->
         <dependency>
@@ -245,6 +245,13 @@
             <groupId>com.ubirch</groupId>
             <artifactId>event-log-core</artifactId>
             <version>${event-log-core.version}</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.pauldijou/jwt-core -->
+        <dependency>
+            <groupId>com.pauldijou</groupId>
+            <artifactId>jwt-core_${scala.compat.version}</artifactId>
+            <version>${jwt-core.version}</version>
         </dependency>
 
     </dependencies>

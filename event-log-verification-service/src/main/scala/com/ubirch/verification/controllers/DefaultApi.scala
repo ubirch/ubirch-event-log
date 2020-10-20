@@ -8,10 +8,10 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.controllers.Api.{ Anchors, Failure, NotFound, Response, Success }
+import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
-import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.services.eventlog._
+import com.ubirch.verification.services.{ KeyServiceBasedVerifier, OtherClaims, TokenVerification }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -24,7 +24,8 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
-class ApiImpl @Inject() (
+class DefaultApi @Inject() (
+    tokenVerification: TokenVerification,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
     redis: RedisCache,
@@ -178,6 +179,8 @@ class ApiImpl @Inject() (
             value match {
               case Success(_, _, _) => responsesSent.labels(Response.OK.toString).inc()
               case NotFound => responsesSent.labels(Response.NOT_FOUND.toString).inc()
+              case AuthorizationHeaderNotFound => responsesSent.labels(Response.UNAUTHORIZED.toString).inc()
+              case Forbidden => responsesSent.labels(Response.FORBIDDEN.toString).inc()
               case Failure(_, _, _, _) => responsesSent.labels(Response.BAD_REQUEST.toString).inc()
 
             }
@@ -189,13 +192,37 @@ class ApiImpl @Inject() (
 
   }
 
+  private def getToken(token: String): Option[(Map[String, String], OtherClaims)] = token.split(" ").toList match {
+    case List(x, y) =>
+      val isBearer = x.toLowerCase == "bearer"
+      val token = tokenVerification.decodeAndVerify(y)
+      if (isBearer && token.isDefined) {
+        token
+      } else {
+        None
+      }
+
+    case _ => None
+  }
+
+  private def authorization[T](authToken: String)(f: Option[(Map[String, String], OtherClaims)] => Future[Response]): () => Future[Response] = {
+    lazy val token = getToken(authToken)
+    authToken match {
+      case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
+      case _ if token.isDefined => () => f(token)
+      case _ => () => Future.successful(Forbidden)
+    }
+  }
+
   override def health: Future[String] = {
     registerMetrics("health") { () =>
       Future.successful("ok")
     }
   }
 
-  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Api.Response] = {
+  //V1
+
+  override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
     registerMetrics("upp") { () =>
       lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
     }
@@ -231,6 +258,54 @@ class ApiImpl @Inject() (
         ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
         BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
       )
+    }
+  }
+
+  //V2
+  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
+    registerMetrics("v2.upp") {
+      authorization(authToken) { _ =>
+        lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+      }
+    }
+  }
+
+  override def verifyUPPV2(hash: Array[Byte], authToken: String): Future[Response] = {
+    registerMetrics("v2.simple") {
+      authorization(authToken) { _ =>
+        verifyBase(
+          hash,
+          Simple,
+          AnchorsNoPath,
+          Normal
+        )
+      }
+    }
+  }
+
+  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    registerMetrics("v2.anchor") {
+      authorization(authToken) { _ =>
+        verifyBase(
+          hash,
+          ShortestPath,
+          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+        )
+      }
+    }
+  }
+
+  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    registerMetrics("v2.record") {
+      authorization(authToken) { _ =>
+        verifyBase(
+          hash,
+          UpperLower,
+          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+        )
+      }
     }
   }
 
