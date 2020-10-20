@@ -33,14 +33,14 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
         if (!path.toFile.exists()) {
           throw new FileNotFoundException("file not found " + file)
         } else {
-          logger.debug("Detected file {}", path.toAbsolutePath.toString)
+          logger.info("Detected file {}", path.toAbsolutePath.toString)
         }
 
         Some(Files.readAllLines(path).asScala.toList)
 
       } else {
 
-        logger.debug("Reading from Resources")
+        logger.info("Reading from Resources")
 
         fileStream = getClass.getResourceAsStream("/" + file)
         bufferReader = new BufferedReader(new InputStreamReader(fileStream))
@@ -70,7 +70,8 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
       val fromStringData = EventLogJsonSupport.FromString[List[Dispatch]](data)
       val compacted = EventLogJsonSupport.stringify(fromStringData.json)
       val di = fromStringData.get
-      logger.debug("Dispatching Info Found: {}", compacted)
+
+      logger.info("Dispatching Info Found: {}", compacted)
 
       di.foreach { d =>
         if (d.category.isEmpty && d.category.length < 3) throw new IllegalArgumentException("Name can't be empty or has less than three letters")
