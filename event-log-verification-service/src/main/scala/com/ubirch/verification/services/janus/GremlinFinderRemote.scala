@@ -355,23 +355,77 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] =
     for {
-      (path, anchors) <- findAnchorsWithPath(id)
+      upper <- findAnchorsWithPath(id)
     } yield {
-      asVerticesDecorated(path ++ anchors)
+      val (completePathShortest, completeBlockchainsUpper) = asVerticesDecorated(upper)
+      (completePathShortest, completeBlockchainsUpper)
     }
 
-  def findAnchorsWithPath(id: String): Future[(List[VertexStruct], List[VertexStruct])] = {
-    val futureShortestPath: Future[PathHelper] = shortestPathFromVertexToBlockchain(id).map(PathHelper)
+  def findAnchorsWithPath(id: String): Future[List[VertexStruct]] = {
 
-    val maybeBlockchains = futureShortestPath.map(_.reversedTailHeadOption).flatMap {
-      case Some(v) => getBlockchainsFromMasterVertex(v)
-      case None => Future.successful(Nil)
+    val futureShortestPathRaw = shortestPathFromVertexToBlockchain(id)
+    val futureShortestPath: Future[PathHelper] = futureShortestPathRaw.map(PathHelper)
+
+    val headTimestamp: Future[Option[Long]] = futureShortestPath.map(_.headOption).flatMap {
+      case Some(v) =>
+        getTimestampFromVertexAsDate(v) match {
+          case Some(value) => Future.successful(Some(value.getTime))
+          case None => Future.successful(getTimestampFromVertexAsLong(v))
+        }
+      case None => Future.successful(None)
     }
+
+    val futureMaybeLastMasterAndTime: Future[Option[(VertexStruct, Long)]] = for {
+      time <- headTimestamp
+      master <- futureShortestPath.map(_.reversedTailHeadOption)
+    } yield {
+      master.map(x => (x, time.getOrElse(-1L)))
+    }
+
+    val futureFirstUpperBlockchains: Future[List[VertexStruct]] = futureMaybeLastMasterAndTime.flatMap {
+      case Some((v, _)) =>
+        getBlockchainsFromMasterVertex(v)
+      case None =>
+        Future.successful(Nil)
+    }
+
+    val futureBcxNamesSoFar = getBlockchainNamesFromFutureBcx(futureFirstUpperBlockchains).map(x => x.map(q => q._2))
+
+    val unflattenedUpperThings: Future[Future[PathHelper]] = for {
+      bcxNamesSoFar <- futureBcxNamesSoFar
+      maybeLastMasterAndTime <- futureMaybeLastMasterAndTime
+    } yield {
+      if (bcxNamesSoFar.size >= numberDifferentAnchors) {
+        logger.debug("UpperThings: already found enough blockchains")
+        for {
+          shortestPathRaw <- futureShortestPathRaw
+          firstUpperBlockchains <- futureFirstUpperBlockchains
+        } yield {
+          PathHelper(shortestPathRaw ++ firstUpperBlockchains)
+        }
+      } else {
+        maybeLastMasterAndTime match {
+          case Some(masterAndTime) =>
+            findOtherAnchors(
+              futurePathAccu = futureShortestPathRaw,
+              futureLastMt = Future.successful(masterAndTime._1),
+              futureBlockchainsFound = futureBcxNamesSoFar,
+              inDirection = true,
+              numberDifferentAnchors = numberDifferentAnchors
+            ).map(PathHelper)
+          case None =>
+            Future.successful(PathHelper(Nil))
+        }
+      }
+    }
+
+    val futureUpperThings: Future[PathHelper] = unflattenedUpperThings.flatten
 
     for {
-      sp <- futureShortestPath.map(_.reversedTailReversed)
-      bcs <- maybeBlockchains
-    } yield (sp.toList, bcs)
+      upperPath <- futureUpperThings
+    } yield {
+      upperPath.path.distinct
+    }
 
   }
 
