@@ -279,19 +279,57 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
   }
 
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = {
-    val (path, anchors) = findAnchorsWithPath(id)
-    Future.successful(asVerticesDecorated(path ++ anchors))
+    val upper = findAnchorsWithPath(id)
+    val (completePathShortest, completeBlockchainsUpper) = asVerticesDecorated(upper)
+    Future.successful(completePathShortest, completeBlockchainsUpper)
+
   }
 
-  def findAnchorsWithPath(id: String): (List[VertexStruct], List[VertexStruct]) = {
-    val shortestPath: PathHelper = PathHelper(shortestPathFromVertexToBlockchain(id))
+  def findAnchorsWithPath(id: String): List[VertexStruct] = {
 
-    val maybeBlockchains = shortestPath.reversedTailHeadOption match {
-      case Some(v) => getBlockchainsFromMasterVertex(v)
-      case None => Nil
+    val shortestPathRaw = shortestPathFromVertexToBlockchain(id)
+    val shortestPath = PathHelper(shortestPathRaw)
+
+    val headTimestamp: Option[Long] = shortestPath.headOption match {
+      case Some(v) =>
+        getTimestampFromVertexAsDate(v) match {
+          case Some(value) => Some(value.getTime)
+          case None => getTimestampFromVertexAsLong(v)
+        }
+      case None => None
     }
 
-    (shortestPath.reversedTailReversed.toList, maybeBlockchains)
+    val maybeLastMasterAndTime: Option[(VertexStruct, Long)] = shortestPath
+      .reversedTailHeadOption
+      .map(x => (x, headTimestamp.getOrElse(-1L)))
+
+    val firstUpperBlockchains: List[VertexStruct] = maybeLastMasterAndTime match {
+      case Some((v, _)) =>
+        getBlockchainsFromMasterVertex(v)
+      case None =>
+        Nil
+    }
+
+    val bcxNameSoFar = getBlockchainNamesFromBcx(firstUpperBlockchains).map(x => x._2)
+
+    val upperThings: PathHelper = if (bcxNameSoFar.size >= numberDifferentAnchors) {
+      logger.debug("UpperThings: already found enough blockchains")
+      PathHelper(shortestPathRaw ++ firstUpperBlockchains)
+    } else {
+      maybeLastMasterAndTime match {
+        case Some(masterAndTime) =>
+          PathHelper(findOtherAnchors(
+            pathAccu = shortestPathRaw,
+            lastMt = masterAndTime._1,
+            blockchainsFound = bcxNameSoFar,
+            inDirection = true,
+            numberDifferentAnchors = numberDifferentAnchors
+          ))
+        case None => PathHelper(Nil)
+      }
+    }
+
+    upperThings.path.distinct
   }
 
   def getBlockchainsFromMasterVertex(master: VertexStruct): List[VertexStruct] = {
