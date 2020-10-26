@@ -6,6 +6,12 @@ import scala.collection.JavaConverters._
 
 case class VertexStruct(id: String, label: String, properties: Map[String, Any]) {
 
+  /**
+    * Convenient way to avoid displaying id when casting to json.
+    * ONLY USE THIS when casting to json. Otherwise loosing the id might break things when talking to janusgraph with
+    * queries using it
+    * @return A simialar object, but without ID
+    */
   def toDumbVertexStruct = DumbVertexStruct(label, properties)
 
   def getBoth(key1: String, key2: String): Option[(Any, Any)] = get(key1).flatMap(value1 => get(key2).map(value2 => (value1, value2)))
