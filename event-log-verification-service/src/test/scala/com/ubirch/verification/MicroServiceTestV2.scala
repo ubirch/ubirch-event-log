@@ -80,16 +80,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
     override def getPublicKey(uuid: UUID): List[PubKey] = List(cert)
   }
 
-  def customConfig: Config = {
-    ConfigFactory.load()
-      .withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
-      .withValue("verification.jwt.tokenPublicKey", ConfigValueFactory.fromAnyRef("301e451af507a78bb65df9691f1984af2f0884b79a19b72dab0ba8614f8be7dc58bdf38e8f94f7ae7d4732df948972a45056f9674f224e17379ab5e50a775889"))
-      .withValue("verification.jwt.env", ConfigValueFactory.fromAnyRef("dev"))
-      .withValue("verification.jwt.issuer", ConfigValueFactory.fromAnyRef("ubirch"))
-      .withValue("verification.jwt.roles", ConfigValueFactory.fromAnyRef("verifier, tester_verifier"))
-  }
-
-  val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ1YmlyY2giLCJzdWIiOiJLaW5nIER1ZGUgLSBDb25jZXJ0IiwiYXVkIjoiYmI1MDVkMzItYjVlYy00ZjhkLTgxNmQtNzYxY2U4MmYzNjU3IiwiZXhwIjoyMjMzNzQ1ODUyLCJpYXQiOjE2MDI2MDY4MTIsImp0aSI6IjI4ODFlNWY4LTNkNGItNGExZC1iZTc4LWI2NzgzN2EzODNmYSIsInJvbGUiOiJ2ZXJpZmllciIsImVudiI6ImRldiJ9.fGF9OIbfhZ9cMy-yx3aTH2rtdscBlXnqV9ZqFNpz_t4vpeAglz5TKE-p2AIm1v_djyw60NIBs6jFdTWeWxUd9w"
+  val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU4MTI5MDQsImlhdCI6MTYwNDQyMjUwNCwianRpIjoiYmYxYzk4NTktNjk4NC00ZDIzLWIzODUtNTVjZjc0MTA0NDI3IiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.yEIv1Hm4Gtc2QbhT7QcnLoG3IGSPD3J43TAdSfEhUFVHVJ1C5vG0LizzyWG0siedMOkbjdLiMUmqKZPdbqz74A"
 
   "DefaultApiV2" should "successfully validate handle a valid packet" in {
     val eventLog: EventLogClient = new EventLogClient {
@@ -468,14 +459,13 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val config = customConfig
+    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
     val redisCache = new RedisCache("test", config)
     val healthCheck = new HealthCheckProvider(config).get()
     val tokenPublicKey = new DefaultTokenPublicKey(config)
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val aToken = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ1YmlyY2giLCJzdWIiOiJUZXN0IFZlcmlmaWNhdGlvbiIsImF1ZCI6Ii0iLCJleHAiOjIyMzM5OTMwMjgsImlhdCI6MTYwMjg1Mzk4OCwianRpIjoiOGI0YWQzMmUtMjExNi00MDI0LWEyYWEtMDdkY2M3NjEzMTI3Iiwicm9sZSI6InRlc3Rlcl92ZXJpZmllciIsImVudiI6ImRldiJ9.WQGWPFNxP_FLfnAyCpo38FLWkpUngSrS9oxrysHoOyZWzB3cQVol8lYUe3_ADFRp9EsTaLoN-fGfm_kj10RuOA"
     Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     assert(wasHere.get())
