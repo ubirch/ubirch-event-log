@@ -1,5 +1,7 @@
 package com.ubirch.verification.services
 
+import java.util.UUID
+
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.verification.util.Exceptions.{ InvalidAllClaims, InvalidOtherClaims, InvalidSpecificClaim }
@@ -24,8 +26,8 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
   final val ISSUED_AT = "iat"
   final val JWT_ID = "jti"
 
-  private val validEnv = Symbol(config.getString("verification.jwt.env"))
   private val validIssuer = config.getString("verification.jwt.issuer")
+  private val validAudience = config.getString("verification.jwt.audience")
   private val validRoles = config.getString("verification.jwt.roles")
     .replace(" ", "")
     .split(",")
@@ -41,11 +43,21 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
       all <- Try(LookupJsonSupport.FromString[Map[String, String]](p).get)
         .recover { case e: Exception => throw InvalidAllClaims(e.getMessage, jwt) }
 
-      _ <- all.get(ISSUER).toRight(InvalidSpecificClaim("Invalid issuer", p)).toTry.map(_ == validIssuer)
-      _ <- all.get(SUBJECT).toRight(InvalidSpecificClaim("Invalid subject", p)).toTry.filter(_.nonEmpty)
+      isIssuerValid <- all.get(ISSUER).toRight(InvalidSpecificClaim("Invalid issuer", p)).toTry.map(_ == validIssuer)
+      _ = if (!isIssuerValid) throw InvalidSpecificClaim("Invalid issuer", p)
+
+      isAudienceValid <- all.get(AUDIENCE).toRight(InvalidSpecificClaim("Invalid audience", p)).toTry.map(_ == validAudience)
+      _ = if (!isAudienceValid) throw InvalidSpecificClaim("Invalid audience", p)
+
+      _ <- all.get(SUBJECT).toRight(InvalidSpecificClaim("Invalid subject", p))
+        .toTry
+        .filter(_.nonEmpty)
+        .map(UUID.fromString)
+
       _ <- Try(otherClaims.role).filter(validRoles.contains)
         .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
-      _ <- Try(otherClaims.env).filter(_ == validEnv)
+
+      _ <- Try(otherClaims.purpose).filter(_.nonEmpty)
         .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
 
     } yield {
