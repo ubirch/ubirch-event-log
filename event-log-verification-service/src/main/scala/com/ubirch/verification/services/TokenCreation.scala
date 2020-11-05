@@ -63,9 +63,9 @@ object DefaultTokenCreation {
       privKey <- Try(GeneratorKeyFactory.getPrivKey(rawPrivKeyAsHex, Curve.PRIME256V1))
       creation: TokenCreation = new DefaultTokenCreation()
       token <- creation.encode(
-        by = "ubirch",
-        to = "-",
-        about = "Test Verification",
+        by = "https://token.dev.ubirch.com",
+        to = UUID.randomUUID().toString,
+        about = "https://verify.dev.ubirch.com",
         expiresIn = Some(631139040),
         OtherClaims('tester_verifier, "Lara del Rey Concert"),
         privKey
