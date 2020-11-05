@@ -36,7 +36,7 @@ The <response> codes could be:
 #### Example
 
 ```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJ1YmlyY2giLCJzdWIiOiJLaW5nIER1ZGUgLSBDb25jZXJ0IiwiYXVkIjpbIjdkNjAxOGMwLWYxMGItNDMzMC05OWZiLWNkMjlmNTJhZTlmYSIsImJiNTA1ZDMyLWI1ZWMtNGY4ZC04MTZkLTc2MWNlODJmMzY1NyJdLCJleHAiOjIyMzM3Mzg3ODUsImlhdCI6MTYwMjU5OTc0NSwianRpIjoiMjg4MWU1ZjgtM2Q0Yi00YTFkLWJlNzgtYjY3ODM3YTM4M2ZhIiwicm9sZSI6InZlcmlmaWVyIiwiZW52IjoicHJvZCJ9.FdlORYWyctbuf6PertT-mr2bgl_hhQcyac12yleZ-N_X7qgBCkWq4ozyTuSKV6GwAhtfT8tBGXbC0Eu8F6dAUQ
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU5NTI0MDIsImlhdCI6MTYwNDU2MjAwMiwianRpIjoiY2JkZDM5ODctYjY4NS00OGJlLTlkMmUtNjc3NDllMDUwMzllIiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.NbBA62DjZPDM7coWyF6zMqUTRbwCi26t_Ksp83fH7TIbU6c1YICTdiDtEOo_UMBqo6XpOEMbIIhkVUQiEyqqOA
 ```
 
 This token has the following header:
@@ -44,40 +44,45 @@ This token has the following header:
 ```json
 {
   "typ": "JWT",
-  "alg": "HS256"
+  "alg": "ES256"
 }
 ```
 
 ```json
 {
-  "iss": "ubirch",
-  "sub": "King Dude - Concert",
-  "aud": "bb505d32-b5ec-4f8d-816d-761ce82f3657",
-  "exp": 2233738785,
-  "iat": 1602599745,
-  "jti": "2881e5f8-3d4b-4a1d-be78-b67837a383fa",
-  "role": "verifier",
-  "env": "prod"
+  "iss": "https://token.dev.ubirch.com",
+  "sub": "963995ed-ce12-4ea5-89dc-b181701d1d7b",
+  "aud": "https://verify.dev.ubirch.com",
+  "exp": 7915952402,
+  "iat": 1604562002,
+  "jti": "cbdd3987-b685-48be-9d2e-67749e05039e",
+  "purpose": "King Dude - Concert",
+  "target_identity": "840b7e21-03e9-4de7-bb31-0b9524f3b500",
+  "role": "verifier"
 }
 ```
 
 ```
 Where 
-    'iss' is Principal Entity that signs the tokens
-    'sub' is the purpose or subject for this token. 
-    'aud' target tenant. 
+    'iss' is Principal Entity that signs/issues the token: The Token Manager.
+    'sub' is the purpose or subject for this token: The tenantId/UserId from Keycloak 
+    'aud' target entity: The target system, in this token, the Verfication Service.  
     'exp' is the expiration time
     'iat' is the initial time
     'jti' is a unique uuid id for the token
+    'purpose' is a description of the main usage for this token, like a concert or artist show
+    'target_identity': it is the entity for which the subject can perform the action on the target audience system
     'role' is the role that was assigned to this token
-    'env' is the stage of the verification system
 ```
 
 
 #### Helper to Create Key Pairs and JWT
 
-As a simple tool to generate testing token and/or key pairs, you can take a look at:
+As a simple tool to generate testing tokens and/or key pairs, you can take a look at:
 _/com/ubirch/verification/services/TokenCreation.scala_
+
+For production tokens, tokens are issued by the Token Manager: https://github.com/ubirch/ubirch-token-manager
+ 
         
 
 
