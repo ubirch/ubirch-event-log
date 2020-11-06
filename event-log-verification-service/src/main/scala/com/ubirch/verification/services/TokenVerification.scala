@@ -12,7 +12,7 @@ import pdi.jwt.{ Jwt, JwtAlgorithm }
 import scala.util.Try
 
 trait TokenVerification {
-  def decodeAndVerify(jwt: String): Option[(Map[String, String], OtherClaims)]
+  def decodeAndVerify(jwt: String): Option[(Map[String, String], Content)]
 }
 
 @Singleton
@@ -34,10 +34,10 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
     .toSet
     .map(x => Symbol(x))
 
-  def decodeAndVerify(jwt: String): Option[(Map[String, String], OtherClaims)] = {
+  def decodeAndVerify(jwt: String): Option[(Map[String, String], Content)] = {
     (for {
       (_, p, _) <- Jwt.decodeRawAll(jwt, tokenPublicKey.publicKey, Seq(JwtAlgorithm.ES256))
-      otherClaims <- Try(LookupJsonSupport.FromString[OtherClaims](p).get)
+      otherClaims <- Try(LookupJsonSupport.FromString[Content](p).get)
         .recover { case e: Exception => throw InvalidOtherClaims(e.getMessage, jwt) }
 
       all <- Try(LookupJsonSupport.FromString[Map[String, String]](p).get)

@@ -11,7 +11,7 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
-import com.ubirch.verification.services.{ KeyServiceBasedVerifier, OtherClaims, TokenVerification }
+import com.ubirch.verification.services.{ KeyServiceBasedVerifier, Content, TokenVerification }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -192,7 +192,7 @@ class DefaultApi @Inject() (
 
   }
 
-  private def getToken(token: String): Option[(Map[String, String], OtherClaims)] = token.split(" ").toList match {
+  private def getToken(token: String): Option[(Map[String, String], Content)] = token.split(" ").toList match {
     case List(x, y) =>
       val isBearer = x.toLowerCase == "bearer"
       val token = tokenVerification.decodeAndVerify(y)
@@ -205,11 +205,11 @@ class DefaultApi @Inject() (
     case _ => None
   }
 
-  private def authorization[T](authToken: String)(f: Option[(Map[String, String], OtherClaims)] => Future[Response]): () => Future[Response] = {
+  private def authorization[T](authToken: String)(f: ((Map[String, String], Content)) => Future[Response]): () => Future[Response] = {
     lazy val token = getToken(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
-      case _ if token.isDefined => () => f(token)
+      case _ if token.isDefined => () => f(token.get)
       case _ => () => Future.successful(Forbidden)
     }
   }
