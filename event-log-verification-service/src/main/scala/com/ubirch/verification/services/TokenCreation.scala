@@ -13,11 +13,11 @@ import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim }
 
 import scala.util.Try
 
-case class OtherClaims(role: Symbol, purpose: String)
+case class Content(role: Symbol, purpose: String)
 
 trait TokenCreation {
   def encode(jwtClaim: JwtClaim, privKey: PrivKey): Try[String]
-  def encode(by: String, to: String, about: String, expiresIn: Option[Int], otherClaims: OtherClaims, privKey: PrivKey): Try[String]
+  def encode(by: String, to: String, about: String, expiresIn: Option[Int], otherClaims: Content, privKey: PrivKey): Try[String]
 }
 
 @Singleton
@@ -33,7 +33,7 @@ class DefaultTokenCreation @Inject() () extends TokenCreation with LazyLogging {
     )
   }
 
-  override def encode(by: String, to: String, about: String, expiresIn: Option[Int], otherClaims: OtherClaims, privKey: PrivKey): Try[String] = {
+  override def encode(by: String, to: String, about: String, expiresIn: Option[Int], otherClaims: Content, privKey: PrivKey): Try[String] = {
     for {
 
       oc <- Try(LookupJsonSupport.ToJson(otherClaims).toString)
@@ -67,7 +67,7 @@ object DefaultTokenCreation {
         to = UUID.randomUUID().toString,
         about = "https://verify.dev.ubirch.com",
         expiresIn = Some(631139040),
-        OtherClaims('tester_verifier, "Lara del Rey Concert"),
+        Content('tester_verifier, "Lara del Rey Concert"),
         privKey
       )
 
