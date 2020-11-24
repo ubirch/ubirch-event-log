@@ -2,6 +2,7 @@ package com.ubirch.verification.controllers
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
 import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, pathSummary, summary, tags }
@@ -188,5 +189,18 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   case object NotFound extends Response
   case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
+
+  case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response)
+
+  object DecoratedResponse {
+
+    case class Decoration(response: Response) {
+      def withNoPM: DecoratedResponse = DecoratedResponse(None, response)
+      def boundPM(protocolMessage: ProtocolMessage): DecoratedResponse = DecoratedResponse(Option(protocolMessage), response)
+    }
+
+    implicit def toDecoration(response: Response): Decoration = Decoration(response)
+
+  }
 
 }

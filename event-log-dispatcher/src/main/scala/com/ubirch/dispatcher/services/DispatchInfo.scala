@@ -1,7 +1,7 @@
 package com.ubirch.dispatcher.services
 
-import java.io.{BufferedReader, FileNotFoundException, IOException, InputStream, InputStreamReader}
-import java.nio.file.{Files, Paths}
+import java.io.{ BufferedReader, FileNotFoundException, IOException, InputStream, InputStreamReader }
+import java.nio.file.{ Files, Paths }
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
@@ -26,7 +26,7 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
   private def loadInfo: Option[String] = {
     try {
 
-      val data = if(filePath.nonEmpty){
+      val data = if (filePath.nonEmpty) {
 
         val path = Paths.get(filePath, file)
 
@@ -60,8 +60,8 @@ class DispatchInfo @Inject() (config: Config) extends LazyLogging {
         throw e
 
     } finally {
-      if(bufferReader != null) bufferReader.close()
-      if(fileStream != null) fileStream.close()
+      if (bufferReader != null) bufferReader.close()
+      if (fileStream != null) fileStream.close()
     }
   }
 
