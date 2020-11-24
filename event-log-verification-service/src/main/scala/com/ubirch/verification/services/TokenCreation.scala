@@ -13,7 +13,7 @@ import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim }
 
 import scala.util.Try
 
-case class Content(role: Symbol, purpose: String)
+case class Content(role: Symbol, purpose: String, targetIdentity: String)
 
 trait TokenCreation {
   def encode(jwtClaim: JwtClaim, privKey: PrivKey): Try[String]
@@ -67,7 +67,7 @@ object DefaultTokenCreation {
         to = UUID.randomUUID().toString,
         about = "https://verify.dev.ubirch.com",
         expiresIn = Some(631139040),
-        Content('tester_verifier, "Lara del Rey Concert"),
+        Content('tester_verifier, "Lara del Rey Concert", UUID.randomUUID().toString),
         privKey
       )
 

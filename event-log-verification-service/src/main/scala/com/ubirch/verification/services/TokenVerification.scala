@@ -15,9 +15,7 @@ trait TokenVerification {
   def decodeAndVerify(jwt: String): Option[(Map[String, String], Content)]
 }
 
-@Singleton
-class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenPublicKey) extends TokenVerification with LazyLogging {
-
+object TokenVerification {
   final val ISSUER = "iss"
   final val SUBJECT = "sub"
   final val AUDIENCE = "aud"
@@ -25,6 +23,21 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
   final val NOT_BEFORE = "nbf"
   final val ISSUED_AT = "iat"
   final val JWT_ID = "jti"
+
+  implicit class EnrichedAll(all: Map[String, String]) {
+    def getSubject: Try[UUID] = all.get(SUBJECT).toRight(InvalidSpecificClaim("Invalid subject", all.toString()))
+      .toTry
+      .filter(_.nonEmpty)
+      .map(UUID.fromString)
+
+  }
+
+}
+
+@Singleton
+class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenPublicKey) extends TokenVerification with LazyLogging {
+
+  import TokenVerification._
 
   private val validIssuer = config.getString("verification.jwt.issuer")
   private val validAudience = config.getString("verification.jwt.audience")

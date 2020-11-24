@@ -8,10 +8,11 @@ import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, Failure, Forbidden, NotFound, Response, Success }
+import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
-import com.ubirch.verification.services.{ KeyServiceBasedVerifier, Content, TokenVerification }
+import com.ubirch.verification.services.kafka.AcctEventPublishing
+import com.ubirch.verification.services.{ Content, KeyServiceBasedVerifier, TokenVerification }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -19,12 +20,14 @@ import javax.inject.{ Named, Singleton }
 import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
+import DecoratedResponse.toDecoration
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 @Singleton
 class DefaultApi @Inject() (
+    accounting: AcctEventPublishing,
     tokenVerification: TokenVerification,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
@@ -78,13 +81,13 @@ class DefaultApi @Inject() (
   }
 
   /** little utility function that makes the DSL below readable */
-  private def earlyResponseIf(condition: Boolean)(response: => Response): Future[Unit] =
+  private def earlyResponseIf(condition: Boolean)(response: => DecoratedResponse): Future[Unit] =
     if (condition) Future.failed(ResponseException(response)) else Future.unit
 
   /** exception for wrapping early responses in the DSL below */
-  case class ResponseException(resp: Response) extends Exception with NoStackTrace
+  case class ResponseException(resp: DecoratedResponse) extends Exception with NoStackTrace
 
-  private def finalizeResponse(responseFuture: Future[Api.Success], requestId: String): Future[Response] =
+  private def finalizeResponse(responseFuture: Future[DecoratedResponse], requestId: String): Future[DecoratedResponse] =
     responseFuture.recover {
       case ResponseException(response) => response
       case e: Exception =>
@@ -92,27 +95,27 @@ class DefaultApi @Inject() (
         throw HttpErrorException(500, payload = s"InternalServerError: ${e.getClass.getSimpleName}: ${e.getMessage}", cause = e)
     }
 
-  private def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[Response] = {
+  private def verifyBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[DecoratedResponse] = {
 
     val requestId = HashHelper.bytesToPrintableId(hash)
 
     val responseFuture = for {
       response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received event log response[$queryDepth, $responseForm] : [$response]")
-      _ <- earlyResponseIf(response == null)(NotFound)
-      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
+      _ <- earlyResponseIf(response == null)(NotFound.withNoPM)
+      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message).withNoPM)
 
       //TODO ADD TRY HERE
       upp = LookupJsonSupport.FromJson[ProtocolMessage](response.event).get
-      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
-      _ <- earlyResponseIf(upp == null)(NotFound)
-      _ <- earlyResponseIf(!verifier.verifySuppressExceptions(upp))(Failure())
+      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message).withNoPM)
+      _ <- earlyResponseIf(upp == null)(NotFound.withNoPM)
+      _ <- earlyResponseIf(!verifier.verifySuppressExceptions(upp))(Failure().withNoPM)
 
       anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
       successNoChain = Success(HashHelper.b64(seal), null, anchors)
 
-      _ <- earlyResponseIf(upp.getChain == null)(successNoChain)
+      _ <- earlyResponseIf(upp.getChain == null)(successNoChain.boundPM(upp))
 
       // overwritting the type of queryDepth to simple (cf UP-1454), as the full path of the chained UPP is not being used right now
       chainResponse <- eventLogClient.getEventBySignature(HashHelper.b64(upp.getChain).getBytes(StandardCharsets.UTF_8), queryDepth = Simple, responseForm, blockchainInfo)
@@ -120,12 +123,12 @@ class DefaultApi @Inject() (
 
       chainRequestFailed = chainResponse == null || !chainResponse.success || chainResponse.event == null || chainResponse.event == JNull
       _ = if (chainRequestFailed) logger.warn(s"[$requestId] chain request failed even though chain was set in the original packet")
-      _ <- earlyResponseIf(chainRequestFailed)(successNoChain)
+      _ <- earlyResponseIf(chainRequestFailed)(successNoChain.boundPM(upp))
 
       chainUPP = LookupJsonSupport.FromJson[ProtocolMessage](chainResponse.event).get
       chain = rawPacket(chainUPP)
     } yield {
-      successNoChain.copy(prev = HashHelper.b64(chain))
+      successNoChain.copy(prev = HashHelper.b64(chain)).boundPM(upp)
     }
 
     finalizeResponse(responseFuture, requestId)
@@ -146,26 +149,26 @@ class DefaultApi @Inject() (
     }
   }
 
-  private def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[Response] = {
+  private def lookupBase(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo, disableRedisLookup: Boolean): Future[DecoratedResponse] = {
 
     val requestId = HashHelper.bytesToPrintableId(hash)
 
     val responseFuture = for {
       cachedUpp <- if (disableRedisLookup) Future.successful(None) else findCachedUpp(hash)
-      _ <- earlyResponseIf(cachedUpp.isDefined)(Success(cachedUpp.get, null, JsonValue("null")))
+      _ <- earlyResponseIf(cachedUpp.isDefined)(Success(cachedUpp.get, null, JsonValue("null")).withNoPM)
 
       response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received event log response: [$response]")
-      _ <- earlyResponseIf(response == null)(NotFound)
-      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message))
+      _ <- earlyResponseIf(response == null)(NotFound.withNoPM)
+      _ <- earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message).withNoPM)
 
       upp = LookupJsonSupport.FromJson[ProtocolMessage](response.event).get
-      _ <- earlyResponseIf(upp == null)(NotFound)
+      _ <- earlyResponseIf(upp == null)(NotFound.withNoPM)
 
       anchors = Anchors(JsonValue(LookupJsonSupport.stringify(response.anchors)))
       seal = rawPacket(upp)
 
-    } yield Success(HashHelper.b64(seal), null, anchors)
+    } yield Success(HashHelper.b64(seal), null, anchors).boundPM(upp)
 
     finalizeResponse(responseFuture, requestId)
   }
@@ -189,6 +192,30 @@ class DefaultApi @Inject() (
         }
         r
       }
+
+  }
+
+  private def registerAcctEvent[T](accessInfo: (Map[String, String], Content))(f: => Future[DecoratedResponse]): Future[Response] = {
+    import TokenVerification._
+    val (all, content) = accessInfo
+    val owner = all.getSubject
+    f.transform { r =>
+      r match {
+        case util.Success(DecoratedResponse(Some(upp), response)) =>
+          response match {
+            case Success(_, _, _) =>
+            // accounting.publish(AcctEvent(UUID.randomUUID(), all.get(tokenVerification)))
+            case NotFound =>
+            case AuthorizationHeaderNotFound =>
+            case Forbidden =>
+            case Failure(_, _, _, _) =>
+
+          }
+        case util.Success(_) =>
+        case util.Failure(_) =>
+      }
+      r.map(_.response)
+    }
 
   }
 
@@ -224,7 +251,7 @@ class DefaultApi @Inject() (
 
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
     registerMetrics("upp") { () =>
-      lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+      lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup).map(_.response)
     }
   }
 
@@ -235,7 +262,7 @@ class DefaultApi @Inject() (
         Simple,
         AnchorsNoPath,
         Normal
-      )
+      ).map(_.response)
     }
   }
 
@@ -246,7 +273,7 @@ class DefaultApi @Inject() (
         ShortestPath,
         ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
         BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-      )
+      ).map(_.response)
     }
   }
 
@@ -257,15 +284,17 @@ class DefaultApi @Inject() (
         UpperLower,
         ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
         BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-      )
+      ).map(_.response)
     }
   }
 
   //V2
   override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
     registerMetrics("v2.upp") {
-      authorization(authToken) { _ =>
-        lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+      authorization(authToken) { accessInfo =>
+        registerAcctEvent(accessInfo) {
+          lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
+        }.map(_.response)
       }
     }
   }
@@ -278,7 +307,7 @@ class DefaultApi @Inject() (
           Simple,
           AnchorsNoPath,
           Normal
-        )
+        ).map(_.response)
       }
     }
   }
@@ -291,7 +320,7 @@ class DefaultApi @Inject() (
           ShortestPath,
           ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
           BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-        )
+        ).map(_.response)
       }
     }
   }
@@ -304,7 +333,7 @@ class DefaultApi @Inject() (
           UpperLower,
           ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
           BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-        )
+        ).map(_.response)
       }
     }
   }

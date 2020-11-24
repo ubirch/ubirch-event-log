@@ -2,20 +2,20 @@ package com.ubirch.verification
 
 import com.google.inject.binder.ScopedBindingBuilder
 import com.google.inject.name.Names
-import com.google.inject.{AbstractModule, Module}
+import com.google.inject.{ AbstractModule, Module }
 import com.typesafe.config.Config
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.HealthCheckServer
 import com.ubirch.services._
-import com.ubirch.services.cluster.{ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService}
+import com.ubirch.services.cluster.{ ClusterService, ConnectionService, DefaultClusterService, DefaultConnectionService }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.execution.ExecutionProvider
-import com.ubirch.services.lifeCycle.{DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle}
-import com.ubirch.verification.controllers.{Api, DefaultApi}
+import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
+import com.ubirch.verification.controllers.{ Api, DefaultApi }
 import com.ubirch.verification.services._
-import com.ubirch.verification.services.eventlog.{CachedEventLogClient, DefaultEventLogClient, EventLogClient}
-import com.ubirch.verification.services.janus.{DefaultGremlinConnector, Gremlin, GremlinFinder, GremlinFinderRemote}
-import com.ubirch.verification.services.kafka.{AcctEventPublishing, DefaultAcctEventPublishing}
+import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, DefaultEventLogClient, EventLogClient }
+import com.ubirch.verification.services.janus.{ DefaultGremlinConnector, Gremlin, GremlinFinder, GremlinFinderRemote }
+import com.ubirch.verification.services.kafka.{ AcctEventPublishing, DefaultAcctEventPublishing }
 import com.ubirch.verification.util.udash.JettyServer
 
 import scala.concurrent.ExecutionContext
