@@ -13,18 +13,49 @@ import com.ubirch.verification.util.Exceptions.FailedKafkaPublish
 import com.ubirch.verification.util.LookupJsonSupport
 import javax.inject._
 import monix.eval.Task
+import monix.execution.{ CancelableFuture, Scheduler }
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.{ ByteArraySerializer, Serializer, StringSerializer }
 import org.json4s.{ DefaultFormats, Formats }
 
-import scala.concurrent.TimeoutException
+import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.language.postfixOps
 
-trait AcctEventPublishing {
+trait AcctEventPublishing extends LazyLogging {
+
+  implicit def scheduler: Scheduler
+
   def publish(value: AcctEvent): Task[RecordMetadata]
-  def publishAsOpt(value: AcctEvent): Task[Option[RecordMetadata]]
-  def publish(value: AcctEvent, timeout: FiniteDuration = 10 seconds): Task[(RecordMetadata, AcctEvent)]
+
+  def publish_!(value: AcctEvent): CancelableFuture[RecordMetadata] = publish(value).runAsync
+
+  def publishAsOpt(value: AcctEvent): Task[Option[RecordMetadata]] = {
+    publish(value)
+      .map(x => Option(x))
+      .onErrorHandle {
+        e =>
+          logger.error("Error publishing AcctEvent to kafka, pk={} exception={} error_message", value, e.getClass.getName, e.getMessage)
+          None
+      }
+  }
+
+  def publish(value: AcctEvent, timeout: FiniteDuration = 10 seconds): Task[(RecordMetadata, AcctEvent)] = {
+    for {
+      maybeRM <- publishAsOpt(value)
+        .timeoutTo(timeout, Task.raiseError(FailedKafkaPublish(value, Option(new TimeoutException(s"failed_publish_timeout=${timeout.toString()}")))))
+        .onErrorHandleWith(e => Task.raiseError(FailedKafkaPublish(value, Option(e))))
+      _ = if (maybeRM.isEmpty) logger.error("failed_publish={}", value.toString)
+      _ = if (maybeRM.isDefined) logger.info("publish_succeeded_for={}", value.identityId)
+      _ <- earlyResponseIf(maybeRM.isEmpty)(FailedKafkaPublish(value, None))
+    } yield {
+      (maybeRM.get, value)
+    }
+  }
+
+  protected def earlyResponseIf(condition: Boolean)(response: Exception): Task[Unit] =
+    if (condition) Task.raiseError(response) else Task.unit
+
 }
 
 abstract class AcctEventPublishingImpl(config: Config, lifecycle: Lifecycle)
@@ -39,9 +70,6 @@ abstract class AcctEventPublishingImpl(config: Config, lifecycle: Lifecycle)
   override val valueSerializer: Serializer[Array[Byte]] = new ByteArraySerializer
 
   val producerTopic: String = config.getString(AcctEventPublishingConfPaths.TOPIC_PATH)
-
-  private def earlyResponseIf(condition: Boolean)(response: Exception): Task[Unit] =
-    if (condition) Task.raiseError(response) else Task.unit
 
   override def publish(value: AcctEvent): Task[RecordMetadata] = Task.defer {
 
@@ -62,34 +90,15 @@ abstract class AcctEventPublishingImpl(config: Config, lifecycle: Lifecycle)
 
   }
 
-  override def publishAsOpt(value: AcctEvent): Task[Option[RecordMetadata]] = publish(value)
-    .map(x => Option(x))
-    .onErrorHandle {
-      e =>
-        logger.error("Error publishing AcctEvent to kafka, pk={} exception={} error_message", value, e.getClass.getName, e.getMessage)
-        None
-    }
-
-  override def publish(value: AcctEvent, timeout: FiniteDuration): Task[(RecordMetadata, AcctEvent)] = {
-    for {
-      maybeRM <- publishAsOpt(value)
-        .timeoutTo(timeout, Task.raiseError(FailedKafkaPublish(value, Option(new TimeoutException(s"failed_publish_timeout=${timeout.toString()}")))))
-        .onErrorHandleWith(e => Task.raiseError(FailedKafkaPublish(value, Option(e))))
-      _ = if (maybeRM.isEmpty) logger.error("failed_publish={}", value.toString)
-      _ = if (maybeRM.isDefined) logger.info("publish_succeeded_for={}", value.identityId)
-      _ <- earlyResponseIf(maybeRM.isEmpty)(FailedKafkaPublish(value, None))
-    } yield {
-      (maybeRM.get, value)
-    }
-  }
-
   lifecycle.addStopHook(hookFunc(production))
 
 }
 
 @Singleton
-class DefaultAcctEventPublishing @Inject() (config: Config, lifecycle: Lifecycle)
+class DefaultAcctEventPublishing @Inject() (config: Config, lifecycle: Lifecycle)(implicit ec: ExecutionContext)
   extends AcctEventPublishingImpl(config, lifecycle) {
+
+  implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
   implicit val formats: Formats = DefaultFormats
 
