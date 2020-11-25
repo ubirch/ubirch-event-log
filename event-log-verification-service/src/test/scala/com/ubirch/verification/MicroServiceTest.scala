@@ -13,8 +13,8 @@ import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
 import com.ubirch.verification.controllers.{ Api, DefaultApi }
 import com.ubirch.verification.models._
-import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services._
+import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services.kafka.DefaultAcctEventPublishing
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.CollectorRegistry

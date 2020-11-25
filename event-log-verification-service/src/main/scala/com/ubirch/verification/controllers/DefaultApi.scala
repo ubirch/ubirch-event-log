@@ -2,17 +2,20 @@ package com.ubirch.verification.controllers
 
 import java.io.{ ByteArrayOutputStream, IOException }
 import java.nio.charset.StandardCharsets
+import java.util.Date
 
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
 import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.verification.controllers.Api.DecoratedResponse.toDecoration
 import com.ubirch.verification.controllers.Api.{ Anchors, AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
 import com.ubirch.verification.services.kafka.AcctEventPublishing
 import com.ubirch.verification.services.{ Content, KeyServiceBasedVerifier, TokenVerification }
+import com.ubirch.verification.util.Exceptions.InvalidSpecificClaim
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.{ HttpErrorException, JsonValue }
@@ -20,7 +23,6 @@ import javax.inject.{ Named, Singleton }
 import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
-import DecoratedResponse.toDecoration
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
@@ -197,24 +199,47 @@ class DefaultApi @Inject() (
 
   private def registerAcctEvent[T](accessInfo: (Map[String, String], Content))(f: => Future[DecoratedResponse]): Future[Response] = {
     import TokenVerification._
-    val (all, content) = accessInfo
-    val owner = all.getSubject
-    f.transform { r =>
-      r match {
-        case util.Success(DecoratedResponse(Some(upp), response)) =>
-          response match {
-            case Success(_, _, _) =>
-            // accounting.publish(AcctEvent(UUID.randomUUID(), all.get(tokenVerification)))
-            case NotFound =>
-            case AuthorizationHeaderNotFound =>
-            case Forbidden =>
-            case Failure(_, _, _, _) =>
 
-          }
-        case util.Success(_) =>
-        case util.Failure(_) =>
+    val (all, content) = accessInfo
+
+    f.transform { r =>
+
+      val res: scala.util.Try[Response] = for {
+        owner <- all.getSubject
+        DecoratedResponse(maybeUPP, response) <- r
+      } yield {
+
+        maybeUPP match {
+          case Some(upp) =>
+            if (upp.getUUID.toString == content.targetIdentity) {
+
+              response match {
+                case Success(_, _, _) =>
+                  accounting.publish(AcctEvent(java.util.UUID.randomUUID(), owner, Option(upp.getUUID), "verification", Some(content.purpose), new Date()))
+                case NotFound =>
+                case AuthorizationHeaderNotFound =>
+                case Forbidden =>
+                case Failure(_, _, _, _) =>
+
+              }
+
+              response
+
+            } else {
+              logger.warn("upp_uuid_not_equals_target_identity {} {}", upp.getUUID, content.targetIdentity)
+              Forbidden
+            }
+          case None => response
+        }
+
       }
-      r.map(_.response)
+
+      res.recover {
+        case e: InvalidSpecificClaim =>
+          logger.error(s"error_getting_owner_token=${e.getMessage}", e)
+          Forbidden
+      }
+
     }
 
   }
@@ -294,46 +319,52 @@ class DefaultApi @Inject() (
       authorization(authToken) { accessInfo =>
         registerAcctEvent(accessInfo) {
           lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
-        }.map(_.response)
+        }
       }
     }
   }
 
   override def verifyUPPV2(hash: Array[Byte], authToken: String): Future[Response] = {
     registerMetrics("v2.simple") {
-      authorization(authToken) { _ =>
-        verifyBase(
-          hash,
-          Simple,
-          AnchorsNoPath,
-          Normal
-        ).map(_.response)
+      authorization(authToken) { accessInfo =>
+        registerAcctEvent(accessInfo) {
+          verifyBase(
+            hash,
+            Simple,
+            AnchorsNoPath,
+            Normal
+          )
+        }
       }
     }
   }
 
   override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
     registerMetrics("v2.anchor") {
-      authorization(authToken) { _ =>
-        verifyBase(
-          hash,
-          ShortestPath,
-          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-        ).map(_.response)
+      authorization(authToken) { accessInfo =>
+        registerAcctEvent(accessInfo) {
+          verifyBase(
+            hash,
+            ShortestPath,
+            ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+            BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+          )
+        }
       }
     }
   }
 
   override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
     registerMetrics("v2.record") {
-      authorization(authToken) { _ =>
-        verifyBase(
-          hash,
-          UpperLower,
-          ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
-          BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
-        ).map(_.response)
+      authorization(authToken) { accessInfo =>
+        registerAcctEvent(accessInfo) {
+          verifyBase(
+            hash,
+            UpperLower,
+            ResponseForm.fromString(responseForm).getOrElse(AnchorsNoPath),
+            BlockchainInfo.fromString(blockchainInfo).getOrElse(Normal)
+          )
+        }
       }
     }
   }

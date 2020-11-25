@@ -29,6 +29,7 @@ object TokenVerification {
       .toTry
       .filter(_.nonEmpty)
       .map(UUID.fromString)
+      .recover { case e: Exception => throw InvalidSpecificClaim("Invalid subject", e.getMessage) }
 
   }
 
@@ -66,6 +67,7 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
         .toTry
         .filter(_.nonEmpty)
         .map(UUID.fromString)
+        .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
 
       _ <- Try(otherClaims.role).filter(validRoles.contains)
         .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
