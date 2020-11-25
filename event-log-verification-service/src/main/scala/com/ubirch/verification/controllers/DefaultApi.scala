@@ -238,6 +238,9 @@ class DefaultApi @Inject() (
         case e: InvalidSpecificClaim =>
           logger.error(s"error_getting_owner_token=${e.getMessage}", e)
           Forbidden
+        case e: Exception =>
+          logger.error(s"unknown_token=${e.getMessage}", e)
+          Failure()
       }
 
     }
