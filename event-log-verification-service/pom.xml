@@ -351,7 +351,7 @@
                 <configuration>
                     <buildDirectory>${project.build.outputDirectory}</buildDirectory>
                     <repository>ubirch/${project.artifactId}</repository>
-                    <tag>${build.number}</tag>
+                    <tag>devmango</tag>
                     <buildArgs>
                         <VERSION>${project.version}</VERSION>
                         <BUILD>${build.number}</BUILD>

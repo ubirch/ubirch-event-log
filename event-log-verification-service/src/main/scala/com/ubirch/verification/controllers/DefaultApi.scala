@@ -215,7 +215,9 @@ class DefaultApi @Inject() (
 
               response match {
                 case Success(_, _, _) =>
-                  accounting.publish(AcctEvent(java.util.UUID.randomUUID(), owner, Option(upp.getUUID), "verification", Some(content.purpose), new Date()))
+                  accounting
+                    .publish_!(AcctEvent(java.util.UUID.randomUUID(), owner, Option(upp.getUUID), "verification", Some(content.purpose), new Date()))
+
                 case NotFound =>
                 case AuthorizationHeaderNotFound =>
                 case Forbidden =>
