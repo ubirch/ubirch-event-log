@@ -4,8 +4,8 @@ import java.time.Clock
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 import com.ubirch.crypto.utils.Curve
+import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 import com.ubirch.verification.util.LookupJsonSupport
 import javax.inject.{ Inject, Singleton }
 import org.bouncycastle.util.encoders.Hex

@@ -2,7 +2,7 @@ package com.ubirch.verification
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Base64, UUID }
+import java.util.{ Base64, Date, UUID }
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import com.ubirch.client.util.curveFromString
@@ -19,6 +19,9 @@ import com.ubirch.verification.services.kafka.DefaultAcctEventPublishing
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
+import monix.eval.Task
+import org.apache.kafka.clients.producer.RecordMetadata
+import org.apache.kafka.common.TopicPartition
 import org.scalatest._
 import redis.embedded.RedisServer
 
@@ -51,7 +54,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         |  "payload":"c29tZSBieXRlcyEAAQIDnw==",
         |  "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
         |  "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
-        |  "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
+        |  "uuid":"840b7e21-03e9-4de7-bb31-0b9524f3b500",
         |  "version":34
         |}""".stripMargin
     }
@@ -63,7 +66,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       |  "payload":"c29tZSBieXRlcyEAAQIDnw==",
       |  "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
       |  "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
-      |  "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
+      |  "uuid":"840b7e21-03e9-4de7-bb31-0b9524f3b500",
       |  "version":34,
       |  "chain":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw=="
       |}""".stripMargin
@@ -429,40 +432,6 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
 
   }
 
-  it should "successfully pass parameters through when default are modified for getUPP" in {
-
-    val wasHere = new AtomicBoolean(false)
-
-    val eventLog: EventLogClient = new EventLogClient {
-
-      override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
-        wasHere.set(true)
-        assert(wasHere.get())
-        assert(queryDepth == Simple)
-        assert(responseForm == AnchorsNoPath)
-        assert(blockchainInfo == Normal)
-        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(hash), Payload, upp, anchors))
-      }
-
-      override def getEventBySignature(sig: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
-        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(sig), Signature, uppWithChain, anchors))
-      }
-    }
-
-    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
-    val redisCache = new RedisCache("test", config)
-    val healthCheck = new HealthCheckProvider(config).get()
-    val tokenPublicKey = new DefaultTokenPublicKey(config)
-    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
-    val lifecycle = new DefaultLifecycle()
-    val acct = new DefaultAcctEventPublishing(config, lifecycle)
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
-
-    Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
-    assert(wasHere.get())
-
-  }
-
   it should "successfully pass parameters through when default are modified for getUPP2" in {
 
     val wasHere = new AtomicBoolean(false)
@@ -495,6 +464,112 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
     Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     assert(wasHere.get())
+
+  }
+
+  it should "successfully pass parameters through when default are modified for getUPP2 with evt publishing same UUIDs" in {
+
+    val wasHere = new AtomicBoolean(false)
+    val wasHereAsWell = new AtomicBoolean(false)
+
+    val eventLog: EventLogClient = new EventLogClient {
+
+      override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        wasHere.set(true)
+        assert(wasHere.get())
+        assert(queryDepth == Simple)
+        assert(responseForm == AnchorsNoPath)
+        assert(blockchainInfo == Normal)
+        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(hash), Payload, upp, anchors))
+      }
+
+      override def getEventBySignature(sig: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(sig), Signature, uppWithChain, anchors))
+      }
+    }
+
+    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
+    val redisCache = new RedisCache("test", config)
+    val healthCheck = new HealthCheckProvider(config).get()
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val lifecycle = new DefaultLifecycle()
+    val acct = new DefaultAcctEventPublishing(config, lifecycle) {
+      override def publish(value: AcctEvent): Task[RecordMetadata] = {
+
+        wasHereAsWell.set(true)
+        assert(wasHereAsWell.get())
+
+        Task(new RecordMetadata(
+          new TopicPartition("topic", 1),
+          1,
+          1,
+          new Date().getTime,
+          1L,
+          1,
+          1
+        ))
+      }
+    }
+    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+
+    Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
+
+    assert(wasHere.get())
+    assert(wasHereAsWell.get())
+
+  }
+
+  it should "successfully pass parameters through when default are modified for getUPP2 when not found" in {
+
+    val wasHere = new AtomicBoolean(false)
+    val wasHereAsWell = new AtomicBoolean(false)
+
+    val eventLog: EventLogClient = new EventLogClient {
+
+      override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        wasHere.set(true)
+        assert(wasHere.get())
+        assert(queryDepth == Simple)
+        assert(responseForm == AnchorsNoPath)
+        assert(blockchainInfo == Normal)
+        Future.successful(LookupResult.NotFound(HashHelper.bytesToPrintableId(hash), Payload))
+      }
+
+      override def getEventBySignature(sig: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(sig), Signature, uppWithChain, anchors))
+      }
+    }
+
+    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
+    val redisCache = new RedisCache("test", config)
+    val healthCheck = new HealthCheckProvider(config).get()
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val lifecycle = new DefaultLifecycle()
+    val acct = new DefaultAcctEventPublishing(config, lifecycle) {
+      override def publish(value: AcctEvent): Task[RecordMetadata] = {
+
+        wasHereAsWell.set(true)
+        assert(wasHereAsWell.get())
+
+        Task(new RecordMetadata(
+          new TopicPartition("topic", 1),
+          1,
+          1,
+          new Date().getTime,
+          1L,
+          1,
+          1
+        ))
+      }
+    }
+    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+
+    Await.result(api.getUPPV2("aaaaaaaa".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
+
+    assert(wasHere.get())
+    assert(!wasHereAsWell.get())
 
   }
 

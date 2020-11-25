@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
-import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, pathSummary, summary, tags }
+import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
 import io.udash.rest.raw._
 import io.udash.rest.{ Query, _ }
