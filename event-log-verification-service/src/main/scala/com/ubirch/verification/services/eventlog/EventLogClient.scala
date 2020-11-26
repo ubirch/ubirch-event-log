@@ -27,27 +27,30 @@ trait EventLogClient {
 
 object EventLogClient {
   def shortestPathAsJValue(maybeAnchors: Seq[VertexStruct]): JValue =
-    LookupJsonSupport.ToJson[Seq[VertexStruct]](maybeAnchors).get
+    LookupJsonSupport.ToJson[Seq[DumbVertexStruct]](maybeAnchors.map(_.toDumbVertexStruct)).get
 
   def shortestPathAsJValue(path: Seq[VertexStruct], maybeAnchors: Seq[VertexStruct]): JValue = {
-    val anchors = Map(Values.SHORTEST_PATH -> path.map(v => v.toDumbVertexStruct), Values.BLOCKCHAINS -> maybeAnchors.map(v => v.toDumbVertexStruct))
+    val anchors = Map(
+      Values.SHORTEST_PATH -> path.map(v => v.toDumbVertexStruct),
+      Values.BLOCKCHAINS -> maybeAnchors.map(v => v.toDumbVertexStruct)
+    )
     LookupJsonSupport.ToJson(anchors).get
   }
 
   def upperAndLowerAsJValue(upperPath: Seq[VertexStruct], upperBlocks: Seq[VertexStruct], lowerPath: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
     val anchors = Map(
-      Values.UPPER_PATH -> upperPath,
-      Values.UPPER_BLOCKCHAINS -> upperBlocks,
-      Values.LOWER_PATH -> lowerPath,
-      Values.LOWER_BLOCKCHAINS -> lowerBlocks
+      Values.UPPER_PATH -> upperPath.map(_.toDumbVertexStruct),
+      Values.UPPER_BLOCKCHAINS -> upperBlocks.map(_.toDumbVertexStruct),
+      Values.LOWER_PATH -> lowerPath.map(_.toDumbVertexStruct),
+      Values.LOWER_BLOCKCHAINS -> lowerBlocks.map(_.toDumbVertexStruct)
     )
     LookupJsonSupport.ToJson(anchors).get
   }
 
   def upperAndLowerAsJValue(upperBlocks: Seq[VertexStruct], lowerBlocks: Seq[VertexStruct]): JValue = {
     val anchors = Map(
-      Values.UPPER_BLOCKCHAINS -> upperBlocks,
-      Values.LOWER_BLOCKCHAINS -> lowerBlocks
+      Values.UPPER_BLOCKCHAINS -> upperBlocks.map(_.toDumbVertexStruct),
+      Values.LOWER_BLOCKCHAINS -> lowerBlocks.map(_.toDumbVertexStruct)
     )
     LookupJsonSupport.ToJson(anchors).get
   }

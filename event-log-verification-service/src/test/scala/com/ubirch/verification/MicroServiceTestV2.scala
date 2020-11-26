@@ -12,8 +12,8 @@ import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
 import com.ubirch.verification.controllers.{ Api, DefaultApi }
 import com.ubirch.verification.models._
-import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services._
+import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
@@ -24,7 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 
-class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
+class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
 
   val anchors = LookupJsonSupport.getJValue {
     """
@@ -80,7 +80,9 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     override def getPublicKey(uuid: UUID): List[PubKey] = List(cert)
   }
 
-  "DefaultApi" should "successfully validate handle a valid packet" in {
+  val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU4MTI5MDQsImlhdCI6MTYwNDQyMjUwNCwianRpIjoiYmYxYzk4NTktNjk4NC00ZDIzLWIzODUtNTVjZjc0MTA0NDI3IiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.yEIv1Hm4Gtc2QbhT7QcnLoG3IGSPD3J43TAdSfEhUFVHVJ1C5vG0LizzyWG0siedMOkbjdLiMUmqKZPdbqz74A"
+
+  "DefaultApiV2" should "successfully validate handle a valid packet" in {
     val eventLog: EventLogClient = new EventLogClient {
       override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
         Future.successful(LookupResult.Found(value = HashHelper.bytesToPrintableId(hash), Payload, upp, anchors))
@@ -98,7 +100,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
     res should equal(Success(
       "lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDn8RA5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
       null,
@@ -132,7 +134,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     res should equal(Failure())
 
@@ -151,7 +153,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    val res = Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     res should equal(Api.NotFound)
 
@@ -174,7 +176,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    val res = Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     res should equal(Api.NotFound)
 
@@ -199,7 +201,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     res should equal(Failure(errorType = "EventLogError", errorMessage = "plutonium leakage"))
   }
@@ -237,7 +239,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
 
     assert(wasHere1.get())
     assert(wasHere2.get())
@@ -277,7 +279,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    Await.result(api.verifyUPPWithUpperAndLowerBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
     assert(wasHere1.get())
     assert(wasHere2.get())
 
@@ -318,7 +320,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
+    Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value, authToken = aToken), 10.seconds)
     assert(wasHere1.get())
     assert(wasHere2.get())
 
@@ -360,7 +362,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
+    Await.result(api.verifyUPPWithUpperAndLowerBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value, authToken = aToken), 10.seconds)
     assert(wasHere1.get())
     assert(wasHere2.get())
 
@@ -399,7 +401,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
     assert(wasHere1.get())
     assert(wasHere2.get())
 
@@ -432,7 +434,40 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
     val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
-    Await.result(api.getUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
+    Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
+    assert(wasHere.get())
+
+  }
+
+  it should "successfully pass parameters through when default are modified for getUPP2" in {
+
+    val wasHere = new AtomicBoolean(false)
+
+    val eventLog: EventLogClient = new EventLogClient {
+
+      override def getEventByHash(hash: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        wasHere.set(true)
+        assert(wasHere.get())
+        assert(queryDepth == Simple)
+        assert(responseForm == AnchorsNoPath)
+        assert(blockchainInfo == Normal)
+        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(hash), Payload, upp, anchors))
+      }
+
+      override def getEventBySignature(sig: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = {
+        Future.successful(LookupResult.Found(HashHelper.bytesToPrintableId(sig), Signature, uppWithChain, anchors))
+      }
+    }
+
+    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
+    val redisCache = new RedisCache("test", config)
+    val healthCheck = new HealthCheckProvider(config).get()
+    val tokenPublicKey = new DefaultTokenPublicKey(config)
+    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+    val api = new DefaultApi(tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+
+    Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken), 10.seconds)
+
     assert(wasHere.get())
 
   }
