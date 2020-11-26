@@ -38,10 +38,6 @@ class FakeAcctEventPublishing(implicit ec: ExecutionContext) extends AcctEventPu
     Task.defer {
 
       for {
-        toPublish <- Task(value)
-        toPublishAsToJson <- Task(LookupJsonSupport.ToJson(toPublish))
-        toPublishAsString <- Task.delay(toPublishAsToJson.toString)
-        toPublishAsBytes <- Task.delay(toPublishAsString.getBytes(StandardCharsets.UTF_8))
         rm <- Task.fromFuture {
           Future.successful {
             new RecordMetadata(
@@ -119,7 +115,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
     override def getPublicKey(uuid: UUID): List[PubKey] = List(cert)
   }
 
-  val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU4MTI5MDQsImlhdCI6MTYwNDQyMjUwNCwianRpIjoiYmYxYzk4NTktNjk4NC00ZDIzLWIzODUtNTVjZjc0MTA0NDI3IiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.yEIv1Hm4Gtc2QbhT7QcnLoG3IGSPD3J43TAdSfEhUFVHVJ1C5vG0LizzyWG0siedMOkbjdLiMUmqKZPdbqz74A"
+  val aToken = "bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTc4MTE5NTMsImlhdCI6MTYwNjQyMTU1MywianRpIjoiMjJhYjc4YTktYWMxZC00YTZkLTg3YTUtYTA1YjlkZmE1ZmExIiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdGllcyI6WyI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiXSwicm9sZSI6InZlcmlmaWVyIn0.XKakQlHTtZKfhXuFhSANlUgdhhD3S0aQBxPOzFgGK-x0je1JMjfxT_NjxiB06x8qgB02TeHR8o-FLsE-tSdSXw"
 
   "DefaultApiV2" should "successfully validate handle a valid packet" in {
     val eventLog: EventLogClient = new EventLogClient {

@@ -197,7 +197,7 @@ class DefaultApi @Inject() (
 
   }
 
-  private def registerAcctEvent[T](accessInfo: (Map[String, String], Content))(f: => Future[DecoratedResponse]): Future[Response] = {
+  private def registerAcctEvent[T](accessInfo: (Map[String, Any], Content))(f: => Future[DecoratedResponse]): Future[Response] = {
     import TokenVerification._
 
     val (all, content) = accessInfo
@@ -211,24 +211,20 @@ class DefaultApi @Inject() (
 
         maybeUPP match {
           case Some(upp) =>
-            if (upp.getUUID.toString == content.targetIdentity) {
+            if (content.targetIdentities.contains(upp.getUUID.toString)) {
 
               response match {
                 case Success(_, _, _) =>
                   accounting
                     .publish_!(AcctEvent(java.util.UUID.randomUUID(), owner, Option(upp.getUUID), "verification", Some(content.purpose), new Date()))
-
-                case NotFound =>
-                case AuthorizationHeaderNotFound =>
-                case Forbidden =>
-                case Failure(_, _, _, _) =>
+                case _ => // Do nothing
 
               }
 
               response
 
             } else {
-              logger.warn("upp_uuid_not_equals_target_identity {} {}", upp.getUUID, content.targetIdentity)
+              logger.warn("upp_uuid_not_equals_target_identities {} {}", upp.getUUID, content.targetIdentities)
               Forbidden
             }
           case None => response
@@ -249,7 +245,7 @@ class DefaultApi @Inject() (
 
   }
 
-  private def getToken(token: String): Option[(Map[String, String], Content)] = token.split(" ").toList match {
+  private def getToken(token: String): Option[(Map[String, Any], Content)] = token.split(" ").toList match {
     case List(x, y) =>
       val isBearer = x.toLowerCase == "bearer"
       val token = tokenVerification.decodeAndVerify(y)
@@ -262,7 +258,7 @@ class DefaultApi @Inject() (
     case _ => None
   }
 
-  private def authorization[T](authToken: String)(f: ((Map[String, String], Content)) => Future[Response]): () => Future[Response] = {
+  private def authorization[T](authToken: String)(f: ((Map[String, Any], Content)) => Future[Response]): () => Future[Response] = {
     lazy val token = getToken(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
