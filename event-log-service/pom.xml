@@ -35,7 +35,7 @@
         <build.number>${timestamp}-dev</build.number>
 
         <event-log-core.version>1.5.0</event-log-core.version>
-        <jetty.version>9.4.19.v20190610</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
 
         <!-- Scalatra -->
         <scalatra.version>2.6.5</scalatra.version>
