@@ -36,7 +36,7 @@ The <response> codes could be:
 #### Example
 
 ```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU5NTI0MDIsImlhdCI6MTYwNDU2MjAwMiwianRpIjoiY2JkZDM5ODctYjY4NS00OGJlLTlkMmUtNjc3NDllMDUwMzllIiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.NbBA62DjZPDM7coWyF6zMqUTRbwCi26t_Ksp83fH7TIbU6c1YICTdiDtEOo_UMBqo6XpOEMbIIhkVUQiEyqqOA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTgxMTgxMDcsImlhdCI6MTYwNjcyNzcwNywianRpIjoiNDFiMDFkNzMtYTdkZi00N2ZhLWFkMDAtNzEwMWJjZTBmZmVhIiwicHVycG9zZSI6IlhtYXMgQWR2ZW50cyIsInRhcmdldF9pZGVudGl0aWVzIjpbIjc1NDlhY2Q4LTkxZTEtNDIzMC04MzNhLTJmMzg2ZTA5Yjk2ZiJdLCJyb2xlIjoidmVyaWZpZXIifQ.bRV1DmKwFZXdB5XD99xxEA8MhcBuE9N5UkThuyIajw4VvECvsq6PHShjReSmhcX_fqK-Bs-FioOC0Eh0odrYzQ
 ```
 
 This token has the following header:
@@ -53,11 +53,13 @@ This token has the following header:
   "iss": "https://token.dev.ubirch.com",
   "sub": "963995ed-ce12-4ea5-89dc-b181701d1d7b",
   "aud": "https://verify.dev.ubirch.com",
-  "exp": 7915952402,
-  "iat": 1604562002,
-  "jti": "cbdd3987-b685-48be-9d2e-67749e05039e",
-  "purpose": "King Dude - Concert",
-  "target_identity": "840b7e21-03e9-4de7-bb31-0b9524f3b500",
+  "exp": 7918118107,
+  "iat": 1606727707,
+  "jti": "41b01d73-a7df-47fa-ad00-7101bce0ffea",
+  "purpose": "Xmas Advents",
+  "target_identities": [
+    "7549acd8-91e1-4230-833a-2f386e09b96f"
+  ],
   "role": "verifier"
 }
 ```
@@ -71,7 +73,7 @@ Where
     'iat' is the initial time
     'jti' is a unique uuid id for the token
     'purpose' is a description of the main usage for this token, like a concert or artist show
-    'target_identity': it is the entity for which the subject can perform the action on the target audience system
+    'target_identities': it is the entities for which the subject can perform the action on the target audience system
     'role' is the role that was assigned to this token
 ```
 
