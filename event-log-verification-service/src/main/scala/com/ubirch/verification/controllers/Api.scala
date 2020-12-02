@@ -14,7 +14,6 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 
 trait V1 {
-  //V1
   @cors
   @CustomBody
   @POST("upp")
@@ -62,7 +61,6 @@ trait V1 {
 }
 
 trait V2 {
-  //V2
   @cors
   @CustomBody
   @POST("v2/upp")
@@ -191,7 +189,6 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   object Failure extends RestDataCompanion[Failure]
 
   case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response)
-
   object DecoratedResponse {
 
     case class Decoration(response: Response) {

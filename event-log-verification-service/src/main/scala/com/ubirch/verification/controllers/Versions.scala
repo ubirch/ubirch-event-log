@@ -12,13 +12,13 @@ trait Versions {
 
   import controllerHelpers._
 
-  class Api() {
-
-    def health: Future[String] = {
-      registerMetrics("health") { () =>
-        Future.successful("ok")
-      }
+  def health: Future[String] = {
+    registerMetrics("health") { () =>
+      Future.successful("ok")
     }
+  }
+
+  class Api() {
 
     def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = {
       registerMetrics("upp") { () =>

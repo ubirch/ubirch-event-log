@@ -142,8 +142,9 @@ class DefaultApi @Inject() (
 
   }
 
+  override def health: Future[String] = health
+
   //V1
-  override def health: Future[String] = api.health
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = api.getUPP(hash, disableRedisLookup)
   override def verifyUPP(hash: Array[Byte]): Future[Response] = api.verifyUPP(hash)
   override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = api.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo)
