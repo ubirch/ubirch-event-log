@@ -4,8 +4,8 @@ import java.time.Clock
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 import com.ubirch.crypto.utils.Curve
+import com.ubirch.crypto.{ GeneratorKeyFactory, PrivKey }
 import com.ubirch.verification.util.LookupJsonSupport
 import javax.inject.{ Inject, Singleton }
 import org.bouncycastle.util.encoders.Hex
@@ -13,7 +13,7 @@ import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim }
 
 import scala.util.Try
 
-case class Content(role: Symbol, purpose: String)
+case class Content(role: Symbol, purpose: String, targetIdentities: List[String])
 
 trait TokenCreation {
   def encode(jwtClaim: JwtClaim, privKey: PrivKey): Try[String]
@@ -67,7 +67,7 @@ object DefaultTokenCreation {
         to = UUID.randomUUID().toString,
         about = "https://verify.dev.ubirch.com",
         expiresIn = Some(631139040),
-        Content('tester_verifier, "Lara del Rey Concert"),
+        Content('tester_verifier, "Lara del Rey Concert", List(UUID.randomUUID().toString)),
         privKey
       )
 

@@ -15,6 +15,7 @@ import com.ubirch.verification.controllers.{ Api, DefaultApi }
 import com.ubirch.verification.services._
 import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, DefaultEventLogClient, EventLogClient }
 import com.ubirch.verification.services.janus.{ DefaultGremlinConnector, Gremlin, GremlinFinder, GremlinFinderRemote }
+import com.ubirch.verification.services.kafka.{ AcctEventPublishing, DefaultAcctEventPublishing }
 import com.ubirch.verification.util.udash.JettyServer
 
 import scala.concurrent.ExecutionContext
@@ -38,6 +39,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def tokenPubKey: ScopedBindingBuilder = bind(classOf[TokenPublicKey]).to(classOf[DefaultTokenPublicKey])
   def tokenVerification: ScopedBindingBuilder = bind(classOf[TokenVerification]).to(classOf[DefaultTokenVerification])
   def tokenCreation: ScopedBindingBuilder = bind(classOf[TokenCreation]).to(classOf[DefaultTokenCreation])
+  def acctEventPublishing: ScopedBindingBuilder = bind(classOf[AcctEventPublishing]).to(classOf[DefaultAcctEventPublishing])
   def api: ScopedBindingBuilder = bind(classOf[Api]).to(classOf[DefaultApi])
 
   override def configure(): Unit = {
@@ -58,6 +60,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     tokenPubKey
     tokenVerification
     api
+    acctEventPublishing
   }
 
 }
