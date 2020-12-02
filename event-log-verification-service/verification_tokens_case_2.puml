@@ -1,0 +1,34 @@
+@startuml
+left to right direction
+actor :Tenant A : as A <<Anchorer>>
+actor :Tenant B : as B <<Verifier>>
+
+package Verification_Token_|_Acct_Events {
+  usecase "Token Manager" as token_manager
+  usecase "Verification Service V2" as verification_service
+  usecase "Accouting Service" as acct_service
+  usecase "Key Cloak" as keycloak
+  usecase "Web Console" as web_console
+  usecase "Niomon" as niomon
+}
+
+note top of B
+ This entity is the one that is billed.
+end note
+
+note top of B
+ Does Tenant B know (of) Tenant A?
+ If yes, does Tenant B know of its devices?
+end note
+
+web_console --> keycloak: gets user token
+web_console --> token_manager: creates/lists tokens using user token
+verification_service --> acct_service: stores acct event
+
+A --> niomon: sends upps
+
+B --> web_console: creates ubirch tokens
+B --> web_console: lists ubirch tokens
+B --> verification_service: verifies hash with ubirch token
+
+@enduml
