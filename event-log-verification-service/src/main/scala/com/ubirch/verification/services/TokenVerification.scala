@@ -12,12 +12,10 @@ import pdi.jwt.{ Jwt, JwtAlgorithm }
 import scala.util.Try
 
 trait TokenVerification {
-  def decodeAndVerify(jwt: String): Option[(Map[String, String], Content)]
+  def decodeAndVerify(jwt: String): Option[(Map[String, Any], Content)]
 }
 
-@Singleton
-class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenPublicKey) extends TokenVerification with LazyLogging {
-
+object TokenVerification {
   final val ISSUER = "iss"
   final val SUBJECT = "sub"
   final val AUDIENCE = "aud"
@@ -25,6 +23,23 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
   final val NOT_BEFORE = "nbf"
   final val ISSUED_AT = "iat"
   final val JWT_ID = "jti"
+
+  implicit class EnrichedAll(all: Map[String, Any]) {
+    def getSubject: Try[UUID] = all.get(SUBJECT).toRight(InvalidSpecificClaim("Invalid subject", all.toString()))
+      .toTry
+      .map(_.asInstanceOf[String])
+      .filter(_.nonEmpty)
+      .map(UUID.fromString)
+      .recover { case e: Exception => throw InvalidSpecificClaim("Invalid subject", e.getMessage) }
+
+  }
+
+}
+
+@Singleton
+class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenPublicKey) extends TokenVerification with LazyLogging {
+
+  import TokenVerification._
 
   private val validIssuer = config.getString("verification.jwt.issuer")
   private val validAudience = config.getString("verification.jwt.audience")
@@ -34,13 +49,13 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
     .toSet
     .map(x => Symbol(x))
 
-  def decodeAndVerify(jwt: String): Option[(Map[String, String], Content)] = {
+  def decodeAndVerify(jwt: String): Option[(Map[String, Any], Content)] = {
     (for {
       (_, p, _) <- Jwt.decodeRawAll(jwt, tokenPublicKey.publicKey, Seq(JwtAlgorithm.ES256))
       otherClaims <- Try(LookupJsonSupport.FromString[Content](p).get)
         .recover { case e: Exception => throw InvalidOtherClaims(e.getMessage, jwt) }
 
-      all <- Try(LookupJsonSupport.FromString[Map[String, String]](p).get)
+      all <- Try(LookupJsonSupport.FromString[Map[String, Any]](p).get)
         .recover { case e: Exception => throw InvalidAllClaims(e.getMessage, jwt) }
 
       isIssuerValid <- all.get(ISSUER).toRight(InvalidSpecificClaim("Invalid issuer", p)).toTry.map(_ == validIssuer)
@@ -51,8 +66,10 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
 
       _ <- all.get(SUBJECT).toRight(InvalidSpecificClaim("Invalid subject", p))
         .toTry
+        .map(_.asInstanceOf[String])
         .filter(_.nonEmpty)
         .map(UUID.fromString)
+        .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
 
       _ <- Try(otherClaims.role).filter(validRoles.contains)
         .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }

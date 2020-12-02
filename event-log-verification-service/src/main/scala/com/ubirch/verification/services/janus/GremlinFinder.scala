@@ -10,6 +10,7 @@ import gremlin.scala.GremlinScala.Aux
 import gremlin.scala.{ GremlinScala, Key, P, Vertex }
 import shapeless.HNil
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
 
 trait GremlinFinder {
@@ -58,6 +59,7 @@ object GremlinFinder {
       .map(x => withNext(List(x)))
       .getOrElse(withNext(List("")))
 
+    @tailrec
     def process(accu: List[VertexStruct], processed: List[VertexStruct], lastLastMtHash: Option[String]): List[VertexStruct] = {
       accu match {
         case Nil => processed
@@ -73,6 +75,7 @@ object GremlinFinder {
                 case Nil => getNextHash(nextVertices)
                 case x =>
                   if (x.head.label == Values.PUBLIC_CHAIN_CATEGORY) {
+                    @tailrec
                     def getGroupBc(list: List[VertexStruct], accuHashes: List[String]): List[String] = {
                       list match {
                         case Nil => accuHashes

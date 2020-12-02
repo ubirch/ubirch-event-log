@@ -41,7 +41,7 @@ class CachedEventLogClientTest extends AsyncFlatSpec with Matchers with BeforeAn
     } yield underlyingClientInvocations should equal(2)
   }
 
-  var redis: RedisServer = new RedisServer()
+  val redis: RedisServer = new RedisServer()
 
   override def beforeAll(): Unit = redis.start()
 

@@ -1,0 +1,44 @@
+@startuml
+left to right direction
+actor :Tenant A : as A <<Anchorer|Verifier>>
+actor :Tenant B : as B <<Verifier>>
+
+package Verification_Token_|_Acct_Events {
+  usecase "Token Manager" as token_manager
+  usecase "Verification Service V2" as verification_service
+  usecase "Accouting Service" as acct_service
+  usecase "Key Cloak" as keycloak
+  usecase "Web Console" as web_console
+  usecase "Niomon" as niomon
+}
+
+note right of acct_service
+ - How should we present the data?.
+ - What queries are required?
+ - Do we need a UI interface?
+end note
+
+note top of A
+ Note that the knowledge of the devices is required.
+ This entity is the one that is billed.
+end note
+
+note right of verification_service
+ The claimed target devices must correspond to the upp that generated the hash.
+ In other words, you can only verify hash that were originated by the devices of the tenant.
+end note
+
+web_console --> keycloak: gets user token
+web_console --> token_manager: creates/lists tokens using user token
+verification_service --> acct_service: stores acct event
+
+A --> web_console: creates ubirch tokens for its devices
+A --> web_console: lists ubirch tokens
+A --> niomon: sends upps
+A --> verification_service: verifies hash with ubirch token
+
+B --> verification_service: verifies hash with ubirch token
+B <-- A: gives token
+
+
+@enduml

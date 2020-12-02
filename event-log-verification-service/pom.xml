@@ -23,6 +23,7 @@
         <!-- versions -->
         <build.number>${timestamp}-dev</build.number>
         <event-log-core.version>1.5.0</event-log-core.version>
+        <ubirch-kafka-express.version>1.2.12-SNAPSHOT</ubirch-kafka-express.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -117,6 +118,12 @@
         </dependency>
 
         <!-- ubirch -->
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-kafka-express</artifactId>
+            <version>${ubirch-kafka-express.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.ubirch</groupId>

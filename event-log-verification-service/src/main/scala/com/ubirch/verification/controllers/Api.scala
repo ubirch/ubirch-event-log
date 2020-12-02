@@ -2,9 +2,10 @@ package com.ubirch.verification.controllers
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
-import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, pathSummary, summary, tags }
+import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
 import io.udash.rest.raw._
 import io.udash.rest.{ Query, _ }
@@ -13,7 +14,6 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 
 trait V1 {
-  //V1
   @cors
   @CustomBody
   @POST("upp")
@@ -61,7 +61,6 @@ trait V1 {
 }
 
 trait V2 {
-  //V2
   @cors
   @CustomBody
   @POST("v2/upp")
@@ -188,5 +187,17 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   case object NotFound extends Response
   case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
+
+  case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response)
+  object DecoratedResponse {
+
+    case class Decoration(response: Response) {
+      def withNoPM: DecoratedResponse = DecoratedResponse(None, response)
+      def boundPM(protocolMessage: ProtocolMessage): DecoratedResponse = DecoratedResponse(Option(protocolMessage), response)
+    }
+
+    implicit def toDecoration(response: Response): Decoration = Decoration(response)
+
+  }
 
 }
