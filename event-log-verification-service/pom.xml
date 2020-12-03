@@ -72,7 +72,7 @@
 
         <!-- HTTP -->
         <udash.version>0.8.0-RC2</udash.version>
-        <jetty.version>9.4.17.v20190418</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
 
         <!-- Logging -->
         <slf4j-api.version>1.7.25</slf4j-api.version>
