@@ -12,7 +12,7 @@ trait Versions {
 
   import controllerHelpers._
 
-  def health: Future[String] = {
+  def healthCheck: Future[String] = {
     registerMetrics("health") { () =>
       Future.successful("ok")
     }
@@ -65,8 +65,8 @@ trait Versions {
 
     def getUPP(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
       registerMetrics("v2.upp") {
-        authorization(authToken) { accessInfo =>
-          registerAcctEvent(accessInfo) {
+        authorization(authToken) { claims =>
+          registerAcctEvent(claims) {
             lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
           }
         }
@@ -75,8 +75,8 @@ trait Versions {
 
     def verifyUPP(hash: Array[Byte], authToken: String): Future[Response] = {
       registerMetrics("v2.simple") {
-        authorization(authToken) { accessInfo =>
-          registerAcctEvent(accessInfo) {
+        authorization(authToken) { claims =>
+          registerAcctEvent(claims) {
             verifyBase(
               hash,
               Simple,
@@ -90,8 +90,8 @@ trait Versions {
 
     def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
       registerMetrics("v2.anchor") {
-        authorization(authToken) { accessInfo =>
-          registerAcctEvent(accessInfo) {
+        authorization(authToken) { claims =>
+          registerAcctEvent(claims) {
             verifyBase(
               hash,
               ShortestPath,
@@ -105,8 +105,8 @@ trait Versions {
 
     def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
       registerMetrics("v2.record") {
-        authorization(authToken) { accessInfo =>
-          registerAcctEvent(accessInfo) {
+        authorization(authToken) { claims =>
+          registerAcctEvent(claims) {
             verifyBase(
               hash,
               UpperLower,
