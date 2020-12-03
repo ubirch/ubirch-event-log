@@ -1,8 +1,9 @@
 package com.ubirch.verification
 
-import com.typesafe.config.ConfigFactory
-import com.ubirch.niomon.cache.RedisCache
+import com.typesafe.config.{ ConfigFactory, ConfigValueFactory }
+import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.verification.models._
+import com.ubirch.verification.services.RedisProvider
 import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, EventLogClient }
 import com.ubirch.verification.util.HashHelper
 import org.json4s.JsonAST.JString
@@ -28,7 +29,9 @@ class CachedEventLogClientTest extends AsyncFlatSpec with Matchers with BeforeAn
       }
     }
 
-    val redisCache = new RedisCache("test", ConfigFactory.load())
+    val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
+    val lifecycle = new DefaultLifecycle()
+    val redisCache = new RedisProvider(config, lifecycle).get()
     val cachedClient = new CachedEventLogClient(underlying, redisCache)
 
     for {
