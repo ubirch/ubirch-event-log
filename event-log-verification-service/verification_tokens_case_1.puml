@@ -1,7 +1,7 @@
 @startuml
 left to right direction
 actor :Tenant A : as A <<Anchorer|Verifier>>
-actor :Tenant B : as B <<Verifier>>
+actor :Entity B : as B <<Verifier>>
 
 package Verification_Token_|_Acct_Events {
   usecase "Token Manager" as token_manager
@@ -20,7 +20,12 @@ end note
 
 note top of A
  Note that the knowledge of the devices is required.
- This entity is the one that is billed.
+ This entity is the one that is billed and has
+ an account with ubirch.
+end note
+
+note top of B
+ Not registered on ubirch
 end note
 
 note right of verification_service

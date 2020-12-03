@@ -11,8 +11,11 @@ import pdi.jwt.{ Jwt, JwtAlgorithm }
 
 import scala.util.Try
 
+case class Content(role: Symbol, purpose: String, targetIdentities: List[String])
+case class Claims(token: String, all: Map[String, Any], content: Content)
+
 trait TokenVerification {
-  def decodeAndVerify(jwt: String): Option[(Map[String, Any], Content)]
+  def decodeAndVerify(jwt: String): Option[Claims]
 }
 
 object TokenVerification {
@@ -49,7 +52,7 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
     .toSet
     .map(x => Symbol(x))
 
-  def decodeAndVerify(jwt: String): Option[(Map[String, Any], Content)] = {
+  def decodeAndVerify(jwt: String): Option[Claims] = {
     (for {
       (_, p, _) <- Jwt.decodeRawAll(jwt, tokenPublicKey.publicKey, Seq(JwtAlgorithm.ES256))
       otherClaims <- Try(LookupJsonSupport.FromString[Content](p).get)
@@ -78,7 +81,7 @@ class DefaultTokenVerification @Inject() (config: Config, tokenPublicKey: TokenP
         .recover { case e: Exception => throw InvalidSpecificClaim(e.getMessage, p) }
 
     } yield {
-      Some((all, otherClaims))
+      Some(Claims(jwt, all, otherClaims))
     }).recover {
       case e: InvalidSpecificClaim =>
         logger.error(s"invalid_token_specific_claim=${e.getMessage}", e)

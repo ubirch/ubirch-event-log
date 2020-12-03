@@ -142,7 +142,7 @@ class DefaultApi @Inject() (
 
   }
 
-  override def health: Future[String] = health
+  override def health: Future[String] = healthCheck
 
   //V1
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = api.getUPP(hash, disableRedisLookup)

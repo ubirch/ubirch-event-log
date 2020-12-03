@@ -13,8 +13,6 @@ import pdi.jwt.{ Jwt, JwtAlgorithm, JwtClaim }
 
 import scala.util.Try
 
-case class Content(role: Symbol, purpose: String, targetIdentities: List[String])
-
 trait TokenCreation {
   def encode(jwtClaim: JwtClaim, privKey: PrivKey): Try[String]
   def encode(by: String, to: String, about: String, expiresIn: Option[Int], otherClaims: Content, privKey: PrivKey): Try[String]
