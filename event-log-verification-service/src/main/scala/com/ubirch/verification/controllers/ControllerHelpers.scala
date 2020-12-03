@@ -68,7 +68,13 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
 
         maybeUPP match {
           case Some(upp) =>
-            if (claims.content.targetIdentities.contains(upp.getUUID.toString) || claims.content.targetIdentities == List("*")) {
+
+            val ok = claims.content.targetIdentities match {
+              case Left(uuids) => uuids.contains(upp.getUUID.toString)
+              case Right(wildcard) => wildcard == "*"
+            }
+
+            if (ok) {
 
               response match {
                 case Success(_, _, _) =>
