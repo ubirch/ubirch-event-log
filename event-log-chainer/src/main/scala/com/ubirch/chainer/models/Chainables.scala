@@ -11,7 +11,8 @@ import scala.language.implicitConversions
   */
 object Chainables {
 
-  implicit def eventLogChainable(t: EventLog): Chainable[EventLog] = new Chainable(t.customerId, t) {
+  implicit def eventLogChainable(t: EventLog): Chainable[EventLog, String, String] = new Chainable(t) {
+    override def groupId: String = t.customerId
     override def hash: String = Hasher.mergeAndHash(t.id, t.nonce)
   }
 
