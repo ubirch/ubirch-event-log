@@ -28,7 +28,9 @@ trait Hashable[H] {
  * @param t Represents the type that will be chained
  * @tparam T Represents the type that will be turned into chainable.
  */
-abstract class Chainable[T, G, H](t: T) extends Groupable[G] with Hashable[H]
+abstract class Chainable[T, G, H](t: T) extends Groupable[G] with Hashable[H] {
+  def hash: H
+}
 /**
  * Represents a class that allows chaining values of type T
  * @param es Represents the list of elements to chain
@@ -36,12 +38,11 @@ abstract class Chainable[T, G, H](t: T) extends Groupable[G] with Hashable[H]
  *           Chainable
  * @tparam T Represents the type T of the elements to chain.
  */
-abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
+abstract class Chainer[T, G, H](es: List[T])(merger: (H, H) => H)(implicit ev: T => Chainable[T, G, H]) {
 
-  var zero: H
-  def isZeroEmpty(zero: H): Boolean
-  def +(otherHash: H): H
+  def balancingHash: H
 
+  private var zero: Option[H] = None
   private var grouped: List[List[T]] = Nil
   private var seedHashes: List[List[H]] = Nil
   private var balancedSeedNodes: List[Node[H]] = Nil
@@ -49,17 +50,11 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   private var node: Option[Node[H]] = None
 
   def seeds: List[T] = es
-
-  def getZero: H = zero
-
+  def getZero: Option[H] = zero
   def getGroups: List[List[T]] = grouped
-
   def getHashes: List[List[H]] = seedHashes
-
   def getNodes: List[Node[H]] = seedNodes
-
   def getBalancedNodes: List[Node[H]] = balancedSeedNodes
-
   def getNode: Option[Node[H]] = node
 
   def createGroups: Chainer[T, G, H] = {
@@ -75,7 +70,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   def createSeedHashes: Chainer[T, G, H] = {
     val gd = grouped.map(e => e.map(_.hash))
 
-    def addZero: List[List[H]] = {
+    def addZero(zero: H): List[List[H]] = {
       gd match {
         case Nil => gd
         case xs :: xss =>
@@ -84,14 +79,14 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
       }
     }
 
-    seedHashes = if (isZeroEmpty(zero)) gd else addZero
+    seedHashes = getZero.map(addZero).getOrElse(gd)//if (zero.isEmpty) gd else addZero
     this
   }
 
   def withHashZero(zeroHash: H): Chainer[T, G, H] = {
-    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already beem created as it won't have any effect on the node.")
+    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already been created as it won't have any effect on the node.")
     require(seedHashes.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer whose seed hashes have already been created")
-    zero = zeroHash
+    zero = Option(zeroHash)
     this
   }
 
@@ -114,15 +109,13 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def hashesToNodesWithJoin(hes: List[H]): List[Node[H]] =
-    balance(hes).join((t1, t2) => t1 + t2)
+    balance(hes).join((t1, t2) => merger(t1,t2))
 
   private def hashesToNodesWithJoin2(hes: List[H]): List[Node[H]] =
-    balance(hes).join2((t1, t2) => t1 + t2)
-
-  def balancingHash: H
+    balance(hes).join2((t1, t2) => merger(t1,t2))
 
   def createNode: Chainer[T, G, H] = {
-    node = seedNodes.join((t1, t2) => t1 + t2).headOption
+    node = seedNodes.join((t1, t2) => merger(t1, t2)).headOption
     this
   }
 
@@ -141,27 +134,28 @@ object Chainer {
 
   //def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
-  case class CreateConfig(
-                           maybeInitialTreeHash: Option[String],
-                           outerBalancingHash: Option[String],
-                           split: Boolean,
-                           splitSize: Int,
-                           prefixer: String => String
-                         )
+  case class CreateConfig[H](
+                              maybeInitialTreeHash: Option[H],
+                              outerBalancingHash: Option[H],
+                              split: Boolean,
+                              splitSize: Int,
+                              prefixer: H => H,
+                              merger: (H, H) => H)
 
-  def create[T, G, H](es: List[T], config: CreateConfig)(implicit ev: T => Chainable[T]): (List[Chainer[T]], String) = {
+  def create[T, G, H](es: List[T], config: CreateConfig[H])(implicit ev: T => Chainable[T, G, H]): (List[Chainer[T, G, H]], H) = {
 
     @tailrec def go(
                      splits: List[List[T]],
                      chainers: List[Chainer[T, G, H]],
-                     latestHash: String
-                   ): (List[Chainer[T, G, H]], String) = {
+                     latestHash: H
+                   ): (List[Chainer[T, G, H]], H) = {
       splits match {
         case Nil => (chainers, latestHash)
         case xs :: xss =>
-          val chainer = new Chainer(xs) {
-            override def balancingHash: String = config.outerBalancingHash.getOrElse(super.balancingHash)
+          val chainer = new Chainer(xs)(config.merger) {
 
+            //TODO: This option might not work as it super is not defined
+            override def balancingHash: H = config.outerBalancingHash.getOrElse(super.balancingHash)
           }
             .withHashZero(latestHash)
             .withGeneralGrouping
@@ -192,11 +186,11 @@ object Chainer {
       CompressedTreeData(root.value, leaves)
     }
 
-  def uncompress[H](compressedTreeData: CompressedTreeData[H]): Option[Node[H]] = {
+  def uncompress[H](compressedTreeData: CompressedTreeData[H])(f: (H, H) => H): Option[Node[H]] = {
     val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
-      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+      .join2((t1, t2) => f(t1, t2))
       .headOption
 
     uncompressed match {
