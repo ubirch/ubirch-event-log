@@ -27,9 +27,11 @@ object ChainerService2 extends App {
   case class SomeDataTypeFromKafka(id: String, data: String)
 
   object SomeDataTypeFromKafka {
-    implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka] = new Chainable(t.id, t) {
-      override def hash: String = Hasher.hash(t.data)
-    }
+    implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka, String, String] =
+      new Chainable[SomeDataTypeFromKafka, String, String](t) {
+        override def groupId: String = t.id
+        override def hash: String = Hasher.hash(t.data)
+      }
   }
 
   val listOfData = List(
@@ -56,7 +58,9 @@ object ChainerService2 extends App {
   //    .createNode
   //    .getNode
 
-  val nodes = Chainer(listOfData)
+  val nodes = new Chainer(listOfData) {
+    override def balancingHash: String = ""
+  }
     .createGroups
     .createSeedHashes
     .createSeedNodes()
