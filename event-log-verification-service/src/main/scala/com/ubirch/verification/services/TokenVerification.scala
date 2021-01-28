@@ -11,7 +11,7 @@ import pdi.jwt.{ Jwt, JwtAlgorithm }
 
 import scala.util.Try
 
-case class Content(role: Symbol, purpose: String, targetIdentities: Either[List[String], String])
+case class Content(role: Symbol, purpose: String, targetIdentities: Either[List[UUID], String])
 case class Claims(token: String, all: Map[String, Any], content: Content)
 
 trait TokenVerification {
