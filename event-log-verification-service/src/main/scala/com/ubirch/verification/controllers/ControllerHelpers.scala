@@ -70,7 +70,7 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
           case Some(upp) =>
 
             val ok = claims.content.targetIdentities match {
-              case Left(uuids) => uuids.contains(upp.getUUID.toString)
+              case Left(uuids) => uuids.contains(upp.getUUID)
               case Right(wildcard) => wildcard == "*"
             }
 
