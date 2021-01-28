@@ -63,7 +63,7 @@ trait Versions {
 
   class Api2() {
 
-    def getUPP(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = {
+    def getUPP(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.upp") {
         authorization(authToken) { claims =>
           registerAcctEvent(claims) {
@@ -73,7 +73,7 @@ trait Versions {
       }
     }
 
-    def verifyUPP(hash: Array[Byte], authToken: String): Future[Response] = {
+    def verifyUPP(hash: Array[Byte], authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.simple") {
         authorization(authToken) { claims =>
           registerAcctEvent(claims) {
@@ -88,7 +88,7 @@ trait Versions {
       }
     }
 
-    def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.anchor") {
         authorization(authToken) { claims =>
           registerAcctEvent(claims) {
@@ -103,7 +103,7 @@ trait Versions {
       }
     }
 
-    def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = {
+    def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.record") {
         authorization(authToken) { claims =>
           registerAcctEvent(claims) {
