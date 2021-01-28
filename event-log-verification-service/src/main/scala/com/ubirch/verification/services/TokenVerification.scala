@@ -1,5 +1,6 @@
 package com.ubirch.verification.services
 
+import java.net.URL
 import java.util.UUID
 
 import com.typesafe.config.Config
@@ -7,11 +8,17 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.verification.util.Exceptions.{ InvalidAllClaims, InvalidOtherClaims, InvalidSpecificClaim }
 import com.ubirch.verification.util.LookupJsonSupport
 import javax.inject.{ Inject, Singleton }
+
 import pdi.jwt.{ Jwt, JwtAlgorithm }
 
 import scala.util.Try
 
-case class Content(role: Symbol, purpose: String, targetIdentities: Either[List[UUID], String])
+case class Content(
+    role: Symbol,
+    purpose: String,
+    targetIdentities: Either[List[UUID], String],
+    originDomains: List[URL]
+)
 case class Claims(token: String, all: Map[String, Any], content: Content)
 
 trait TokenVerification {
