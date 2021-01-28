@@ -65,7 +65,7 @@ object DefaultTokenCreation {
         to = UUID.randomUUID().toString,
         about = "https://verify.dev.ubirch.com",
         expiresIn = Some(631139040),
-        Content('tester_verifier, "Lara del Rey Concert", Left(List(UUID.randomUUID()))),
+        Content('tester_verifier, "Lara del Rey Concert", Left(List(UUID.randomUUID())), Nil),
         privKey
       )
 
