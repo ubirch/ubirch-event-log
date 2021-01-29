@@ -29,7 +29,7 @@ case class Claims(token: String, all: Map[String, Any], content: Content) {
       case Right(wildcard) => wildcard == "*"
     }
     if (res) Success(protocolMessage)
-    else Failure(InvalidUUID("Invalid UUID", s"upp_uuid_not_equals_target_identities=${protocolMessage.getUUID} - ${content.targetIdentities.left.map(_.map(_.toString))}"))
+    else Failure(InvalidUUID("Invalid UUID", s"upp_uuid_not_equals_target_identities=${protocolMessage.getUUID} != ${content.targetIdentities.left.map(_.map(_.toString))}"))
   }
 
   def validateOrigin(maybeOrigin: Option[String]): Try[List[URL]] = {
@@ -39,7 +39,7 @@ case class Claims(token: String, all: Map[String, Any], content: Content) {
     } yield res) match {
       case Success(true) => Success(content.originDomains)
       case _ =>
-        Failure(InvalidOrigin("Invalid Origin", s"origin_not_equals_origin_domains=${maybeOrigin.getOrElse("NO-ORIGIN")} - ${content.originDomains.map(_.toString)}"))
+        Failure(InvalidOrigin("Invalid Origin", s"origin_not_equals_origin_domains=${maybeOrigin.filter(_.nonEmpty).getOrElse("NO-ORIGIN")} != ${content.originDomains.map(_.toString).mkString(",")}"))
     }
   }
 
