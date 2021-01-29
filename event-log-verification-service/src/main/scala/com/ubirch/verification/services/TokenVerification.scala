@@ -5,13 +5,15 @@ import java.util.UUID
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.verification.util.Exceptions.{ InvalidAllClaims, InvalidOtherClaims, InvalidSpecificClaim }
+import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.verification.util.Exceptions.{ InvalidAllClaims, InvalidOrigin, InvalidOtherClaims, InvalidSpecificClaim, InvalidUUID }
 import com.ubirch.verification.util.LookupJsonSupport
+
 import javax.inject.{ Inject, Singleton }
 
 import pdi.jwt.{ Jwt, JwtAlgorithm }
 
-import scala.util.Try
+import scala.util.{ Failure, Success, Try }
 
 case class Content(
     role: Symbol,
@@ -19,7 +21,29 @@ case class Content(
     targetIdentities: Either[List[UUID], String],
     originDomains: List[URL]
 )
-case class Claims(token: String, all: Map[String, Any], content: Content)
+case class Claims(token: String, all: Map[String, Any], content: Content) {
+
+  def validateUUID(protocolMessage: ProtocolMessage): Try[ProtocolMessage] = {
+    val res = content.targetIdentities match {
+      case Left(uuids) => uuids.contains(protocolMessage.getUUID)
+      case Right(wildcard) => wildcard == "*"
+    }
+    if (res) Success(protocolMessage)
+    else Failure(InvalidUUID("Invalid UUID", s"upp_uuid_not_equals_target_identities=${protocolMessage.getUUID} ${content.targetIdentities}"))
+  }
+
+  def validateOrigin(maybeOrigin: Option[String]): Try[List[URL]] = {
+    (for {
+      origin <- Try(maybeOrigin.filter(_.nonEmpty).map(x => new URL(x)))
+      res <- Try(content.originDomains.forall(x => Option(x) == origin))
+    } yield res) match {
+      case Success(true) => Success(content.originDomains)
+      case _ =>
+        Failure(InvalidOrigin("Invalid Origin", s"origin_not_equals_origin_domains=${maybeOrigin.getOrElse("NO-ORIGIN")} - ${content.originDomains.map(_.toString)}"))
+    }
+  }
+
+}
 
 trait TokenVerification {
   def decodeAndVerify(jwt: String): Option[Claims]
