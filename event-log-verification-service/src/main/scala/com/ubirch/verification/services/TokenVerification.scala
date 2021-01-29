@@ -29,7 +29,7 @@ case class Claims(token: String, all: Map[String, Any], content: Content) {
       case Right(wildcard) => wildcard == "*"
     }
     if (res) Success(protocolMessage)
-    else Failure(InvalidUUID("Invalid UUID", s"upp_uuid_not_equals_target_identities=${protocolMessage.getUUID} ${content.targetIdentities.left.map(_.map(_.toString))}"))
+    else Failure(InvalidUUID("Invalid UUID", s"upp_uuid_not_equals_target_identities=${protocolMessage.getUUID} - ${content.targetIdentities.left.map(_.map(_.toString))}"))
   }
 
   def validateOrigin(maybeOrigin: Option[String]): Try[List[URL]] = {
