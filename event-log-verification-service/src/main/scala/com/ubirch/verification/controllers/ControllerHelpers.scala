@@ -72,7 +72,7 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
       ))
   }
 
-  private[controllers] def registerAcctEvent[T](claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
+  private[controllers] def validateClaimsAndregisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
     import TokenVerification._
 
     f.transform { r =>
@@ -85,26 +85,27 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
         maybeUPP match {
           case Some(upp) =>
 
-            val okUUIDs = claims.content.targetIdentities match {
-              case Left(uuids) => uuids.contains(upp.getUUID)
-              case Right(wildcard) => wildcard == "*"
+            val validation = for {
+              _ <- claims.validateUUID(upp)
+              _ <- claims.validateOrigin(Option(origin))
+            } yield ()
+
+            validation match {
+              case util.Success(_) =>
+
+                response match {
+                  case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
+                  case _ => // Do nothing
+                }
+
+                response
+
+              case util.Failure(exception) =>
+                logger.warn(exception.getMessage)
+                Forbidden
+
             }
 
-            val ok = okUUIDs
-
-            if (ok) {
-
-              response match {
-                case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
-                case _ => // Do nothing
-              }
-
-              response
-
-            } else {
-              logger.warn("upp_uuid_not_equals_target_identities {} {}", upp.getUUID, claims.content.targetIdentities)
-              Forbidden
-            }
           case None => response
         }
 
