@@ -1,8 +1,9 @@
 package com.ubirch.verification.controllers
 
-import java.util.Date
+import java.util.{ Date, UUID }
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models.AcctEvent
 import com.ubirch.verification.services.kafka.AcctEventPublishing
@@ -10,6 +11,8 @@ import com.ubirch.verification.services.{ Claims, TokenVerification }
 import com.ubirch.verification.util.Exceptions.InvalidSpecificClaim
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.HttpErrorException
+import monix.execution.CancelableFuture
+import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
@@ -56,7 +59,20 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
 
   }
 
-  private[controllers] def registerAcctEvent[T](claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
+  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): CancelableFuture[RecordMetadata] = {
+    accounting
+      .publish_!(AcctEvent(
+        id = UUID.randomUUID(),
+        ownerId = ownerId,
+        identityId = Option(protocolMessage.getUUID),
+        category = "verification",
+        description = Some(claims.content.purpose),
+        token = Some(claims.token),
+        occurredAt = new Date()
+      ))
+  }
+
+  private[controllers] def validateClaimsAndregisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
     import TokenVerification._
 
     f.transform { r =>
@@ -69,35 +85,27 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
         maybeUPP match {
           case Some(upp) =>
 
-            val ok = claims.content.targetIdentities match {
-              case Left(uuids) => uuids.contains(upp.getUUID.toString)
-              case Right(wildcard) => wildcard == "*"
+            val validation = for {
+              _ <- claims.validateUUID(upp)
+              _ <- claims.validateOrigin(Option(origin))
+            } yield ()
+
+            validation match {
+              case util.Success(_) =>
+
+                response match {
+                  case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
+                  case _ => // Do nothing
+                }
+
+                response
+
+              case util.Failure(exception) =>
+                logger.warn(exception.getMessage)
+                Forbidden
+
             }
 
-            if (ok) {
-
-              response match {
-                case Success(_, _, _) =>
-                  accounting
-                    .publish_!(AcctEvent(
-                      id = java.util.UUID.randomUUID(),
-                      ownerId = owner,
-                      identityId = Option(upp.getUUID),
-                      category = "verification",
-                      description = Some(claims.content.purpose),
-                      token = Some(claims.token),
-                      occurredAt = new Date()
-                    ))
-                case _ => // Do nothing
-
-              }
-
-              response
-
-            } else {
-              logger.warn("upp_uuid_not_equals_target_identities {} {}", upp.getUUID, claims.content.targetIdentities)
-              Forbidden
-            }
           case None => response
         }
 
