@@ -69,14 +69,23 @@ trait V2 {
       "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
   )
   @tags("v2")
-  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false, @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+  def getUPPV2(
+      hash: Array[Byte],
+      @Query disableRedisLookup: Boolean = false,
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
+  ): Future[Api.Response]
 
   @cors
   @CustomBody // without that this api endpoint would expect json `{"payload": []}`
   @POST("v2/upp/verify")
   @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
   @tags("v2")
-  def verifyUPPV2(hash: Array[Byte], @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+  def verifyUPPV2(
+      hash: Array[Byte],
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
+  ): Future[Api.Response]
 
   @cors
   @CustomBody
@@ -89,7 +98,8 @@ trait V2 {
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value,
-      @Header("authorization") authToken: String = "No-Header-Found"
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
   ): Future[Api.Response]
 
   @cors
@@ -105,7 +115,8 @@ trait V2 {
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value,
-      @Header("authorization") authToken: String = "No-Header-Found"
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
   ): Future[Api.Response]
 
 }

@@ -18,4 +18,7 @@ object Exceptions {
   case class FailedKafkaPublish(acctEvent: AcctEvent, maybeThrowable: Option[Throwable])
     extends ExecutionException(maybeThrowable.map(_.getMessage).getOrElse("Failed Publish"))
 
+  case class InvalidUUID(message: String, value: String) extends ExecutionException(value)
+  case class InvalidOrigin(message: String, value: String) extends ExecutionException(value)
+
 }

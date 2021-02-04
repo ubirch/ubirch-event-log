@@ -147,13 +147,19 @@ class DefaultApi @Inject() (
   //V1
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = api.getUPP(hash, disableRedisLookup)
   override def verifyUPP(hash: Array[Byte]): Future[Response] = api.verifyUPP(hash)
-  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = api.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo)
-  override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] = api.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo)
+  override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
+    api.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo)
+  override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
+    api.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo)
 
   //V2
-  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String): Future[Response] = api2.getUPP(hash, disableRedisLookup, authToken)
-  override def verifyUPPV2(hash: Array[Byte], authToken: String): Future[Response] = api2.verifyUPP(hash, authToken)
-  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = api2.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo, authToken)
-  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String): Future[Response] = api2.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo, authToken)
+  override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String, originHeader: String): Future[Response] =
+    api2.getUPP(hash, disableRedisLookup, authToken, originHeader)
+  override def verifyUPPV2(hash: Array[Byte], authToken: String, originHeader: String): Future[Response] =
+    api2.verifyUPP(hash, authToken, originHeader)
+  override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, originHeader: String): Future[Response] =
+    api2.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo, authToken, originHeader)
+  override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, originHeader: String): Future[Response] =
+    api2.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo, authToken, originHeader)
 
 }
