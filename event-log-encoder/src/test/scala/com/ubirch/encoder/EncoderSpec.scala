@@ -1,5 +1,6 @@
 package com.ubirch.encoder
 
+import java.security.{ MessageDigest, Security }
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
@@ -18,6 +19,8 @@ import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.encoders.Base64
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods.parse
 
@@ -38,6 +41,13 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 }))
 
 class EncoderSpec extends TestBase with LazyLogging {
+
+  def getDigest(data: Array[Byte]) = {
+    Security.addProvider(new BouncyCastleProvider())
+    val digest = MessageDigest.getInstance("SHA-256", "BC")
+    digest.update(data)
+    Base64.toBase64String(digest.digest)
+  }
 
   import LookupKey._
 
@@ -62,7 +72,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
         val range = 1 to 300
         range.foreach { x =>
-          val pmId = x
+          val pmId = getDigest(Array(x.toByte))
           val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
           pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
           val customerId = UUID.randomUUID().toString
@@ -100,7 +110,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pmId = 3
+        val pmId = getDigest(Array(3.toByte))
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
@@ -167,7 +177,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, 3)
+        val pmId = getDigest(Array(3.toByte))
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -209,7 +220,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+        val pmId = getDigest(Array(3.toByte))
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
         val customerId = UUID.randomUUID().toString
         val ctxt = JObject("customerId" -> JString(customerId))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -242,7 +254,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+        val pmId = getDigest(Array(3.toByte))
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
 
         val ctxt = JObject("customerId" -> JString(""))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -276,7 +289,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume message envelope with empty customer id and publish it to error topic 2" in {
+    "consume message envelope with customer id and null payload and publish it to error topic" in {
 
       implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -320,6 +333,94 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     }
 
+    "consume message envelope with customer id and invalid payload and publish it to error topic" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val pm = new ProtocolMessage(1, UUIDHelper.randomUUID, 0, 3)
+
+        val ctxt = JObject("customerId" -> JString("my customer id"))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(errorTopic)
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+
+        assert(error.message == "Error in the Encoding Process: Error building payload | Payload is not valid: 3")
+
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
+
+        //ubirch Packet is not with underscores.
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
+
+        assert(error.serviceName == "event-log-service")
+
+      }
+
+    }
+
+    "consume message envelope with customer id and invalid payload and publish it to error topic 2" in {
+
+      implicit val config: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + config.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        val pm = new ProtocolMessage(1, UUIDHelper.randomUUID, 0, Base64.toBase64String(Array.fill(101)(0)))
+
+        val ctxt = JObject("customerId" -> JString("my customer id"))
+        val entity1 = MessageEnvelope(pm, ctxt)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(5000)
+
+        val readMessage = consumeFirstStringMessageFrom(errorTopic)
+        val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+        val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
+
+        assert(error.message == "Error in the Encoding Process: Error building payload | Payload length is not valid: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+
+        assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
+
+        //ubirch Packet is not with underscores.
+        assert(error.value == EncoderJsonSupport.stringify(EncoderJsonSupport.to(entity1)))
+
+        assert(error.serviceName == "event-log-service")
+
+      }
+
+    }
+
     "consume message envelope with no customer id and publish it to error topic" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -330,7 +431,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+        val pmId = getDigest(Array(3.toByte))
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
 
         val ctxt = JObject("otherValue" -> JString("what!"))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -374,7 +476,8 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, 3)
+        val pmId = getDigest(Array(3.toByte))
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
 
         val ctxt = JObject()
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -418,7 +521,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pmId = 3
+        val pmId = getDigest(Array(3.toByte))
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
@@ -485,7 +588,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pmId = 3
+        val pmId = getDigest(Array(3.toByte))
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         pm.setChain(org.bouncycastle.util.Strings.toByteArray("this is my chain"))
@@ -726,7 +829,7 @@ class EncoderSpec extends TestBase with LazyLogging {
 
       withRunningKafka {
 
-        val pmId = 3
+        val pmId = getDigest(Array(3.toByte))
         val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
         pm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId = UUID.randomUUID().toString
