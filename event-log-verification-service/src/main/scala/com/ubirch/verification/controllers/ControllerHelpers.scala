@@ -3,11 +3,12 @@ package com.ubirch.verification.controllers
 import java.util.{ Date, UUID }
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.api.Claims
+import com.ubirch.defaults.{ TokenApi, TokenSDKException }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models.AcctEvent
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.services.{ Claims, TokenVerification }
 import com.ubirch.verification.util.Exceptions.InvalidSpecificClaim
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.HttpErrorException
@@ -17,7 +18,7 @@ import org.apache.kafka.clients.producer.RecordMetadata
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
-class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: TokenVerification)(implicit val ec: ExecutionContext) extends LazyLogging {
+class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: ExecutionContext) extends LazyLogging {
 
   private val processingTimer: Summary = Summary
     .build("processing_time_seconds", "Message processing time in seconds")
@@ -72,8 +73,8 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
       ))
   }
 
-  private[controllers] def validateClaimsAndregisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
-    import TokenVerification._
+  private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
+    import com.ubirch.api.TokenVerification._
 
     f.transform { r =>
 
@@ -100,6 +101,10 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
 
                 response
 
+              case util.Failure(exception: TokenSDKException) =>
+                logger.warn(exception.getValue)
+                Forbidden
+
               case util.Failure(exception) =>
                 logger.warn(exception.getMessage)
                 Forbidden
@@ -124,17 +129,8 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
 
   }
 
-  private def getClaims(token: String): Option[Claims] = token.split(" ").toList match {
-    case List(x, y) =>
-      val isBearer = x.toLowerCase == "bearer"
-      val claims = tokenVerification.decodeAndVerify(y)
-      if (isBearer && claims.isDefined) claims
-      else None
-    case _ => None
-  }
-
   private[controllers] def authorization[T](authToken: String)(f: Claims => Future[Response]): () => Future[Response] = {
-    lazy val claims = getClaims(authToken)
+    lazy val claims = TokenApi.getClaims(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
       case _ if claims.isDefined => () => f(claims.get)

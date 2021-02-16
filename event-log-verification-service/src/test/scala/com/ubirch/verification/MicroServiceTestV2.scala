@@ -123,8 +123,6 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
   lazy val lifecycle = new DefaultLifecycle()
   lazy val redisCache = new RedisProvider(config, lifecycle).get()
   lazy val healthCheck = new HealthCheckProvider(config).get()
-  lazy val tokenPublicKey = new DefaultTokenPublicKey(config)
-  lazy val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
   lazy val acct = new FakeAcctEventPublishing()
 
   "DefaultApiV2" should "successfully validate handle a valid packet" in {
@@ -138,7 +136,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
     res should equal(Success(
@@ -167,7 +165,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
 
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -182,7 +180,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = Future.successful(null)
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -201,7 +199,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -221,7 +219,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -254,7 +252,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -289,7 +287,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
     assert(wasHere1.get())
@@ -325,7 +323,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value, authToken = aToken, originHeader = originHeader), 10.seconds)
     assert(wasHere1.get())
@@ -363,10 +361,8 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
     }
 
     val healthCheck = new HealthCheckProvider(config).get()
-    val tokenPublicKey = new DefaultTokenPublicKey(config)
-    val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
     val acct = new FakeAcctEventPublishing()
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBoundV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value, authToken = aToken, originHeader = originHeader), 10.seconds)
     assert(wasHere1.get())
@@ -400,7 +396,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
     assert(wasHere1.get())
@@ -428,7 +424,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -474,7 +470,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         ))
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.getUPPV2("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -513,7 +509,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         super.publish(value)
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.getUPPV2("aaaaaaaa".getBytes(StandardCharsets.UTF_8), authToken = aToken, originHeader = originHeader), 10.seconds)
 
@@ -560,7 +556,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         ))
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val aToken = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTg0MTUyNDcsImlhdCI6MTYwNzAyNDg0NywianRpIjoiYzJmMGUwMjUtNjlkOC00Y2I3LWE0MzctYjk4ZTVlYzQ2MGEyIiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdGllcyI6IioiLCJyb2xlIjoidmVyaWZpZXIifQ.LYcemT3w5gbOatQG_KBRQau85f1aC7P3W7WqGOftLlt3eG-vCfVFhCC4d3LUP5Bh_ZVndk_S1AsELTkfH9Ps6g"
 
@@ -609,7 +605,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         ))
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val aToken = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MjMzMjk0MDYsImlhdCI6MTYxMTkzOTAwNiwianRpIjoiYWFlYmUzMTItZGM4MC00YzQ1LTg0NzMtZTY1YzRjOGQyNzIzIiwidGFyZ2V0X2lkZW50aXRpZXMiOiIqIiwicm9sZSI6InZlcmlmaWVyIiwic2NvcGUiOiJ2ZXIiLCJwdXJwb3NlIjoiTGFuYSBEZWwgUmV5IC0gQmVybGluIENvbmNlcnQiLCJvcmlnaW5fZG9tYWlucyI6WyJodHRwczovL3ZlcmlmaWNhdGlvbi5kZXYudWJpcmNoLmNvbSJdfQ.UTf42LR6agyEAEqZX-Oo3eqDW1rA3six2wb7AQ48S4rfgCQyIObz-giruTafdkNdcdChfb_7lQIXQniVe192jw"
 
@@ -661,7 +657,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         ))
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val aToken = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MjMzMjk0MDYsImlhdCI6MTYxMTkzOTAwNiwianRpIjoiYWFlYmUzMTItZGM4MC00YzQ1LTg0NzMtZTY1YzRjOGQyNzIzIiwidGFyZ2V0X2lkZW50aXRpZXMiOiIqIiwicm9sZSI6InZlcmlmaWVyIiwic2NvcGUiOiJ2ZXIiLCJwdXJwb3NlIjoiTGFuYSBEZWwgUmV5IC0gQmVybGluIENvbmNlcnQiLCJvcmlnaW5fZG9tYWlucyI6WyJodHRwczovL3ZlcmlmaWNhdGlvbi5kZXYudWJpcmNoLmNvbSJdfQ.UTf42LR6agyEAEqZX-Oo3eqDW1rA3six2wb7AQ48S4rfgCQyIObz-giruTafdkNdcdChfb_7lQIXQniVe192jw"
 
@@ -674,8 +670,6 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
     assert(!wasHereAsWell.get())
 
   }
-
-
 
   it should "successfully validate origin domains when invalid" in {
 
@@ -715,7 +709,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
         ))
       }
     }
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val aToken = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MjMzMjk0MDYsImlhdCI6MTYxMTkzOTAwNiwianRpIjoiYWFlYmUzMTItZGM4MC00YzQ1LTg0NzMtZTY1YzRjOGQyNzIzIiwidGFyZ2V0X2lkZW50aXRpZXMiOiIqIiwicm9sZSI6InZlcmlmaWVyIiwic2NvcGUiOiJ2ZXIiLCJwdXJwb3NlIjoiTGFuYSBEZWwgUmV5IC0gQmVybGluIENvbmNlcnQiLCJvcmlnaW5fZG9tYWlucyI6WyJodHRwczovL3ZlcmlmaWNhdGlvbi5kZXYudWJpcmNoLmNvbSJdfQ.UTf42LR6agyEAEqZX-Oo3eqDW1rA3six2wb7AQ48S4rfgCQyIObz-giruTafdkNdcdChfb_7lQIXQniVe192jw"
 

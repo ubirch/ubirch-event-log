@@ -13,7 +13,7 @@ import com.ubirch.verification.controllers.Api.{ Anchors, DecoratedResponse, Fai
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenVerification }
+import com.ubirch.verification.services.KeyServiceBasedVerifier
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.udash.rest.raw.JsonValue
 import javax.inject.{ Named, Singleton }
@@ -26,7 +26,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 @Singleton
 class DefaultApi @Inject() (
     val accounting: AcctEventPublishing,
-    val tokenVerification: TokenVerification,
     @Named("Cached") eventLogClient: EventLogClient,
     verifier: KeyServiceBasedVerifier,
     redis: RedisCache,
@@ -36,7 +35,7 @@ class DefaultApi @Inject() (
   healthcheck.setReadinessCheck(Checks.ok("business-logic"))
   healthcheck.setLivenessCheck(Checks.ok("business-logic"))
 
-  val controllerHelpers = new ControllerHelpers(accounting, tokenVerification)
+  val controllerHelpers = new ControllerHelpers(accounting)
 
   private val api = new Api()
   private val api2 = new Api2()
