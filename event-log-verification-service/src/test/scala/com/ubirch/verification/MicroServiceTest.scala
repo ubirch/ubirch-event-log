@@ -7,6 +7,7 @@ import java.util.{ Base64, UUID }
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import com.ubirch.client.util.curveFromString
 import com.ubirch.crypto.{ GeneratorKeyFactory, PubKey }
+import com.ubirch.defaults.TokenApi
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
@@ -87,8 +88,6 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
   lazy val lifecycle = new DefaultLifecycle()
   lazy val redisCache = new RedisProvider(config, lifecycle).get()
   lazy val healthCheck = new HealthCheckProvider(config).get()
-  lazy val tokenPublicKey = new DefaultTokenPublicKey(config)
-  lazy val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
   lazy val acct = new DefaultAcctEventPublishing(config, lifecycle)
 
   "DefaultApi" should "successfully validate handle a valid packet" in {
@@ -102,7 +101,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     res should equal(Success(
@@ -131,7 +130,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
 
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -146,7 +145,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       override def getEventBySignature(signature: Array[Byte], queryDepth: QueryDepth, responseForm: ResponseForm, blockchainInfo: BlockchainInfo): Future[LookupResult] = Future.successful(null)
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -165,7 +164,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -185,7 +184,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     val res = Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -218,7 +217,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
 
@@ -253,7 +252,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -289,7 +288,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -326,7 +325,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPPWithUpperAndLowerBound("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8), _responseForm.value, _blockchainInfo.value), 10.seconds)
     assert(wasHere1.get())
@@ -360,7 +359,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.verifyUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere1.get())
@@ -388,7 +387,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       }
     }
 
-    val api = new DefaultApi(acct, tokenVerification, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
+    val api = new DefaultApi(acct, eventLog, new KeyServiceBasedVerifier(keyService), redisCache, healthCheck)
 
     Await.result(api.getUPP("c29tZSBieXRlcyEAAQIDnw==".getBytes(StandardCharsets.UTF_8)), 10.seconds)
     assert(wasHere.get())

@@ -127,6 +127,12 @@
 
         <dependency>
             <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-token-sdk</artifactId>
+            <version>0.6.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>
             <version>1.2-SNAPSHOT</version>
         </dependency>
