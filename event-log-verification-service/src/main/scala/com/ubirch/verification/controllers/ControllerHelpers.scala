@@ -67,19 +67,17 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
         ownerId = ownerId,
         identityId = Option(protocolMessage.getUUID),
         category = "verification",
-        description = Some(claims.content.purpose),
+        description = Some(claims.purpose),
         token = Some(claims.token),
         occurredAt = new Date()
       ))
   }
 
   private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
-    import com.ubirch.api.TokenVerification._
 
     f.transform { r =>
 
       val res: scala.util.Try[Response] = for {
-        owner <- claims.all.getSubject
         DecoratedResponse(maybeUPP, response) <- r
       } yield {
 
@@ -87,12 +85,13 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
           case Some(upp) =>
 
             val validation = for {
-              _ <- claims.validateUUID(upp)
+              owner <- claims.isSubjectUUID
+              _ <- claims.validateIdentity(upp.getUUID)
               _ <- claims.validateOrigin(Option(origin))
-            } yield ()
+            } yield owner
 
             validation match {
-              case util.Success(_) =>
+              case util.Success(owner) =>
 
                 response match {
                   case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
@@ -133,7 +132,7 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
     lazy val claims = TokenApi.getClaims(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
-      case _ if claims.isDefined => () => f(claims.get)
+      case _ if claims.isSuccess => () => f(claims.get)
       case _ => () => Future.successful(Forbidden)
     }
   }
