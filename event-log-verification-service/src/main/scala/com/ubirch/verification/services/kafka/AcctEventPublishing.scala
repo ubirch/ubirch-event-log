@@ -18,17 +18,15 @@ import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.{ ByteArraySerializer, Serializer, StringSerializer }
 import org.json4s.{ DefaultFormats, Formats }
 
-import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.language.postfixOps
 
 trait AcctEventPublishing extends LazyLogging {
 
-  implicit def scheduler: Scheduler
-
   def publish(value: AcctEvent): Task[RecordMetadata]
 
-  def publish_!(value: AcctEvent): CancelableFuture[RecordMetadata] = publish(value).runAsync
+  def publish_!(value: AcctEvent)(implicit scheduler: Scheduler): CancelableFuture[RecordMetadata] = publish(value).runAsync
 
   def publishAsOpt(value: AcctEvent): Task[Option[RecordMetadata]] = {
     publish(value)
@@ -95,10 +93,8 @@ abstract class AcctEventPublishingImpl(config: Config, lifecycle: Lifecycle)
 }
 
 @Singleton
-class DefaultAcctEventPublishing @Inject() (config: Config, lifecycle: Lifecycle)(implicit ec: ExecutionContext)
+class DefaultAcctEventPublishing @Inject() (config: Config, lifecycle: Lifecycle)
   extends AcctEventPublishingImpl(config, lifecycle) {
-
-  implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
   implicit val formats: Formats = DefaultFormats
 
