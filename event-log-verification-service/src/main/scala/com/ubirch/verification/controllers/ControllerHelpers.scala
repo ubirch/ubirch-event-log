@@ -3,22 +3,24 @@ package com.ubirch.verification.controllers
 import java.util.{ Date, UUID }
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.api.Claims
-import com.ubirch.defaults.{ TokenApi, TokenSDKException }
+import com.ubirch.api.{ Claims, InvalidClaimException, TokenSDKException }
+import com.ubirch.defaults.TokenApi
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models.AcctEvent
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.util.Exceptions.InvalidSpecificClaim
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.HttpErrorException
-import monix.execution.CancelableFuture
+import monix.eval.Task
+import monix.execution.Scheduler
 import org.apache.kafka.clients.producer.RecordMetadata
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NoStackTrace
 
 class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: ExecutionContext) extends LazyLogging {
+
+  implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
   private val processingTimer: Summary = Summary
     .build("processing_time_seconds", "Message processing time in seconds")
@@ -60,9 +62,9 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
   }
 
-  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): CancelableFuture[RecordMetadata] = {
+  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): Task[RecordMetadata] = {
     accounting
-      .publish_!(AcctEvent(
+      .publish(AcctEvent(
         id = UUID.randomUUID(),
         ownerId = ownerId,
         identityId = Option(protocolMessage.getUUID),
@@ -75,54 +77,38 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
   private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
 
-    f.transform { r =>
+    f.flatMap { case DecoratedResponse(maybeProtocolMessage, response) =>
 
-      val res: scala.util.Try[Response] = for {
-        DecoratedResponse(maybeUPP, response) <- r
-      } yield {
+      maybeProtocolMessage.map { upp =>
+        (for {
 
-        maybeUPP match {
-          case Some(upp) =>
+          owner <- Task.fromTry(claims.isSubjectUUID)
+          _     <- Task.fromTry(claims.validateOrigin(Option(origin)))
+          _     <- if (claims.hasMaybeTargetIdentities) Task.fromTry(claims.validateIdentity(upp.getUUID)) else Task.delay(upp.getUUID)
+          exRes <- if (claims.hasMaybeGroups) TokenApi.externalStateVerify(claims.token, upp.getUUID) else Task.delay(true)
+          _     <- if (!exRes) Task.raiseError(InvalidClaimException("Invalid Validation", "External Validation Failed")) else Task.unit
 
-            val validation = for {
-              owner <- claims.isSubjectUUID
-              _ <- claims.validateIdentity(upp.getUUID)
-              _ <- claims.validateOrigin(Option(origin))
-            } yield owner
-
-            validation match {
-              case util.Success(owner) =>
-
-                response match {
-                  case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
-                  case _ => // Do nothing
-                }
-
-                response
-
-              case util.Failure(exception: TokenSDKException) =>
-                logger.warn(exception.getValue)
-                Forbidden
-
-              case util.Failure(exception) =>
-                logger.warn(exception.getMessage)
-                Forbidden
+          // Send acct event
+          _     <- Task.delay {
+            response match {
+              case Success(_, _, _) => publishAcctEvent(owner, upp, claims).map(x => Some(x))
+              case _ => Task.delay(None) // We don't publish on other responses
 
             }
+          }
+        } yield response).onErrorRecover {
 
-          case None => response
+          case exception: TokenSDKException =>
+            logger.warn(exception.getValue)
+            Forbidden
+
+          case exception =>
+            logger.warn(exception.getMessage)
+            Forbidden
         }
-
-      }
-
-      res.recover {
-        case e: InvalidSpecificClaim =>
-          logger.error(s"error_getting_owner_token=${e.getMessage}", e)
-          Forbidden
-        case e: Exception =>
-          logger.error(s"unknown_token=${e.getMessage}", e)
-          Failure()
-      }
+      }.getOrElse {
+        Task.delay(response)
+      }.runAsync
 
     }
 
