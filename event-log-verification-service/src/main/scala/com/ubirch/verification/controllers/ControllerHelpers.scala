@@ -77,9 +77,10 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
   private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
 
-    f.flatMap { case DecoratedResponse(maybeProtocolMessage, response) =>
+    f.flatMap { decoratedResponse =>
 
-      maybeProtocolMessage.map { upp =>
+      decoratedResponse.protocolMessage.map { upp =>
+
         (for {
 
           owner <- Task.fromTry(claims.isSubjectUUID)
@@ -87,16 +88,9 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
           _     <- if (claims.hasMaybeTargetIdentities) Task.fromTry(claims.validateIdentity(upp.getUUID)) else Task.delay(upp.getUUID)
           exRes <- if (claims.hasMaybeGroups) TokenApi.externalStateVerify(claims.token, upp.getUUID) else Task.delay(true)
           _     <- if (!exRes) Task.raiseError(InvalidClaimException("Invalid Validation", "External Validation Failed")) else Task.unit
+          _     <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)) else Task.delay(None)
 
-          // Send acct event
-          _     <- Task.delay {
-            response match {
-              case Success(_, _, _) => publishAcctEvent(owner, upp, claims).map(x => Some(x))
-              case _ => Task.delay(None) // We don't publish on other responses
-
-            }
-          }
-        } yield response).onErrorRecover {
+        } yield decoratedResponse.response).onErrorRecover {
 
           case exception: TokenSDKException =>
             logger.warn(exception.getValue)
@@ -105,9 +99,11 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
           case exception =>
             logger.warn(exception.getMessage)
             Forbidden
+
         }
+
       }.getOrElse {
-        Task.delay(response)
+        Task.delay(decoratedResponse.response)
       }.runAsync
 
     }
