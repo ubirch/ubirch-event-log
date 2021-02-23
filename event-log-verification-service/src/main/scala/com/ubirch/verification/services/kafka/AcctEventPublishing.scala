@@ -26,7 +26,7 @@ trait AcctEventPublishing extends LazyLogging {
 
   def publish(value: AcctEvent): Task[RecordMetadata]
 
-  def publish_!(value: AcctEvent)(implicit scheduler: Scheduler): CancelableFuture[RecordMetadata] = publish(value).runAsync
+  def publish_!(value: AcctEvent)(implicit scheduler: Scheduler): CancelableFuture[RecordMetadata] = publish(value).runToFuture
 
   def publishAsOpt(value: AcctEvent): Task[Option[RecordMetadata]] = {
     publish(value)

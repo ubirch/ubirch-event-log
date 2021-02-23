@@ -115,7 +115,7 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
       }.getOrElse {
         Task.delay(decoratedResponse.response)
-      }.runAsync
+      }.runToFuture
 
     }
 
