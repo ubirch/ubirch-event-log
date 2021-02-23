@@ -15,8 +15,10 @@ import monix.eval.Task
 import monix.execution.Scheduler
 import org.apache.kafka.clients.producer.RecordMetadata
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 import scala.util.control.NoStackTrace
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: ExecutionContext) extends LazyLogging {
 
@@ -75,6 +77,16 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
       ))
   }
 
+  private def validateClaims(claims: Claims, upp: ProtocolMessage, origin: String) = {
+    for {
+      owner <- Task.fromTry(claims.isSubjectUUID)
+      _ <- Task.fromTry(claims.validateOrigin(Option(origin).filterNot(_ == "No-Header-Found")))
+      _ <- if (claims.hasMaybeTargetIdentities) Task.fromTry(claims.validateIdentity(upp.getUUID)) else Task.delay(upp.getUUID)
+      exRes <- if (claims.hasMaybeGroups) TokenApi.externalStateVerify(claims.token, upp.getUUID) else Task.delay(true)
+      _ <- if (!exRes) Task.raiseError(InvalidClaimException("Invalid Validation", "External Validation Failed")) else Task.unit
+    } yield owner
+  }
+
   private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
 
     f.flatMap { decoratedResponse =>
@@ -82,22 +94,21 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
       decoratedResponse.protocolMessage.map { upp =>
 
         (for {
-
-          owner <- Task.fromTry(claims.isSubjectUUID)
-          _     <- Task.fromTry(claims.validateOrigin(Option(origin)))
-          _     <- if (claims.hasMaybeTargetIdentities) Task.fromTry(claims.validateIdentity(upp.getUUID)) else Task.delay(upp.getUUID)
-          exRes <- if (claims.hasMaybeGroups) TokenApi.externalStateVerify(claims.token, upp.getUUID) else Task.delay(true)
-          _     <- if (!exRes) Task.raiseError(InvalidClaimException("Invalid Validation", "External Validation Failed")) else Task.unit
-          _     <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)) else Task.delay(None)
-
+          owner <- validateClaims(claims, upp, origin).timeout(5 seconds)
+          _     <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)).timeout(5 seconds)
+          else Task.delay(None)
         } yield decoratedResponse.response).onErrorRecover {
+
+          case exception: TimeoutException =>
+            logger.error("request_timed_out=" + exception.getMessage)
+            Failure()
 
           case exception: TokenSDKException =>
             logger.warn(exception.getValue)
             Forbidden
 
           case exception =>
-            logger.warn(exception.getMessage)
+            logger.error("unexpected_error=", exception)
             Forbidden
 
         }
