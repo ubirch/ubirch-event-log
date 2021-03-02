@@ -43,7 +43,7 @@
     <logger name="com.ubirch.verification.services.KeyServerClient" level="WARN"/>
     <logger name="com.ubirch.verification.services.KeyServiceBasedVerifier" level="WARN"/>
 
-    <logger name="com.ubirch" level="ALL"/>
+    <logger name="com.ubirch" level="DEBUG"/>
 
     <logger name="org.apache.commons" level="WARN"/>
     <logger name="httpclient.wire" level="WARN"/>
@@ -57,7 +57,7 @@
     <logger name="io.netty" level="WARN"/>
     <logger name="io.getquill.CassandraAsyncContext" level="WARN"/>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="JSONSTDOUT"/>
     </root>
 </configuration>
