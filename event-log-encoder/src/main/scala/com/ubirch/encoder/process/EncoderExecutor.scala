@@ -229,6 +229,60 @@ class EncoderExecutor @Inject() (
       }).get
   }
 
+  val UPP_UPDATE: PartialFunction[EncoderPipeData, Option[EventLog]] = {
+
+    case encoderPipeData @ EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
+
+      def getCategory(hint: Int): Try[String] = hint match {
+        case 250 => Success(Values.UPP_DISABLE_CATEGORY)
+        case 251 => Success(Values.UPP_ENABLE_CATEGORY)
+        case 252 => Success(Values.UPP_DELETE_CATEGORY)
+        case _ => Failure(EventLogFromConsumerRecordException("No hint match found", encoderPipeData))
+      }
+
+      (for {
+
+        messageEnvelope <- Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get)
+        category <- getCategory(messageEnvelope.ubirchPacket.getHint) //TODO: Make access to hint safer for NPE.
+        _ = encodingsCounter.counter.labels(metricsSubNamespace, category).inc()
+
+        customerId <- Try((messageEnvelope.context \\ CUSTOMER_ID_FIELD).extract[String])
+          .filter(_.nonEmpty)
+          .recoverWith {
+            case _ => throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
+          }
+
+        payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
+
+        eventLog <- Try(messageEnvelope)
+          .map(_.ubirchPacket)
+          .map { _ =>
+
+            val payloadJsNode = Option(messageEnvelope)
+              .flatMap(x => Option(x.ubirchPacket))
+              .flatMap(x => Option(x.getPayload))
+              .getOrElse(throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData))
+
+            val payloadHash = fromJsonNode(payloadJsNode)
+              .extractOpt[String]
+              .filter(_.nonEmpty)
+              .getOrElse {
+                throw EventLogFromConsumerRecordException("Error building payload", encoderPipeData)
+              }
+
+            EventLog("upp-update-event-log-entry", category, payload)
+              .withCustomerId(customerId)
+              .withRandomNonce
+              .withNewId(payloadHash)
+              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
+
+          }
+
+      } yield {
+        Option(eventLog)
+      }).get
+  }
+
   val PublicBlockchain: PartialFunction[EncoderPipeData, Option[EventLog]] = {
     case EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
       (for {
@@ -286,6 +340,6 @@ class EncoderExecutor @Inject() (
   }
 
   val encode: PartialFunction[EncoderPipeData, Option[EventLog]] =
-    UPP orElse PublicBlockchain orElse PublicKey orElse OrElse
+    UPP orElse UPP_UPDATE orElse PublicBlockchain orElse PublicKey orElse OrElse
 
 }
