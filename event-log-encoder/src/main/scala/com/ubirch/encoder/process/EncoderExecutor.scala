@@ -136,11 +136,20 @@ class EncoderExecutor @Inject() (
               .flatMap(x => Option(x.getPayload))
               .getOrElse(throw EventLogFromConsumerRecordException("Payload not found or is empty", encoderPipeData))
 
-            val payloadHash = fromJsonNode(payloadJsNode)
+            val payloadHash: String = fromJsonNode(payloadJsNode)
               .extractOpt[String]
               .filter(_.nonEmpty)
-              .getOrElse {
-                throw EventLogFromConsumerRecordException("Error building payload", encoderPipeData)
+              .map { x =>
+                (Try(org.bouncycastle.util.encoders.Base64.decode(x)), x)
+              } match {
+                //We want to ensure that the payload is OK
+                case Some((Success(value), s)) if value.length <= 100 => s
+                case Some((Success(_), s)) =>
+                  throw EventLogFromConsumerRecordException("Error building payload | Payload length is not valid: " + s, encoderPipeData)
+                case Some((Failure(_), s)) =>
+                  throw EventLogFromConsumerRecordException("Error building payload | Payload is not valid: " + s, encoderPipeData)
+                case None =>
+                  throw EventLogFromConsumerRecordException("Error building payload | Payload is empty", encoderPipeData)
               }
 
             val maybeSignature = Option(messageEnvelope.ubirchPacket)
