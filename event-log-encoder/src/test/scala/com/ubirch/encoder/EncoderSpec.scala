@@ -658,6 +658,97 @@ class EncoderSpec extends TestBase with LazyLogging {
 
     }
 
+    "consume message envelope and publish event log with hint = 250,251,252" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers)
+
+      withRunningKafka {
+
+        // Disable UPP
+        val disablePmId = 1
+        val disablePm = new ProtocolMessage(1, UUID.randomUUID(), 250, disablePmId)
+        disablePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId1 = UUID.randomUUID().toString
+        val ctxt1 = JObject("customerId" -> JString(customerId1))
+        val entity1 = MessageEnvelope(disablePm, ctxt1)
+
+        // Enable UPP
+        val enablePmId = 2
+        val enablePm = new ProtocolMessage(1, UUID.randomUUID(), 251, enablePmId)
+        enablePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId2 = UUID.randomUUID().toString
+        val ctxt2 = JObject("customerId" -> JString(customerId2))
+        val entity2 = MessageEnvelope(enablePm, ctxt2)
+
+        // Delete UPP
+        val deletePmId = 3
+        val deletePm = new ProtocolMessage(1, UUID.randomUUID(), 252, deletePmId)
+        deletePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
+        val customerId3 = UUID.randomUUID().toString
+        val ctxt3 = JObject("customerId" -> JString(customerId3))
+        val entity3 = MessageEnvelope(deletePm, ctxt3)
+
+        publishToKafka(messageEnvelopeTopic, entity1)
+        publishToKafka(messageEnvelopeTopic, entity2)
+        publishToKafka(messageEnvelopeTopic, entity3)
+
+        //Consumer
+        val consumer = InjectorHelper.get[BytesConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(7000)
+
+        var disableMessageCount = 0
+        var enableMessageCount = 0
+        var deleteMessageCount = 0
+        val readMessages = consumeNumberStringMessagesFrom(eventLogTopic, 3)
+        readMessages.foreach { readMessage =>
+          val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
+          eventLog.category match {
+            case Values.UPP_DISABLE_CATEGORY =>
+              val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](disablePm).get.toString)
+              val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+              assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](disablePm).get)
+              assert(eventLog.customerId == customerId1)
+              assert(eventLog.signature == signature)
+              assert(eventLog.category == Values.UPP_DISABLE_CATEGORY)
+              assert(eventLog.nonce.nonEmpty)
+              disableMessageCount += 1
+            case Values.UPP_ENABLE_CATEGORY =>
+              val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](enablePm).get.toString)
+              val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+              assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](enablePm).get)
+              assert(eventLog.customerId == customerId2)
+              assert(eventLog.signature == signature)
+              assert(eventLog.category == Values.UPP_ENABLE_CATEGORY)
+              assert(eventLog.nonce.nonEmpty)
+              enableMessageCount += 1
+            case Values.UPP_DELETE_CATEGORY =>
+              val eventBytes = SigningHelper.getBytesFromString(EncoderJsonSupport.ToJson[ProtocolMessage](deletePm).get.toString)
+              val signature = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes)
+              assert(eventLog.event == EncoderJsonSupport.ToJson[ProtocolMessage](deletePm).get)
+              assert(eventLog.customerId == customerId3)
+              assert(eventLog.signature == signature)
+              assert(eventLog.category == Values.UPP_DELETE_CATEGORY)
+              assert(eventLog.nonce.nonEmpty)
+              deleteMessageCount += 1
+          }
+        }
+
+        assert(disableMessageCount == 1)
+        assert(enableMessageCount == 1)
+        assert(deleteMessageCount == 1)
+      }
+    }
+
   }
 
   "Encoder Spec for BlockchainResponse" must {
