@@ -11,7 +11,20 @@ import com.ubirch.encoder.util.EncoderJsonSupport._
 
 import scala.util.{ Failure, Success, Try }
 
-object EncoderHelper extends LazyLogging {
+object UPPHelper extends LazyLogging {
+  // ubirchPacket can be null
+  def getCategory(messageEnvelope: MessageEnvelope): Option[String] =
+    Option(messageEnvelope.ubirchPacket).flatMap {
+      packet =>
+        packet.getHint match {
+          case 0 => Some(Values.UPP_CATEGORY)
+          case 250 => Some(Values.UPP_DISABLE_CATEGORY)
+          case 251 => Some(Values.UPP_ENABLE_CATEGORY)
+          case 252 => Some(Values.UPP_DELETE_CATEGORY)
+          case _ => None
+        }
+    }
+
   def createPayloadHash(messageEnvelope: MessageEnvelope, encoderPipeData: EncoderPipeData): Try[String] = Try {
     val payloadJsNode = Option(messageEnvelope)
       .flatMap(x => Option(x.ubirchPacket))
@@ -102,4 +115,11 @@ object EncoderHelper extends LazyLogging {
         .categoryAsValueLabelForAll
     }.toSeq
   }
+
+  def getFieldFromContext(messageEnvelope: MessageEnvelope, field: String, encoderPipeData: EncoderPipeData): Try[String] =
+    Try((messageEnvelope.context \\ field).extract[String])
+      .filter(_.nonEmpty)
+      .recoverWith {
+        case _ => Failure(EventLogFromConsumerRecordException(s"No ${field} found", encoderPipeData))
+      }
 }

@@ -1,6 +1,5 @@
 package com.ubirch.encoder
 
-import java.security.{ MessageDigest, Security }
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
@@ -19,7 +18,6 @@ import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer }
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Base64
 import org.json4s.JsonAST._
 import org.json4s.jackson.JsonMethods.parse
@@ -41,14 +39,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
 }))
 
 class EncoderSpec extends TestBase with LazyLogging {
-
-  def getDigest(data: Array[Byte]) = {
-    Security.addProvider(new BouncyCastleProvider())
-    val digest = MessageDigest.getInstance("SHA-256", "BC")
-    digest.update(data)
-    Base64.toBase64String(digest.digest)
-  }
-
+  import EncoderUtil.getDigest
   import LookupKey._
 
   implicit val se: Serializer[MessageEnvelope] = com.ubirch.kafka.EnvelopeSerializer
@@ -139,7 +130,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString.asKey,
+            pmId.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
@@ -151,7 +142,7 @@ class EncoderSpec extends TestBase with LazyLogging {
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString.asKey,
-            value = Seq(pmId.toString.asValue)
+            value = Seq(pmId.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -255,7 +246,7 @@ class EncoderSpec extends TestBase with LazyLogging {
       withRunningKafka {
 
         val pmId = getDigest(Array(3.toByte))
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
 
         val ctxt = JObject("customerId" -> JString(""))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -276,7 +267,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readM).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "Error in the Encoding Process: No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No customerId found")
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
@@ -432,7 +423,7 @@ class EncoderSpec extends TestBase with LazyLogging {
       withRunningKafka {
 
         val pmId = getDigest(Array(3.toByte))
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
 
         val ctxt = JObject("otherValue" -> JString("what!"))
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -453,7 +444,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "Error in the Encoding Process: No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No customerId found")
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
@@ -477,7 +468,7 @@ class EncoderSpec extends TestBase with LazyLogging {
       withRunningKafka {
 
         val pmId = getDigest(Array(3.toByte))
-        val pm = new ProtocolMessage(1, UUID.randomUUID(), 2, pmId)
+        val pm = new ProtocolMessage(1, UUID.randomUUID(), 0, pmId)
 
         val ctxt = JObject()
         val entity1 = MessageEnvelope(pm, ctxt)
@@ -498,7 +489,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val eventLog: EventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
         val error = EncoderJsonSupport.FromJson[com.ubirch.models.Error](eventLog.event).get
 
-        assert(error.message == "Error in the Encoding Process: No CustomerId found")
+        assert(error.message == "Error in the Encoding Process: No customerId found")
 
         assert(error.exceptionName == "com.ubirch.encoder.util.Exceptions.EncodingException")
 
@@ -550,7 +541,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString.asKey,
+            pmId.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
@@ -562,7 +553,7 @@ class EncoderSpec extends TestBase with LazyLogging {
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString.asKey,
-            value = Seq(pmId.toString.asValue)
+            value = Seq(pmId.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -619,7 +610,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString.asKey,
+            pmId.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
@@ -630,7 +621,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.UPP_CHAIN,
             Values.CHAIN_CATEGORY,
-            pmId.toString.asKey,
+            pmId.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("this is my chain")
@@ -642,7 +633,7 @@ class EncoderSpec extends TestBase with LazyLogging {
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString.asKey,
-            value = Seq(pmId.toString.asValue)
+            value = Seq(pmId.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
@@ -669,7 +660,7 @@ class EncoderSpec extends TestBase with LazyLogging {
       withRunningKafka {
 
         // Disable UPP
-        val disablePmId = 1
+        val disablePmId = getDigest(Array(1.toByte))
         val disablePm = new ProtocolMessage(1, UUID.randomUUID(), 250, disablePmId)
         disablePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId1 = UUID.randomUUID().toString
@@ -677,7 +668,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val entity1 = MessageEnvelope(disablePm, ctxt1)
 
         // Enable UPP
-        val enablePmId = 2
+        val enablePmId = getDigest(Array(2.toByte))
         val enablePm = new ProtocolMessage(1, UUID.randomUUID(), 251, enablePmId)
         enablePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId2 = UUID.randomUUID().toString
@@ -685,7 +676,7 @@ class EncoderSpec extends TestBase with LazyLogging {
         val entity2 = MessageEnvelope(enablePm, ctxt2)
 
         // Delete UPP
-        val deletePmId = 3
+        val deletePmId = getDigest(Array(3.toByte))
         val deletePm = new ProtocolMessage(1, UUID.randomUUID(), 252, deletePmId)
         deletePm.setSignature(org.bouncycastle.util.Strings.toByteArray("1111"))
         val customerId3 = UUID.randomUUID().toString
@@ -946,7 +937,7 @@ class EncoderSpec extends TestBase with LazyLogging {
           LookupKey(
             Values.SIGNATURE,
             Values.UPP_CATEGORY,
-            pmId.toString.asKey,
+            pmId.asKey,
             Seq {
               org.bouncycastle.util.encoders.Base64.toBase64String {
                 org.bouncycastle.util.Strings.toByteArray("1111")
@@ -958,7 +949,7 @@ class EncoderSpec extends TestBase with LazyLogging {
             name = Values.DEVICE_ID,
             category = Values.DEVICE_CATEGORY,
             key = pm.getUUID.toString.asKey,
-            value = Seq(pmId.toString.asValue)
+            value = Seq(pmId.asValue)
           ).categoryAsKeyLabel
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )

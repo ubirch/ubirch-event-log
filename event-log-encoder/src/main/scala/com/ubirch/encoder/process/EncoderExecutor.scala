@@ -9,7 +9,6 @@ import com.ubirch.encoder.models.{ BlockchainResponse, PublicKey }
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.encoder.util.EncoderJsonSupport
-import com.ubirch.encoder.util.EncoderJsonSupport._
 import com.ubirch.encoder.util.Exceptions._
 import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.ConsumerRecordsController
@@ -99,7 +98,7 @@ class EncoderExecutor @Inject() (
         val pr = encode(ldp).map { el =>
           val _el = if (sign) el.sign(config) else el
           ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
-        }.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
+        }.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send" , EncoderPipeData(Vector(x), Vector(jValue))))
         Task.fromFuture(stringProducer.send(pr))
       } catch {
         case e: Exception =>
@@ -111,39 +110,21 @@ class EncoderExecutor @Inject() (
   val UPP: PartialFunction[EncoderPipeData, Option[EventLog]] = {
 
     case encoderPipeData @ EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
-      // ubirchPacket can be null
-      def getCategory(messageEnvelope: MessageEnvelope): Option[String] =
-        Option(messageEnvelope.ubirchPacket).flatMap {
-          packet =>
-            packet.getHint match {
-              case 0 => Some(Values.UPP_CATEGORY)
-              case 250 => Some(Values.UPP_DISABLE_CATEGORY)
-              case 251 => Some(Values.UPP_ENABLE_CATEGORY)
-              case 252 => Some(Values.UPP_DELETE_CATEGORY)
-              case _ => None
-            }
-        }
-
       // there is a guarantee that this json has the format of MessageEnvelope
       val messageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
-      getCategory(messageEnvelope).flatMap {
+
+      UPPHelper.getCategory(messageEnvelope).flatMap {
         case Values.UPP_CATEGORY =>
           encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
           (for {
-
-            customerId <- Try((messageEnvelope.context \\ CUSTOMER_ID_FIELD).extract[String])
-              .filter(_.nonEmpty)
-              .recoverWith {
-                case _ => throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
-              }
-
+            customerId <- UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
             payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
-            payloadHash <- EncoderHelper.createPayloadHash(messageEnvelope, encoderPipeData)
-            signatureLookupKey <- EncoderHelper.createSignatureLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
-            deviceLookupKey <- EncoderHelper.createDeviceLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
-            chainLookupKey <- EncoderHelper.createChainLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+            payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
+            signatureLookupKey <- UPPHelper.createSignatureLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+            deviceLookupKey <- UPPHelper.createDeviceLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+            chainLookupKey <- UPPHelper.createChainLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
           } yield {
-            Option(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
+            Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
               .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
               .withCustomerId(customerId)
               .withRandomNonce
@@ -154,17 +135,11 @@ class EncoderExecutor @Inject() (
         case updateCategory @ (Values.UPP_DISABLE_CATEGORY | Values.UPP_ENABLE_CATEGORY | Values.UPP_DELETE_CATEGORY) =>
           encodingsCounter.counter.labels(metricsSubNamespace, updateCategory).inc()
           (for {
-
-            customerId <- Try((messageEnvelope.context \\ CUSTOMER_ID_FIELD).extract[String])
-              .filter(_.nonEmpty)
-              .recoverWith {
-                case _ => throw EventLogFromConsumerRecordException("No CustomerId found", encoderPipeData)
-              }
-
+            customerId <- UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
             payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
-            payloadHash <- EncoderHelper.createPayloadHash(messageEnvelope, encoderPipeData)
+            payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
           } yield {
-            Option(EventLog("upp-update-event-log-entry", updateCategory, payload)
+            Some(EventLog("upp-update-event-log-entry", updateCategory, payload)
               .withCustomerId(customerId)
               .withRandomNonce
               .withNewId(payloadHash)
@@ -193,7 +168,7 @@ class EncoderExecutor @Inject() (
           ))
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
-        Option(eventLog)
+        Some(eventLog)
       }).get
   }
 
@@ -217,7 +192,7 @@ class EncoderExecutor @Inject() (
           .withRandomNonce
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
-        Option(eventLog)
+        Some(eventLog)
       }).get
   }
 
