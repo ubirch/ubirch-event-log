@@ -98,7 +98,7 @@ class EncoderExecutor @Inject() (
         val pr = encode(ldp).map { el =>
           val _el = if (sign) el.sign(config) else el
           ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
-        }.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send" , EncoderPipeData(Vector(x), Vector(jValue))))
+        }.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
         Task.fromFuture(stringProducer.send(pr))
       } catch {
         case e: Exception =>
