@@ -675,8 +675,6 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
 
   }
 
-
-
   it should "successfully validate origin domains when invalid" in {
 
     val wasHere = new AtomicBoolean(false)
