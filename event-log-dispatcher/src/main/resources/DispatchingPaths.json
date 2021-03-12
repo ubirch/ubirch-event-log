@@ -26,6 +26,42 @@
     ]
   },
   {
+    "category": "UPP_DISABLE",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-update-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "UPP_ENABLE",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-update-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
+    "category": "UPP_DELETE",
+    "topics": [
+      {
+        "tags": [
+          "storage"
+        ],
+        "name": "ubirch-svalbard-evt-update-json",
+        "data_to_send": null
+      }
+    ]
+  },
+  {
     "category": "PUB_KEY",
     "topics": [
       {
