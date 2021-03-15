@@ -1,21 +1,18 @@
 package com.ubirch.verification
 
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Base64, Date, UUID }
-
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import com.ubirch.client.util.curveFromString
-import com.ubirch.crypto.{ GeneratorKeyFactory, PubKey }
+import com.ubirch.crypto.{GeneratorKeyFactory, PubKey}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
-import com.ubirch.verification.controllers.{ Api, DefaultApi }
+import com.ubirch.verification.controllers.Api.{Anchors, Failure, Success}
+import com.ubirch.verification.controllers.{Api, DefaultApi}
 import com.ubirch.verification.models._
 import com.ubirch.verification.services._
+import com.ubirch.verification.services.cache.{RedisCacheBase, RedisCacheImpl}
 import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
+import com.ubirch.verification.util.{HashHelper, LookupJsonSupport}
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
 import monix.eval.Task
@@ -25,9 +22,12 @@ import org.apache.kafka.common.TopicPartition
 import org.scalatest._
 import redis.embedded.RedisServer
 
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.{Base64, Date, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 class FakeAcctEventPublishing(implicit ec: ExecutionContext) extends AcctEventPublishing {
 
@@ -121,7 +121,7 @@ class MicroServiceTestV2 extends FlatSpec with Matchers with BeforeAndAfterAll w
 
   lazy val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
   lazy val lifecycle = new DefaultLifecycle()
-  lazy val redisCache = new RedisProvider(config, lifecycle).get()
+  lazy val redisCache: RedisCacheBase = new RedisCacheImpl(config, lifecycle)
   lazy val healthCheck = new HealthCheckProvider(config).get()
   lazy val tokenPublicKey = new DefaultTokenPublicKey(config)
   lazy val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)

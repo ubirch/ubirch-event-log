@@ -1,33 +1,33 @@
 package com.ubirch.verification
 
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.{ Base64, UUID }
-
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import com.ubirch.client.util.curveFromString
-import com.ubirch.crypto.{ GeneratorKeyFactory, PubKey }
+import com.ubirch.crypto.{GeneratorKeyFactory, PubKey}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.lifeCycle.DefaultLifecycle
-import com.ubirch.verification.controllers.Api.{ Anchors, Failure, Success }
-import com.ubirch.verification.controllers.{ Api, DefaultApi }
+import com.ubirch.verification.controllers.Api.{Anchors, Failure, Success}
+import com.ubirch.verification.controllers.{Api, DefaultApi}
 import com.ubirch.verification.models._
 import com.ubirch.verification.services._
+import com.ubirch.verification.services.cache.RedisCacheImpl
 import com.ubirch.verification.services.eventlog.EventLogClient
 import com.ubirch.verification.services.kafka.DefaultAcctEventPublishing
-import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
+import com.ubirch.verification.util.{HashHelper, LookupJsonSupport}
 import io.prometheus.client.CollectorRegistry
 import io.udash.rest.raw.JsonValue
 import org.scalatest._
 import redis.embedded.RedisServer
 
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.{Base64, UUID}
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll with BeforeAndAfterEach {
 
-  val anchors = LookupJsonSupport.getJValue {
+  private val anchors = LookupJsonSupport.getJValue {
     """
       |[
       |  {
@@ -42,7 +42,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       |]""".stripMargin
   }
 
-  val upp =
+  private val upp =
     LookupJsonSupport.getJValue {
       """
         |{
@@ -55,7 +55,7 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
         |}""".stripMargin
     }
 
-  val uppWithChain = LookupJsonSupport.getJValue {
+  private val uppWithChain = LookupJsonSupport.getJValue {
     """
       |{
       |  "hint":0,
@@ -68,28 +68,28 @@ class MicroServiceTest extends FlatSpec with Matchers with BeforeAndAfterAll wit
       |}""".stripMargin
   }
 
-  val cert: PubKey = GeneratorKeyFactory.getPubKey(
+  private val cert: PubKey = GeneratorKeyFactory.getPubKey(
     Base64.getDecoder.decode("l/KJeVnO8xTXkW7bjf+OumE7vXxBIkPHg85/uVAbBiY="),
     curveFromString("ECC_ED25519")
   )
 
-  val keyServiceConfig: Config = ConfigFactory
+  private val keyServiceConfig: Config = ConfigFactory
     .empty()
     .withValue("ubirchKeyService.client.rest.host", ConfigValueFactory.fromAnyRef("abcd"))
 
-  val keyService: KeyServerClient = new KeyServerClient(keyServiceConfig) {
+  private val keyService: KeyServerClient = new KeyServerClient(keyServiceConfig) {
     override def getPublicKey(uuid: UUID): List[PubKey] = List(cert)
   }
 
-  val redis = new RedisServer()
+  private val redis = new RedisServer()
 
-  lazy val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
-  lazy val lifecycle = new DefaultLifecycle()
-  lazy val redisCache = new RedisProvider(config, lifecycle).get()
-  lazy val healthCheck = new HealthCheckProvider(config).get()
-  lazy val tokenPublicKey = new DefaultTokenPublicKey(config)
-  lazy val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
-  lazy val acct = new DefaultAcctEventPublishing(config, lifecycle)
+  private lazy val config = ConfigFactory.load().withValue("verification.health-check.port", ConfigValueFactory.fromAnyRef(PortGiver.giveMeHealthCheckPort))
+  private lazy val lifecycle = new DefaultLifecycle()
+  private lazy val redisCache = new RedisCacheImpl(config, lifecycle)
+  private lazy val healthCheck = new HealthCheckProvider(config).get()
+  private lazy val tokenPublicKey = new DefaultTokenPublicKey(config)
+  private lazy val tokenVerification = new DefaultTokenVerification(config, tokenPublicKey)
+  private lazy val acct = new DefaultAcctEventPublishing(config, lifecycle)
 
   "DefaultApi" should "successfully validate handle a valid packet" in {
     val eventLog: EventLogClient = new EventLogClient {

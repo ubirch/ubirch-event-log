@@ -1,37 +1,33 @@
 package com.ubirch.verification.controllers
 
-import java.io.{ ByteArrayOutputStream, IOException }
-import java.nio.charset.StandardCharsets
-
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
-import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
+import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.DecoratedResponse.toDecoration
-import com.ubirch.verification.controllers.Api.{ Anchors, DecoratedResponse, Failure, NotFound, Response, Success }
+import com.ubirch.verification.controllers.Api.{Anchors, DecoratedResponse, Failure, NotFound, Response, Success}
 import com.ubirch.verification.models._
+import com.ubirch.verification.services.cache.RedisCacheBase
 import com.ubirch.verification.services.eventlog._
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenVerification }
-import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
+import com.ubirch.verification.services.{KeyServiceBasedVerifier, TokenVerification}
+import com.ubirch.verification.util.{HashHelper, LookupJsonSupport}
 import io.udash.rest.raw.JsonValue
-import javax.inject.{ Named, Singleton }
 import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
-import org.redisson.api.RMapCache
 
-import scala.concurrent.{ ExecutionContext, Future }
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
+import javax.inject.{Named, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DefaultApi @Inject() (
-    val accounting: AcctEventPublishing,
-    val tokenVerification: TokenVerification,
-    @Named("Cached") eventLogClient: EventLogClient,
-    verifier: KeyServiceBasedVerifier,
-    redis: RedisCache,
-    healthcheck: HealthCheckServer
-)(implicit ec: ExecutionContext) extends Api with Versions with StrictLogging {
+class DefaultApi @Inject()(val accounting: AcctEventPublishing,
+                           val tokenVerification: TokenVerification,
+                           @Named("Cached") eventLogClient: EventLogClient,
+                           verifier: KeyServiceBasedVerifier,
+                           redis: RedisCacheBase,
+                           healthcheck: HealthCheckServer)(implicit ec: ExecutionContext) extends Api with Versions with StrictLogging {
 
   healthcheck.setReadinessCheck(Checks.ok("business-logic"))
   healthcheck.setLivenessCheck(Checks.ok("business-logic"))
@@ -42,6 +38,7 @@ class DefaultApi @Inject() (
   private val api2 = new Api2()
 
   private val msgPackConfig = new MessagePack.PackerConfig().withStr8FormatSupport(false)
+
   private def rawPacket(upp: ProtocolMessage): Array[Byte] = {
     val out = new ByteArrayOutputStream(255)
     val packer = msgPackConfig.newPacker(out)
@@ -55,26 +52,11 @@ class DefaultApi @Inject() (
     out.toByteArray
   }
 
-  private val uppCache: Option[RMapCache[Array[Byte], String]] =
-    try {
-      Some(redis.redisson.getMapCache("hashes_payload"))
-    } catch {
-      case ex: Throwable =>
-        logger.error("redis error: ", ex)
-        None
-    }
-
   private def findCachedUpp(bytes: Array[Byte]): Future[Option[String]] = {
 
-    Future.successful {
-      Option(
-        uppCache
-          .getOrElse(throw new IOException("uppCache couldn't become retrieved properly"))
-          .get(bytes)
-      )
-    }.recover {
-      case ex: Throwable =>
-        logger.error("redis error ", ex)
+    redis.get(bytes).recover {
+      case ex: Exception =>
+        logger.error(s"unable to make cache lookup '.", ex)
         None
     }
   }
@@ -146,19 +128,25 @@ class DefaultApi @Inject() (
 
   //V1
   override def getUPP(hash: Array[Byte], disableRedisLookup: Boolean): Future[Response] = api.getUPP(hash, disableRedisLookup)
+
   override def verifyUPP(hash: Array[Byte]): Future[Response] = api.verifyUPP(hash)
+
   override def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
     api.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo)
+
   override def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String): Future[Response] =
     api.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo)
 
   //V2
   override def getUPPV2(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String, originHeader: String): Future[Response] =
     api2.getUPP(hash, disableRedisLookup, authToken, originHeader)
+
   override def verifyUPPV2(hash: Array[Byte], authToken: String, originHeader: String): Future[Response] =
     api2.verifyUPP(hash, authToken, originHeader)
+
   override def verifyUPPWithUpperBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, originHeader: String): Future[Response] =
     api2.verifyUPPWithUpperBound(hash, responseForm, blockchainInfo, authToken, originHeader)
+
   override def verifyUPPWithUpperAndLowerBoundV2(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, originHeader: String): Future[Response] =
     api2.verifyUPPWithUpperAndLowerBound(hash, responseForm, blockchainInfo, authToken, originHeader)
 

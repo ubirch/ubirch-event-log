@@ -131,6 +131,13 @@
             <version>1.2-SNAPSHOT</version>
         </dependency>
 
+        <!-- redis client scredis -->
+        <dependency>
+            <groupId>com.github.scredis</groupId>
+            <artifactId>scredis_2.12</artifactId>
+            <version>2.4.3</version>
+        </dependency>
+
         <!-- caching -->
         <dependency>
             <groupId>com.ubirch.niomon</groupId>
