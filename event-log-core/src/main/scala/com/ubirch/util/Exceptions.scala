@@ -94,12 +94,12 @@ object Exceptions {
   case class SigningEventLogException(message: String, pipeData: PipeData) extends ExecutionException(message)
 
   /**
-    * Exception thrown when storing an EventLog to the database.
+    * Exception thrown when process of an EventLog to the database.
     * @param message Represents the error message.
     * @param pipeData Represents the ProcessResult type from the Executor or the Executor Exception Handler
-    * @param reason Represent the reason why it couldn't be stored.
+    * @param reason Represent the reason why it couldn't be proceeded.
     */
-  case class StoringIntoEventLogException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
+  case class EventLogDatabaseException(message: String, pipeData: PipeData, reason: String) extends ExecutionException(message)
 
   case class BasicCommitException(message: String) extends ExecutionException(message)
 

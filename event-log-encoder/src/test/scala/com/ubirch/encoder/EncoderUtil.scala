@@ -3,7 +3,7 @@ package com.ubirch.encoder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.encoders.Base64
 
-import java.security.{MessageDigest, Security}
+import java.security.{ MessageDigest, Security }
 
 object EncoderUtil {
   def getDigest(data: Array[Byte]) = {

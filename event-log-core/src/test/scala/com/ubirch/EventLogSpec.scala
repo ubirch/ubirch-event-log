@@ -1,7 +1,6 @@
 package com.ubirch
 
 import java.util.concurrent.{ CountDownLatch, TimeUnit }
-
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
@@ -23,6 +22,7 @@ import org.apache.kafka.common.errors.TimeoutException
 import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 import scala.language.{ implicitConversions, postfixOps }
 
 class InjectorHelperImpl(bootstrapServers: String, storeLookups: Boolean = true) extends InjectorHelper(List(new ServiceBinder {
@@ -218,6 +218,56 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         res1 must contain theSameElementsAs entities.map(EventLogRow.fromEventLog)
         res1.size must be(entities.size)
+
+      }
+
+    }
+
+    "consume messages and delete UPP in cassandra" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
+
+      val config = InjectorHelper.get[Config]
+
+      val entities = (0 to 5).map(_ => Entities.Events.eventExample(UUIDHelper.randomUUID, Values.UPP_CATEGORY)
+        .sign(config)
+        .withCustomerId(UUIDHelper.randomUUID)).toList
+
+      val eventsDAO = InjectorHelper.get[EventsDAO]
+
+      entities.map(el => await(eventsDAO.insertFromEventLogWithoutLookups(el), 2 seconds))
+      val all = await(eventsDAO.events.selectAll, 2 seconds)
+
+      assert(all.size == entities.size)
+
+      withRunningKafka {
+
+        val topic = "com.ubirch.eventlog"
+
+        val entitiesAsString = entities.map(_.copy(category = Values.UPP_DELETE_CATEGORY)).map(_.toJson)
+
+        entitiesAsString.foreach { entityAsString =>
+          publishStringMessageToKafka(topic, entityAsString)
+        }
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+
+        consumer.startPolling()
+        //Consumer
+
+        Thread.sleep(15000)
+
+        //Read Events
+        val events = InjectorHelper.get[Events]
+        def res = events.selectAll
+        //Read
+
+        val res1: List[EventLogRow] = await(res)
+
+        assert(res1.isEmpty)
 
       }
 

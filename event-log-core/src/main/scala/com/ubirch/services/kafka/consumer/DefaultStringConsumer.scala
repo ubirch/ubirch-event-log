@@ -85,8 +85,8 @@ class DefaultConsumerRecordsManager @Inject() (
       failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(Error(id = uuid, message = e.getMessage, exceptionName = e.name, value = e.pipeData.consumerRecords.headOption.map(_.value()).getOrElse("No value")))
       Future.successful(e.pipeData)
-    case e: StoringIntoEventLogException =>
-      logger.error("StoringIntoEventLogException: ", e)
+    case e: EventLogDatabaseException =>
+      logger.error("EventLogDatabaseException: ", e)
       failureCounter.counter.labels(metricsSubNamespace).inc()
       reporter.report(
         Error(
