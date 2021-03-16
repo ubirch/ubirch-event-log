@@ -27,6 +27,10 @@ trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[Eve
     query[EventLogRow].insert(lift(eventLogRow))
   }
 
+  def deleteQ(eventLogRow: EventLogRow): db.Quoted[Delete[EventLogRow]] = quote {
+    query[EventLogRow].filter(x => x.id == lift(eventLogRow.id) && x.category == lift(eventLogRow.category)).delete
+  }
+
 }
 
 /**
@@ -49,6 +53,8 @@ class Events @Inject() (val connectionService: ConnectionService)(implicit val e
   def byIdAndCat(id: String, category: String): Future[List[EventLogRow]] = run(byIdAndCatQ(id, category))
 
   def insert(eventLogRow: EventLogRow): Future[Unit] = run(insertQ(eventLogRow))
+
+  def delete(eventLog: EventLogRow): Future[Unit] = run(deleteQ(eventLog))
 
 }
 
@@ -100,4 +106,7 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit va
       }
   }
 
+  def deleteFromEventLog(eventLog: EventLog): Future[Int] = {
+    events.delete(EventLogRow.fromEventLog(eventLog)).map(_ => 1)
+  }
 }

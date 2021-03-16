@@ -14,7 +14,7 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.DefaultFailureCounter
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, EventLogDatabaseException }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -495,7 +495,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
 
                 val promiseTest = Promise[PipeData]()
 
-                val exception = StoringIntoEventLogException("OH OH", PipeData(v1, Some(entity)), "OOPS")
+                val exception = EventLogDatabaseException("OH OH", PipeData(v1, Some(entity)), "OOPS")
 
                 promiseTestSuccess.completeWith(Future.unit)
 
@@ -584,7 +584,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
 
                 val promiseTest = Promise[PipeData]()
 
-                val exception = StoringIntoEventLogException("OH OH", PipeData(v1, Some(entity)), "OOPS")
+                val exception = EventLogDatabaseException("OH OH", PipeData(v1, Some(entity)), "OOPS")
 
                 promiseTestSuccess.completeWith(Future.unit)
 
