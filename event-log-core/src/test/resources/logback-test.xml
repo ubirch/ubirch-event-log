@@ -37,7 +37,7 @@
     <logger name="com.datastax.driver" level="ERROR"/>
     <logger name="io.netty" level="ERROR"/>
 
-    <logger name="com.ubirch" level="DEBUG"/>
+    <logger name="com.ubirch" level="ERROR"/>
 
     <root level="ERROR">
         <appender-ref ref="STDERR"/>

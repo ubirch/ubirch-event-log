@@ -17,7 +17,7 @@ import com.ubirch.util.EventLogJsonSupport
   * @param value represent the event value.
   *              It can be empty if a EmptyValueException was thrown or if the exception is not known
   *              It can be a malformed event if a ParsingIntoEventLogException was thrown
-  *              It can be the well-formed event if a StoringIntoEventLogException was thrown
+  *              It can be the well-formed event if a EventLogDatabaseException was thrown
   *
   * @param errorTime represents the time when the error occurred
   * @param serviceName represents the name of the service. By default, we use, event-log-service.

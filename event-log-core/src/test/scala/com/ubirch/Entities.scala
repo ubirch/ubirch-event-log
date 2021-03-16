@@ -29,6 +29,22 @@ object Entities extends UUIDHelper {
       )
     }
 
+    def eventExample(id: UUID, category: String): EventLog = {
+      val date = new Date()
+      EventLog(
+        Headers.empty,
+        id,
+        "this is customer id",
+        "this is a service class",
+        category,
+        data,
+        date,
+        "this is a signature",
+        "this is a nonce",
+        Nil
+      )
+    }
+
   }
 
   object Errors {
