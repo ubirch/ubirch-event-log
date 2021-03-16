@@ -90,11 +90,11 @@ class LoggerExecutor @Inject() (
         logger.warn(s"it has not been implemented yet. category: ${eventLog.category}")
         Future.successful(0)
       case Values.UPP_DELETE_CATEGORY =>
-        logger.info(s"delete event log. id: ${eventLog.id}")
+        logger.debug(s"delete event log. id: ${eventLog.id}")
         // the target UPP that is deleted should have an UPP category
         events.deleteFromEventLog(eventLog.copy(category = Values.UPP_CATEGORY))
       case _ =>
-        logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
+        logger.debug(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
         if (storeLookups) events.insertFromEventLog(eventLog)
         else events.insertFromEventLogWithoutLookups(eventLog)
     }
