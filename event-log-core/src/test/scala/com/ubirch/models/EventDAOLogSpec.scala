@@ -312,6 +312,47 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
     }
 
+    "insert and delete all event logs" in {
+      val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
+
+      def date = new Date()
+
+      val key = UUIDHelper.timeBasedUUID.toString
+
+      def id = UUIDHelper.timeBasedUUID.toString
+
+      val category = "my category id"
+
+      val events = (0 to 5).map { _ =>
+        val _id = id
+        EventLog(data)
+          .withNewId(_id)
+          .withCustomerId("my customer id")
+          .withCategory(category)
+          .withServiceClass("my service class")
+          .withEventTime(date)
+          .withSignature("my signature")
+          .withNonce("my nonce")
+          .withHeaders("hola" -> "Hello", "hey" -> "como estas")
+          .addLookupKeys(LookupKey("lookupname", category, key.asKey, Seq(_id.asValue)))
+      }
+
+      val eventsDAO = InjectorHelper.get[EventsDAO]
+
+      // insert event logs
+      events.map(el => await(eventsDAO.insertFromEventLog(el), 2 seconds))
+      val all = await(eventsDAO.events.selectAll, 2 seconds)
+
+      assert(all.size == events.size)
+      assert(events.map(x => EventLogRow.fromEventLog(x)).sortBy(_.id).toList == all.sortBy(_.id))
+
+      // delete event logs
+      events.map(e => await(eventsDAO.deleteFromEventLog(e), 2 seconds))
+
+      val allAfterDeleted = await(eventsDAO.events.selectAll, 2 seconds)
+      assert(allAfterDeleted.size == 0)
+    }
+
   }
 
   override protected def beforeEach(): Unit = {
