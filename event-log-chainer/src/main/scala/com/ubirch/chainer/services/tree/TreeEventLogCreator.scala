@@ -103,17 +103,18 @@ class TreeEventLogCreator @Inject() (
     else treeEl
   }
 
-  def createEventLog(chainer: Chainer[EventLog]): Option[EventLog] = {
+  def createEventLog(chainer: Chainer[EventLog, String, String]): Option[EventLog] = {
     for {
       node <- chainer.getNode
       compressedData <- Chainer.compress(chainer)
     } yield {
-      val data = ChainerJsonSupport.ToJson[CompressedTreeData](compressedData).get
-      createEventLog(node.value, chainer.getZero, data, chainer.seeds)
+      val data = ChainerJsonSupport.ToJson[CompressedTreeData[String]](compressedData).get
+      //TODO: CHECK THIS ZERO
+      createEventLog(node.value, chainer.getZero.getOrElse(""), data, chainer.seeds)
     }
   }
 
-  def create(chainers: Vector[Chainer[EventLog]]): Vector[EventLog] = {
+  def create(chainers: Vector[Chainer[EventLog, String, String]]): Vector[EventLog] = {
     chainers
       .map { x =>
         Try(createEventLog(x)) match {

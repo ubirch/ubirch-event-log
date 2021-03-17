@@ -298,9 +298,10 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-      val eventLogChainer = new Chainer(res.eventLogs.toList) {
-        override def balancingHash: String = _balancingHash
-      }
+      val eventLogChainer = Chainer(res.eventLogs.toList)
+        .withMergerFunc(Hasher.mergeAndHash)
+        .withBalancerFunc(_ => _balancingHash)
+        .withHashZero(Some(""))
         .createGroups
         .createSeedHashes
         .createSeedNodes(keepOrder = true)
@@ -365,10 +366,18 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-      val createConfig = CreateConfig(None, Option(_balancingHash), treeCreator.splitTrees, treeCreator.splitSize, treeCache.prefix)
+      val createConfig = CreateConfig[String](
+        None,
+        Option(_balancingHash),
+        treeCreator.splitTrees,
+        treeCreator.splitSize,
+        treeCache.prefix,
+        Hasher.mergeAndHash,
+        _ => Chainer.getEmptyNodeVal
+      )
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
 
-      assert(eventLogChainer._2 == treeCache.prefix(res.treeEventLogs.reverse.headOption.map(_.id).getOrElse("HOO")))
+      assert(eventLogChainer._2 == Option(treeCache.prefix(res.treeEventLogs.reverse.headOption.map(_.id).getOrElse("HOO"))))
       assert(eventLogChainer._2 == chainerRes2._2)
 
       assert(res.chainers.map(_.getNode).toList == eventLogChainer._1.map(_.getNode))
@@ -430,9 +439,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-      val eventLogChainer = new Chainer(res.eventLogs.toList) {
-        override def balancingHash: String = _balancingHash
-      }
+      val eventLogChainer = Chainer(res.eventLogs.toList)
+        .withMergerFunc(Hasher.mergeAndHash)
+        .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes
         .createSeedNodes(keepOrder = true)
@@ -510,9 +519,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-      val eventLogChainer = new Chainer(res.eventLogs.toList) {
-        override def balancingHash: String = _balancingHash
-      }
+      val eventLogChainer = Chainer(res.eventLogs.toList)
+        .withMergerFunc(Hasher.mergeAndHash)
+        .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes
         .createSeedNodes(keepOrder = true)

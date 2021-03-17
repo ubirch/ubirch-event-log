@@ -6,6 +6,8 @@ import com.ubirch.chainer.models.Chainer.CreateConfig
 import com.ubirch.models.EventLog
 import javax.inject._
 
+import com.ubirch.chainer.util.Hasher
+
 import scala.concurrent.ExecutionContext
 
 /**
@@ -20,8 +22,16 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
   lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
   lazy val splitSize: Int = config.getInt("eventLog.splitSize")
 
-  def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String) = {
-    val config = CreateConfig(maybeInitialTreeHash, outerBalancingHash, split = splitTrees, splitSize, prefixer)
+  def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String): (List[Chainer[EventLog, String, String]], Option[String]) = {
+    val config = CreateConfig[String](
+      maybeInitialTreeHash = maybeInitialTreeHash,
+      outerBalancingHash = outerBalancingHash,
+      split = splitTrees,
+      splitSize = splitSize,
+      prefixer = prefixer,
+      merger = Hasher.mergeAndHash,
+      balancer = _ => Chainer.getEmptyNodeVal
+    )
     Chainer.create(eventLogs, config)
   }
 

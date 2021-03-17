@@ -58,9 +58,9 @@ object ChainerService2 extends App {
   //    .createNode
   //    .getNode
 
-  val nodes = new Chainer(listOfData) {
-    override def balancingHash: String = ""
-  }
+  val nodes = Chainer(listOfData)
+    .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
+    .withMergerFunc(Hasher.mergeAndHash)
     .createGroups
     .createSeedHashes
     .createSeedNodes()

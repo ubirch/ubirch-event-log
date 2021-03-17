@@ -10,8 +10,9 @@ import scala.util.Random
 case class SomeDataTypeFromKafka(id: String, data: String)
 
 object SomeDataTypeFromKafka {
-  implicit def chainable(t: SomeDataTypeFromKafka) = new Chainable(t.id, t) {
+  implicit def chainable(t: SomeDataTypeFromKafka) = new Chainable[SomeDataTypeFromKafka, String, String](t) {
     override def hash: String = Hasher.hash(t.data)
+    override def groupId: String = t.id
   }
 }
 
@@ -113,6 +114,8 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
+        .withMergerFunc(Hasher.mergeAndHash)
+        .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
@@ -159,6 +162,8 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
+        .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
+        .withMergerFunc(Hasher.mergeAndHash)
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
@@ -210,7 +215,7 @@ class ChainerSpec extends TestBase {
         SomeDataTypeFromKafka("fruits", "apple")
       )
 
-      val zero = "Mandarina"
+      val zero = Option("Mandarina")
 
       val chainer = Chainer(listOfData).withHashZero(zero)
       assert(chainer.getZero == zero)
@@ -226,11 +231,22 @@ class ChainerSpec extends TestBase {
         SomeDataTypeFromKafka("fruits", "apple")
       )
 
-      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+      val (c, _) = Chainer.create(
+        listOfData,
+        Chainer.CreateConfig[String](
+          Some("init-hash"),
+          Some("balancing-hash"),
+          split = true,
+          50,
+          s => s,
+          Hasher.mergeAndHash,
+          _ => Chainer.getEmptyNodeVal
+        )
+      )
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -245,11 +261,19 @@ class ChainerSpec extends TestBase {
         SomeDataTypeFromKafka("fruits", "banana")
       )
 
-      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
+        Some("init-hash"),
+        Some("balancing-hash"),
+        split = true,
+        50,
+        s => s,
+        Hasher.mergeAndHash,
+        _ => Chainer.getEmptyNodeVal
+      ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -260,17 +284,25 @@ class ChainerSpec extends TestBase {
 
       val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
 
-      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), true, 50, s => s))
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
+        Some("init-hash"),
+        Some("balancing-hash"),
+        split = true,
+        50,
+        s => s,
+        Hasher.mergeAndHash,
+        _ => Chainer.getEmptyNodeVal
+      ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
 
       val normalNodeSizes = c.map(_.getNode).flatMap(_.toList).map(x => EventLogJsonSupport.ToJson[Node[String]](x).toString.length)
-      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData](x).toString.length)
+      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData[String]](x).toString.length)
 
       assert(normalNodeSizes.zip(compressedNodeSizes).map { case (a, b) => a > b }.forall(x => x))
 
@@ -280,17 +312,25 @@ class ChainerSpec extends TestBase {
 
       val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
 
-      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig(Some("init-hash"), Some("balancing-hash"), false, 50, s => s))
+      val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
+        Some("init-hash"),
+        Some("balancing-hash"),
+        split = true,
+        50,
+        s => s,
+        Hasher.mergeAndHash,
+        _ => Chainer.getEmptyNodeVal
+      ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
 
       val normalNodeSizes = c.map(_.getNode).flatMap(_.toList).map(x => EventLogJsonSupport.ToJson[Node[String]](x).toString.length)
-      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData](x).toString.length)
+      val compressedNodeSizes = compressed.map(x => EventLogJsonSupport.ToJson[CompressedTreeData[String]](x).toString.length)
 
       assert(normalNodeSizes.zip(compressedNodeSizes).map { case (a, b) => a > b }.forall(x => x))
 

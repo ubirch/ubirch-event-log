@@ -14,7 +14,7 @@ import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
-import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
+import com.ubirch.chainer.util.{ ChainerJsonSupport, Hasher, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -76,16 +76,18 @@ class InjectorHelperImpl(
 
 object ChainerSpec {
 
-  def getChainer(events: List[EventLog]): Chainer[EventLog] = {
-    new Chainer(events)
+  def getChainer(events: List[EventLog]): Chainer[EventLog, String, String] = {
+    Chainer(events)
+      .withMergerFunc(Hasher.mergeAndHash)
+      .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
       .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
       .createNode
   }
 
-  def getChainerWithGeneral(events: List[EventLog]): Chainer[EventLog] = {
-    new Chainer(events)
+  def getChainerWithGeneral(events: List[EventLog]): Chainer[EventLog, String, String] = {
+    Chainer(events)
       .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
@@ -149,7 +151,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Slave
 
@@ -460,7 +462,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs after records threshold is reached" taggedAs (Tag("problem")) in {
+    "consume, process and publish tree and event logs after records threshold is reached" taggedAs Tag("problem") in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -769,7 +771,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" taggedAs (new Tag("problem2")) in {
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" taggedAs new Tag("problem2") in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 

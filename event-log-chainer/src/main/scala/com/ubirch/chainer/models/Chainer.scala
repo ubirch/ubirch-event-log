@@ -40,15 +40,15 @@ abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] 
   */
 abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
 
-  def balancingHash: H
-
   private var zero: Option[H] = None
   private var grouped: List[List[T]] = Nil
   private var seedHashes: List[List[H]] = Nil
   private var balancedSeedNodes: List[Node[H]] = Nil
   private var seedNodes: List[Node[H]] = Nil
   private var node: Option[Node[H]] = None
+
   private var merger: Option[(H, H) => H] = None
+  private var balancer: Option[List[H] => H] = None
 
   def seeds: List[T] = es
   def getZero: Option[H] = zero
@@ -104,7 +104,9 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def balance(hes: List[H]): List[Node[H]] = {
-    val balanced = Node.seeds(hes: _*).balanceRightWithEmpty(balancingHash)
+    val maybeBalancer = balancer.map(x => x(hes))
+    require(maybeBalancer.isDefined, "Cannot balance with unset balancer")
+    val balanced = maybeBalancer.toList.flatMap(bh => Node.seeds(hes: _*).balanceRightWithEmpty(bh))
     balancedSeedNodes = balanced
     balanced
   }
@@ -129,6 +131,11 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     this
   }
 
+  def withBalancerFunc(newBalancer: List[H] => H): Chainer[T, G, H] = {
+    balancer = Option(newBalancer)
+    this
+  }
+
 }
 
 /**
@@ -140,7 +147,7 @@ object Chainer {
 
   def getNonce: String = Hasher.hash(s"Nonce_${UUIDHelper.randomUUID}")
 
-  //def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
+  def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
   case class CreateConfig[H](
       maybeInitialTreeHash: Option[H],
@@ -148,7 +155,8 @@ object Chainer {
       split: Boolean,
       splitSize: Int,
       prefixer: H => H,
-      merger: (H, H) => H
+      merger: (H, H) => H,
+      balancer: List[H] => H
   )
 
   def create[T, G, H](es: List[T], config: CreateConfig[H])(implicit ev: T => Chainable[T, G, H]): (List[Chainer[T, G, H]], Option[H]) = {
@@ -161,10 +169,9 @@ object Chainer {
       splits match {
         case Nil => (chainers, latestHash)
         case xs :: xss =>
-          val chainer = new Chainer(xs) {
-            override def balancingHash: H = config.outerBalancingHash.getOrElse(throw new Exception("No balancing strategy"))
-          }
+          val chainer = Chainer(xs)
             .withMergerFunc(config.merger)
+            .withBalancerFunc(config.balancer)
             .withHashZero(latestHash)
             .withGeneralGrouping
             .createSeedHashes
