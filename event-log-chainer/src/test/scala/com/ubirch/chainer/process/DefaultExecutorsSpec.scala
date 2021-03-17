@@ -301,8 +301,8 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val eventLogChainer = Chainer(res.eventLogs.toList)
         .withMergerFunc(Hasher.mergeAndHash)
         .withBalancerFunc(_ => _balancingHash)
-        .withHashZero(Some(""))
-        .createGroups
+        .withHashZero(None)
+        .withGeneralGrouping
         .createSeedHashes
         .createSeedNodes(keepOrder = true)
         .createNode
@@ -373,7 +373,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         treeCreator.splitSize,
         treeCache.prefix,
         Hasher.mergeAndHash,
-        _ => Chainer.getEmptyNodeVal
+        _ => _balancingHash
       )
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
 

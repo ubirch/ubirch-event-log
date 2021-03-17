@@ -30,7 +30,7 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
       splitSize = splitSize,
       prefixer = prefixer,
       merger = Hasher.mergeAndHash,
-      balancer = _ => Chainer.getEmptyNodeVal
+      balancer = _ => outerBalancingHash.getOrElse(Chainer.getEmptyNodeVal)
     )
     Chainer.create(eventLogs, config)
   }
