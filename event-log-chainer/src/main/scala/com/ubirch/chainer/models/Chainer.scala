@@ -151,7 +151,6 @@ object Chainer {
 
   case class CreateConfig[H](
       maybeInitialTreeHash: Option[H],
-      outerBalancingHash: Option[H],
       split: Boolean,
       splitSize: Int,
       prefixer: H => H,

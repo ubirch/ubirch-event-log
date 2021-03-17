@@ -368,7 +368,6 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val createConfig = CreateConfig[String](
         None,
-        Option(_balancingHash),
         treeCreator.splitTrees,
         treeCreator.splitSize,
         treeCache.prefix,

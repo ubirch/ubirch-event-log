@@ -10,7 +10,7 @@ import scala.util.Random
 case class SomeDataTypeFromKafka(id: String, data: String)
 
 object SomeDataTypeFromKafka {
-  implicit def chainable(t: SomeDataTypeFromKafka) = new Chainable[SomeDataTypeFromKafka, String, String](t) {
+  implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka, String, String] = new Chainable[SomeDataTypeFromKafka, String, String](t) {
     override def hash: String = Hasher.hash(t.data)
     override def groupId: String = t.id
   }
@@ -235,12 +235,11 @@ class ChainerSpec extends TestBase {
         listOfData,
         Chainer.CreateConfig[String](
           Some("init-hash"),
-          Some("balancing-hash"),
           split = true,
           50,
           s => s,
           Hasher.mergeAndHash,
-          _ => Chainer.getEmptyNodeVal
+          _ => "balancing-hash"
         )
       )
 
@@ -263,12 +262,11 @@ class ChainerSpec extends TestBase {
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
         Some("init-hash"),
-        Some("balancing-hash"),
         split = true,
         50,
         s => s,
         Hasher.mergeAndHash,
-        _ => Chainer.getEmptyNodeVal
+        _ => "balancing-hash"
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
@@ -286,12 +284,11 @@ class ChainerSpec extends TestBase {
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
         Some("init-hash"),
-        Some("balancing-hash"),
         split = true,
         50,
         s => s,
         Hasher.mergeAndHash,
-        _ => Chainer.getEmptyNodeVal
+        _ => "balancing-hash"
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
@@ -314,12 +311,11 @@ class ChainerSpec extends TestBase {
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
         Some("init-hash"),
-        Some("balancing-hash"),
         split = true,
         50,
         s => s,
         Hasher.mergeAndHash,
-        _ => Chainer.getEmptyNodeVal
+        _ => "balancing-hash"
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)

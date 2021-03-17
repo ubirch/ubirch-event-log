@@ -25,7 +25,6 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
   def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String): (List[Chainer[EventLog, String, String]], Option[String]) = {
     val config = CreateConfig[String](
       maybeInitialTreeHash = maybeInitialTreeHash,
-      outerBalancingHash = outerBalancingHash,
       split = splitTrees,
       splitSize = splitSize,
       prefixer = prefixer,
