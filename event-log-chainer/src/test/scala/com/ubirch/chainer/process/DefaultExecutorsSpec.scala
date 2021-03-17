@@ -284,7 +284,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
       val consumerRecords = (0 to 10).map { _ =>
-        val el = EventLog(eventData)
+        val el = EventLog(eventData).withNewId
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
@@ -350,7 +350,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       def eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
       val consumerRecords = (0 to 200).map { _ =>
-        val el = EventLog(eventData)
+        val el = EventLog(eventData).withNewId
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
@@ -424,7 +424,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val eventData: JValue = ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get
 
       val consumerRecords = (0 to 10).map { _ =>
-        val el = EventLog(eventData)
+        val el = EventLog(eventData).withNewId
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 
@@ -504,7 +504,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       val eventData: JValue = parse("""{ "numbers" : [1, 2, 3, 4] }""")
 
       val consumerRecords = (0 to 10).map { _ =>
-        val el = EventLog(eventData)
+        val el = EventLog(eventData).withNewId
         new ConsumerRecord[String, String]("my_topic", 1, 1, "", el.toJson)
       }.toVector
 

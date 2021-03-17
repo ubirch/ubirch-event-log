@@ -47,6 +47,7 @@ object ChainerService2 extends App {
 
   // We pass in the data from kafka that needs to be chainable.
   // See implicit conversion.
+  // We set our balancer func and our hashing func
   // We group the elems
   // We take the hashes
   // We then turn the seed hashes into seed nodes.

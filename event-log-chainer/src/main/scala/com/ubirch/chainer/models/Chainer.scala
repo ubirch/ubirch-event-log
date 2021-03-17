@@ -6,38 +6,43 @@ import com.ubirch.util.UUIDHelper
 import scala.annotation.tailrec
 
 /**
-  * Represents a type with an id that is used for grouping purposes.
-  * @tparam G Represents the type T that will be groupable
+  * Represents a type with an id/field that is used for grouping purposes.
+  * @tparam G Represents the type G that will be groupable
   */
 trait Groupable[+G] {
   def groupId: G
 }
 
 /**
-  * Represents that a type T can be hashable.
-  * @tparam H Represents the type T that will be hashable
+  * Represents that a type H can be hashable.
+  * @tparam H Represents the type H that will be hashable
   */
 trait Hashable[+H] {
   def hash: H
 }
 
-/**
-  * Represents a type that allows a elem of type T to be chained.
-  * Basically we require that T has an id so that it is groupable and that
-  * it can be hashed.
-  * @param t Represents the type that will be chained
-  * @tparam T Represents the type that will be turned into chainable.
-  */
+/***
+ * Represents a type that allows a elem of type T to be chained.
+ * Basically we require that T has an id so that it is groupable and that
+ * it can be hashed.
+ * @param t Represents the type that will be chained
+ * @tparam T Represents the type that will be turned into chainable.
+ * @tparam G Represents the type G that will be groupable
+ * @tparam H Represents the type H that will be hashable
+ */
 abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] {
   def hash: H
 }
+
 /**
-  * Represents a class that allows chaining values of type T
-  * @param es Represents the list of elements to chain
-  * @param ev Represents a conversion expected. We need type T to be
-  *           Chainable
-  * @tparam T Represents the type T of the elements to chain.
-  */
+ * Represents a class that allows chaining values of type T
+ * @param es Represents the list of elements to chain
+ * @param ev Represents a conversion expected. We need type T to be
+ *           Chainable
+ * @tparam T Represents the type T of the elements to chain.
+ * @tparam G Represents the type G that will be groupable
+ * @tparam H Represents the type H that will be hashable
+ */
 abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
 
   private var zero: Option[H] = None
@@ -218,9 +223,10 @@ object Chainer {
 }
 
 /**
-  * Represents a data simplified data structure for a tree
-  * @param root Represents the root of the tree
-  * @param leaves Represents the leaves of the tree
-  */
+ * Represents a data simplified data structure for a tree
+ * @param root Represents the root of the tree
+ * @param leaves Represents the leaves of the tree
+ * @tparam H Represents the type of the leaves
+ */
 case class CompressedTreeData[H](root: H, leaves: List[H])
 
