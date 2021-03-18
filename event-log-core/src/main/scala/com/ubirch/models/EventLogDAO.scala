@@ -111,9 +111,9 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit va
   }
 
   def updateFromEventLog(eventLog: EventLog): Future[Int] = {
-    events.byIdAndCat(eventLog.id, Values.UPP_CATEGORY).map { rows =>
+    events.byIdAndCat(eventLog.id, Values.UPP_CATEGORY).flatMap { rows =>
       Future.sequence(rows.map {
-        row => {
+        row =>
           eventLog.category match {
             case Values.UPP_ENABLE_CATEGORY =>
               val updated = row.copy(status = Some(Values.UPP_STATUS_ENABLED))
@@ -122,9 +122,9 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit va
               val updated = row.copy(status = Some(Values.UPP_STATUS_DISABLED))
               events.insert(updated)
           }
-        }
+
       }).map(_ => 1)
-    }.flatten
+    }
   }
 
 }
