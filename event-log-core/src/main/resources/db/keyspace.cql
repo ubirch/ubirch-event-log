@@ -21,5 +21,6 @@ create table if not exists events (
     milli int,
     event_time timestamp,
     nonce text,
+    status text,
     PRIMARY KEY ((id, category), year, month, day, hour)
 ) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
