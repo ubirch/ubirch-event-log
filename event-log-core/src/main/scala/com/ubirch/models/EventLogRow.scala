@@ -24,17 +24,17 @@ import java.util.Date
   */
 
 case class EventLogRow(
-                        id: String,
-                        customerId: String,
-                        serviceClass: String,
-                        category: String,
-                        event: JValue,
-                        eventTime: Date,
-                        eventTimeInfo: TimeInfo,
-                        signature: String,
-                        nonce: String,
-                        status: Option[String] = None
-                      )
+    id: String,
+    customerId: String,
+    serviceClass: String,
+    category: String,
+    event: JValue,
+    eventTime: Date,
+    eventTimeInfo: TimeInfo,
+    signature: String,
+    nonce: String,
+    status: Option[String] = None
+)
 
 object EventLogRow {
   def fromEventLog(eventLog: EventLog): EventLogRow = {
