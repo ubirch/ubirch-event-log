@@ -15,6 +15,7 @@ object Chainables {
     new Chainable[EventLog, String, String](t) {
       require(t.id.nonEmpty, "Hash Part One is Empty")
       require(t.nonce.nonEmpty, "Hash Part Two is Empty")
+
       override def hash: String = Hasher.mergeAndHash(t.id, t.nonce)
       override def groupId: String = t.customerId
     }

@@ -13,7 +13,7 @@ import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
-import com.ubirch.chainer.services.tree.TreeMonitor
+import com.ubirch.chainer.services.tree.{ TreeMonitor, TreePaths }
 import com.ubirch.chainer.util.{ ChainerJsonSupport, Hasher, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.util.PortGiver
@@ -58,12 +58,12 @@ class InjectorHelperImpl(
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
     override def conf: Config = {
       super.conf
-        .withValue("eventLog.daysBack", ConfigValueFactory.fromAnyRef(3))
-        .withValue("eventLog.split", ConfigValueFactory.fromAnyRef(split))
-        .withValue("eventLog.mode", ConfigValueFactory.fromAnyRef(mode.value))
-        .withValue("eventLog.minTreeRecords", ConfigValueFactory.fromAnyRef(minTreeRecords))
-        .withValue("eventLog.treeEvery", ConfigValueFactory.fromAnyRef(treeEvery))
-        .withValue("eventLog.treeUpgrade", ConfigValueFactory.fromAnyRef(treeUpgrade))
+        .withValue(TreePaths.DAYS_BACK, ConfigValueFactory.fromAnyRef(3))
+        .withValue(TreePaths.SPLIT, ConfigValueFactory.fromAnyRef(split))
+        .withValue(TreePaths.MODE, ConfigValueFactory.fromAnyRef(mode.value))
+        .withValue(TreePaths.MIN_TREE_RECORDS, ConfigValueFactory.fromAnyRef(minTreeRecords))
+        .withValue(TreePaths.TREE_EVERY, ConfigValueFactory.fromAnyRef(treeEvery))
+        .withValue(TreePaths.TREE_UPGRADE, ConfigValueFactory.fromAnyRef(treeUpgrade))
         .withValue(ConsumerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
         .withValue(ProducerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
         .withValue(ConsumerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(consumerTopic))
@@ -80,14 +80,6 @@ object ChainerSpec {
     Chainer(events)
       .withMergerFunc(Hasher.mergeAndHash)
       .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
-      .withGeneralGrouping
-      .createSeedHashes
-      .createSeedNodes(keepOrder = true)
-      .createNode
-  }
-
-  def getChainerWithGeneral(events: List[EventLog]): Chainer[EventLog, String, String] = {
-    Chainer(events)
       .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)

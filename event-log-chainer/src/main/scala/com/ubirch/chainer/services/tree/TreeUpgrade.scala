@@ -19,7 +19,7 @@ class TreeUpgrade @Inject() (
     config: Config
 )(implicit ec: ExecutionContext) extends LazyLogging {
 
-  val every: Int = config.getInt("eventLog.treeUpgrade")
+  val every: Int = config.getInt(TreePaths.TREE_UPGRADE)
 
   logger.info("Tree Upgrade every [{}] seconds", every)
 

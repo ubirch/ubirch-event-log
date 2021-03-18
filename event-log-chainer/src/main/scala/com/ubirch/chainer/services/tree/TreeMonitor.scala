@@ -42,7 +42,7 @@ class TreeMonitor @Inject() (
 
   import TreeMonitor._
 
-  val modeFromConfig: String = config.getString("eventLog.mode")
+  val modeFromConfig: String = config.getString(TreePaths.MODE)
 
   val mode: Mode = Mode.getMode(modeFromConfig)
 

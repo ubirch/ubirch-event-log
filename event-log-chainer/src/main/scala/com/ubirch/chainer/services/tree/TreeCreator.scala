@@ -19,8 +19,8 @@ class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
 
   import com.ubirch.chainer.models.Chainables.eventLogChainable
 
-  lazy val splitTrees: Boolean = config.getBoolean("eventLog.split")
-  lazy val splitSize: Int = config.getInt("eventLog.splitSize")
+  lazy val splitTrees: Boolean = config.getBoolean(TreePaths.SPLIT)
+  lazy val splitSize: Int = config.getInt(TreePaths.SPLIT_SIZE)
 
   def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String): (List[Chainer[EventLog, String, String]], Option[String]) = {
     val config = CreateConfig[String](

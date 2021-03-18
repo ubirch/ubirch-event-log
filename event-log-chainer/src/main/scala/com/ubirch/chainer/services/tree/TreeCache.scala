@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext
 @Singleton
 class TreeCache @Inject() (config: Config)(implicit ec: ExecutionContext) {
 
-  val modeFromConfig: String = config.getString("eventLog.mode")
+  val modeFromConfig: String = config.getString(TreePaths.MODE)
 
   val mode: Mode = Mode.getMode(modeFromConfig)
 

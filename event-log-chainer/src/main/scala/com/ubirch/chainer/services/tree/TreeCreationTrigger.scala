@@ -20,8 +20,8 @@ class TreeCreationTrigger @Inject() (
     config: Config
 )(implicit ec: ExecutionContext) extends LazyLogging {
 
-  val minTreeRecords: Int = config.getInt("eventLog.minTreeRecords")
-  val every: Int = config.getInt("eventLog.treeEvery")
+  val minTreeRecords: Int = config.getInt(TreePaths.MIN_TREE_RECORDS)
+  val every: Int = config.getInt(TreePaths.TREE_EVERY)
 
   logger.info("Min Tree Records [{}] every [{}] seconds", minTreeRecords, every)
 
