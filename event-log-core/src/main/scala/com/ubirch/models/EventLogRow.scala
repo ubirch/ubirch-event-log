@@ -21,6 +21,9 @@ import java.util.Date
   *                      to support its creation from the eventTime.
   * @param signature     Represents the signature for the event log.
   * @param nonce         Represents a value that can be used to calculate the hash of the event.
+  * @param status        Represents the status of the upp. If it has become disabled, it shouldn't be possible to
+  *                      verify the upp. It's value might be either NONE, Some(ENABLED) or Some(DISABLED). None
+  *                      is equivalent for Some(ENABLED).
   */
 
 case class EventLogRow(
