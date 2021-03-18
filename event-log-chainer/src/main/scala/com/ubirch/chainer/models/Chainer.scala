@@ -35,14 +35,14 @@ abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] 
 }
 
 /**
- * Represents a class that allows chaining values of type T
- * @param es Represents the list of elements to chain
- * @param ev Represents a conversion expected. We need type T to be
- *           Chainable
- * @tparam T Represents the type T of the elements to chain.
- * @tparam G Represents the type G that will be groupable
- * @tparam H Represents the type H that will be hashable
- */
+  * Represents a class that allows chaining values of type T
+  * @param es Represents the list of elements to chain
+  * @param ev Represents a conversion expected. We need type T to be
+  *           Chainable
+  * @tparam T Represents the type T of the elements to chain.
+  * @tparam G Represents the type G that will be groupable
+  * @tparam H Represents the type H that will be hashable
+  */
 abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
 
   private var zero: Option[H] = None
@@ -223,10 +223,10 @@ object Chainer {
 }
 
 /**
- * Represents a data simplified data structure for a tree
- * @param root Represents the root of the tree
- * @param leaves Represents the leaves of the tree
- * @tparam H Represents the type of the leaves
- */
+  * Represents a data simplified data structure for a tree
+  * @param root Represents the root of the tree
+  * @param leaves Represents the leaves of the tree
+  * @tparam H Represents the type of the leaves
+  */
 case class CompressedTreeData[H](root: H, leaves: List[H])
 

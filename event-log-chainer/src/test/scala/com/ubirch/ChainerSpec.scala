@@ -252,7 +252,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Slave
 
@@ -338,7 +338,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Master
 
@@ -422,7 +422,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -519,7 +519,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -614,7 +614,7 @@ class ChainerSpec extends TestBase with LazyLogging {
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Master
 
@@ -844,12 +844,11 @@ class ChainerSpec extends TestBase with LazyLogging {
         val bigBang = messagesAsEventLogs.headOption
 
         //normal trees
-        val normalTrees =
-          messagesAsEventLogs
-            .tail
-            .reverse
-            .tail
-            .reverse
+        val normalTrees = messagesAsEventLogs
+          .tail
+          .reverse
+          .tail
+          .reverse
 
         val upgradeTREE = messagesAsEventLogs
           .tail
