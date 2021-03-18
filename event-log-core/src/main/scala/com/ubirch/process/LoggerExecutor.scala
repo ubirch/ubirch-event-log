@@ -83,12 +83,9 @@ class LoggerExecutor @Inject() (
 
   private def processEventLog(eventLog: EventLog): Future[Int] = {
     eventLog.category match {
-      case Values.UPP_ENABLE_CATEGORY =>
-        logger.warn(s"it has not been implemented yet. category: ${eventLog.category}")
-        Future.successful(0)
-      case Values.UPP_DISABLE_CATEGORY =>
-        logger.warn(s"it has not been implemented yet. category: ${eventLog.category}")
-        Future.successful(0)
+      case Values.UPP_ENABLE_CATEGORY | Values.UPP_DISABLE_CATEGORY =>
+        logger.info(s"updating eventlog with id: ${eventLog.id} to status: ${eventLog.category}")
+        events.updateFromEventLog(eventLog)
       case Values.UPP_DELETE_CATEGORY =>
         logger.info(s"delete event log. id: ${eventLog.id}")
         // the target UPP that is deleted should have an UPP category
