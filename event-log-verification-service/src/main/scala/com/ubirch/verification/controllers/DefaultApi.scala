@@ -83,7 +83,7 @@ class DefaultApi @Inject()(
     val requestId = HashHelper.bytesToPrintableId(hash)
 
     val responseFuture = for {
-      response: LookupResult <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
+      response <- eventLogClient.getEventByHash(hash, queryDepth, responseForm, blockchainInfo)
       _ = logger.debug(s"[$requestId] received event log response[$queryDepth, $responseForm] : [$response]")
       _ <- controllerHelpers.earlyResponseIf(response == null)(NotFound.withNoPM)
       _ <- controllerHelpers.earlyResponseIf(!response.success)(Failure(errorType = "EventLogError", errorMessage = response.message).withNoPM)
