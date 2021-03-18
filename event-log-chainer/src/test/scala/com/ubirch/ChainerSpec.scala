@@ -29,6 +29,7 @@ import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
 
 class WebClientProvider extends Provider[WebClient] {
@@ -52,6 +53,7 @@ class InjectorHelperImpl(
     treeUpgrade: Int = 120,
     mode: Mode = Slave,
     split: Boolean = false,
+    splitSize: Int = 50,
     webClientProvider: Option[Provider[WebClient]] = None
 ) extends InjectorHelper(List(new ChainerServiceBinder {
 
@@ -60,6 +62,7 @@ class InjectorHelperImpl(
       super.conf
         .withValue(TreePaths.DAYS_BACK, ConfigValueFactory.fromAnyRef(3))
         .withValue(TreePaths.SPLIT, ConfigValueFactory.fromAnyRef(split))
+        .withValue(TreePaths.SPLIT_SIZE, ConfigValueFactory.fromAnyRef(splitSize))
         .withValue(TreePaths.MODE, ConfigValueFactory.fromAnyRef(mode.value))
         .withValue(TreePaths.MIN_TREE_RECORDS, ConfigValueFactory.fromAnyRef(minTreeRecords))
         .withValue(TreePaths.TREE_EVERY, ConfigValueFactory.fromAnyRef(treeEvery))
@@ -84,6 +87,15 @@ object ChainerSpec {
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
       .createNode
+  }
+
+  @tailrec
+  def go(check: Boolean, compressed: List[CompressedTreeData[String]]): Boolean = {
+    compressed match {
+      case Nil => check
+      case List(_) => check
+      case x :: y :: xs => go(Option(x.root) == y.leaves.headOption, xs)
+    }
   }
 
 }
@@ -819,6 +831,136 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+
+        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(ChainerSpec.go(check = false, compressed))
+
+        val mode = Master
+        val expectedHeadersBigBang = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category
+        )
+
+        val expectedHeaders = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        )
+
+        //big bang
+        val bigBang = messagesAsEventLogs.headOption
+
+        //normal trees
+        val normalTrees = messagesAsEventLogs
+          .tail
+          .reverse
+          .tail
+          .reverse
+
+        val upgradeTREE = messagesAsEventLogs
+          .tail
+          .reverse
+          .headOption
+
+        bigBang
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        normalTrees
+          .map { x =>
+            assert(x.headers == expectedHeaders)
+          }
+
+        upgradeTREE
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        //upgrade tree
+
+        assert(messages.size == maxToRead)
+
+        for {
+          l <- normalTrees.reverse.headOption
+          u <- upgradeTREE
+        } yield {
+          assert(l.id == u.id)
+          assert(l.headers != u.headers)
+          assert(l.lookupKeys != u.lookupKeys)
+        }
+
+      }
+
+    }
+
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master 2" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(
+        bootstrapServers,
+        messageEnvelopeTopic,
+        eventLogTopic,
+        split = true,
+        minTreeRecords = 2,
+        treeEvery = 10,
+        treeUpgrade = 13,
+        mode = Master,
+        splitSize = 5,
+        webClientProvider = Option(new WebClientProvider)
+      )
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 40
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.SLAVE_TREE_CATEGORY)
+              .sign(config))
+        }
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val treeMonitor = InjectorHelper.get[TreeMonitor]
+        treeMonitor.start
+
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        val bigBangTree = 1
+        val maxNumberToReadNormalMasters = events.sliding(5, 5).size /* tree */
+        val upgradeTree = 1
+
+        val maxToRead = bigBangTree + maxNumberToReadNormalMasters + upgradeTree
+
+        Thread.sleep(10000)
+
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
+        val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+
+        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(ChainerSpec.go(check = false, compressed))
 
         val mode = Master
         val expectedHeadersBigBang = Headers.create(
