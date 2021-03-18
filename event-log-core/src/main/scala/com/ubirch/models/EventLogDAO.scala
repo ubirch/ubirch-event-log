@@ -19,7 +19,7 @@ trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[Eve
 
   def selectAllQ: db.Quoted[db.EntityQuery[EventLogRow]] = quote(query[EventLogRow])
 
-  def byIdAndCatQ(id: String, category: String) = quote {
+  def byIdAndCatQ(id: String, category: String): Quoted[EntityQuery[EventLogRow]] = quote {
     query[EventLogRow].filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
   }
 
@@ -109,4 +109,22 @@ class EventsDAO @Inject() (val events: Events, val lookups: Lookups)(implicit va
   def deleteFromEventLog(eventLog: EventLog): Future[Int] = {
     events.delete(EventLogRow.fromEventLog(eventLog)).map(_ => 1)
   }
+
+  def updateFromEventLog(eventLog: EventLog): Future[Int] = {
+    events.byIdAndCat(eventLog.id, Values.UPP_CATEGORY).map { rows =>
+      Future.sequence(rows.map {
+        row => {
+          eventLog.category match {
+            case Values.UPP_ENABLE_CATEGORY =>
+              val updated = row.copy(status = Some(Values.UPP_STATUS_ENABLED))
+              events.insert(updated)
+            case _ =>
+              val updated = row.copy(status = Some(Values.UPP_STATUS_DISABLED))
+              events.insert(updated)
+          }
+        }
+      }).map(_ => 1)
+    }.flatten
+  }
+
 }
