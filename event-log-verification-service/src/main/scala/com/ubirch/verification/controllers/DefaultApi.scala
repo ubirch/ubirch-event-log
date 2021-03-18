@@ -3,34 +3,34 @@ package com.ubirch.verification.controllers
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
-import com.ubirch.niomon.healthcheck.{Checks, HealthCheckServer}
+import com.ubirch.niomon.healthcheck.{ Checks, HealthCheckServer }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.DecoratedResponse.toDecoration
-import com.ubirch.verification.controllers.Api.{Anchors, DecoratedResponse, Failure, NotFound, Response, Success}
+import com.ubirch.verification.controllers.Api.{ Anchors, DecoratedResponse, Failure, NotFound, Response, Success }
 import com.ubirch.verification.models._
 import com.ubirch.verification.services.eventlog._
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.services.{KeyServiceBasedVerifier, TokenVerification}
-import com.ubirch.verification.util.{HashHelper, LookupJsonSupport}
+import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenVerification }
+import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.udash.rest.raw.JsonValue
 import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
-import java.io.{ByteArrayOutputStream, IOException}
+import java.io.{ ByteArrayOutputStream, IOException }
 import java.nio.charset.StandardCharsets
-import javax.inject.{Named, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Named, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-class DefaultApi @Inject()(
-                            val accounting: AcctEventPublishing,
-                            val tokenVerification: TokenVerification,
-                            @Named("Cached") eventLogClient: EventLogClient,
-                            verifier: KeyServiceBasedVerifier,
-                            redis: RedisCache,
-                            healthcheck: HealthCheckServer
-                          )(implicit ec: ExecutionContext) extends Api with Versions with StrictLogging {
+class DefaultApi @Inject() (
+    val accounting: AcctEventPublishing,
+    val tokenVerification: TokenVerification,
+    @Named("Cached") eventLogClient: EventLogClient,
+    verifier: KeyServiceBasedVerifier,
+    redis: RedisCache,
+    healthcheck: HealthCheckServer
+)(implicit ec: ExecutionContext) extends Api with Versions with StrictLogging {
 
   healthcheck.setReadinessCheck(Checks.ok("business-logic"))
   healthcheck.setLivenessCheck(Checks.ok("business-logic"))
