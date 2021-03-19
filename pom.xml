@@ -171,8 +171,8 @@
                             <goal>format</goal>
                         </goals>
                         <configuration>
-                            <firstArgumentOnNewline>Prevent</firstArgumentOnNewline>
-                            <firstParameterOnNewline>Prevent</firstParameterOnNewline>
+                            <firstArgumentOnNewline>Force</firstArgumentOnNewline>
+                            <firstParameterOnNewline>Force</firstParameterOnNewline>
                             <allowParamGroupsOnNewlines>true</allowParamGroupsOnNewlines>
                             <danglingCloseParenthesis>Force</danglingCloseParenthesis>
                             <doubleIndentConstructorArguments>true</doubleIndentConstructorArguments>

@@ -1,5 +1,7 @@
 package com.ubirch.models
 
+import java.util.Date
+
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.{ InjectorHelper, UUIDHelper }
@@ -8,8 +10,7 @@ import io.prometheus.client.CollectorRegistry
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
 
-import java.util.Date
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration._
 import scala.language.postfixOps
 
 class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
@@ -99,90 +100,6 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       assert(foundEvent.isDefined)
       assert(EventLogRow.fromEventLog(event) == foundEvent.get)
 
-    }
-
-    "eventLogRowEnable" in {
-      val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
-
-      def date = new Date()
-
-      val key = UUIDHelper.timeBasedUUID.toString
-      val value = UUIDHelper.timeBasedUUID.toString
-      val category = Values.UPP_CATEGORY
-      val lookupName = "lookupname"
-
-      val event = {
-        EventLog(data)
-          .withNewId(key)
-          .withCustomerId("my customer id")
-          .withCategory(category)
-          .withServiceClass("my service class")
-          .withEventTime(date)
-          .withSignature("my signature")
-          .withNonce("my nonce")
-          .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey(lookupName, category, key.asKey, Seq(value.asValue)))
-      }
-
-      val eventsDAO = InjectorHelper.get[EventsDAO]
-
-      await(eventsDAO.insertFromEventLog(event), 2 seconds)
-
-      val foundEvent = await(eventsDAO.eventLogRowByLookupRowInfo(value, lookupName, category), 2 seconds)
-
-      val eventRow = EventLogRow.fromEventLog(event)
-      assert(foundEvent.isDefined)
-      assert(eventRow == foundEvent.get)
-
-      await(eventsDAO.events.insert(foundEvent.head.copy(status = Some(Values.UPP_STATUS_ENABLED))), 2 seconds)
-      val updatedEvent = await(eventsDAO.eventLogRowByLookupRowInfo(value, lookupName, category), 2 seconds)
-
-      assert(updatedEvent.nonEmpty)
-      assert(updatedEvent.head.status.contains(Values.UPP_STATUS_ENABLED))
-
-      assert(updatedEvent.contains(eventRow.copy(status = Some(Values.UPP_STATUS_ENABLED))))
-    }
-
-    "eventLogRowDisable" in {
-      val data: JValue = parse(""" { "id" : [1, 2, 3, 4] } """)
-
-      def date = new Date()
-
-      val key = UUIDHelper.timeBasedUUID.toString
-      val value = UUIDHelper.timeBasedUUID.toString
-      val category = Values.UPP_CATEGORY
-      val lookupName = "lookupname"
-
-      val event = {
-        EventLog(data)
-          .withNewId(key)
-          .withCustomerId("my customer id")
-          .withCategory(category)
-          .withServiceClass("my service class")
-          .withEventTime(date)
-          .withSignature("my signature")
-          .withNonce("my nonce")
-          .withHeaders("hola" -> "Hello", "hey" -> "como estas")
-          .addLookupKeys(LookupKey(lookupName, category, key.asKey, Seq(value.asValue)))
-      }
-
-      val eventsDAO = InjectorHelper.get[EventsDAO]
-
-      await(eventsDAO.insertFromEventLog(event), 2 seconds)
-
-      val foundEvent = await(eventsDAO.eventLogRowByLookupRowInfo(value, lookupName, category), 2 seconds)
-
-      val eventRow = EventLogRow.fromEventLog(event)
-      assert(foundEvent.isDefined)
-      assert(eventRow == foundEvent.get)
-
-      await(eventsDAO.events.insert(foundEvent.head.copy(status = Some(Values.UPP_STATUS_DISABLED))), 2 seconds)
-      val updatedEvent = await(eventsDAO.eventLogRowByLookupRowInfo(value, lookupName, category), 2 seconds)
-
-      assert(updatedEvent.nonEmpty)
-      assert(updatedEvent.head.status.contains(Values.UPP_STATUS_DISABLED))
-
-      assert(updatedEvent.contains(eventRow.copy(status = Some(Values.UPP_STATUS_DISABLED))))
     }
 
     "eventLogRowByLookupValueAndCategory" in {
@@ -433,7 +350,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
       events.map(e => await(eventsDAO.deleteFromEventLog(e), 2 seconds))
 
       val allAfterDeleted = await(eventsDAO.events.selectAll, 2 seconds)
-      assert(allAfterDeleted.isEmpty)
+      assert(allAfterDeleted.size == 0)
     }
 
   }
@@ -468,9 +385,8 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    milli int,
           |    event_time timestamp,
           |    nonce text,
-          |    status text,
-          |    PRIMARY KEY ((id, category), year, month, day, hour, minute, second, milli)
-          |) WITH CLUSTERING ORDER BY (year DESC, month DESC, day DESC, hour DESC, minute DESC, second DESC, milli DESC);
+          |    PRIMARY KEY ((id, category), year, month, day, hour)
+          |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
         """.stripMargin,
         "drop table if exists lookups;",
         """
