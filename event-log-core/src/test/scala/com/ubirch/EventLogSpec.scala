@@ -270,94 +270,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
         assert(res1.isEmpty)
 
       }
-    }
-
-    "consume messages and disable UPP in cassandra" in {
-
-      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
-
-      val config = InjectorHelper.get[Config]
-
-      val entities = (0 to 5).map(_ => Entities.Events.eventExample(UUIDHelper.randomUUID, Values.UPP_CATEGORY)
-        .sign(config)
-        .withCustomerId(UUIDHelper.randomUUID)).toList
-
-      val eventsDAO = InjectorHelper.get[EventsDAO]
-
-      entities.map(el => await(eventsDAO.insertFromEventLogWithoutLookups(el), 2 seconds))
-      val all = await(eventsDAO.events.selectAll, 2 seconds)
-
-      assert(all.size == entities.size)
-
-      withRunningKafka {
-
-        //Publish updates
-        val topic = "com.ubirch.eventlog"
-        val entitiesAsString = entities.map(_.copy(category = Values.UPP_DISABLE_CATEGORY)).map(_.toJson)
-        entitiesAsString.foreach { entityAsString =>
-          publishStringMessageToKafka(topic, entityAsString)
-        }
-
-        //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
-        consumer.startPolling()
-        Thread.sleep(10000)
-
-        //Read Events
-        val events = InjectorHelper.get[Events]
-
-        def res: List[EventLogRow] = await(events.selectAll, 2 seconds)
-
-        assert(res.size == entities.size)
-        res.map(row => assert(row.status.contains(Values.UPP_STATUS_DISABLED)))
-      }
-
-    }
-
-    "consume messages and enable UPP in cassandra" in {
-
-      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
-
-      val InjectorHelper = new InjectorHelperImpl("localhost:" + kafkaConfig.kafkaPort)
-
-      val config = InjectorHelper.get[Config]
-
-      val entities = (0 to 5).map(_ => Entities.Events.eventExample(UUIDHelper.randomUUID, Values.UPP_CATEGORY)
-        .sign(config)
-        .withCustomerId(UUIDHelper.randomUUID)).toList
-
-      val eventsDAO = InjectorHelper.get[EventsDAO]
-
-      entities.map(el => await(eventsDAO.insertFromEventLogWithoutLookups(el), 2 seconds))
-      val all = await(eventsDAO.events.selectAll, 2 seconds)
-
-      assert(all.size == entities.size)
-
-      withRunningKafka {
-
-        //Publish updates
-        val topic = "com.ubirch.eventlog"
-        val entitiesAsString = entities.map(_.copy(category = Values.UPP_ENABLE_CATEGORY)).map(_.toJson)
-        entitiesAsString.foreach { entityAsString =>
-          publishStringMessageToKafka(topic, entityAsString)
-        }
-
-        //Consumer
-        val consumer = InjectorHelper.get[StringConsumer]
-        consumer.startPolling()
-        Thread.sleep(10000)
-
-        //Read Events
-        val events = InjectorHelper.get[Events]
-
-        def res: List[EventLogRow] = await(events.selectAll, 2 seconds)
-
-        //Verify
-        assert(res.size == entities.size)
-        res.map(row => assert(row.status.contains(Values.UPP_STATUS_ENABLED)))
-      }
 
     }
 
@@ -704,9 +616,8 @@ class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    milli int,
           |    event_time timestamp,
           |    nonce text,
-          |    status text,
-          |    PRIMARY KEY ((id, category), year, month, day, hour, minute, second, milli)
-          |) WITH CLUSTERING ORDER BY (year DESC, month DESC, day DESC, hour DESC, minute DESC, second DESC, milli DESC);
+          |    PRIMARY KEY ((id, category), year, month, day, hour)
+          |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
         """.stripMargin,
         "drop table if exists lookups;",
         """
