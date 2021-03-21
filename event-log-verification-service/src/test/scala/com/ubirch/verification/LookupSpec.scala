@@ -19,7 +19,7 @@ import javax.inject._
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.{ JNull, JValue }
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
