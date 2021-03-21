@@ -95,7 +95,18 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
   extends Finder
   with LazyLogging {
 
-  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = cassandraFinder.findEventLog(value, category)
+  /**
+    * This finder method filters the result of the cassandra query depending on the status of the eventLogRow.
+    * If it is disabled, a verification shouldn't succeed.
+    */
+  def findEventLog(value: String, category: String): Future[Option[EventLogRow]] = {
+    cassandraFinder
+      .findEventLog(value, category)
+      .map {
+        case Some(row) if !row.status.contains(Values.UPP_STATUS_DISABLED) => Some(row)
+        case _ => None
+      }
+  }
 
   def findByPayload(value: String): Future[Option[EventLogRow]] = findEventLog(value, Values.UPP_CATEGORY)
 
