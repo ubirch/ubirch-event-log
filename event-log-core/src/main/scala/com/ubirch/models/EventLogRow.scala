@@ -1,8 +1,8 @@
 package com.ubirch.models
 
-import org.json4s.JValue
-
 import java.util.Date
+
+import org.json4s.JValue
 
 /**
   * Concrete type for the EventLogBase whose type T is JValue
@@ -10,7 +10,7 @@ import java.util.Date
   * @param id            String that identifies the EventLog. It can be a hash or a UUID or anything unique
   * @param customerId    Represents an id for a customer id.
   * @param serviceClass  Represents the name from where the log comes.
-  *                      E.G: The name of the class.
+  *                     E.G: The name of the class.
   * @param category      Represents the category for the event. This is useful for
   *                      adding layers of description to the event.
   * @param event         Represents the event that is to be recorded.
@@ -21,9 +21,6 @@ import java.util.Date
   *                      to support its creation from the eventTime.
   * @param signature     Represents the signature for the event log.
   * @param nonce         Represents a value that can be used to calculate the hash of the event.
-  * @param status        Represents the status of the EventlogRow. (At the moment only used for UPP categories.
-  *                      If it has become disabled, it shouldn't be possible to verify the UPP). It's value might
-  *                      be either NONE, Some(ENABLED) or Some(DISABLED). None is equivalent to Some(ENABLED).
   */
 
 case class EventLogRow(
@@ -35,8 +32,7 @@ case class EventLogRow(
     eventTime: Date,
     eventTimeInfo: TimeInfo,
     signature: String,
-    nonce: String,
-    status: Option[String] = None
+    nonce: String
 )
 
 object EventLogRow {

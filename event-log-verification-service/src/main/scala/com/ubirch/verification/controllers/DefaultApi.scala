@@ -1,5 +1,8 @@
 package com.ubirch.verification.controllers
 
+import java.io.{ ByteArrayOutputStream, IOException }
+import java.nio.charset.StandardCharsets
+
 import com.google.inject.Inject
 import com.typesafe.scalalogging.StrictLogging
 import com.ubirch.niomon.cache.RedisCache
@@ -13,13 +16,11 @@ import com.ubirch.verification.services.kafka.AcctEventPublishing
 import com.ubirch.verification.services.{ KeyServiceBasedVerifier, TokenVerification }
 import com.ubirch.verification.util.{ HashHelper, LookupJsonSupport }
 import io.udash.rest.raw.JsonValue
+import javax.inject.{ Named, Singleton }
 import org.json4s.JsonAST.JNull
 import org.msgpack.core.MessagePack
 import org.redisson.api.RMapCache
 
-import java.io.{ ByteArrayOutputStream, IOException }
-import java.nio.charset.StandardCharsets
-import javax.inject.{ Named, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
