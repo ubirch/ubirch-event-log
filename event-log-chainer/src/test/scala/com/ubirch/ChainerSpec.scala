@@ -10,6 +10,7 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
+import com.ubirch.chainer.models.Comparators.stringComparator
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
@@ -29,7 +30,6 @@ import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
-import scala.annotation.tailrec
 import scala.concurrent.Future
 
 class WebClientProvider extends Provider[WebClient] {
@@ -87,15 +87,6 @@ object ChainerSpec {
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
       .createNode
-  }
-
-  @tailrec
-  def go(check: Boolean, compressed: List[CompressedTreeData[String]]): Boolean = {
-    compressed match {
-      case Nil => check
-      case List(_) => check
-      case x :: y :: xs => go(Option(x.root) == y.leaves.headOption, xs)
-    }
   }
 
 }
@@ -741,6 +732,12 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
 
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(Chainer.checkConnectedness(compressed))
+
         val mode = Slave
         val expectedHeaders = Headers.create(
           HeaderNames.TRACE -> mode.value,
@@ -831,12 +828,12 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-
         val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
-        assert(ChainerSpec.go(check = false, compressed))
+        assert(Chainer.checkConnectedness(compressed))
 
         val mode = Master
         val expectedHeadersBigBang = Headers.create(
@@ -955,12 +952,12 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-
         val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
-        assert(ChainerSpec.go(check = false, compressed))
+        assert(Chainer.checkConnectedness(compressed))
 
         val mode = Master
         val expectedHeadersBigBang = Headers.create(

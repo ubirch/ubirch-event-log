@@ -150,8 +150,6 @@ object Chainer {
 
   def getEmptyNodeVal: String = Hasher.hash(s"emptyNode_${UUIDHelper.randomUUID}")
 
-  def getNonce: String = Hasher.hash(s"Nonce_${UUIDHelper.randomUUID}")
-
   def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
   case class CreateConfig[H](
@@ -217,6 +215,26 @@ object Chainer {
       case Some(value) if value.value != compressedTreeData.root => throw new Exception("Root Hash doesn't match Compressed Root")
       case None => None
     }
+
+  }
+
+  def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(implicit comparator: (H, H) => Boolean): Boolean = {
+
+    @tailrec
+    def go(check: Boolean, compressed: List[CompressedTreeData[H]]): Boolean = {
+      compressed match {
+        case Nil => check
+        case List(_) => check
+        case x :: y :: xs =>
+          val nextCheck = (Option(x.root), y.leaves.headOption) match {
+            case (Some(a), Some(b)) => comparator(a, b)
+            case _ => false
+          }
+          go(nextCheck, xs)
+      }
+    }
+
+    go(check = false, compressed)
 
   }
 
