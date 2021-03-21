@@ -1,6 +1,7 @@
 package com.ubirch.chainer.models
 
 import com.ubirch.TestBase
+import com.ubirch.chainer.models.Comparators.stringComparator
 import com.ubirch.chainer.util.Hasher
 import com.ubirch.util.EventLogJsonSupport
 

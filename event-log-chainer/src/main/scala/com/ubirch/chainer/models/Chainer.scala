@@ -203,7 +203,7 @@ object Chainer {
       CompressedTreeData(root.value, leaves)
     }
 
-  def uncompress[H](compressedTreeData: CompressedTreeData[H])(f: (H, H) => H): Option[Node[H]] = {
+  def uncompress[H](compressedTreeData: CompressedTreeData[H])(f: (H, H) => H)(implicit comparator: (H, H) => Boolean): Option[Node[H]] = {
     val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
@@ -211,8 +211,8 @@ object Chainer {
       .headOption
 
     uncompressed match {
-      case c @ Some(value) if value.value == compressedTreeData.root => c
-      case Some(value) if value.value != compressedTreeData.root => throw new Exception("Root Hash doesn't match Compressed Root")
+      case c @ Some(value) if comparator(value.value, compressedTreeData.root) => c
+      case Some(value) if !comparator(value.value, compressedTreeData.root) => throw new Exception("Root Hash doesn't match Compressed Root")
       case None => None
     }
 
