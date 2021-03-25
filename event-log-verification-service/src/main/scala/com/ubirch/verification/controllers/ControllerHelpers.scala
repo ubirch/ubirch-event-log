@@ -95,7 +95,7 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
         (for {
           owner <- validateClaims(claims, upp, origin).timeout(5 seconds)
-          _     <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)).timeout(5 seconds)
+          _ <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)).timeout(5 seconds)
           else Task.delay(None)
         } yield decoratedResponse.response).onErrorRecover {
 

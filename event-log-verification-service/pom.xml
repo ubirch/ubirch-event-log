@@ -135,7 +135,7 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-token-sdk</artifactId>
-            <version>0.6.4-SNAPSHOT</version>
+            <version>0.6.5-SNAPSHOT</version>
         </dependency>
 
         <dependency>
