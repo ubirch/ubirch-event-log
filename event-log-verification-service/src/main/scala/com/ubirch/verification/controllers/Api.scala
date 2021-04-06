@@ -199,7 +199,14 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
 
-  case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response)
+  case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response) {
+    def isSuccess: Boolean = {
+      response match {
+        case Success(_, _, _) => true
+        case _ => false
+      }
+    }
+  }
   object DecoratedResponse {
 
     case class Decoration(response: Response) {
