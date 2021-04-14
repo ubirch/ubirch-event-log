@@ -103,6 +103,7 @@
 
         <!-- sonarqube property used for code analyzing -->
         <sonar.projectKey>ubirch_ubirch-event-log</sonar.projectKey>
+        <sonar.moduleKey>${artifactId}</sonar.moduleKey>
 
     </properties>
 
