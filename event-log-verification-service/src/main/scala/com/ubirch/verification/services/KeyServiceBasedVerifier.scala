@@ -12,15 +12,15 @@ class KeyServiceBasedVerifier @Inject() (keyServer: KeyServerClient) extends Def
     verify(pm.getUUID, pm.getSigned, 0, pm.getSigned.length, pm.getSignature)
   } catch {
     case e: InvalidKeyException =>
-      logger.warn("Invalid Key", e)
+      logger.warn("invalid_key=" + e.getMessage, e)
       false
 
     case e: NoSuchAlgorithmException =>
-      logger.warn(e.getMessage)
+      logger.warn("algo_not_found=" + e.getMessage, e)
       false
 
     case e: Exception =>
-      logger.error("Unexpected error", e)
+      logger.error("error_getting_key=" + e.getMessage, e)
       false
   }
 }
