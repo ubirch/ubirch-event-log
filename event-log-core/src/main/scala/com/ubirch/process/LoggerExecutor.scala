@@ -9,7 +9,7 @@ import com.ubirch.models.{ EventLog, EventsDAO, Values }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, StoringIntoEventLogException }
+import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, EventLogDatabaseException }
 import javax.inject._
 import monix.eval.Task
 import monix.execution.Scheduler
@@ -30,9 +30,6 @@ class LoggerExecutor @Inject() (
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
   lazy val storeLookups: Boolean = config.getBoolean(StoreConfPaths.STORE_LOOKUPS)
-  lazy val store: EventLog => Future[Int] = (eventLog: EventLog) =>
-    if (storeLookups) events.insertFromEventLog(eventLog)
-    else events.insertFromEventLogWithoutLookups(eventLog)
 
   logger.info("storing_lookups={}", storeLookups)
 
@@ -60,7 +57,7 @@ class LoggerExecutor @Inject() (
         ).getOrElse(throw ParsingIntoEventLogException("Error Parsing Into Event Log", PipeData(consumerRecord, None))))
 
         res <- Task
-          .fromFuture(store(el))
+          .fromFuture(processEventLog(el))
           .doOnFinish {
             case Some(_) => Task.delay(failureCounter.counter.labels(metricsSubNamespace).inc())
             case None => Task.delay(successCounter.counter.labels(metricsSubNamespace).inc())
@@ -69,11 +66,11 @@ class LoggerExecutor @Inject() (
               logger.error("Error connecting to host: " + e)
               throw e
             case e: InvalidQueryException =>
-              logger.error("Error storing data (invalid query): " + e)
+              logger.error("Error processing data (invalid query): " + e)
               throw e
             case e: Exception =>
-              logger.error("Error storing data (other): " + e)
-              throw StoringIntoEventLogException("Error storing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
+              logger.error("Error processing data (other): " + e)
+              throw EventLogDatabaseException("Error processing data (other)", PipeData(consumerRecord, Some(el)), e.getMessage)
           }
 
       } yield {
@@ -84,5 +81,23 @@ class LoggerExecutor @Inject() (
 
   }
 
+  private def processEventLog(eventLog: EventLog): Future[Int] = {
+    eventLog.category match {
+      case Values.UPP_ENABLE_CATEGORY =>
+        logger.warn(s"it has not been implemented yet. category: ${eventLog.category}")
+        Future.successful(0)
+      case Values.UPP_DISABLE_CATEGORY =>
+        logger.warn(s"it has not been implemented yet. category: ${eventLog.category}")
+        Future.successful(0)
+      case Values.UPP_DELETE_CATEGORY =>
+        logger.info(s"delete event log. id: ${eventLog.id}")
+        // the target UPP that is deleted should have an UPP category
+        events.deleteFromEventLog(eventLog.copy(category = Values.UPP_CATEGORY))
+      case _ =>
+        logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
+        if (storeLookups) events.insertFromEventLog(eventLog)
+        else events.insertFromEventLogWithoutLookups(eventLog)
+    }
+  }
 }
 

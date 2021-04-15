@@ -66,7 +66,7 @@ trait Versions {
     def getUPP(hash: Array[Byte], disableRedisLookup: Boolean, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.upp") {
         authorization(authToken) { claims =>
-          validateClaimsAndregisterAcctEvent(origin, claims) {
+          validateClaimsAndRegisterAcctEvent(origin, claims) {
             lookupBase(hash, Simple, AnchorsNoPath, Normal, disableRedisLookup)
           }
         }
@@ -76,7 +76,7 @@ trait Versions {
     def verifyUPP(hash: Array[Byte], authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.simple") {
         authorization(authToken) { claims =>
-          validateClaimsAndregisterAcctEvent(origin, claims) {
+          validateClaimsAndRegisterAcctEvent(origin, claims) {
             verifyBase(
               hash,
               Simple,
@@ -91,7 +91,7 @@ trait Versions {
     def verifyUPPWithUpperBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.anchor") {
         authorization(authToken) { claims =>
-          validateClaimsAndregisterAcctEvent(origin, claims) {
+          validateClaimsAndRegisterAcctEvent(origin, claims) {
             verifyBase(
               hash,
               ShortestPath,
@@ -106,7 +106,7 @@ trait Versions {
     def verifyUPPWithUpperAndLowerBound(hash: Array[Byte], responseForm: String, blockchainInfo: String, authToken: String, origin: String): Future[Response] = {
       registerMetrics("v2.record") {
         authorization(authToken) { claims =>
-          validateClaimsAndregisterAcctEvent(origin, claims) {
+          validateClaimsAndRegisterAcctEvent(origin, claims) {
             verifyBase(
               hash,
               UpperLower,

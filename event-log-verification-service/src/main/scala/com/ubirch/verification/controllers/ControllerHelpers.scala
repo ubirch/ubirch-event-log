@@ -3,21 +3,26 @@ package com.ubirch.verification.controllers
 import java.util.{ Date, UUID }
 
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.api.{ Claims, InvalidClaimException, TokenSDKException }
+import com.ubirch.defaults.TokenApi
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.controllers.Api.{ AuthorizationHeaderNotFound, DecoratedResponse, Failure, Forbidden, NotFound, Response, Success }
 import com.ubirch.verification.models.AcctEvent
 import com.ubirch.verification.services.kafka.AcctEventPublishing
-import com.ubirch.verification.services.{ Claims, TokenVerification }
-import com.ubirch.verification.util.Exceptions.InvalidSpecificClaim
 import io.prometheus.client.{ Counter, Summary }
 import io.udash.rest.raw.HttpErrorException
-import monix.execution.CancelableFuture
+import monix.eval.Task
+import monix.execution.Scheduler
 import org.apache.kafka.clients.producer.RecordMetadata
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 import scala.util.control.NoStackTrace
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
-class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: TokenVerification)(implicit val ec: ExecutionContext) extends LazyLogging {
+class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: ExecutionContext) extends LazyLogging {
+
+  implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
   private val processingTimer: Summary = Summary
     .build("processing_time_seconds", "Message processing time in seconds")
@@ -59,85 +64,68 @@ class ControllerHelpers(accounting: AcctEventPublishing, tokenVerification: Toke
 
   }
 
-  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): CancelableFuture[RecordMetadata] = {
+  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): Task[RecordMetadata] = {
     accounting
-      .publish_!(AcctEvent(
+      .publish(AcctEvent(
         id = UUID.randomUUID(),
         ownerId = ownerId,
         identityId = Option(protocolMessage.getUUID),
         category = "verification",
-        description = Some(claims.content.purpose),
+        description = Some(claims.purpose),
         token = Some(claims.token),
         occurredAt = new Date()
       ))
   }
 
-  private[controllers] def validateClaimsAndregisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
-    import TokenVerification._
+  private def validateClaims(claims: Claims, upp: ProtocolMessage, origin: String) = {
+    for {
+      owner <- Task.fromTry(claims.isSubjectUUID)
+      _ <- Task.fromTry(claims.validateOrigin(Option(origin).filterNot(_ == "No-Header-Found")))
+      _ <- if (claims.hasMaybeTargetIdentities) Task.fromTry(claims.validateIdentity(upp.getUUID)) else Task.delay(upp.getUUID)
+      exRes <- if (claims.hasMaybeGroups) TokenApi.externalStateVerify(claims.token, upp.getUUID) else Task.delay(true)
+      _ <- if (!exRes) Task.raiseError(InvalidClaimException("Invalid Validation", "External Validation Failed")) else Task.unit
+    } yield owner
+  }
 
-    f.transform { r =>
+  private[controllers] def validateClaimsAndRegisterAcctEvent[T](origin: String, claims: Claims)(f: => Future[DecoratedResponse]): Future[Response] = {
 
-      val res: scala.util.Try[Response] = for {
-        owner <- claims.all.getSubject
-        DecoratedResponse(maybeUPP, response) <- r
-      } yield {
+    f.flatMap { decoratedResponse =>
 
-        maybeUPP match {
-          case Some(upp) =>
+      decoratedResponse.protocolMessage.map { upp =>
 
-            val validation = for {
-              _ <- claims.validateUUID(upp)
-              _ <- claims.validateOrigin(Option(origin))
-            } yield ()
+        (for {
+          owner <- validateClaims(claims, upp, origin).timeout(5 seconds)
+          _ <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)).timeout(5 seconds)
+          else Task.delay(None)
+        } yield decoratedResponse.response).onErrorRecover {
 
-            validation match {
-              case util.Success(_) =>
+          case exception: TimeoutException =>
+            logger.error("request_timed_out=" + exception.getMessage)
+            Failure()
 
-                response match {
-                  case Success(_, _, _) => publishAcctEvent(owner, upp, claims)
-                  case _ => // Do nothing
-                }
+          case exception: TokenSDKException =>
+            logger.error("token_sdk_exception=" +  exception.getMessage, exception)
+            Forbidden
 
-                response
+          case exception =>
+            logger.error("unexpected_error=" +  exception.getMessage, exception)
+            Forbidden
 
-              case util.Failure(exception) =>
-                logger.warn(exception.getMessage)
-                Forbidden
-
-            }
-
-          case None => response
         }
 
-      }
-
-      res.recover {
-        case e: InvalidSpecificClaim =>
-          logger.error(s"error_getting_owner_token=${e.getMessage}", e)
-          Forbidden
-        case e: Exception =>
-          logger.error(s"unknown_token=${e.getMessage}", e)
-          Failure()
-      }
+      }.getOrElse {
+        Task.delay(decoratedResponse.response)
+      }.runToFuture
 
     }
 
   }
 
-  private def getClaims(token: String): Option[Claims] = token.split(" ").toList match {
-    case List(x, y) =>
-      val isBearer = x.toLowerCase == "bearer"
-      val claims = tokenVerification.decodeAndVerify(y)
-      if (isBearer && claims.isDefined) claims
-      else None
-    case _ => None
-  }
-
   private[controllers] def authorization[T](authToken: String)(f: Claims => Future[Response]): () => Future[Response] = {
-    lazy val claims = getClaims(authToken)
+    lazy val claims = TokenApi.getClaims(authToken)
     authToken match {
       case "No-Header-Found" => () => Future.successful(AuthorizationHeaderNotFound)
-      case _ if claims.isDefined => () => f(claims.get)
+      case _ if claims.isSuccess => () => f(claims.get)
       case _ => () => Future.successful(Forbidden)
     }
   }
