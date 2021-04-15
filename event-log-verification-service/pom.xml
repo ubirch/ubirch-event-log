@@ -23,6 +23,7 @@
         <!-- versions -->
         <build.number>${timestamp}-dev</build.number>
         <event-log-core.version>1.5.0</event-log-core.version>
+        <ubirch-kafka-express.version>1.2.12-SNAPSHOT</ubirch-kafka-express.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -71,7 +72,7 @@
 
         <!-- HTTP -->
         <udash.version>0.8.0-RC2</udash.version>
-        <jetty.version>9.4.17.v20190418</jetty.version>
+        <jetty.version>9.4.35.v20201120</jetty.version>
 
         <!-- Logging -->
         <slf4j-api.version>1.7.25</slf4j-api.version>
@@ -104,6 +105,13 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>io.monix</groupId>
+            <artifactId>monix_${scala.compat.version}</artifactId>
+            <version>3.1.0</version>
+            <type>pom</type>
+        </dependency>
+
         <!-- scala, logging etc. -->
         <dependency>
             <groupId>com.typesafe.scala-logging</groupId>
@@ -117,6 +125,18 @@
         </dependency>
 
         <!-- ubirch -->
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-kafka-express</artifactId>
+            <version>${ubirch-kafka-express.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-token-sdk</artifactId>
+            <version>2.0.1-SNAPSHOT</version>
+        </dependency>
 
         <dependency>
             <groupId>com.ubirch</groupId>

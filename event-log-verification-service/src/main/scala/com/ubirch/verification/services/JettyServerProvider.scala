@@ -2,7 +2,7 @@ package com.ubirch.verification.services
 
 import com.google.inject.Provider
 import com.typesafe.config.Config
-import com.ubirch.verification.controllers.{ Api, DefaultApi }
+import com.ubirch.verification.controllers.Api
 import com.ubirch.verification.util.udash.JettyServer
 import io.udash.rest.openapi.{ Info, Server }
 import javax.inject._

@@ -36,7 +36,7 @@ The <response> codes could be:
 #### Example
 
 ```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MTU5NTI0MDIsImlhdCI6MTYwNDU2MjAwMiwianRpIjoiY2JkZDM5ODctYjY4NS00OGJlLTlkMmUtNjc3NDllMDUwMzllIiwicHVycG9zZSI6IktpbmcgRHVkZSAtIENvbmNlcnQiLCJ0YXJnZXRfaWRlbnRpdHkiOiI4NDBiN2UyMS0wM2U5LTRkZTctYmIzMS0wYjk1MjRmM2I1MDAiLCJyb2xlIjoidmVyaWZpZXIifQ.NbBA62DjZPDM7coWyF6zMqUTRbwCi26t_Ksp83fH7TIbU6c1YICTdiDtEOo_UMBqo6XpOEMbIIhkVUQiEyqqOA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJFUzI1NiJ9.eyJpc3MiOiJodHRwczovL3Rva2VuLmRldi51YmlyY2guY29tIiwic3ViIjoiOTYzOTk1ZWQtY2UxMi00ZWE1LTg5ZGMtYjE4MTcwMWQxZDdiIiwiYXVkIjoiaHR0cHM6Ly92ZXJpZnkuZGV2LnViaXJjaC5jb20iLCJleHAiOjc5MjE1MzU0NzMsImlhdCI6MTYxMDE0NTA3MywianRpIjoiZjM1OWVhZjEtMmE5MS00NDYyLTk2MmItNWM4NTUyM2JhZmFkIiwicHVycG9zZSI6IlNoYXJrIFRhbmsgLSBNZXhpY28iLCJ0YXJnZXRfaWRlbnRpdGllcyI6WyI3NTQ5YWNkOC05MWUxLTQyMzAtODMzYS0yZjM4NmUwOWI5NmYiXSwicm9sZSI6InZlcmlmaWVyIiwic2NvcGUiOiJ2ZXIifQ.Xv2ITreHDbt9D48adjx0NnO_ZXU5CciG4-ooIprn32Fxu5VTFRr_t3vZM8b39lLmIPzoMZB-d3wGWOtuVGPCkA
 ```
 
 This token has the following header:
@@ -53,12 +53,15 @@ This token has the following header:
   "iss": "https://token.dev.ubirch.com",
   "sub": "963995ed-ce12-4ea5-89dc-b181701d1d7b",
   "aud": "https://verify.dev.ubirch.com",
-  "exp": 7915952402,
-  "iat": 1604562002,
-  "jti": "cbdd3987-b685-48be-9d2e-67749e05039e",
-  "purpose": "King Dude - Concert",
-  "target_identity": "840b7e21-03e9-4de7-bb31-0b9524f3b500",
-  "role": "verifier"
+  "exp": 7921535473,
+  "iat": 1610145073,
+  "jti": "f359eaf1-2a91-4462-962b-5c85523bafad",
+  "purpose": "Shark Tank - Mexico",
+  "target_identities": [
+    "7549acd8-91e1-4230-833a-2f386e09b96f"
+  ],
+  "role": "verifier",
+  "scope": "ver"
 }
 ```
 
@@ -71,8 +74,9 @@ Where
     'iat' is the initial time
     'jti' is a unique uuid id for the token
     'purpose' is a description of the main usage for this token, like a concert or artist show
-    'target_identity': it is the entity for which the subject can perform the action on the target audience system
+    'target_identities': it is the entities for which the subject can perform the action on the target audience system
     'role' is the role that was assigned to this token
+    'scope' is the action allowed for this token.
 ```
 
 

@@ -35,10 +35,15 @@
         </encoder>
     </appender>
 
-    <logger name="com.ubirch" level="ALL"/>
+    <logger name="kafka" level="WARN"/>
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.apache.zookeeper" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
     <logger name="com.ubirch.niomon.cache.RedisCache" level="WARN"/>
     <logger name="com.ubirch.verification.services.KeyServerClient" level="WARN"/>
     <logger name="com.ubirch.verification.services.KeyServiceBasedVerifier" level="WARN"/>
+
+    <logger name="com.ubirch" level="DEBUG"/>
 
     <logger name="org.apache.commons" level="WARN"/>
     <logger name="httpclient.wire" level="WARN"/>
@@ -52,7 +57,7 @@
     <logger name="io.netty" level="WARN"/>
     <logger name="io.getquill.CassandraAsyncContext" level="WARN"/>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="JSONSTDOUT"/>
     </root>
 </configuration>

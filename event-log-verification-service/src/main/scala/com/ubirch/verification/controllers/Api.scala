@@ -2,9 +2,10 @@ package com.ubirch.verification.controllers
 
 import com.avsystem.commons.rpc.AsRaw
 import com.fasterxml.jackson.databind.JsonNode
+import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.verification.models.{ AnchorsNoPath, Normal }
 import com.ubirch.verification.util.udash.{ VerificationServiceRestApiCompanion, cors }
-import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, pathSummary, summary, tags }
+import io.udash.rest.openapi.adjusters.{ adjustSchema, description, example, tags }
 import io.udash.rest.openapi.{ DataType, RefOr, RestSchema, Schema }
 import io.udash.rest.raw._
 import io.udash.rest.{ Query, _ }
@@ -13,7 +14,6 @@ import scala.concurrent.Future
 import scala.language.implicitConversions
 
 trait V1 {
-  //V1
   @cors
   @CustomBody
   @POST("upp")
@@ -61,7 +61,6 @@ trait V1 {
 }
 
 trait V2 {
-  //V2
   @cors
   @CustomBody
   @POST("v2/upp")
@@ -70,14 +69,23 @@ trait V2 {
       "It checks that it has been stored on our backend. No further checks are performed. You may think about this as a quick check."
   )
   @tags("v2")
-  def getUPPV2(hash: Array[Byte], @Query disableRedisLookup: Boolean = false, @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+  def getUPPV2(
+      hash: Array[Byte],
+      @Query disableRedisLookup: Boolean = false,
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
+  ): Future[Api.Response]
 
   @cors
   @CustomBody // without that this api endpoint would expect json `{"payload": []}`
   @POST("v2/upp/verify")
   @description("This query checks for the existence of the upp in our backend and additionally, it checks the \"chain\" and the validity of the \"keys\" (That the UPP can be verified by one of the available keys for the particualar device/entity.)")
   @tags("v2")
-  def verifyUPPV2(hash: Array[Byte], @Header("authorization") authToken: String = "No-Header-Found"): Future[Api.Response]
+  def verifyUPPV2(
+      hash: Array[Byte],
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
+  ): Future[Api.Response]
 
   @cors
   @CustomBody
@@ -90,7 +98,8 @@ trait V2 {
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value,
-      @Header("authorization") authToken: String = "No-Header-Found"
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
   ): Future[Api.Response]
 
   @cors
@@ -106,7 +115,8 @@ trait V2 {
       hash: Array[Byte],
       @Query("response_form") responseForm: String = AnchorsNoPath.value,
       @Query("blockchain_info") blockchainInfo: String = Normal.value,
-      @Header("authorization") authToken: String = "No-Header-Found"
+      @Header("authorization") authToken: String = "No-Header-Found",
+      @Header("origin") origin: String = "No-Header-Found"
   ): Future[Api.Response]
 
 }
@@ -188,5 +198,24 @@ object Api extends VerificationServiceRestApiCompanion[Api] {
   case object NotFound extends Response
   case class Failure(version: String = "1.0", status: String = "NOK", errorType: String = "ValidationError", errorMessage: String = "signature verification failed") extends Response
   object Failure extends RestDataCompanion[Failure]
+
+  case class DecoratedResponse(protocolMessage: Option[ProtocolMessage], response: Response) {
+    def isSuccess: Boolean = {
+      response match {
+        case Success(_, _, _) => true
+        case _ => false
+      }
+    }
+  }
+  object DecoratedResponse {
+
+    case class Decoration(response: Response) {
+      def withNoPM: DecoratedResponse = DecoratedResponse(None, response)
+      def boundPM(protocolMessage: ProtocolMessage): DecoratedResponse = DecoratedResponse(Option(protocolMessage), response)
+    }
+
+    implicit def toDecoration(response: Response): Decoration = Decoration(response)
+
+  }
 
 }
