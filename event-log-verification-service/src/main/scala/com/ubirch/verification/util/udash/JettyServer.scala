@@ -8,6 +8,7 @@ import io.udash.rest.openapi.OpenApi
 import io.udash.rest.raw.RawRest.HandleRequest
 import io.udash.rest.raw.{ HttpMethod, PlainValue, RawRest, RestMetadata }
 import org.eclipse.jetty
+import org.eclipse.jetty.server.{ HttpConnectionFactory, Server }
 import org.eclipse.jetty.servlet.{ DefaultServlet, ServletContextHandler, ServletHolder }
 
 import scala.concurrent.duration.FiniteDuration
@@ -47,10 +48,19 @@ class JettyServer(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
   def startAndJoin(): Unit = {
     servletHandler.addServlet(new ServletHolder(userApiServlet), "/api/*")
     addSwagger(docs, swaggerPath)
-
+    disableServerVersionHeader(server)
     server.setHandler(servletHandler)
     server.start()
     server.join()
+  }
+
+  def disableServerVersionHeader(server: Server): Unit = {
+    server.getConnectors.foreach { connector =>
+      connector.getConnectionFactories
+        .stream()
+        .filter(cf => cf.isInstanceOf[HttpConnectionFactory])
+        .forEach(cf => cf.asInstanceOf[HttpConnectionFactory].getHttpConfiguration.setSendServerVersion(false))
+    }
   }
 
   private def addSwagger(openApi: OpenApi, swaggerPrefix: String): Unit = {
