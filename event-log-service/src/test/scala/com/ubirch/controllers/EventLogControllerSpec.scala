@@ -2,10 +2,10 @@ package com.ubirch.controllers
 
 import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.ubirch.TestBase
-import com.ubirch.models.{ EventLogGenericResponse, Values }
+import com.ubirch.models.{EventLogGenericResponse, Values}
 import com.ubirch.service.ExtServiceBinder
 import com.ubirch.services.ServiceBinder
-import com.ubirch.util.{ EventLogJsonSupport, InjectorHelper }
+import com.ubirch.util.{EventLogJsonSupport, InjectorHelper}
 import io.prometheus.client.CollectorRegistry
 
 class EventLogControllerSpec extends TestBase {
@@ -188,6 +188,7 @@ class EventLogControllerSpec extends TestBase {
           |    milli         int,
           |    event_time    timestamp,
           |    nonce         text,
+          |    status        text,
           |    PRIMARY KEY ((id, category), year, month, day, hour, minute, second, milli)
           |) WITH CLUSTERING ORDER BY (year DESC, month DESC, day DESC, hour DESC, minute DESC, second DESC, milli DESC);
           |""".stripMargin,

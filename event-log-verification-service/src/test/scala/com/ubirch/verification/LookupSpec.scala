@@ -19,7 +19,7 @@ import javax.inject._
 import org.json4s.jackson.JsonMethods.parse
 import org.json4s.{ JNull, JValue }
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
 
@@ -178,7 +178,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   val insertEventSql: String =
     s"""
-       |INSERT INTO events (id, customer_id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, nonce)
+       |INSERT INTO events (id, customer_id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, nonce, status)
        | VALUES ('c29tZSBieXRlcyEAAQIDnw==', 'customer_id', 'service_class', '${Values.UPP_CATEGORY}', '{
        |   "hint":0,
        |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
@@ -187,7 +187,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
        |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
        |   "version":34
        |}', '2019-01-29T17:00:28.333Z', 2019, 5, 2, 19, 439, 16, 0, '0681D35827B17104A2AACCE5A08C4CD1BC8A5EF5EFF4A471D15976693CC0D6D67392F1CACAE63565D6E521D2325A998CDE00A2FEF5B65D0707F4158000EB6D05',
-       |'34376336396166392D336533382D343665652D393063332D616265313364383335353266');
+       |'34376336396166392D336533382D343665652D393063332D616265313364383335353266', null);
     """.stripMargin
 
   val data: String =
@@ -559,6 +559,7 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    milli int,
           |    event_time timestamp,
           |    nonce text,
+          |    status text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
         """.stripMargin,

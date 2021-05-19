@@ -1,11 +1,11 @@
 package com.ubirch.lookup.models
 
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.models.{ EventLogRow, Values }
-import javax.inject._
+import com.ubirch.models.{EventLogRow, Values}
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import javax.inject._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 trait Finder extends LazyLogging {
 
@@ -92,8 +92,15 @@ class DefaultFinder @Inject() (cassandraFinder: CassandraFinder, gremlinFinder: 
   extends Finder
   with LazyLogging {
 
+  /**
+    * Method filters all EventLogRows that are disabled, as those shouldn't become verified anymore.
+    * If the status is None or Some(Values.UPP_STATUS_ENABLED) the UPPs are verifiable.
+    */
   def findEventLog(value: String, category: String): Future[Option[EventLogRow]] =
-    cassandraFinder.findEventLog(value, category)
+    cassandraFinder.findEventLog(value, category).map {
+      case Some(row) if !row.status.contains(Values.UPP_STATUS_DISABLED) => Some(row)
+      case _ => None
+    }
 
   def findByPayload(value: String): Future[Option[EventLogRow]] =
     findEventLog(value, Values.UPP_CATEGORY)
