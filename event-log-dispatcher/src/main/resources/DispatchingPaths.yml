@@ -6,6 +6,11 @@
       name: ubirch-svalbard-evt-foundation-json
     - tags: [discovery]
       name: ubirch-svalbard-evt-discovery-creator-json
+- category: ACCT
+  topics:
+    - tags: [ accounting ]
+      name: ubirch-acct-evt-json
+      data_to_send: event
 - category: PUB_KEY
   topics:
     - tags: [storage]
