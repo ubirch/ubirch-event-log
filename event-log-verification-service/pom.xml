@@ -92,11 +92,6 @@
 
     <repositories>
         <repository>
-            <id>bintray-cakesolutions-maven</id>
-            <name>bintray</name>
-            <url>https://dl.bintray.com/cakesolutions/maven</url>
-        </repository>
-        <repository>
             <id>ossrh</id>
             <name>sonotype-snapshots</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>

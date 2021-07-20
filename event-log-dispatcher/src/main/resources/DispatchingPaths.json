@@ -62,6 +62,18 @@
     ]
   },
   {
+    "category": "ACCT",
+    "topics": [
+      {
+        "tags": [
+          "accounting"
+        ],
+        "name": "ubirch-acct-evt-json",
+        "data_to_send": "event"
+      }
+    ]
+  },
+  {
     "category": "PUB_KEY",
     "topics": [
       {
