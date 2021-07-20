@@ -1,11 +1,12 @@
 package com.ubirch.encoder.process
 
 import java.io.ByteArrayInputStream
+import java.util.{ Date, UUID }
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
-import com.ubirch.encoder.models.{ BlockchainResponse, PublicKey }
+import com.ubirch.encoder.models.{ AcctEvent, BlockchainResponse, PublicKey }
 import com.ubirch.encoder.services.kafka.consumer.EncoderPipeData
 import com.ubirch.encoder.services.metrics.DefaultEncodingsCounter
 import com.ubirch.encoder.util.EncoderJsonSupport
@@ -20,6 +21,7 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
+
 import javax.inject._
 import monix.eval.Task
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -88,18 +90,20 @@ class EncoderExecutor @Inject() (
     Future.successful(EncoderPipeData(consumerRecords, Vector.empty))
   }
 
-  def run(x: ConsumerRecord[String, Array[Byte]]): Task[RecordMetadata] = {
+  private def run(x: ConsumerRecord[String, Array[Byte]]): Task[List[RecordMetadata]] = {
     Task.defer {
       var jValue: JValue = JNull
       try {
         val bytes = new ByteArrayInputStream(x.value())
         jValue = parse(bytes)
         val ldp = EncoderPipeData(Vector(x), Vector(jValue))
-        val pr = encode(ldp).map { el =>
+        encode(ldp).map { el =>
           val _el = if (sign) el.sign(config) else el
           ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
-        }.getOrElse(throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue))))
-        Task.fromFuture(stringProducer.send(pr))
+        } match {
+          case Nil => throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue)))
+          case prs => Task.sequence(prs.map(pr => Task.fromFuture(stringProducer.send(pr))))
+        }
       } catch {
         case e: Exception =>
           throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
@@ -107,48 +111,81 @@ class EncoderExecutor @Inject() (
     }
   }
 
-  val UPP: PartialFunction[EncoderPipeData, Option[EventLog]] = {
+  private val UPP: PartialFunction[EncoderPipeData, List[EventLog]] = {
 
     case encoderPipeData @ EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[MessageEnvelope](jv).get).isSuccess =>
       // there is a guarantee that this json has the format of MessageEnvelope
       val messageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
+      val _customerId = UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
 
-      UPPHelper.getCategory(messageEnvelope).flatMap {
-        case Values.UPP_CATEGORY =>
-          encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
-          (for {
-            customerId <- UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
-            payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
-            payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
-            signatureLookupKey <- UPPHelper.createSignatureLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
-            deviceLookupKey <- UPPHelper.createDeviceLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
-            chainLookupKey <- UPPHelper.createChainLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
-          } yield {
-            Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
-              .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
-              .withCustomerId(customerId)
-              .withRandomNonce
-              .withNewId(payloadHash)
-              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
-          }).get
-
-        case updateCategory @ (Values.UPP_DISABLE_CATEGORY | Values.UPP_ENABLE_CATEGORY | Values.UPP_DELETE_CATEGORY) =>
-          encodingsCounter.counter.labels(metricsSubNamespace, updateCategory).inc()
-          (for {
-            customerId <- UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
-            payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
-            payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
-          } yield {
-            Some(EventLog("upp-update-event-log-entry", updateCategory, payload)
-              .withCustomerId(customerId)
-              .withRandomNonce
-              .withNewId(payloadHash)
-              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
-          }).get
+      def onUPPCat = {
+        encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
+        (for {
+          customerId <- _customerId
+          payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
+          payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
+          signatureLookupKey <- UPPHelper.createSignatureLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+          deviceLookupKey <- UPPHelper.createDeviceLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+          chainLookupKey <- UPPHelper.createChainLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
+        } yield {
+          Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
+            .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
+            .withCustomerId(customerId)
+            .withRandomNonce
+            .withNewId(payloadHash)
+            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+        }).get
       }
+
+      def onUpdateCat(updateCategory: String) = {
+        encodingsCounter.counter.labels(metricsSubNamespace, updateCategory).inc()
+        (for {
+          customerId <- _customerId
+          payload <- Try(EncoderJsonSupport.ToJson[ProtocolMessage](messageEnvelope.ubirchPacket).get)
+          payloadHash <- UPPHelper.createPayloadHash(messageEnvelope, encoderPipeData)
+        } yield {
+          Some(EventLog("upp-update-event-log-entry", updateCategory, payload)
+            .withCustomerId(customerId)
+            .withRandomNonce
+            .withNewId(payloadHash)
+            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+        }).get
+      }
+
+      val uppF = UPPHelper.getCategory(messageEnvelope).flatMap {
+        case Values.UPP_CATEGORY => onUPPCat
+        case updateCategory @ (Values.UPP_DISABLE_CATEGORY |
+          Values.UPP_ENABLE_CATEGORY |
+          Values.UPP_DELETE_CATEGORY) => onUpdateCat(updateCategory)
+      }.toList
+
+      val acctF = UPPHelper.getCategory(messageEnvelope).flatMap {
+        case Values.UPP_CATEGORY =>
+          (for {
+            customerId <- _customerId
+            payload <- Try(EncoderJsonSupport.ToJson[AcctEvent](AcctEvent(
+              UUIDHelper.randomUUID,
+              ownerId = UUID.fromString(customerId),
+              identityId = Some(messageEnvelope.ubirchPacket.getUUID),
+              category = "anchoring",
+              description = Some("anchoring for " + messageEnvelope.ubirchPacket.getUUID.toString),
+              token = None,
+              occurredAt = new Date()
+            )).get)
+          } yield {
+            Some(EventLog("upp-acct-event-log-entry", Values.ACCT_CATEGORY, payload)
+              .withCustomerId(customerId)
+              .withRandomNonce
+              .withNewId
+              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+          }).get
+        case _ => None
+      }.toList
+
+      uppF ++ acctF
   }
 
-  val PublicBlockchain: PartialFunction[EncoderPipeData, Option[EventLog]] = {
+  private val PublicBlockchain: PartialFunction[EncoderPipeData, List[EventLog]] = {
     case EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get).isSuccess =>
       (for {
         blockchainResponse <- Try(EncoderJsonSupport.FromJson[BlockchainResponse](jv).get)
@@ -169,10 +206,10 @@ class EncoderExecutor @Inject() (
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
         Some(eventLog)
-      }).get
+      }).get.toList
   }
 
-  val PublicKey: PartialFunction[EncoderPipeData, Option[EventLog]] = {
+  private val PublicKey: PartialFunction[EncoderPipeData, List[EventLog]] = {
     case EncoderPipeData(_, Vector(jv)) if Try(EncoderJsonSupport.FromJson[PublicKey](jv).get).isSuccess =>
       (for {
         publicKey <- Try(EncoderJsonSupport.FromJson[PublicKey](jv).get)
@@ -193,10 +230,10 @@ class EncoderExecutor @Inject() (
           .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM)
       } yield {
         Some(eventLog)
-      }).get
+      }).get.toList
   }
 
-  val OrElse: PartialFunction[EncoderPipeData, Option[EventLog]] = {
+  private val OrElse: PartialFunction[EncoderPipeData, List[EventLog]] = {
     case encoderPipeData @ EncoderPipeData(_, Vector(jv)) =>
       encodingsCounter.counter.labels(metricsSubNamespace, Values.UNKNOWN_CATEGORY).inc()
       val data = compact(jv)
@@ -204,6 +241,6 @@ class EncoderExecutor @Inject() (
       throw EventLogFromConsumerRecordException(s"$data", encoderPipeData)
   }
 
-  val encode: PartialFunction[EncoderPipeData, Option[EventLog]] =
+  private val encode: PartialFunction[EncoderPipeData, List[EventLog]] =
     UPP orElse PublicBlockchain orElse PublicKey orElse OrElse
 }
