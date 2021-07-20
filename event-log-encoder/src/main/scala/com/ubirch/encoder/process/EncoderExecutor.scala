@@ -17,6 +17,7 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
 import com.ubirch.protocol.ProtocolMessage
+import com.ubirch.services.kafka.EnrichedConsumerRecord.enrichedConsumerRecord
 import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Implicits.enrichedConfig
@@ -118,7 +119,7 @@ class EncoderExecutor @Inject() (
       val messageEnvelope = EncoderJsonSupport.FromJson[MessageEnvelope](jv).get
       val _customerId = UPPHelper.getFieldFromContext(messageEnvelope, CUSTOMER_ID_FIELD, encoderPipeData)
 
-      def onUPPCat = {
+      def onUPPCat: Option[EventLog] = {
         encodingsCounter.counter.labels(metricsSubNamespace, Values.UPP_CATEGORY).inc()
         (for {
           customerId <- _customerId
@@ -137,7 +138,7 @@ class EncoderExecutor @Inject() (
         }).get
       }
 
-      def onUpdateCat(updateCategory: String) = {
+      def onUpdateCat(updateCategory: String): Option[EventLog] = {
         encodingsCounter.counter.labels(metricsSubNamespace, updateCategory).inc()
         (for {
           customerId <- _customerId
@@ -152,33 +153,38 @@ class EncoderExecutor @Inject() (
         }).get
       }
 
+      def acctEvent: Option[EventLog] = {
+        (for {
+          customerId <- _customerId
+          payload <- Try(EncoderJsonSupport.ToJson[AcctEvent](AcctEvent(
+            UUIDHelper.randomUUID,
+            ownerId = UUID.fromString(customerId),
+            identityId = Some(messageEnvelope.ubirchPacket.getUUID),
+            category = "anchoring",
+            description = Some("anchoring for " + messageEnvelope.ubirchPacket.getUUID.toString),
+            token = encoderPipeData.consumerRecords.headOption.flatMap(cr => cr.findHeader("X-Ubirch-DeviceInfo-Token")),
+            occurredAt = new Date()
+          )).get)
+        } yield {
+          Some(EventLog("upp-acct-event-log-entry", Values.ACCT_CATEGORY, payload)
+            .withCustomerId(customerId)
+            .withRandomNonce
+            .withNewId
+            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+        }).get
+      }
+
       val uppF = UPPHelper.getCategory(messageEnvelope).flatMap {
         case Values.UPP_CATEGORY => onUPPCat
-        case updateCategory @ (Values.UPP_DISABLE_CATEGORY |
+        case updateCategory @ (
+          Values.UPP_DISABLE_CATEGORY |
           Values.UPP_ENABLE_CATEGORY |
-          Values.UPP_DELETE_CATEGORY) => onUpdateCat(updateCategory)
+          Values.UPP_DELETE_CATEGORY) =>
+          onUpdateCat(updateCategory)
       }.toList
 
       val acctF = UPPHelper.getCategory(messageEnvelope).flatMap {
-        case Values.UPP_CATEGORY =>
-          (for {
-            customerId <- _customerId
-            payload <- Try(EncoderJsonSupport.ToJson[AcctEvent](AcctEvent(
-              UUIDHelper.randomUUID,
-              ownerId = UUID.fromString(customerId),
-              identityId = Some(messageEnvelope.ubirchPacket.getUUID),
-              category = "anchoring",
-              description = Some("anchoring for " + messageEnvelope.ubirchPacket.getUUID.toString),
-              token = None,
-              occurredAt = new Date()
-            )).get)
-          } yield {
-            Some(EventLog("upp-acct-event-log-entry", Values.ACCT_CATEGORY, payload)
-              .withCustomerId(customerId)
-              .withRandomNonce
-              .withNewId
-              .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
-          }).get
+        case Values.UPP_CATEGORY => acctEvent
         case _ => None
       }.toList
 
