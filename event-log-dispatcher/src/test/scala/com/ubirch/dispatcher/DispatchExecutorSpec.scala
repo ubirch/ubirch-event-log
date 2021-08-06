@@ -138,17 +138,13 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
             topicsProcessed = topicsProcessed + 1
             val readM = readMessage(t.name).headOption.getOrElse("Nothing read")
 
-            t.dataToSend.filter(_.isEmpty) match {
-              case Some(_) =>
+            x.category match {
+              case Values.ACCT_CATEGORY if t.name  == "ubirch-acct-evt-json" => assert(readM == EventLogJsonSupport.stringify(event))
+              case Values.MASTER_TREE_CATEGORY if t.name == "ubirch-svalbard-evt-anchor-mgt-string" => assert(Try(UUID.fromString(readM)).isSuccess)
+              case _ =>
                 val dispatchRes = EventLogJsonSupport.FromString[EventLog](readM).get
                 assert(eventLogs.contains(dispatchRes))
                 assert(eventLogs.map(_.category).contains(dispatchRes.category))
-              case None =>
-                t.name match {
-                  case Values.ACCT_CATEGORY => assert(readM == EventLogJsonSupport.stringify(event))
-                  case Values.MASTER_TREE_CATEGORY => assert(Try(UUID.fromString(readM)).isSuccess)
-                  case _ => succeed
-                }
             }
 
           }
