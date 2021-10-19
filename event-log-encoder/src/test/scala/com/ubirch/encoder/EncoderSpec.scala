@@ -6,6 +6,7 @@ import java.util.concurrent.TimeoutException
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
+import com.ubirch.encoder.models.AcctEvent
 import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope
@@ -954,6 +955,7 @@ class EncoderSpec extends TestBase with LazyLogging {
             .addValueLabelForAll(Values.UPP_CATEGORY)
         )
 
+        //UPP Event Check
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
         val eventLog = EncoderJsonSupport.FromString[EventLog](readMessage).get
 
@@ -964,14 +966,16 @@ class EncoderSpec extends TestBase with LazyLogging {
         assert(eventLog.lookupKeys == lookupKeys)
         assert(eventLog.nonce.nonEmpty)
 
+        //Acct Event Check
         val readMessage1 = consumeFirstStringMessageFrom(eventLogTopic)
         val eventLog1 = EncoderJsonSupport.FromString[EventLog](readMessage1).get
 
-        assert(eventLog1.event == EncoderJsonSupport.ToJson[ProtocolMessage](pm).get)
+        val eventBytes1 = SigningHelper.getBytesFromString(eventLog1.event.toString)
+        val signature1 = SigningHelper.signAndGetAsHex(InjectorHelper.get[Config], eventBytes1)
+
         assert(eventLog1.customerId == customerId)
-        assert(eventLog1.signature == signature)
-        assert(eventLog1.category == Values.UPP_CATEGORY)
-        assert(eventLog1.lookupKeys == lookupKeys)
+        assert(eventLog1.category == Values.ACCT_CATEGORY)
+        assert(eventLog1.signature == signature1)
         assert(eventLog1.nonce.nonEmpty)
 
       }

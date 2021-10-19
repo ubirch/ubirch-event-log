@@ -104,11 +104,11 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
             Failure()
 
           case exception: TokenSDKException =>
-            logger.error("token_sdk_exception=" +  exception.getMessage, exception)
+            logger.error("token_sdk_exception=" + exception.getMessage, exception)
             Forbidden
 
           case exception =>
-            logger.error("unexpected_error=" +  exception.getMessage, exception)
+            logger.error("unexpected_error=" + exception.getMessage, exception)
             Forbidden
 
         }
