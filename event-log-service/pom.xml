@@ -41,7 +41,7 @@
         <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
         <scalactic.version>3.0.5</scalactic.version>
         <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
-        <jetty.version>9.4.40.v20210413</jetty.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>

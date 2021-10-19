@@ -63,7 +63,7 @@ class DispatchExecutor @Inject() (
             lazy val dataToSend: String = dispatchTopic.dataToSend
               .filter(_.nonEmpty)
               .map(dts => eventLogJValue \ dts)
-              .map{
+              .map {
                 case JString(v) => v
                 case other => EventLogJsonSupport.stringify(other)
               }
