@@ -12,7 +12,6 @@ import com.ubirch.services.metrics.Counter
 import javax.inject._
 import org.json4s.JsonAST.JValue
 
-import scala.concurrent.ExecutionContext
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -20,15 +19,13 @@ import scala.util.{ Failure, Success, Try }
   * @param config Represents the configuration object
   * @param treeCounter Represents a counter for trees
   * @param leavesCounter Represents a counter for leaves
-  * @param ec Represents an execution context for this object
   */
 @Singleton
 class TreeEventLogCreator @Inject() (
     config: Config,
     @Named(DefaultTreeCounter.name) treeCounter: Counter,
     @Named(DefaultLeavesCounter.name) leavesCounter: Counter
-)(implicit ec: ExecutionContext)
-  extends ProducerConfPaths
+) extends ProducerConfPaths
   with LazyLogging {
 
   import com.ubirch.models.LookupKey._
@@ -122,7 +119,7 @@ class TreeEventLogCreator @Inject() (
             val leavesSize = x.seeds.size
             logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
             treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
-            leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)
+            leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize.toDouble)
             tree
           case Success(None) =>
             logger.error(s"Error creating EventLog from [${mode.value}] (2) ")

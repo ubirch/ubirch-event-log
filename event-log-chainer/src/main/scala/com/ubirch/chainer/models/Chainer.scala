@@ -31,6 +31,7 @@ trait Hashable[+H] {
  * @tparam H Represents the type H that will be hashable
  */
 abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] {
+  def source: T = t
   def hash: H
 }
 

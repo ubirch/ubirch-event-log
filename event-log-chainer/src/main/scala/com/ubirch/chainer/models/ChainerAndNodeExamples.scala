@@ -33,8 +33,8 @@ object ChainerService2 extends App {
   object SomeDataTypeFromKafka {
     implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka, String, String] =
       new Chainable[SomeDataTypeFromKafka, String, String](t) {
-        override def groupId: String = t.id
-        override def hash: String = Hash(StringData(t.data)).toHexStringData.rawValue
+        override def groupId: String = source.id
+        override def hash: String = Hash(StringData(source.data)).toHexStringData.rawValue
       }
   }
 

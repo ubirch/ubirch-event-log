@@ -167,10 +167,44 @@
                         </goals>
                         <configuration>
                             <args>
-                                <arg>-unchecked</arg>
-                                <arg>-deprecation</arg>
-                                <arg>-dependencyfile</arg>
-                                <arg>${project.build.directory}/.scala_dependencies</arg>
+                                <arg>-deprecation</arg>                      <!--  Emit warning and location for usages of deprecated APIs. -->
+                                <arg>-encoding</arg> <arg>utf-8</arg>        <!--  Specify character encoding used by source files. -->
+                                <arg>-explaintypes</arg>                     <!--  Explain type errors in more detail. -->
+                                <arg>-feature</arg>                          <!--  Emit warning and location for usages of features that should be imported explicitly. -->
+                                <arg>-unchecked</arg>                        <!--  Enable additional warnings where generated code depends on assumptions. -->
+                                <arg>-Xcheckinit</arg>                       <!--  Wrap field accessors to throw an exception on uninitialized access. -->
+                                <arg>-Xfatal-warnings</arg>                  <!--  Fail the compilation if there are any warnings. -->
+                                <arg>-Xfuture</arg>                          <!--  Turn on future language features. -->
+                                <arg>-Xlint:adapted-args</arg>               <!--  Warn if an argument list is modified to match the receiver. -->
+                                <arg>-Xlint:by-name-right-associative</arg>  <!--  By-name parameter of right associative operator. -->
+                                <arg>-Xlint:constant</arg>                   <!--  Evaluation of a constant arithmetic expression results in an error. -->
+                                <arg>-Xlint:delayedinit-select</arg>         <!--  Selecting member of DelayedInit. -->
+                                <arg>-Xlint:doc-detached</arg>               <!--  A Scaladoc comment appears to be detached from its element. -->
+                                <arg>-Xlint:inaccessible</arg>               <!--  Warn about inaccessible types in method signatures. -->
+                                <arg>-Xlint:infer-any</arg>                  <!--  Warn when a type argument is inferred to be `Any`. -->
+                                <arg>-Xlint:missing-interpolator</arg>       <!--  A string literal appears to be missing an interpolator id. -->
+                                <arg>-Xlint:nullary-override</arg>           <!--  Warn when non-nullary `def f()' overrides nullary `def f'. -->
+                                <arg>-Xlint:option-implicit</arg>            <!--  Option.apply used implicit view. -->
+                                <arg>-Xlint:package-object-classes</arg>     <!--  Class or object defined in package object. -->
+                                <arg>-Xlint:poly-implicit-overload</arg>     <!--  Parameterized overloaded implicit methods are not visible as view bounds. -->
+                                <arg>-Xlint:private-shadow</arg>             <!--  A private field (or class parameter) shadows a superclass field. -->
+                                <arg>-Xlint:stars-align</arg>                <!--  Pattern sequence wildcard must align with sequence component. -->
+                                <arg>-Xlint:type-parameter-shadow</arg>      <!--  A local type parameter shadows a type already in scope. -->
+                                <arg>-Xlint:unsound-match</arg>              <!--  Pattern match may not be typesafe. -->
+                                <arg>-Yno-adapted-args</arg>                 <!--  Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver. -->
+                                <arg>-Ypartial-unification</arg>             <!--  Enable partial unification in type constructor inference -->
+                                <arg>-Ywarn-dead-code</arg>                  <!--  Warn when dead code is identified. -->
+                                <arg>-Ywarn-extra-implicit</arg>             <!--  Warn when more than one implicit parameter section is defined. -->
+                                <arg>-Ywarn-inaccessible</arg>               <!--  Warn about inaccessible types in method signatures. -->
+                                <arg>-Ywarn-infer-any</arg>                  <!--  Warn when a type argument is inferred to be `Any`. -->
+                                <arg>-Ywarn-nullary-override</arg>           <!--  Warn when non-nullary `def f()' overrides nullary `def f'. -->
+                                <arg>-Ywarn-numeric-widen</arg>              <!--  Warn when numerics are widened. -->
+                                <arg>-Ywarn-unused:implicits</arg>           <!--  Warn if an implicit parameter is unused. -->
+                                <arg>-Ywarn-unused:imports</arg>             <!--  Warn if an import selector is not referenced. -->
+                                <arg>-Ywarn-unused:locals</arg>              <!--  Warn if a local definition is unused. -->
+                                <arg>-Ywarn-unused:params</arg>              <!--  Warn if a value parameter is unused. -->
+                                <arg>-Ywarn-unused:patvars</arg>             <!--  Warn if a variable bound in a pattern is unused. -->
+                                <arg>-Ywarn-unused:privates</arg>            <!--  Warn if a private member is unused. -->
                             </args>
                         </configuration>
                     </execution>

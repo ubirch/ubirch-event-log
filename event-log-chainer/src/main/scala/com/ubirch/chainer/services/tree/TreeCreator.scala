@@ -7,14 +7,12 @@ import com.ubirch.chainer.models.Hash.HexStringData
 import com.ubirch.models.EventLog
 
 import javax.inject._
-import scala.concurrent.ExecutionContext
 
 /**
   * Represents a creator of trees
   * @param config Represents the configuration object
-  * @param ec Represents an execution context for this object
   */
-class TreeCreator @Inject() (config: Config)(implicit ec: ExecutionContext) {
+class TreeCreator @Inject() (config: Config) {
 
   import com.ubirch.chainer.models.Chainables.eventLogChainable
 

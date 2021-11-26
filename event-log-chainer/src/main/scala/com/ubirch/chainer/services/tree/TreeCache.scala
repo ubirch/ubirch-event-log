@@ -7,15 +7,12 @@ import com.ubirch.chainer.models.Mode
 import com.ubirch.models.EventLog
 import javax.inject._
 
-import scala.concurrent.ExecutionContext
-
 /**
   * Represents a cache for trees. It is designed to store the latest tree.
   * @param config Represents the configuration object
-  * @param ec Represents an execution context for this object
   */
 @Singleton
-class TreeCache @Inject() (config: Config)(implicit ec: ExecutionContext) {
+class TreeCache @Inject() (config: Config) {
 
   private val modeFromConfig: String = config.getString(TreePaths.MODE)
 
