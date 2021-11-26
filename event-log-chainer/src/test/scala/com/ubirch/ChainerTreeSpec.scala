@@ -3,7 +3,6 @@ package com.ubirch
 import java.io.ByteArrayInputStream
 import java.util.Date
 import java.util.concurrent.Executor
-
 import com.google.inject.Provider
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
@@ -11,11 +10,12 @@ import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models.Comparators.stringComparator
+import com.ubirch.chainer.models.Hash.HexStringData
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.{ TreeMonitor, TreePaths }
-import com.ubirch.chainer.util.{ ChainerJsonSupport, Hasher, PMHelper }
+import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -23,6 +23,7 @@ import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
+
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.commons.codec.binary.Hex
@@ -77,12 +78,12 @@ class InjectorHelperImpl(
   override def webClient: ScopedBindingBuilder = webClientProvider.map(x => bind(classOf[WebClient]).toProvider(x)).getOrElse(super.webClient)
 }))
 
-object ChainerSpec {
+object ChainerTreeSpec {
 
   def getChainer(events: List[EventLog]): Chainer[EventLog, String, String] = {
     Chainer(events)
-      .withMergerFunc(Hasher.mergeAndHash)
-      .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
+      .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
+      .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
       .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
@@ -91,14 +92,14 @@ object ChainerSpec {
 
 }
 
-class ChainerSpec extends TestBase with LazyLogging {
+class ChainerTreeSpec extends TestBase with LazyLogging {
 
   import LookupKey._
 
   val messageEnvelopeTopic = "com.ubirch.messageenvelope"
   val eventLogTopic = "com.ubirch.eventlog"
 
-  "Chainer Spec" must {
+  "Chainer Tree Spec" must {
 
     "consume, process and publish tree and event logs in Slave mode with UPPs" in {
 
@@ -142,7 +143,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -243,7 +244,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -329,7 +330,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -413,7 +414,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -510,7 +511,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -598,14 +599,14 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(9000)
+        Thread.sleep(10000)
 
         val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
+        val chainer = ChainerTreeSpec.getChainer(events)
         val node = Chainer
           .compress(chainer)
           .map(x => ChainerJsonSupport.ToJson(x).get)
@@ -734,7 +735,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
         assert(Chainer.checkConnectedness(compressed))
 
@@ -831,7 +832,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
         assert(Chainer.checkConnectedness(compressed))
 
@@ -955,7 +956,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
         assert(Chainer.checkConnectedness(compressed))
 

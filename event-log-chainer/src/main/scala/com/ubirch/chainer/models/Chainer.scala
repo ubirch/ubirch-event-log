@@ -1,6 +1,6 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.util.Hasher
+import com.ubirch.chainer.models.Hash.{ HexStringData, StringData }
 import com.ubirch.util.UUIDHelper
 
 import scala.annotation.tailrec
@@ -45,17 +45,61 @@ abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] 
   */
 abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
 
+  /**
+    * Represents a root hash from another chainer process.
+    * It is intended to connect chainers together
+    */
   private var zero: Option[H] = None
+  /**
+    * Represents a list of grouped leaves.
+    * They are possibly sorted by a balancer function
+    * List[H] => H.
+    */
   private var grouped: List[List[T]] = Nil
+  /**
+    * Represents the leaves that have been hashed as seeds for the
+    * chainer and tree creation processes.
+    */
   private var seedHashes: List[List[H]] = Nil
+  /**
+    * Represents a Node-based tree of balanced seeds.
+    * That means that before creating the node objects, a possible
+    * balancing function might have been applied to its leaves.
+    */
   private var balancedSeedNodes: List[Node[H]] = Nil
+  /**
+    * Represents a Node-based tree.
+    */
   private var seedNodes: List[Node[H]] = Nil
+  /**
+    * Represents the whole tree.
+    * The final tree.
+    */
   private var node: Option[Node[H]] = None
 
+  /**
+    * It is a function that is used to join to values of type H.
+    * A hash function is intended to be plugged in.
+    */
   private var merger: Option[(H, H) => H] = None
+  /**
+    * It is a function that is used to balance the leaves in case they are not even.
+    * The leaves are passed in as parameters in the function so that interesting balancing
+    * options can be used.
+    */
   private var balancer: Option[List[H] => H] = None
 
+  /**
+    * Represents the list of seeds, that is, the incoming data of type T.
+    * Note that the incoming list gets implicitly transformed into chainable objects.
+    * @return List of T that represent the seeds to the chainer.
+    */
   def seeds: List[T] = es
+
+  /**
+    * Represents the a possible initial hash from another process or chainer.
+    * @return Option of H
+    */
   def getZero: Option[H] = zero
   def getGroups: List[List[T]] = grouped
   def getHashes: List[List[H]] = seedHashes
@@ -148,7 +192,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   */
 object Chainer {
 
-  def getEmptyNodeVal: String = Hasher.hash(s"emptyNode_${UUIDHelper.randomUUID}")
+  def getEmptyNode: HexStringData = Hash(StringData(s"emptyNode_${UUIDHelper.randomUUID}")).toHexStringData
 
   def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
@@ -180,7 +224,11 @@ object Chainer {
             .createSeedNodes(keepOrder = true)
             .createNode
 
-          go(xss, chainers ++ List(chainer), chainer.getNode.map(x => config.prefixer(x.value)))
+          go(
+            splits = xss,
+            chainers = chainers ++ List(chainer),
+            latestHash = chainer.getNode.map(x => config.prefixer(x.value))
+          )
 
       }
     }
@@ -193,7 +241,11 @@ object Chainer {
     }
 
     val splits = split(es).toList
-    go(splits, Nil, config.maybeInitialTreeHash)
+    go(
+      splits = splits,
+      chainers = Nil,
+      latestHash = config.maybeInitialTreeHash
+    )
 
   }
 

@@ -4,7 +4,8 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.Chainer.CreateConfig
-import com.ubirch.chainer.models.{ Chainer, Master, Slave }
+import com.ubirch.chainer.models.Hash.HexStringData
+import com.ubirch.chainer.models.{ Chainer, Hash, Master, Slave }
 import com.ubirch.chainer.services._
 import com.ubirch.chainer.services.httpClient.DefaultAsyncWebClient
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
@@ -20,6 +21,7 @@ import com.ubirch.services.kafka.producer.{ DefaultStringProducer, Reporter }
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.{ DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.{ SigningHelper, UUIDHelper }
+
 import io.prometheus.client.CollectorRegistry
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.json4s.JValue
@@ -253,7 +255,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNodeVal
+      val _balancingHash = Chainer.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -299,7 +301,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc(Hasher.mergeAndHash)
+        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
         .withBalancerFunc(_ => _balancingHash)
         .withHashZero(None)
         .withGeneralGrouping
@@ -319,7 +321,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNodeVal
+      val _balancingHash = Chainer.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -371,7 +373,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         treeCreator.splitTrees,
         treeCreator.splitSize,
         treeCache.prefix,
-        Hasher.mergeAndHash,
+        (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
         _ => _balancingHash
       )
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
@@ -393,7 +395,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNodeVal
+      val _balancingHash = Chainer.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -439,7 +441,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc(Hasher.mergeAndHash)
+        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
         .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes
@@ -469,7 +471,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNodeVal
+      val _balancingHash = Chainer.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -519,7 +521,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc(Hasher.mergeAndHash)
+        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
         .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes

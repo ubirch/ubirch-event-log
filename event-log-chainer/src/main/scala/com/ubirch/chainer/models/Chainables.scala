@@ -1,6 +1,6 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.util.Hasher
+import com.ubirch.chainer.models.Hash.StringData
 import com.ubirch.models.EventLog
 
 import scala.language.implicitConversions
@@ -13,10 +13,10 @@ object Chainables {
 
   implicit def eventLogChainable(t: EventLog): Chainable[EventLog, String, String] = {
     new Chainable[EventLog, String, String](t) {
-      require(t.id.nonEmpty, "Hash Part One is Empty")
-      require(t.nonce.nonEmpty, "Hash Part Two is Empty")
+      require(t.id.nonEmpty, "Hash Part One (id) is Empty")
+      require(t.nonce.nonEmpty, "Hash Part Two (nonce) is Empty")
 
-      override def hash: String = Hasher.mergeAndHash(t.id, t.nonce)
+      override def hash: String = Hash(StringData(t.id + t.nonce)).toHexStringData.rawValue
       override def groupId: String = t.customerId
     }
   }

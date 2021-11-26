@@ -2,7 +2,7 @@ package com.ubirch.chainer.models
 
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.Comparators.stringComparator
-import com.ubirch.chainer.util.Hasher
+import com.ubirch.chainer.models.Hash.{ HexStringData, StringData }
 import com.ubirch.util.EventLogJsonSupport
 
 import scala.language.implicitConversions
@@ -12,7 +12,7 @@ case class SomeDataTypeFromKafka(id: String, data: String)
 
 object SomeDataTypeFromKafka {
   implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka, String, String] = new Chainable[SomeDataTypeFromKafka, String, String](t) {
-    override def hash: String = Hasher.hash(t.data)
+    override def hash: String = Hash(StringData(t.data)).toHexStringData.rawValue
     override def groupId: String = t.id
   }
 }
@@ -96,9 +96,9 @@ class ChainerSpec extends TestBase {
 
       assert(nodes == expected)
 
-      val banana = Hasher.hash(SomeDataTypeFromKafka("fruits", "banana").data)
-      val eggplant = Hasher.hash(SomeDataTypeFromKafka("vegetables", "eggplant").data)
-      val artichoke = Hasher.hash(SomeDataTypeFromKafka("vegetables", "artichoke").data)
+      val banana = Hash(StringData(SomeDataTypeFromKafka("fruits", "banana").data)).toHexStringData.rawValue
+      val eggplant = Hash(StringData(SomeDataTypeFromKafka("vegetables", "eggplant").data)).toHexStringData.rawValue
+      val artichoke = Hash(StringData(SomeDataTypeFromKafka("vegetables", "artichoke").data)).toHexStringData.rawValue
 
       assert(nodes.contains(List(banana)))
       assert(nodes.contains(List(eggplant, artichoke)))
@@ -115,28 +115,28 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
-        .withMergerFunc(Hasher.mergeAndHash)
-        .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
+        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
         .getNodes
 
-      val banana = Hasher.hash(SomeDataTypeFromKafka("fruits", "banana").data)
-      val apple = Hasher.hash(SomeDataTypeFromKafka("fruits", "apple").data)
-      val eggplant = Hasher.hash(SomeDataTypeFromKafka("vegetables", "eggplant").data)
-      val artichoke = Hasher.hash(SomeDataTypeFromKafka("vegetables", "artichoke").data)
+      val banana = Hash(StringData(SomeDataTypeFromKafka("fruits", "banana").data)).toHexStringData
+      val apple = Hash(StringData(SomeDataTypeFromKafka("fruits", "apple").data)).toHexStringData
+      val eggplant = Hash(StringData(SomeDataTypeFromKafka("vegetables", "eggplant").data)).toHexStringData
+      val artichoke = Hash(StringData(SomeDataTypeFromKafka("vegetables", "artichoke").data)).toHexStringData
 
       val expected = List(
         Node(
-          Hasher.mergeAndHash(banana, apple),
-          Some(Node(banana, None, None)),
-          Some(Node(apple, None, None))
+          Hash(banana, apple).toHexStringData.rawValue,
+          Some(Node(banana.rawValue, None, None)),
+          Some(Node(apple.rawValue, None, None))
         ),
         Node(
-          Hasher.mergeAndHash(eggplant, artichoke),
-          Some(Node(eggplant, None, None)),
-          Some(Node(artichoke, None, None))
+          Hash(eggplant, artichoke).toHexStringData.rawValue,
+          Some(Node(eggplant.rawValue, None, None)),
+          Some(Node(artichoke.rawValue, None, None))
         )
       )
 
@@ -163,35 +163,37 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
-        .withBalancerFunc(_ => Chainer.getEmptyNodeVal)
-        .withMergerFunc(Hasher.mergeAndHash)
+        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
         .createNode
         .getNode
 
-      val banana = Hasher.hash(SomeDataTypeFromKafka("fruits", "banana").data)
-      val apple = Hasher.hash(SomeDataTypeFromKafka("fruits", "apple").data)
-      val eggplant = Hasher.hash(SomeDataTypeFromKafka("vegetables", "eggplant").data)
-      val artichoke = Hasher.hash(SomeDataTypeFromKafka("vegetables", "artichoke").data)
+      val banana = Hash(StringData(SomeDataTypeFromKafka("fruits", "banana").data))
+      val apple = Hash(StringData(SomeDataTypeFromKafka("fruits", "apple").data))
+      val eggplant = Hash(StringData(SomeDataTypeFromKafka("vegetables", "eggplant").data))
+      val artichoke = Hash(StringData(SomeDataTypeFromKafka("vegetables", "artichoke").data))
 
       val expected = Option(
-        Node(Hasher.mergeAndHash(
-          Hasher.mergeAndHash(banana, apple),
-          Hasher.mergeAndHash(eggplant, artichoke)
-        ), Some(
-          Node(
-            Hasher.mergeAndHash(banana, apple),
-            Some(Node(banana, None, None)),
-            Some(Node(apple, None, None))
+        Node(
+          Hash(Hash(banana, apple), Hash(eggplant, artichoke)).toHexStringData.rawValue,
+          Some(
+            Node(
+              Hash(banana, apple).toHexStringData.rawValue,
+              Some(Node(banana.toHexStringData.rawValue, None, None)),
+              Some(Node(apple.toHexStringData.rawValue, None, None))
+            )
+          ),
+          Some(
+            Node(
+              Hash(eggplant, artichoke).toHexStringData.rawValue,
+              Some(Node(eggplant.toHexStringData.rawValue, None, None)),
+              Some(Node(artichoke.toHexStringData.rawValue, None, None))
+            )
           )
-        ),
-          Some(Node(
-            Hasher.mergeAndHash(eggplant, artichoke),
-            Some(Node(eggplant, None, None)),
-            Some(Node(artichoke, None, None))
-          )))
+        )
       )
 
       assert(nodes == expected)
@@ -223,7 +225,7 @@ class ChainerSpec extends TestBase {
 
     }
 
-    "compress with even input " in {
+    "compress with even input" in {
 
       val listOfData = List(
         SomeDataTypeFromKafka("vegetables", "eggplant"),
@@ -235,18 +237,20 @@ class ChainerSpec extends TestBase {
       val (c, _) = Chainer.create(
         listOfData,
         Chainer.CreateConfig[String](
-          Some("init-hash"),
+          maybeInitialTreeHash = Some(Hash(StringData("init-hash")).toHexStringData.rawValue),
           split = true,
-          50,
-          s => s,
-          Hasher.mergeAndHash,
-          _ => "balancing-hash"
+          splitSize = 50,
+          prefixer = s => s,
+          merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+          balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
         )
       )
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(
+        (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue
+      )).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -262,17 +266,17 @@ class ChainerSpec extends TestBase {
       )
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
-        Some("init-hash"),
+        maybeInitialTreeHash = Some(Hash(StringData("init-hash")).toHexStringData.rawValue),
         split = true,
-        50,
-        s => s,
-        Hasher.mergeAndHash,
-        _ => "balancing-hash"
+        splitSize = 50,
+        prefixer = s => s,
+        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -284,17 +288,17 @@ class ChainerSpec extends TestBase {
       val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
-        Some("init-hash"),
+        maybeInitialTreeHash = Some(Hash(StringData("init-hash")).toHexStringData.rawValue),
         split = true,
-        50,
-        s => s,
-        Hasher.mergeAndHash,
-        _ => "balancing-hash"
+        splitSize = 50,
+        prefixer = s => s,
+        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -311,17 +315,17 @@ class ChainerSpec extends TestBase {
       val listOfData = (0 to 10000).map(_ => SomeDataTypeFromKafka("fruits", Random.nextString(20))).toList
 
       val (c, _) = Chainer.create(listOfData, Chainer.CreateConfig[String](
-        Some("init-hash"),
+        maybeInitialTreeHash = Some(Hash(StringData("init-hash")).toHexStringData.rawValue),
         split = true,
-        50,
-        s => s,
-        Hasher.mergeAndHash,
-        _ => "balancing-hash"
+        splitSize = 50,
+        prefixer = s => s,
+        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
       val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)(Hasher.mergeAndHash)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
