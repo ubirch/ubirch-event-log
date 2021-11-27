@@ -25,7 +25,7 @@ trait TestBase
 
   def await[T](future: Future[T], atMost: Duration): T = Await.result(future, atMost)
 
-  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
+  def readMessage(topic: String, onStartWait: Long = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Long = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
     @tailrec
     def go(acc: Int): List[String] = {
       try {

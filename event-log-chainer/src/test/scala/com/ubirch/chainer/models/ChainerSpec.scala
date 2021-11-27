@@ -45,6 +45,8 @@ class ChainerSpec extends TestBase {
       assert(nodes.size == 2)
       assert(nodes.size == 2)
 
+      assert(nodes == expected)
+
       assert(nodes.exists(_.size == 1))
       assert(nodes.find(_.size == 1) == Option(List(
         SomeDataTypeFromKafka("fruits", "banana")
