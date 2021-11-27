@@ -102,10 +102,38 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     * @return Option of H
     */
   def getZero: Option[H] = zero
+
+  /**
+    * Gets the possible groups that may have been created if the
+    * creation of groups has been executed.
+    * This happens at the outer layer of the process. That's to say, before nodes or hashes
+    * have been introduced in the process
+    * @return List of Lists of T
+    */
   def getGroups: List[List[T]] = grouped
+
+  /**
+    * Gets the seed hashes calculated out of incoming data
+    * @return List of Lists of hashable data H
+    */
   def getHashes: List[List[H]] = seedHashes
+
+  /**
+    * Gets the Nodes of Hashable data.
+    * @return List of Nodes of hashable data H
+    */
   def getNodes: List[Node[H]] = seedNodes
+
+  /**
+    * Gets the balanced Nodes of Hashable data
+    * @return  List of balanced Nodes of hashable data H
+    */
   def getBalancedNodes: List[Node[H]] = balancedSeedNodes
+
+  /**
+    * Gets the most aggregated Node of hashable data H
+    * @return Option of Node of hashable data H
+    */
   def getNode: Option[Node[H]] = node
 
   def createGroups: Chainer[T, G, H] = {
