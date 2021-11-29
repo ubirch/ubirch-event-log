@@ -23,7 +23,7 @@ import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.DurationInt
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.postfixOps
 
 class InjectorHelperImpl(bootstrapServers: String, storeLookups: Boolean = true) extends InjectorHelper(List(new ServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {

@@ -28,7 +28,7 @@ import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.postfixOps
 
 class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging with ExecutionImpl {
 

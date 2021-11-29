@@ -225,7 +225,7 @@ object EventLog {
       eventTime = eventTime,
       signature = signature,
       nonce = nonce,
-      lookupKeys = Nil
+      lookupKeys = lookupKeys
     )
   }
 
