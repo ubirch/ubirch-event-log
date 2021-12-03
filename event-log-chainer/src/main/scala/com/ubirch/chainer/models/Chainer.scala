@@ -25,6 +25,21 @@ trait Hashable[+H] {
  * Represents a type that allows a elem of type T to be chained.
  * Basically we require that T has an id so that it is groupable and that
  * it can be hashed.
+ *
+ * We pass in the data from kafka that needs to be chainable.
+ * See implicit conversion.
+ * We set our balancer func and our hashing func
+ * We group the elems
+ * We take the hashes
+ * We then turn the seed hashes into seed nodes.
+ * We then turn the seed nodes into joined node.
+ *  val nodes = Chainer(listOfData)
+ *    .createGroups
+ *    .createSeedHashes
+ *    .createSeedNodes()
+ *    .createNode
+ *    .getNode
+ *
  * @param t Represents the type that will be chained
  * @tparam T Represents the type that will be turned into chainable.
  * @tparam G Represents the type G that will be groupable
@@ -261,7 +276,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   /**
     * It converts a node into a data type that has its minimum bill of materials for the
     * creation of the node.
-    * @return
+    * @return Option of compressed tree data of type H
     */
   def compress: Option[CompressedTreeData[H]] = Chainer.compress(this)
 
