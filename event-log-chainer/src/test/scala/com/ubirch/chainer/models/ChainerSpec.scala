@@ -117,7 +117,7 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
-        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withMergeProtocol(MergeProtocol.V2_HexString)
         .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
         .createGroups
         .createSeedHashes
@@ -165,7 +165,7 @@ class ChainerSpec extends TestBase {
       )
 
       val nodes = Chainer(listOfData)
-        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withMergeProtocol(MergeProtocol.V2_HexString)
         .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
         .createGroups
         .createSeedHashes
@@ -243,7 +243,7 @@ class ChainerSpec extends TestBase {
           split = true,
           splitSize = 50,
           prefixer = s => s,
-          merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+          mergeProtocol = MergeProtocol.V2_HexString,
           balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
         )
       )
@@ -272,7 +272,7 @@ class ChainerSpec extends TestBase {
         split = true,
         splitSize = 50,
         prefixer = s => s,
-        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        mergeProtocol = MergeProtocol.V2_HexString,
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
@@ -294,7 +294,7 @@ class ChainerSpec extends TestBase {
         split = true,
         splitSize = 50,
         prefixer = s => s,
-        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        mergeProtocol = MergeProtocol.V2_HexString,
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
@@ -321,7 +321,7 @@ class ChainerSpec extends TestBase {
         split = true,
         splitSize = 50,
         prefixer = s => s,
-        merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+        mergeProtocol = MergeProtocol.V2_HexString,
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 

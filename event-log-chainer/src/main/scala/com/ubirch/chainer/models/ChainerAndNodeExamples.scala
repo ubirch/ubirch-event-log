@@ -1,6 +1,6 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.models.Hash.{ BytesData, HexStringData, StringData }
+import com.ubirch.chainer.models.Hash.StringData
 import com.ubirch.util.JsonHelper
 
 import org.bouncycastle.util.encoders.Hex
@@ -65,7 +65,7 @@ object ChainerService2 extends App {
 
   val nodes = Chainer(listOfData)
     .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
-    .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+    .withMergeProtocol(MergeProtocol.V2_HexString)
     .withGeneralGrouping
     .createSeedHashes
     .createSeedNodes()
@@ -127,7 +127,7 @@ object ChainerServiceBytes extends App {
   //    .getNode
   val nodes = Chainer(listOfData)
     .withBalancerFunc(_ => Chainer.getEmptyNode.toBytesData.rawValue)
-    .withMergerFunc((a, b) => Hash(BytesData(a), BytesData(b)).rawValue)
+    .withMergeProtocol(MergeProtocol.V2_Bytes)
     .withGeneralGrouping
     .createSeedHashes
     .createSeedNodes()

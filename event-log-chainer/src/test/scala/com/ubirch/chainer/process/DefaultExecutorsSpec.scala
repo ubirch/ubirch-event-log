@@ -4,8 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.Chainer.CreateConfig
-import com.ubirch.chainer.models.Hash.HexStringData
-import com.ubirch.chainer.models.{ Chainer, Hash, Master, Slave }
+import com.ubirch.chainer.models.{ Chainer, Master, MergeProtocol, Slave }
 import com.ubirch.chainer.services._
 import com.ubirch.chainer.services.httpClient.DefaultAsyncWebClient
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
@@ -301,7 +300,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withMergeProtocol(MergeProtocol.V2_HexString)
         .withBalancerFunc(_ => _balancingHash)
         .withHashZero(None)
         .withGeneralGrouping
@@ -369,12 +368,12 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val createConfig = CreateConfig[String](
-        None,
-        treeCreator.splitTrees,
-        treeCreator.splitSize,
-        treeCache.prefix,
-        (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
-        _ => _balancingHash
+        maybeInitialTreeHash = None,
+        split = treeCreator.splitTrees,
+        splitSize = treeCreator.splitSize,
+        prefixer = treeCache.prefix,
+        mergeProtocol = MergeProtocol.V2_HexString,
+        balancer = _ => _balancingHash
       )
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
 
@@ -441,7 +440,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withMergeProtocol(MergeProtocol.V2_HexString)
         .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes
@@ -521,7 +520,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
       import com.ubirch.chainer.models.Chainables.eventLogChainable
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
-        .withMergerFunc((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)
+        .withMergeProtocol(MergeProtocol.V2_HexString)
         .withBalancerFunc(_ => _balancingHash)
         .createGroups
         .createSeedHashes

@@ -49,14 +49,14 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
   def mode: Mode = Mode.getMode(modeFromConfig)
 
-  val topic = "com.ubirch.chainer.master.onep"
+  val topic = "com.ubirch.chainer.slave.in"
 
   def main(args: Array[String]): Unit = {
     def configs = Configs(bootstrapServers, lingerMs = lingerMs)
 
     val producer = ProducerRunner[String, String](configs, Some(new StringSerializer()), Some(new StringSerializer()))
 
-    val range = 0 to 10000
+    val range = 0 to 1
 
     def data(index: Int) = mode match {
       case Slave =>

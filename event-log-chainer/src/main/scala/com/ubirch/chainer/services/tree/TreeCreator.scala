@@ -1,9 +1,8 @@
 package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
-import com.ubirch.chainer.models.{ Chainer, Hash }
+import com.ubirch.chainer.models.{ Chainer, MergeProtocol }
 import com.ubirch.chainer.models.Chainer.CreateConfig
-import com.ubirch.chainer.models.Hash.HexStringData
 import com.ubirch.models.EventLog
 
 import javax.inject._
@@ -26,7 +25,7 @@ class TreeCreator @Inject() (config: Config) {
       split = splitTrees,
       splitSize = splitSize,
       prefixer = prefixer,
-      merger = (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue,
+      mergeProtocol = MergeProtocol.V2_HexString,
       balancer = _ => outerBalancingHash.getOrElse(Chainer.getEmptyNode.rawValue)
     )
     Chainer.create(eventLogs, config)

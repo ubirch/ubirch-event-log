@@ -97,7 +97,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     * It is a function that is used to join to values of type H.
     * A hash function is intended to be plugged in.
     */
-  private var merger: Option[(H, H) => H] = None
+  private var mergeProtocol: Option[MergeProtocol[H]] = None
   /**
     * It is a function that is used to balance the leaves in case they are not even.
     * The leaves are passed in as parameters in the function so that interesting balancing
@@ -209,11 +209,12 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
 
   /**
     * Sets the merging strategy for types H.
-    * @param newMerger a function that knows how to merge two values of type H.
+    * @param newMergeProtocol a data type that describes how to merge two types H and provide some
+   *                         extra information required for de/compress purposes.
     * @return Chainer[T, G, H]
     */
-  def withMergerFunc(newMerger: (H, H) => H): Chainer[T, G, H] = {
-    merger = Option(newMerger)
+  def withMergeProtocol(newMergeProtocol: MergeProtocol[H]): Chainer[T, G, H] = {
+    mergeProtocol = Option(newMergeProtocol)
     this
   }
 
@@ -256,11 +257,11 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def hashesToNodesWithJoin(hes: List[H]): List[Node[H]] = {
-    merger.toList.flatMap { m => balance(hes).join((t1, t2) => m(t1, t2)) }
+    mergeProtocol.toList.flatMap { m => balance(hes).join((t1, t2) => m.merger(t1, t2)) }
   }
 
   private def hashesToNodesWithJoin2(hes: List[H]): List[Node[H]] = {
-    merger.toList.flatMap { m => balance(hes).join2((t1, t2) => m(t1, t2)) }
+    mergeProtocol.toList.flatMap { m => balance(hes).join2((t1, t2) => m.merger(t1, t2)) }
   }
 
   /**
@@ -269,7 +270,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     * @return Chainer[T, G, H]
     */
   def createNode: Chainer[T, G, H] = {
-    node = merger.flatMap { m => seedNodes.join((t1, t2) => m(t1, t2)).headOption }
+    node = mergeProtocol.flatMap { m => seedNodes.join((t1, t2) => m.merger(t1, t2)).headOption }
     this
   }
 
@@ -296,7 +297,7 @@ object Chainer {
       split: Boolean,
       splitSize: Int,
       prefixer: H => H,
-      merger: (H, H) => H,
+      mergeProtocol: MergeProtocol[H],
       balancer: List[H] => H
   )
 
@@ -311,7 +312,7 @@ object Chainer {
         case Nil => (chainers, latestHash)
         case xs :: xss =>
           val chainer = Chainer(xs)
-            .withMergerFunc(config.merger)
+            .withMergeProtocol(config.mergeProtocol)
             .withBalancerFunc(config.balancer)
             .withHashZero(latestHash)
             .withGeneralGrouping
