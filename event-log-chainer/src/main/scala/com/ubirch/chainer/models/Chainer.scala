@@ -210,12 +210,20 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   /**
     * Sets the merging strategy for types H.
     * @param newMergeProtocol a data type that describes how to merge two types H and provide some
-   *                         extra information required for de/compress purposes.
+    *                         extra information required for de/compress purposes.
     * @return Chainer[T, G, H]
     */
   def withMergeProtocol(newMergeProtocol: MergeProtocol[H]): Chainer[T, G, H] = {
     mergeProtocol = Option(newMergeProtocol)
     this
+  }
+
+  /**
+    * Gets configured merge protocol
+    * @return Option of MergeProtocol of H
+    */
+  def getMergeProtocol: Option[MergeProtocol[H]] = {
+    mergeProtocol
   }
 
   /**
@@ -345,28 +353,38 @@ object Chainer {
 
   }
 
-  def compress[T, G, H](chainer: Chainer[T, G, H]): Option[CompressedTreeData[H]] =
-    chainer.getNode.map { root =>
+  def compress[T, G, H](chainer: Chainer[T, G, H]): Option[CompressedTreeData[H]] = {
+    for {
+      mp <- chainer.getMergeProtocol
+      root <- chainer.getNode
+    } yield {
       val leaves = chainer.getBalancedNodes.map(_.value)
-      CompressedTreeData(root.value, leaves)
+      CompressedTreeData(mp.version, root.value, leaves)
     }
 
-  def uncompress[H](compressedTreeData: CompressedTreeData[H])(f: (H, H) => H)(implicit comparator: (H, H) => Boolean): Option[Node[H]] = {
+  }
+
+  def uncompress[H](compressedTreeData: CompressedTreeData[H])(m: MergeProtocol[H]): Option[Node[H]] = {
+
+    require(compressedTreeData.version == m.version, "Compressed data has different version from detected protocol")
+
     val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
-      .join2((t1, t2) => f(t1, t2))
+      .join2((t1, t2) => m.merger(t1, t2))
       .headOption
 
     uncompressed match {
-      case c @ Some(value) if comparator(value.value, compressedTreeData.root) => c
-      case Some(value) if !comparator(value.value, compressedTreeData.root) => throw new Exception("Root Hash doesn't match Compressed Root")
+      case c @ Some(value) if m.equals(value.value, compressedTreeData.root) => c
+      case Some(value) if !m.equals(value.value, compressedTreeData.root) => throw new Exception("Root Hash doesn't match Compressed Root")
       case None => None
     }
 
   }
 
-  def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(implicit comparator: (H, H) => Boolean): Boolean = {
+  def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(m: MergeProtocol[H]): Boolean = {
+
+    require(compressed.forall(_.version == m.version), "Compressed data has different version from detected protocol")
 
     @tailrec
     def go(check: Boolean, compressed: List[CompressedTreeData[H]]): Boolean = {
@@ -375,7 +393,7 @@ object Chainer {
         case List(_) => check
         case x :: y :: xs =>
           val nextCheck = (Option(x.root), y.leaves.headOption) match {
-            case (Some(a), Some(b)) => comparator(a, b)
+            case (Some(a), Some(b)) => m.equals(a, b)
             case _ => false
           }
           go(nextCheck, xs)
@@ -394,5 +412,5 @@ object Chainer {
   * @param leaves Represents the leaves of the tree
   * @tparam H Represents the type of the leaves
   */
-case class CompressedTreeData[H](root: H, leaves: List[H])
+case class CompressedTreeData[H](version: Int, root: H, leaves: List[H])
 

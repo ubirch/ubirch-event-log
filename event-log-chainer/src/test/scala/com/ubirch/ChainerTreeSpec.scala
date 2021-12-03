@@ -9,8 +9,6 @@ import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
-import com.ubirch.chainer.models.Comparators.stringComparator
-import com.ubirch.chainer.models.Hash.HexStringData
 import com.ubirch.chainer.models._
 import com.ubirch.chainer.services.ChainerServiceBinder
 import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
@@ -735,9 +733,9 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
-        assert(Chainer.checkConnectedness(compressed))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
 
         val mode = Slave
         val expectedHeaders = Headers.create(
@@ -832,9 +830,9 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
-        assert(Chainer.checkConnectedness(compressed))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
 
         val mode = Master
         val expectedHeadersBigBang = Headers.create(
@@ -956,9 +954,9 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
 
         val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
           .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
-        val nodes = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
         assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
-        assert(Chainer.checkConnectedness(compressed))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
 
         val mode = Master
         val expectedHeadersBigBang = Headers.create(

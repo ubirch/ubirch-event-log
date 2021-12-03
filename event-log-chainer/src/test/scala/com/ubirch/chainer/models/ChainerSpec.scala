@@ -1,8 +1,7 @@
 package com.ubirch.chainer.models
 
 import com.ubirch.TestBase
-import com.ubirch.chainer.models.Comparators.stringComparator
-import com.ubirch.chainer.models.Hash.{ HexStringData, StringData }
+import com.ubirch.chainer.models.Hash.StringData
 import com.ubirch.util.EventLogJsonSupport
 
 import scala.language.implicitConversions
@@ -250,9 +249,7 @@ class ChainerSpec extends TestBase {
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)(
-        (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue
-      )).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -278,7 +275,7 @@ class ChainerSpec extends TestBase {
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -300,7 +297,7 @@ class ChainerSpec extends TestBase {
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
@@ -327,7 +324,7 @@ class ChainerSpec extends TestBase {
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
 
-      val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
+      val node = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
 
       assert(c.map(_.getNode).flatMap(_.toList) == node)
       assert(c.map(_.getNode).flatMap(_.toList).map(_.value) == compressed.map(_.root))
