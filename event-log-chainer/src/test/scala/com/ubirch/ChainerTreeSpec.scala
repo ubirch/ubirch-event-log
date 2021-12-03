@@ -144,8 +144,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 
@@ -245,8 +245,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 
@@ -331,8 +331,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 
@@ -415,8 +415,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 
@@ -512,8 +512,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 
@@ -607,8 +607,8 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
         val chainer = ChainerTreeSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
           .getOrElse(fail("No chainer compressed"))
 

@@ -24,8 +24,8 @@ object Chainables {
 }
 
 /**
- * Container for comparators.
- */
+  * Container for comparators.
+  */
 object Comparators {
 
   implicit def stringComparator(a: String, b: String): Boolean = a == b

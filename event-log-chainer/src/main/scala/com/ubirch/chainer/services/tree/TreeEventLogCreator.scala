@@ -103,7 +103,7 @@ class TreeEventLogCreator @Inject() (
   def createEventLog(chainer: Chainer[EventLog, String, String]): Option[EventLog] = {
     for {
       node <- chainer.getNode
-      compressedData <- Chainer.compress(chainer)
+      compressedData <- chainer.compress
     } yield {
       val data = ChainerJsonSupport.ToJson[CompressedTreeData[String]](compressedData).get
       //TODO: CHECK THIS ZERO

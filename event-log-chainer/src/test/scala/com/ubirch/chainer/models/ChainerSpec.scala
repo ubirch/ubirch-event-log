@@ -248,7 +248,7 @@ class ChainerSpec extends TestBase {
         )
       )
 
-      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+      val compressed = c.map(x => x.compress).flatMap(_.toList)
 
       val node = compressed.map(x => Chainer.uncompress(x)(
         (a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue
@@ -276,7 +276,7 @@ class ChainerSpec extends TestBase {
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
-      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+      val compressed = c.map(x => x.compress).flatMap(_.toList)
 
       val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
@@ -298,7 +298,7 @@ class ChainerSpec extends TestBase {
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
-      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+      val compressed = c.map(x => x.compress).flatMap(_.toList)
 
       val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
@@ -325,7 +325,7 @@ class ChainerSpec extends TestBase {
         balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
       ))
 
-      val compressed = c.map(x => Chainer.compress(x)).flatMap(_.toList)
+      val compressed = c.map(x => x.compress).flatMap(_.toList)
 
       val node = compressed.map(x => Chainer.uncompress(x)((a, b) => Hash(HexStringData(a), HexStringData(b)).toHexStringData.rawValue)).flatMap(_.toList)
 
