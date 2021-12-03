@@ -136,16 +136,33 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     */
   def getNode: Option[Node[H]] = node
 
+  /**
+    * Creates groups of related data based on the groupId
+    * provided by the chainable data type
+    * @return Chainer[T, G, H]
+    */
   def createGroups: Chainer[T, G, H] = {
     grouped = es.groupBy(x => x.groupId).values.toList
     this
   }
 
+  /**
+    * Creates a general group. It doesn't use the groupId
+    * provided by the chainable data type.
+    * This is particularly useful if not grouping is required
+    * @return Chainer[T, G, H]
+    */
   def withGeneralGrouping: Chainer[T, G, H] = {
     grouped = List(es)
     this
   }
 
+  /**
+    * Creates the initial list of hashes that are actually used
+    * for the creation of node later on.
+    * It also takes into account if we know of an initial hash, a.k.a Zero.
+    * @return Chainer[T, G, H]
+    */
   def createSeedHashes: Chainer[T, G, H] = {
     val gd = grouped.map(e => e.map(_.hash))
 
@@ -158,10 +175,16 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
       }
     }
 
-    seedHashes = getZero.map(addZero).getOrElse(gd) //if (zero.isEmpty) gd else addZero
+    seedHashes = getZero.map(addZero).getOrElse(gd)
     this
   }
 
+  /**
+    * Sets the initial hash from a previos processing phase. This first
+    * hash is called Zero
+    * @param zeroHash represents a possible previous hash of type H
+    * @return Chainer[T, G, H]
+    */
   def withHashZero(zeroHash: Option[H]): Chainer[T, G, H] = {
     require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already been created as it won't have any effect on the node.")
     require(seedHashes.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer whose seed hashes have already been created")
@@ -169,6 +192,34 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     this
   }
 
+  /**
+    * Sets the merging strategy for types H.
+    * @param newMerger a function that knows how to merge two values of type H.
+    * @return Chainer[T, G, H]
+    */
+  def withMergerFunc(newMerger: (H, H) => H): Chainer[T, G, H] = {
+    merger = Option(newMerger)
+    this
+  }
+
+  /**
+    * Sets the balancing strategy for types H.
+    * It knows how to balance a set of hashes that are not even.
+    * @param newBalancer a function that produces a new value H for balancing purposes.
+    *                    it takes the list of H, so that different strategies can be composed.
+    * @return Chainer[T, G, H]
+    */
+  def withBalancerFunc(newBalancer: List[H] => H): Chainer[T, G, H] = {
+    balancer = Option(newBalancer)
+    this
+  }
+
+  /**
+    * Creates the initial list of nodes of type H.
+    * This creates nodes objects out of the seed hashes.
+    * @param keepOrder Makes that the order of the nodes be guarantied
+    * @return Chainer[T, G, H]
+    */
   def createSeedNodes(keepOrder: Boolean = false): Chainer[T, G, H] = {
     if (keepOrder) createSeedNodesF(hashesToNodesWithJoin2)
     else createSeedNodesF(hashesToNodesWithJoin)
@@ -197,22 +248,22 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     merger.toList.flatMap { m => balance(hes).join2((t1, t2) => m(t1, t2)) }
   }
 
+  /**
+    * Creates a bottom-up node. It represents the
+    * ultimate aggregation of nodes into a single node.
+    * @return Chainer[T, G, H]
+    */
   def createNode: Chainer[T, G, H] = {
     node = merger.flatMap { m => seedNodes.join((t1, t2) => m(t1, t2)).headOption }
     this
   }
 
+  /**
+    * It converts a node into a data type that has its minimum bill of materials for the
+    * creation of the node.
+    * @return
+    */
   def compress: Option[CompressedTreeData[H]] = Chainer.compress(this)
-
-  def withMergerFunc(newMerger: (H, H) => H): Chainer[T, G, H] = {
-    merger = Option(newMerger)
-    this
-  }
-
-  def withBalancerFunc(newBalancer: List[H] => H): Chainer[T, G, H] = {
-    balancer = Option(newBalancer)
-    this
-  }
 
 }
 
