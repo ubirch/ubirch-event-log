@@ -293,6 +293,15 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   */
 object Chainer {
 
+  /**
+    * Helper function to create a chainer
+    * @param es Represents the list of raw values from which nodes will be created
+    * @param ev Represents an implicit conversion from values of T into chainable data types
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return a chainer object that knows how to create connected nodes
+    */
   def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
   /**
@@ -315,6 +324,16 @@ object Chainer {
       balancingProtocol: BalancingProtocol[H]
   )
 
+  /**
+    * Helper function to create a full node
+    * @param es Represents the list of raw values from which nodes will be created
+    * @param config Represents a simple configuration object for the creation of the full node
+    * @param ev Represents an implicit conversion from values of T into chainable data types
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return A chainer object and the last root value of the node
+    */
   def create[T, G, H](es: List[T], config: CreateConfig[H])(implicit ev: T => Chainable[T, G, H]): (List[Chainer[T, G, H]], Option[H]) = {
 
     @tailrec def go(
@@ -359,6 +378,15 @@ object Chainer {
 
   }
 
+  /**
+    * Helper function that knows how to compress chainer objects into a smaller representation that is
+    * more convenient to storage or transport
+    * @param chainer a class that allows chaining values of type T
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return Simple representation of the full node value.
+    */
   def compress[T, G, H](chainer: Chainer[T, G, H]): Option[CompressedTreeData[H]] = {
     for {
       mp <- chainer.getMergeProtocol
@@ -370,6 +398,13 @@ object Chainer {
 
   }
 
+  /**
+    * Helper function that knows how to uncompress from a CompressedTreeData[H] into Node[H]
+    * @param compressedTreeData Compressed value of the representation of the Node of type H
+    * @param m Protocol for merging values of type H
+    * @tparam H Represents the type H that will be hashable
+    * @return Represents a node-based tree
+    */
   def uncompress[H](compressedTreeData: CompressedTreeData[H])(m: MergeProtocol[H]): Option[Node[H]] = {
 
     require(compressedTreeData.version == m.version, "Compressed data has different version from detected protocol")
@@ -388,6 +423,13 @@ object Chainer {
 
   }
 
+  /**
+    * Helper function that checks the connectedness of a list of compressed tree data of type H
+    * @param compressed Compressed value of the representation of the Node of type H
+    * @param m Protocol for merging values of type H
+    * @tparam H Represents the type H that will be hashable
+    * @return boolean value from the verification
+    */
   def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(m: MergeProtocol[H]): Boolean = {
 
     require(compressed.forall(_.version == m.version), "Compressed data has different version from detected protocol")
@@ -414,6 +456,7 @@ object Chainer {
 
 /**
   * Represents a data simplified data structure for a tree
+  *  @param version Represents the MergeProtocol version
   * @param root Represents the root of the tree
   * @param leaves Represents the leaves of the tree
   * @tparam H Represents the type of the leaves
