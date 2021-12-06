@@ -296,16 +296,16 @@ object Chainer {
   def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
   /**
-   * Represents a configuration object for easy creation of required objects
-   * @param maybeInitialTreeHash Represents a zero value from previous processes
-   * @param split It indicates if the the creation process should be split
-   * @param splitSize It indicates the size for the slits
-   * @param prefixer It is a function that prefixes the root hash.
-   * @param mergeProtocol It represents the merging protocol.
-   * @param balancingProtocol It represents the balancing protocol.
-   * @tparam H Represents the type H that will be hashable.
-
-   */
+    * Represents a configuration object for easy creation of required objects
+    * @param maybeInitialTreeHash Represents a zero value from previous processes
+    * @param split It indicates if the the creation process should be split
+    * @param splitSize It indicates the size for the slits
+    * @param prefixer It is a function that prefixes the root hash.
+    * @param mergeProtocol It represents the merging protocol.
+    * @param balancingProtocol It represents the balancing protocol.
+    * @tparam H Represents the type H that will be hashable.
+    *
+    */
   case class CreateConfig[H](
       maybeInitialTreeHash: Option[H],
       split: Boolean,
