@@ -29,6 +29,8 @@ import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 import scala.concurrent.Future
 
 class WebClientProvider extends Provider[WebClient] {
@@ -88,6 +90,11 @@ object ChainerTreeSpec {
       .createNode
   }
 
+  def getHash(data: Array[Byte]): Array[Byte] = {
+    val messageDigest = MessageDigest.getInstance("SHA-512")
+    messageDigest.update(data)
+    messageDigest.digest()
+  }
 }
 
 class ChainerTreeSpec extends TestBase with LazyLogging {
@@ -98,6 +105,56 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
   val eventLogTopic = "com.ubirch.eventlog"
 
   "Chainer Tree Spec" must {
+
+    "consume, process and publish tree and event logs in Slave mode with expected seed hashes" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
+      val config = InjectorHelper.get[Config]
+
+      val customerRange = 0 to 9
+
+      val events = customerRange.map(x =>
+
+        EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+          .withCurrentEventTime
+          .withNonce(x.toString)
+          .withNewId(x.toString)
+          .withCategory(Values.UPP_CATEGORY)
+          .sign(config))
+
+      withRunningKafka {
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        val messages: List[String] = readMessage(eventLogTopic)
+
+        logger.info("Messages Read:" + messages)
+
+        val treeEventLogAsString = messages.headOption.getOrElse("")
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val compressed = ChainerJsonSupport.FromJson[CompressedTreeData[String]](treeEventLog.event).get
+
+        val hexSeeds = events
+          .map(x => ChainerTreeSpec.getHash((x.id + x.nonce)
+            .getBytes(StandardCharsets.UTF_8)))
+          .map(x => Hex.encodeHexString(x))
+          .toList
+
+        assert(hexSeeds == compressed.leaves)
+
+      }
+
+    }
 
     "consume, process and publish tree and event logs in Slave mode with UPPs" in {
 
