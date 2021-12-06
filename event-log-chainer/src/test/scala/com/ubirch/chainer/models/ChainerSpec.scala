@@ -117,7 +117,7 @@ class ChainerSpec extends TestBase {
 
       val nodes = Chainer(listOfData)
         .withMergeProtocol(MergeProtocol.V2_HexString)
-        .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
+        .withBalancingProtocol(BalancingProtocol.RandomHexString())
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
@@ -165,7 +165,7 @@ class ChainerSpec extends TestBase {
 
       val nodes = Chainer(listOfData)
         .withMergeProtocol(MergeProtocol.V2_HexString)
-        .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
+        .withBalancingProtocol(BalancingProtocol.RandomHexString())
         .createGroups
         .createSeedHashes
         .createSeedNodes(true)
@@ -243,7 +243,7 @@ class ChainerSpec extends TestBase {
           splitSize = 50,
           prefixer = s => s,
           mergeProtocol = MergeProtocol.V2_HexString,
-          balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
+          balancingProtocol = BalancingProtocol.RandomHexString(Some(Hash(StringData("balancing-hash")).toHexStringData.rawValue))
         )
       )
 
@@ -270,7 +270,7 @@ class ChainerSpec extends TestBase {
         splitSize = 50,
         prefixer = s => s,
         mergeProtocol = MergeProtocol.V2_HexString,
-        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
+        balancingProtocol = BalancingProtocol.RandomHexString(Some(Hash(StringData("balancing-hash")).toHexStringData.rawValue))
       ))
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
@@ -292,7 +292,7 @@ class ChainerSpec extends TestBase {
         splitSize = 50,
         prefixer = s => s,
         mergeProtocol = MergeProtocol.V2_HexString,
-        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
+        balancingProtocol = BalancingProtocol.RandomHexString(Some(Hash(StringData("balancing-hash")).toHexStringData.rawValue))
       ))
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)
@@ -319,7 +319,7 @@ class ChainerSpec extends TestBase {
         splitSize = 50,
         prefixer = s => s,
         mergeProtocol = MergeProtocol.V2_HexString,
-        balancer = _ => Hash(StringData("balancing-hash")).toHexStringData.rawValue
+        balancingProtocol = BalancingProtocol.RandomHexString(Some(Hash(StringData("balancing-hash")).toHexStringData.rawValue))
       ))
 
       val compressed = c.map(x => x.compress).flatMap(_.toList)

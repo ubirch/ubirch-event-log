@@ -1,8 +1,5 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.models.Hash.{ HexStringData, StringData }
-import com.ubirch.util.UUIDHelper
-
 import scala.annotation.tailrec
 
 /**
@@ -103,7 +100,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     * The leaves are passed in as parameters in the function so that interesting balancing
     * options can be used.
     */
-  private var balancer: Option[List[H] => H] = None
+  private var balancingProtocol: Option[BalancingProtocol[H]] = None
 
   /**
     * Represents the list of seeds, that is, the incoming data of type T.
@@ -229,12 +226,12 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   /**
     * Sets the balancing strategy for types H.
     * It knows how to balance a set of hashes that are not even.
-    * @param newBalancer a function that produces a new value H for balancing purposes.
+    * @param newBalancingProtocol a data types that describes how to produce a new value H for balancing purposes.
     *                    it takes the list of H, so that different strategies can be composed.
     * @return Chainer[T, G, H]
     */
-  def withBalancerFunc(newBalancer: List[H] => H): Chainer[T, G, H] = {
-    balancer = Option(newBalancer)
+  def withBalancingProtocol(newBalancingProtocol: BalancingProtocol[H]): Chainer[T, G, H] = {
+    balancingProtocol = Option(newBalancingProtocol)
     this
   }
 
@@ -257,7 +254,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def balance(hes: List[H]): List[Node[H]] = {
-    val maybeBalancer = balancer.map(x => x(hes))
+    val maybeBalancer = balancingProtocol.map(x => x(hes))
     require(maybeBalancer.isDefined, "Cannot balance with unset balancer")
     val balanced = maybeBalancer.toList.flatMap(bh => Node.seeds(hes: _*).balanceRightWithEmpty(bh))
     balancedSeedNodes = balanced
@@ -296,17 +293,26 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   */
 object Chainer {
 
-  def getEmptyNode: HexStringData = Hash(StringData(s"emptyNode_${UUIDHelper.randomUUID}")).toHexStringData
-
   def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
+  /**
+   * Represents a configuration object for easy creation of required objects
+   * @param maybeInitialTreeHash Represents a zero value from previous processes
+   * @param split It indicates if the the creation process should be split
+   * @param splitSize It indicates the size for the slits
+   * @param prefixer It is a function that prefixes the root hash.
+   * @param mergeProtocol It represents the merging protocol.
+   * @param balancingProtocol It represents the balancing protocol.
+   * @tparam H Represents the type H that will be hashable.
+
+   */
   case class CreateConfig[H](
       maybeInitialTreeHash: Option[H],
       split: Boolean,
       splitSize: Int,
       prefixer: H => H,
       mergeProtocol: MergeProtocol[H],
-      balancer: List[H] => H
+      balancingProtocol: BalancingProtocol[H]
   )
 
   def create[T, G, H](es: List[T], config: CreateConfig[H])(implicit ev: T => Chainable[T, G, H]): (List[Chainer[T, G, H]], Option[H]) = {
@@ -321,7 +327,7 @@ object Chainer {
         case xs :: xss =>
           val chainer = Chainer(xs)
             .withMergeProtocol(config.mergeProtocol)
-            .withBalancerFunc(config.balancer)
+            .withBalancingProtocol(config.balancingProtocol)
             .withHashZero(latestHash)
             .withGeneralGrouping
             .createSeedHashes

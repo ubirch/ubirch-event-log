@@ -80,7 +80,7 @@ object ChainerTreeSpec {
 
   def getChainer(events: List[EventLog]): Chainer[EventLog, String, String] = {
     Chainer(events)
-      .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
+      .withBalancingProtocol(BalancingProtocol.RandomHexString())
       .withMergeProtocol(MergeProtocol.V2_HexString)
       .withGeneralGrouping
       .createSeedHashes

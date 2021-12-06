@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.TestBase
 import com.ubirch.chainer.models.Chainer.CreateConfig
-import com.ubirch.chainer.models.{ Chainer, Master, MergeProtocol, Slave }
+import com.ubirch.chainer.models.{ BalancingProtocol, Chainer, Master, MergeProtocol, Slave }
 import com.ubirch.chainer.services._
 import com.ubirch.chainer.services.httpClient.DefaultAsyncWebClient
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
@@ -254,7 +254,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -301,7 +301,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
         .withMergeProtocol(MergeProtocol.V2_HexString)
-        .withBalancerFunc(_ => _balancingHash)
+        .withBalancingProtocol(BalancingProtocol.RandomHexString(Some(_balancingHash)))
         .withHashZero(None)
         .withGeneralGrouping
         .createSeedHashes
@@ -320,7 +320,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -373,7 +373,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
         splitSize = treeCreator.splitSize,
         prefixer = treeCache.prefix,
         mergeProtocol = MergeProtocol.V2_HexString,
-        balancer = _ => _balancingHash
+        balancingProtocol = BalancingProtocol.RandomHexString(Some(_balancingHash))
       )
       val chainerRes2 = Chainer.create(nels.eventLogs.toList, createConfig)
 
@@ -394,7 +394,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -441,7 +441,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
         .withMergeProtocol(MergeProtocol.V2_HexString)
-        .withBalancerFunc(_ => _balancingHash)
+        .withBalancingProtocol(BalancingProtocol.RandomHexString(Some(_balancingHash)))
         .createGroups
         .createSeedHashes
         .createSeedNodes(keepOrder = true)
@@ -470,7 +470,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = Chainer.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -521,7 +521,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventLogChainer = Chainer(res.eventLogs.toList)
         .withMergeProtocol(MergeProtocol.V2_HexString)
-        .withBalancerFunc(_ => _balancingHash)
+        .withBalancingProtocol(BalancingProtocol.RandomHexString(Some(_balancingHash)))
         .createGroups
         .createSeedHashes
         .createSeedNodes(keepOrder = true)

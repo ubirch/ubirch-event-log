@@ -17,7 +17,7 @@ object ChainerService extends App {
   // - nodes to later have a node of these nodes.
 
   val node = Node.seeds("a", "b", "c")
-    .balanceRightWithEmpty(Chainer.getEmptyNode.rawValue)
+    .balanceRightWithEmpty(BalancingProtocol.getEmptyNode.rawValue)
     .join((a, b) => a + b)
 
   println(node)
@@ -64,7 +64,7 @@ object ChainerService2 extends App {
   //    .getNode
 
   val nodes = Chainer(listOfData)
-    .withBalancerFunc(_ => Chainer.getEmptyNode.rawValue)
+    .withBalancingProtocol(BalancingProtocol.RandomHexString())
     .withMergeProtocol(MergeProtocol.V2_HexString)
     .withGeneralGrouping
     .createSeedHashes
@@ -126,7 +126,7 @@ object ChainerServiceBytes extends App {
   //    .createNode
   //    .getNode
   val nodes = Chainer(listOfData)
-    .withBalancerFunc(_ => Chainer.getEmptyNode.toBytesData.rawValue)
+    .withBalancingProtocol(BalancingProtocol.RandomBytes)
     .withMergeProtocol(MergeProtocol.V2_Bytes)
     .withGeneralGrouping
     .createSeedHashes

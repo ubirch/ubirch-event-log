@@ -1,7 +1,7 @@
 package com.ubirch.chainer.services.tree
 
 import com.typesafe.config.Config
-import com.ubirch.chainer.models.{ Chainer, MergeProtocol }
+import com.ubirch.chainer.models.{ BalancingProtocol, Chainer, MergeProtocol }
 import com.ubirch.chainer.models.Chainer.CreateConfig
 import com.ubirch.models.EventLog
 
@@ -26,7 +26,7 @@ class TreeCreator @Inject() (config: Config) {
       splitSize = splitSize,
       prefixer = prefixer,
       mergeProtocol = MergeProtocol.V2_HexString,
-      balancer = _ => outerBalancingHash.getOrElse(Chainer.getEmptyNode.rawValue)
+      balancingProtocol = BalancingProtocol.RandomHexString(outerBalancingHash)
     )
     Chainer.create(eventLogs, config)
   }
