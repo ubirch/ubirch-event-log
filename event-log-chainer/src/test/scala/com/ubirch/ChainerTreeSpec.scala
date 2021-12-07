@@ -1,5 +1,7 @@
 package com.ubirch
 
+import com.ubirch.ChainerTreeSpec.getHash
+
 import java.io.ByteArrayInputStream
 import java.util.Date
 import java.util.concurrent.Executor
@@ -106,15 +108,15 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
 
   "Chainer Tree Spec" must {
 
-    "consume, process and publish tree and event logs in Slave mode with expected seed hashes" in {
+    "create expected tree" in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
       val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
-      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic)
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 2)
       val config = InjectorHelper.get[Config]
 
-      val customerRange = 0 to 9
+      val customerRange = 1 to 2
 
       val events = customerRange.map(x =>
 
@@ -150,8 +152,13 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
           .map(x => Hex.encodeHexString(x))
           .toList
 
+        val root = Hex.encodeHexString(getHash(Array.concat(Hex.decodeHex(hexSeeds(0)), Hex.decodeHex(hexSeeds(1)))))
+        assert(compressed.root == root)
         assert(hexSeeds == compressed.leaves)
 
+        assert("446e8158c1e6350977c45716ae683871674f90b34cf382cd84fc4795304916bdb5200ba06c830174aaf19ba9d36b4366b6c665ec87619fe0d1addd0dc416651d" == root)
+        assert("74a49c698dbd3c12e36b0b287447d833f74f3937ff132ebff7054baa18623c35a705bb18b82e2ac0384b5127db97016e63609f712bc90e3506cfbea97599f46f" == hexSeeds(0))
+        assert("6ad275d26c200e81534d9996183c8748ddfabc7b0a011a90f46301626d709923474703cacab0ff8b67cd846b6cb55b23a39b03fbdfb5218eec3373cf7010a166" == hexSeeds(1))
       }
 
     }
