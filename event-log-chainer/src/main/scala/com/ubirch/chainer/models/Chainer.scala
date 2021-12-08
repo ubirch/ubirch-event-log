@@ -254,9 +254,11 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def balance(hes: List[H]): List[Node[H]] = {
-    val maybeBalancer = balancingProtocol.map(x => x(hes))
-    require(maybeBalancer.isDefined, "Cannot balance with unset balancer")
-    val balanced = maybeBalancer.toList.flatMap(bh => Node.seeds(hes: _*).balanceRightWithEmpty(bh))
+    require(hes.nonEmpty, "Cannot balance empty input")
+    require(balancingProtocol.isDefined, "Cannot balance with unset balancing protocol")
+    val maybeBalancingDatePoint = balancingProtocol.flatMap(x => x(hes))
+    require(maybeBalancingDatePoint.isDefined, "Cannot balance with unset balancer")
+    val balanced = maybeBalancingDatePoint.toList.flatMap(bh => Node.seeds(hes: _*).balanceRightWithEmpty(bh))
     balancedSeedNodes = balanced
     balanced
   }

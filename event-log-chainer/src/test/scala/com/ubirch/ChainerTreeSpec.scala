@@ -1,84 +1,26 @@
 package com.ubirch
 
-import com.ubirch.ChainerTreeSpec.getHash
-
-import java.io.ByteArrayInputStream
-import java.util.Date
-import java.util.concurrent.Executor
-import com.google.inject.Provider
-import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
-import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
-import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
-import com.ubirch.chainer.services.tree.{ TreeMonitor, TreePaths }
+import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.commons.codec.binary.Hex
-import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
-import scala.concurrent.Future
-
-class WebClientProvider extends Provider[WebClient] {
-  override def get(): WebClient = new WebClient {
-    override def get(url: String)(params: List[Param])(implicit exec: Executor): Future[WebclientResponse] = {
-      url match {
-        case "http://localhost:8081/v1/events" =>
-          val body = """{"success":true,"message":"Nothing Found","data":[]}"""
-          Future.successful(WebclientResponse("OK", 200, "application/json", body, new ByteArrayInputStream(body.getBytes())))
-      }
-    }
-  }
-}
-
-class InjectorHelperImpl(
-    bootstrapServers: String,
-    consumerTopic: String,
-    producerTopic: String,
-    minTreeRecords: Int = 10,
-    treeEvery: Int = 60,
-    treeUpgrade: Int = 120,
-    mode: Mode = Slave,
-    split: Boolean = false,
-    splitSize: Int = 50,
-    webClientProvider: Option[Provider[WebClient]] = None
-) extends InjectorHelper(List(new ChainerServiceBinder {
-
-  override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-    override def conf: Config = {
-      super.conf
-        .withValue(TreePaths.DAYS_BACK, ConfigValueFactory.fromAnyRef(3))
-        .withValue(TreePaths.SPLIT, ConfigValueFactory.fromAnyRef(split))
-        .withValue(TreePaths.SPLIT_SIZE, ConfigValueFactory.fromAnyRef(splitSize))
-        .withValue(TreePaths.MODE, ConfigValueFactory.fromAnyRef(mode.value))
-        .withValue(TreePaths.MIN_TREE_RECORDS, ConfigValueFactory.fromAnyRef(minTreeRecords))
-        .withValue(TreePaths.TREE_EVERY, ConfigValueFactory.fromAnyRef(treeEvery))
-        .withValue(TreePaths.TREE_UPGRADE, ConfigValueFactory.fromAnyRef(treeUpgrade))
-        .withValue(ConsumerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
-        .withValue(ProducerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
-        .withValue(ConsumerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(consumerTopic))
-        .withValue(ProducerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(producerTopic))
-    }
-  })
-
-  override def webClient: ScopedBindingBuilder = webClientProvider.map(x => bind(classOf[WebClient]).toProvider(x)).getOrElse(super.webClient)
-}))
+import java.util.Date
 
 object ChainerTreeSpec {
 
@@ -92,11 +34,6 @@ object ChainerTreeSpec {
       .createNode
   }
 
-  def getHash(data: Array[Byte]): Array[Byte] = {
-    val messageDigest = MessageDigest.getInstance("SHA-512")
-    messageDigest.update(data)
-    messageDigest.digest()
-  }
 }
 
 class ChainerTreeSpec extends TestBase with LazyLogging {
@@ -147,7 +84,7 @@ class ChainerTreeSpec extends TestBase with LazyLogging {
         val compressed = ChainerJsonSupport.FromJson[CompressedTreeData[String]](treeEventLog.event).get
 
         val hexSeeds = events
-          .map(x => ChainerTreeSpec.getHash((x.id + x.nonce)
+          .map(x => getHash((x.id + x.nonce)
             .getBytes(StandardCharsets.UTF_8)))
           .map(x => Hex.encodeHexString(x))
           .toList

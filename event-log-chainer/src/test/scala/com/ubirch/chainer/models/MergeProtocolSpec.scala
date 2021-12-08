@@ -5,15 +5,8 @@ import com.ubirch.TestBase
 import org.bouncycastle.util.encoders.Hex
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 
 class MergeProtocolSpec extends TestBase {
-
-  def getHash(data: Array[Byte]): Array[Byte] = {
-    val messageDigest = MessageDigest.getInstance("SHA-512")
-    messageDigest.update(data)
-    messageDigest.digest()
-  }
 
   "A MergeProtocol.V2_HexString" must {
 

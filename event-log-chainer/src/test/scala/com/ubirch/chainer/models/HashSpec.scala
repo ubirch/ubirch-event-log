@@ -6,15 +6,8 @@ import com.ubirch.chainer.models.Hash.{ BytesData, HexStringData, StringData }
 import org.bouncycastle.util.encoders.Hex
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 
 class HashSpec extends TestBase {
-
-  def getHash(data: Array[Byte]): Array[Byte] = {
-    val messageDigest = MessageDigest.getInstance("SHA-512")
-    messageDigest.update(data)
-    messageDigest.digest()
-  }
 
   "A Hash" must {
 
