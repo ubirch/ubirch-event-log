@@ -15,7 +15,7 @@ trait InstantMonitor {
 }
 
 /**
-  * Represents the implementation for the instant interface throught an atomic reference.
+  * Represents the implementation for the instant interface through an atomic reference.
   */
 class AtomicInstantMonitor extends InstantMonitor {
 

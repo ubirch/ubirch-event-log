@@ -63,5 +63,5 @@ object WebClientTest extends App {
 
   implicit val exec = scala.concurrent.ExecutionContext.global.asInstanceOf[Executor with ExecutionContext]
   val webClient = new DefaultAsyncWebClient
-  webClient.get("http://www.google.com/")(Nil).map(x => println(x.getResponseBody)).foreach(_ => webClient.shutdown())
+  webClient.get("https://www.google.com/")(Nil).map(x => println(x.getResponseBody)).foreach(_ => webClient.shutdown())
 }
