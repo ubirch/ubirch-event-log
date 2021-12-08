@@ -110,7 +110,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   def seeds: List[T] = es
 
   /**
-    * Represents the a possible initial hash from another process or chainer.
+    * Represents an initial hash from another process or chainer.
     * @return Option of H
     */
   def getZero: Option[H] = zero

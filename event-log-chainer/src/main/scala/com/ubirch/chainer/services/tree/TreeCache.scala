@@ -18,13 +18,16 @@ class TreeCache @Inject() (config: Config) {
 
   private val mode: Mode = Mode.getMode(modeFromConfig)
 
-  private val _latestHash = new AtomicReference[Option[String]](None)
+  private val latestHash = new AtomicReference[Option[String]](None)
 
-  private val _latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
+  private val latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
 
-  def latestHash: Option[String] = _latestHash.get()
+  def getLatestHash: Option[String] = latestHash.get()
 
-  def setLatestHash(value: String): Unit = _latestHash.set(Some(prefix(value)))
+  def setLatestHash(value: String): Unit = {
+    require(value.nonEmpty, "latest hash can't be empty")
+    latestHash.set(Some(prefix(value)))
+  }
 
   def withPrefix = false
 
@@ -36,10 +39,10 @@ class TreeCache @Inject() (config: Config) {
       value
   }
 
-  def latestTreeEventLog: Option[EventLog] = _latestTreeEventLog.get()
+  def getLatestTreeEventLog: Option[EventLog] = latestTreeEventLog.get()
 
-  def setLatestTree(eventLog: EventLog): Unit = _latestTreeEventLog.set(Option(eventLog))
+  def setLatestTree(eventLog: EventLog): Unit = latestTreeEventLog.set(Option(eventLog))
 
-  def deleteLatestTree: Unit = _latestTreeEventLog.set(None)
+  def resetLatestTree: Unit = latestTreeEventLog.set(None)
 
 }

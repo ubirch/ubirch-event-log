@@ -95,8 +95,8 @@ class TreeMonitor @Inject() (
     if (treeUpgrade.goodToUpgrade || forceUpgrade) {
       logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-      val latestHash = treeCache.latestHash.getOrElse("")
-      val latestTree = treeCache.latestTreeEventLog
+      val latestHash = treeCache.getLatestHash.getOrElse("")
+      val latestTree = treeCache.getLatestTreeEventLog
 
       latestTree
         .map(_.removeHeader(HeaderNames.DISPATCHER))
@@ -152,7 +152,7 @@ class TreeMonitor @Inject() (
   }
 
   def createTrees(eventLogs: List[EventLog]) = synchronized {
-    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.latestHash)(treeCache.prefix)
+    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.getLatestHash)(treeCache.prefix)
     //TODO: Check if cache works
     treeCache.setLatestHash(latest.getOrElse(""))
     chainers
@@ -164,7 +164,7 @@ class TreeMonitor @Inject() (
 
   def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
     //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
-    treeCache.deleteLatestTree
+    treeCache.resetLatestTree
     treePublisher.publish(topic, eventLog)
   }
 
