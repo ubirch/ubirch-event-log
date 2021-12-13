@@ -8,7 +8,6 @@ import com.ubirch.verification.LookupServiceBinder
 import com.ubirch.verification.models.VertexStruct
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {
