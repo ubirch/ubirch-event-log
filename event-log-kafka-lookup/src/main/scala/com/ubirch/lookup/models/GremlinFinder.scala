@@ -64,7 +64,7 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
     }
 
     val lowerPathHelper: Future[Option[(PathHelper, Long)]] = maybeLastMasterAndTime.flatMap {
-      case Some((v, t)) => outLT(v, t).map(x => Option(PathHelper(x), t))
+      case Some((v, t)) => outLT(v, t).map(x => Option((PathHelper(x), t)))
       case None => Future.successful(None)
     }
 
@@ -213,14 +213,15 @@ class GremlinFinder @Inject() (gremlin: Gremlin)(implicit ec: ExecutionContext) 
           time.asInstanceOf[String]
       }
     }
-    def decorateType(anyTime: Any): Any = {
-      anyTime match {
-        case time if anyTime.isInstanceOf[String] =>
-          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
-          else time.toString
-        case time => time
-      }
-    }
+    //Uncomment and use if needed
+    //    def decorateType(anyTime: Any): Any = {
+    //      anyTime match {
+    //        case time if anyTime.isInstanceOf[String] =>
+    //          if (time.toString == Values.SLAVE_TREE_CATEGORY) Values.FOUNDATION_TREE_CATEGORY
+    //          else time.toString
+    //        case time => time
+    //      }
+    //    }
     asVertices(path, anchors).map { case (p, a) =>
       val _path = p.map(x =>
         x.map(Values.TIMESTAMP)(parseTimestamp)

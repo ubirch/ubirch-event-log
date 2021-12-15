@@ -4,8 +4,6 @@ import com.ubirch.discovery.services.DiscoveryServiceBinder
 import com.ubirch.kafka.express.ExpressKafka
 import com.ubirch.util.Boot
 
-import scala.language.postfixOps
-
 /**
   * Represents an the Kafka Discovery boot object.
   */

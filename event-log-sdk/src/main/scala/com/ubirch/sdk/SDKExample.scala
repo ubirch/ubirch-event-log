@@ -226,7 +226,7 @@ object SDKExample2 extends EventLogging with LazyLogging {
 
     logger.info("Data Sent, waiting on acknowledgement")
 
-    val timeout = 5
+    val timeout = 5L
     val timeoutUnit = TimeUnit.MINUTES
     val countDownRes = countDown.await(timeout, timeoutUnit)
 

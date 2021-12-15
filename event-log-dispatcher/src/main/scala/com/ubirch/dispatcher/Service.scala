@@ -4,8 +4,6 @@ import com.ubirch.dispatcher.services.DispatcherServiceBinder
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.util.Boot
 
-import scala.language.postfixOps
-
 /**
   * Represents an the Kafka Dispatching boot object.
   */

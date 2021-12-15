@@ -7,13 +7,13 @@ import com.ubirch.verification.models.VertexStruct
 import com.ubirch.verification.services.janus.GremlinFinder._
 import javax.inject._
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 
 /**
   * This finder is to be used when using an embedded janusgraph
   */
 @Singleton
-class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implicit ec: ExecutionContext) extends GremlinFinder with LazyLogging {
+class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config) extends GremlinFinder with LazyLogging {
 
   /*
   This variable correspond to the minimum of anchors (ie: blockchains) needed to be found by the
@@ -37,7 +37,7 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
     val (upper, lower) = findUpperAndLower(id)
     val (completePathShortest, completeBlockchainsUpper) = asVerticesDecorated(upper)
     val (completePathLower, completeBlockchainsLower) = asVerticesDecorated(lower)
-    Future.successful(completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower)
+    Future.successful((completePathShortest, completeBlockchainsUpper, completePathLower, completeBlockchainsLower))
   }
 
   /**
@@ -114,13 +114,13 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
     val lowerPathHelper: Option[(List[VertexStruct], Long)] = {
       if (safeMode) {
         maybeLastMasterAndTime match {
-          case Some((v, t)) => Option(outLT(v, t), t)
+          case Some((v, t)) => Option((outLT(v, t), t))
           case None => None
         }
       } else {
         val maybeFirstMasterAndTime: Option[(VertexStruct, Long)] = shortestPath.firstMasterOption.map(x => (x, headTimestamp.getOrElse(-1L)))
         maybeFirstMasterAndTime match {
-          case Some((v, t)) => Option(outLT(v, t), t)
+          case Some((v, t)) => Option((outLT(v, t), t))
           case None => None
         }
       }
@@ -281,7 +281,7 @@ class GremlinFinderEmbedded @Inject() (gremlin: Gremlin, config: Config)(implici
   def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] = {
     val upper = findAnchorsWithPath(id)
     val (completePathShortest, completeBlockchainsUpper) = asVerticesDecorated(upper)
-    Future.successful(completePathShortest, completeBlockchainsUpper)
+    Future.successful((completePathShortest, completeBlockchainsUpper))
 
   }
 

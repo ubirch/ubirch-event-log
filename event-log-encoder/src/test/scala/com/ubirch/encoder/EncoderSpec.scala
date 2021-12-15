@@ -6,7 +6,6 @@ import java.util.concurrent.TimeoutException
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.encoder.models.AcctEvent
 import com.ubirch.encoder.services.EncoderServiceBinder
 import com.ubirch.encoder.util.EncoderJsonSupport
 import com.ubirch.kafka.MessageEnvelope

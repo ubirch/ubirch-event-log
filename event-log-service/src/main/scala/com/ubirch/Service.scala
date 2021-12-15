@@ -6,8 +6,6 @@ import com.ubirch.service.rest.RestService
 import com.ubirch.services.ServiceBinder
 import com.ubirch.util.Boot
 
-import scala.language.postfixOps
-
 /**
   * Represents an Event Log Service.
   * It starts an String Consumer that in turn starts all the rest of the

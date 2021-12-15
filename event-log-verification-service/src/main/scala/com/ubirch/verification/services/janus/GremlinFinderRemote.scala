@@ -132,7 +132,7 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
     val futureLowerPathHelper: Future[Option[(List[VertexStruct], Long)]] = {
       if (safeMode) {
         futureMaybeLastMasterAndTime.flatMap {
-          case Some((v, t)) => outLT(v, t).map(x => Option(x, t))
+          case Some((v, t)) => outLT(v, t).map(x => Option((x, t)))
           case None => Future.successful(None)
         }
       } else {
@@ -143,7 +143,7 @@ class GremlinFinderRemote @Inject() (gremlin: Gremlin, config: Config)(implicit 
           master.map(x => (x, time.getOrElse(-1L)))
         }
         maybeFirstMasterAndTime.flatMap {
-          case Some((v, t)) => outLT(v, t).map(x => Option(x, t))
+          case Some((v, t)) => outLT(v, t).map(x => Option((x, t)))
           case None => Future.successful(None)
         }
       }

@@ -7,7 +7,6 @@ import com.ubirch.models.Values
 import com.ubirch.util.Boot
 
 import scala.concurrent.ExecutionContext
-import scala.language.postfixOps
 import scala.util.{ Failure, Success }
 
 object FindAnchorsWithPathAsVertices extends Boot(LookupServiceBinder.modules) {

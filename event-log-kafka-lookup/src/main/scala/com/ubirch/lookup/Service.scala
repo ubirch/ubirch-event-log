@@ -4,8 +4,6 @@ import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.lookup.services.LookupServiceBinder
 import com.ubirch.util.Boot
 
-import scala.language.postfixOps
-
 /**
   * Represents an the Kafka Lookup boot object.
   */
