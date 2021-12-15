@@ -19,16 +19,17 @@ class TreeCreator @Inject() (config: Config) {
   lazy val splitSize: Int = config.getInt(TreePaths.SPLIT_SIZE)
 
   def create(eventLogs: List[EventLog], maybeInitialTreeHash: Option[String])(prefixer: String => String): (List[Chainer[EventLog, String, String]], Option[String]) = {
-
-    val config = CreateConfig[String](
-      maybeInitialTreeHash = maybeInitialTreeHash,
-      split = splitTrees,
-      splitSize = splitSize,
-      prefixer = prefixer,
-      mergeProtocol = MergeProtocol.V2_HexString,
-      balancingProtocol = BalancingProtocol.RandomHexString(outerBalancingHash)
+    Chainer.create(
+      es = eventLogs,
+      config = CreateConfig[String](
+        maybeInitialTreeHash = maybeInitialTreeHash,
+        split = splitTrees,
+        splitSize = splitSize,
+        prefixer = prefixer,
+        mergeProtocol = MergeProtocol.V2_HexString,
+        balancingProtocol = BalancingProtocol.RandomHexString(outerBalancingHash)
+      )
     )
-    Chainer.create(eventLogs, config)
   }
 
   def outerBalancingHash: Option[String] = None
