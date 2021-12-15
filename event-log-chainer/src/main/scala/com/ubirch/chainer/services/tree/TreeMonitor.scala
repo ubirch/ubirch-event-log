@@ -153,8 +153,7 @@ class TreeMonitor @Inject() (
 
   def createTrees(eventLogs: List[EventLog]) = synchronized {
     val (chainers, latest) = treeCreator.create(eventLogs, treeCache.getLatestHash)(treeCache.prefix)
-    //TODO: Check if cache works
-    treeCache.setLatestHash(latest.getOrElse(""))
+    treeCache.setLatestHash(latest)
     chainers
   }
 

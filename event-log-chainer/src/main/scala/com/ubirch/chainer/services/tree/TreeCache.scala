@@ -15,11 +15,9 @@ import javax.inject._
 class TreeCache @Inject() (config: Config) {
 
   private val modeFromConfig: String = config.getString(TreePaths.MODE)
-
   private val mode: Mode = Mode.getMode(modeFromConfig)
 
   private val latestHash = new AtomicReference[Option[String]](None)
-
   private val latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
 
   def getLatestHash: Option[String] = latestHash.get()
@@ -27,6 +25,11 @@ class TreeCache @Inject() (config: Config) {
   def setLatestHash(value: String): Unit = {
     require(value.nonEmpty, "latest hash can't be empty")
     latestHash.set(Some(prefix(value)))
+  }
+
+  def setLatestHash(value: Option[String]): Unit = {
+    require(value.nonEmpty, "latest hash can't be empty")
+    value.foreach(setLatestHash)
   }
 
   def withPrefix = false
