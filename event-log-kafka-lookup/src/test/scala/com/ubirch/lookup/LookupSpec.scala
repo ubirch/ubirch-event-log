@@ -479,19 +479,6 @@ class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
         val readMessage = consumeFirstStringMessageFrom(eventLogTopic)
 
-        val data = LookupJsonSupport.getJValue(
-          """
-            |{
-            |   "hint":0,
-            |   "payload":"c29tZSBieXRlcyEAAQIDnw==",
-            |   "signature":"5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==",
-            |   "signed":"lRKwjni1ymWXEeiBhcg+pwAOTQCwc29tZSBieXRlcyEAAQIDnw==",
-            |   "uuid":"8e78b5ca-6597-11e8-8185-c83ea7000e4d",
-            |   "version":34
-            |}
-          """.stripMargin
-        )
-
         assert(readMessage == s"""{"success":true,"message":"Nothing Found","data":{"success":true,"key":"$key","query_type":"signature","message":"Nothing Found","event":null,"anchors":null}}""")
 
       }

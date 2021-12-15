@@ -83,7 +83,6 @@
         <scala.logging.version>3.9.0</scala.logging.version>
         <slf4j.api.version>1.7.15</slf4j.api.version>
         <logback-classic.version>1.2.3</logback-classic.version>
-        <log4j-over-slf4j.version>1.7.25</log4j-over-slf4j.version>
         <jcl-over-slf4j.version>1.7.25</jcl-over-slf4j.version>
         <logstash-logback-encoder.version>5.3</logstash-logback-encoder.version>
         <io.prometheus.simpleclient.version>0.6.0</io.prometheus.simpleclient.version>
