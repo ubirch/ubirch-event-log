@@ -274,7 +274,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val webClient = new DefaultAsyncWebClient()
+      val lifecycle = new DefaultLifecycle()
+
+      val webClient = new DefaultAsyncWebClient(lifecycle)
 
       val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
 
@@ -340,7 +342,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val webClient = new DefaultAsyncWebClient()
+      val lifecycle = new DefaultLifecycle()
+
+      val webClient = new DefaultAsyncWebClient(lifecycle)
 
       val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
 
@@ -414,7 +418,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val webClient = new DefaultAsyncWebClient()
+      val lifecycle = new DefaultLifecycle()
+
+      val webClient = new DefaultAsyncWebClient(lifecycle)
 
       val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
 
@@ -494,7 +500,9 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val treeUpgrade = new TreeUpgrade(new AtomicInstantMonitor, config)
 
-      val webClient = new DefaultAsyncWebClient()
+      val lifecycle = new DefaultLifecycle()
+
+      val webClient = new DefaultAsyncWebClient(lifecycle)
 
       val treeBootstrap = new TreeWarmUp(treeCache, webClient, config)
 
