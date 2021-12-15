@@ -216,13 +216,13 @@ class DefaultClientExecutorsSpec extends TestBase with MockitoSugar with Executi
 
       val handler = new CommitHandlerAsync {
         override def get(javaFutureRecordMetadata: JavaFuture[RecordMetadata], eventLog: EventLog): Future[EventLog] = {
-          Future.successful(throw new InterruptedException("OOPs"))
+          Future.failed(new InterruptedException("OOPs"))
         }
       }
 
       def resp = handler((javaRecordMetadata, eventLog))
 
-      assertThrows[CommitHandlerASyncException](resp)
+      assertThrows[ExecutionException](await(resp, 2 seconds))
 
     }
 

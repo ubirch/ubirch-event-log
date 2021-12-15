@@ -62,7 +62,11 @@ class DispatchExecutor @Inject() (
 
             lazy val dataToSend: String = dispatchTopic.dataToSend
               .filter(_.nonEmpty)
-              .flatMap(dts => (eventLogJValue \ dts).extractOpt[String])
+              .map(dts => eventLogJValue \ dts)
+              .map {
+                case JString(v) => v
+                case other => EventLogJsonSupport.stringify(other)
+              }
               .orElse(Option(eventLogAsString))
               .map { x =>
                 counterPerTopic.counter.labels(metricsSubNamespace, dispatchTopic.name).inc()

@@ -3,7 +3,7 @@ package com.ubirch.verification.controllers
 import com.ubirch.verification.controllers.Api.Response
 import com.ubirch.verification.models.{ AnchorsNoPath, BlockchainInfo, Normal, ResponseForm, ShortestPath, Simple, UpperLower }
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 
 trait Versions {
   _: DefaultApi =>
@@ -26,7 +26,7 @@ trait Versions {
       }
     }
 
-    def verifyUPP(hash: Array[Byte])(implicit ec: ExecutionContext): Future[Response] = {
+    def verifyUPP(hash: Array[Byte]): Future[Response] = {
       registerMetrics("simple") { () =>
         verifyBase(
           hash,

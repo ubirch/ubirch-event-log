@@ -1,5 +1,6 @@
 package com.ubirch.dispatcher
 
+import java.util.UUID
 import java.util.concurrent.TimeoutException
 
 import com.google.inject.binder.ScopedBindingBuilder
@@ -13,7 +14,10 @@ import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
-import org.json4s.JsonAST.JString
+import org.json4s.JInt
+import org.json4s.JsonAST.{ JObject, JString }
+
+import scala.util.Try
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new DispatcherServiceBinder {
   override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
@@ -106,17 +110,14 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
 
       val dispatchInfo = InjectorHelper.get[DispatchInfo].info
 
-      val eventLogs = dispatchInfo.map { x =>
-        EventLog(JString(UUIDHelper.randomUUID.toString)).withCategory(x.category).withNewId
-      }
+      val event = JObject("one" -> JString("one"), "two" -> JInt(2))
+      val eventLogs = dispatchInfo.map { x => EventLog(event).withCategory(x.category).withNewId }
 
       eventLogs.foreach(x => println("Sending event log as " + x.category))
 
       withRunningKafka {
 
-        eventLogs.foreach { x =>
-          publishStringMessageToKafka(messageEnvelopeTopic, x.toJson)
-        }
+        eventLogs.foreach { x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson) }
 
         //Consumer
         val consumer = InjectorHelper.get[StringConsumer]
@@ -136,10 +137,14 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
           x.topics.map { t =>
             topicsProcessed = topicsProcessed + 1
             val readM = readMessage(t.name).headOption.getOrElse("Nothing read")
-            t.dataToSend.filter(_.isEmpty).map { _ =>
-              val dispatchRes = EventLogJsonSupport.FromString[EventLog](readM).get
-              assert(eventLogs.contains(dispatchRes))
-              assert(eventLogs.map(_.category).contains(dispatchRes.category))
+
+            x.category match {
+              case Values.ACCT_CATEGORY if t.name == "ubirch-acct-evt-json" => assert(readM == EventLogJsonSupport.stringify(event))
+              case Values.MASTER_TREE_CATEGORY if t.name == "ubirch-svalbard-evt-anchor-mgt-string" => assert(Try(UUID.fromString(readM)).isSuccess)
+              case _ =>
+                val dispatchRes = EventLogJsonSupport.FromString[EventLog](readM).get
+                assert(eventLogs.contains(dispatchRes))
+                assert(eventLogs.map(_.category).contains(dispatchRes.category))
             }
 
           }

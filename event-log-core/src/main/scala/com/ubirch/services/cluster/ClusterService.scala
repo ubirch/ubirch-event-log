@@ -3,11 +3,13 @@ package com.ubirch.services.cluster
 import java.net.InetSocketAddress
 
 import com.datastax.driver.core._
-import com.datastax.driver.core.policies.RoundRobinPolicy
+import com.datastax.driver.core.policies.{ DCAwareRoundRobinPolicy, RoundRobinPolicy }
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.util.Exceptions.InvalidConsistencyLevel
 import com.ubirch.util.URLsHelper
+
 import javax.inject._
 
 /**
@@ -54,7 +56,7 @@ trait ClusterService extends ClusterConfigs {
   */
 
 @Singleton
-class DefaultClusterService @Inject() (config: Config) extends ClusterService with CassandraClusterConfPaths {
+class DefaultClusterService @Inject() (config: Config) extends ClusterService with CassandraClusterConfPaths with LazyLogging {
 
   val contactPoints: List[InetSocketAddress] = buildContactPointsFromString(config.getString(CONTACT_POINTS))
   val maybeConsistencyLevel: Option[ConsistencyLevel] = checkConsistencyLevel(config.getString(CONSISTENCY_LEVEL))
@@ -76,6 +78,8 @@ class DefaultClusterService @Inject() (config: Config) extends ClusterService wi
   maybeSerialConsistencyLevel.foreach { cl =>
     queryOptions.setSerialConsistencyLevel(cl)
   }
+
+  logger.info("contact_points:" + contactPoints.map(_.toString) + " ssl:" + withSSL)
 
   override val cluster: Cluster = {
     val builder = Cluster.builder

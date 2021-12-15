@@ -72,7 +72,7 @@
 
         <!-- HTTP -->
         <udash.version>0.8.0-RC2</udash.version>
-        <jetty.version>9.4.35.v20201120</jetty.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
 
         <!-- Logging -->
         <slf4j-api.version>1.7.25</slf4j-api.version>
@@ -91,11 +91,6 @@
     </properties>
 
     <repositories>
-        <repository>
-            <id>bintray-cakesolutions-maven</id>
-            <name>bintray</name>
-            <url>https://dl.bintray.com/cakesolutions/maven</url>
-        </repository>
         <repository>
             <id>ossrh</id>
             <name>sonotype-snapshots</name>
@@ -135,7 +130,7 @@
         <dependency>
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-token-sdk</artifactId>
-            <version>2.0.1-SNAPSHOT</version>
+            <version>2.0.3-SNAPSHOT</version>
         </dependency>
 
         <dependency>
