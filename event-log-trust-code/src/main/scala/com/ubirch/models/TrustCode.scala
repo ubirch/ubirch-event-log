@@ -10,7 +10,7 @@ trait TrustCodeBase extends EventLogging {
 }
 
 abstract class TrustCode extends TrustCodeBase {
-  override def put(context: Context, state: JValue) =
+  override def put(context: Context, state: JValue): Future[EventLog] =
     log(state)
       .withNewId(context.trustCodeId + ".TCE")
       .withCustomerId(context.ownerId)
