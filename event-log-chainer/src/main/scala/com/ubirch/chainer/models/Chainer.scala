@@ -236,6 +236,14 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   /**
+    * Gets configured balancing protocol
+    * @return Option of BalancingProtocol of H
+    */
+  def getBalancingProtocol: Option[BalancingProtocol[H]] = {
+    balancingProtocol
+  }
+
+  /**
     * Creates the initial list of nodes of type H.
     * This creates nodes objects out of the seed hashes.
     * @param keepOrder Makes that the order of the nodes be guarantied
