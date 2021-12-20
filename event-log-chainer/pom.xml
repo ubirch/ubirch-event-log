@@ -42,7 +42,7 @@
         <json4s-ext>3.6.0</json4s-ext>
         <embedded-kafka>2.3.0</embedded-kafka>
         <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
-        <roundeights-hasher.version>1.2.0</roundeights-hasher.version>
+        <async-http-clien.version>2.10.3</async-http-clien.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -71,18 +71,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>${guice.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.inject.extensions</groupId>
-            <artifactId>guice-assistedinject</artifactId>
-            <version>${guice.ext.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.getquill</groupId>
             <artifactId>quill-cassandra_${scala.compat.version}</artifactId>
             <version>${quill.cassandra.version}</version>
@@ -102,14 +90,6 @@
 
         <!-- Util -->
 
-        <!-- https://mvnrepository.com/artifact/com.roundeights/hasher -->
-        <dependency>
-            <groupId>com.roundeights</groupId>
-            <artifactId>hasher_${scala.compat.version}</artifactId>
-            <version>${roundeights-hasher.version}</version>
-        </dependency>
-
-
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_${scala.compat.version}</artifactId>
@@ -128,6 +108,12 @@
             <version>${json4s-ext}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.asynchttpclient</groupId>
+            <artifactId>async-http-client</artifactId>
+            <version>${async-http-clien.version}</version>
+        </dependency>
+
         <!-- Test -->
 
         <dependency>
@@ -140,12 +126,6 @@
             <groupId>com.github.nosan</groupId>
             <artifactId>embedded-cassandra-test</artifactId>
             <version>${embedded-cassandra-test}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.asynchttpclient</groupId>
-            <artifactId>async-http-client</artifactId>
-            <version>2.10.3</version>
         </dependency>
 
     </dependencies>
