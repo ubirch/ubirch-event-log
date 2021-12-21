@@ -22,21 +22,6 @@ trait Hashable[+H] {
  * Represents a type that allows a elem of type T to be chained.
  * Basically we require that T has an id so that it is groupable and that
  * it can be hashed.
- *
- * We pass in the data from kafka that needs to be chainable.
- * See implicit conversion.
- * We set our balancer func and our hashing func
- * We group the elems
- * We take the hashes
- * We then turn the seed hashes into seed nodes.
- * We then turn the seed nodes into joined node.
- *  val nodes = Chainer(listOfData)
- *    .createGroups
- *    .createSeedHashes
- *    .createSeedNodes()
- *    .createNode
- *    .getNode
- *
  * @param t Represents the type that will be chained
  * @tparam T Represents the type that will be turned into chainable.
  * @tparam G Represents the type G that will be groupable
@@ -49,6 +34,20 @@ abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] 
 
 /**
   * Represents a class that allows chaining values of type T
+  *
+  * We pass in the data from kafka that needs to be chainable.
+  * See implicit conversion.
+  * We set our balancer func and our hashing func
+  * We group the elems
+  * We take the hashes
+  * We then turn the seed hashes into seed nodes.
+  * We then turn the seed nodes into joined node.
+  *  val nodes = Chainer(listOfData)
+  *    .createGroups
+  *    .createSeedHashes
+  *    .createSeedNodes()
+  *    .createNode
+  *    .getNode
   * @param es Represents the list of elements to chain
   * @param ev Represents a conversion expected. We need type T to be
   *           Chainable
@@ -272,11 +271,11 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
   }
 
   private def hashesToNodesWithJoin(hes: List[H]): List[Node[H]] = {
-    mergeProtocol.toList.flatMap { m => balance(hes).join((t1, t2) => m.merger(t1, t2)) }
+    mergeProtocol.toList.flatMap { m => balance(hes).join((t1, t2) => m(t1, t2)) }
   }
 
   private def hashesToNodesWithJoin2(hes: List[H]): List[Node[H]] = {
-    mergeProtocol.toList.flatMap { m => balance(hes).join2((t1, t2) => m.merger(t1, t2)) }
+    mergeProtocol.toList.flatMap { m => balance(hes).join2((t1, t2) => m(t1, t2)) }
   }
 
   /**
@@ -285,7 +284,7 @@ abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H
     * @return Chainer[T, G, H]
     */
   def createNode: Chainer[T, G, H] = {
-    node = mergeProtocol.flatMap { m => seedNodes.join((t1, t2) => m.merger(t1, t2)).headOption }
+    node = mergeProtocol.flatMap { m => seedNodes.join((t1, t2) => m(t1, t2)).headOption }
     this
   }
 
@@ -423,7 +422,7 @@ object Chainer {
     val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
-      .join2((t1, t2) => m.merger(t1, t2))
+      .join2((t1, t2) => m(t1, t2))
       .headOption
 
     uncompressed match {
