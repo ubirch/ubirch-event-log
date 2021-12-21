@@ -254,7 +254,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getRandomValue.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -322,7 +322,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getRandomValue.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -398,7 +398,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getRandomValue.rawValue
 
       val treeCache = new TreeCache(config)
 
@@ -476,7 +476,7 @@ class DefaultExecutorsSpec extends TestBase with MockitoSugar with LazyLogging {
 
       val eventPreparer = new EventLogsParser(reporter) andThen new EventLogsSigner(reporter, config)
 
-      val _balancingHash = BalancingProtocol.getEmptyNode.rawValue
+      val _balancingHash = BalancingProtocol.getRandomValue.rawValue
 
       val treeCache = new TreeCache(config)
 

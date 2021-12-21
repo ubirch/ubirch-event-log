@@ -26,7 +26,7 @@ object BalancingProtocol {
     * Random HexString
     * @return HexStringData
     */
-  def getEmptyNode: HexStringData = Hash(StringData(s"emptyNode_${UUIDHelper.randomUUID}")).toHexStringData
+  def getRandomValue: HexStringData = Hash(StringData(s"emptyNode_${UUIDHelper.randomUUID}")).toHexStringData
 
   /**
     * Function that creates random HexStrings
@@ -37,7 +37,7 @@ object BalancingProtocol {
     new BalancingProtocol[String] {
       override def version: Int = (2 << 4) | 0x01
       override def apply(v1: List[String]): Option[String] =
-        maybeInitHash.orElse(Some(getEmptyNode.rawValue))
+        maybeInitHash.orElse(Some(getRandomValue.rawValue))
     }
 
   /**
@@ -48,7 +48,7 @@ object BalancingProtocol {
     new BalancingProtocol[Array[Byte]] {
       override def version: Int = (2 << 4) | 0x02
       override def apply(v1: List[Array[Byte]]): Option[Array[Byte]] =
-        Option(getEmptyNode.toBytesData.rawValue)
+        Option(getRandomValue.toBytesData.rawValue)
     }
 
   /**

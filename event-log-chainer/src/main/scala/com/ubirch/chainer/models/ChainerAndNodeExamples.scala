@@ -17,7 +17,7 @@ object ChainerService extends App {
   // - nodes to later have a node of these nodes.
 
   val node = Node.seeds("a", "b", "c")
-    .balanceRightWithEmpty(BalancingProtocol.getEmptyNode.rawValue)
+    .balanceRightWithEmpty(BalancingProtocol.getRandomValue.rawValue)
     .join((a, b) => a + b)
 
   println(node)
