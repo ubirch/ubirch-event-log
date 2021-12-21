@@ -400,10 +400,11 @@ object Chainer {
   def compress[T, G, H](chainer: Chainer[T, G, H]): Option[CompressedTreeData[H]] = {
     for {
       mp <- chainer.getMergeProtocol
+      bp <- chainer.getBalancingProtocol
       root <- chainer.getNode
     } yield {
       val leaves = chainer.getBalancedNodes.map(_.value)
-      CompressedTreeData(mp.version, root.value, leaves)
+      CompressedTreeData(mp.version + "." + bp.version, root.value, leaves)
     }
 
   }
@@ -417,7 +418,7 @@ object Chainer {
     */
   def uncompress[H](compressedTreeData: CompressedTreeData[H])(m: MergeProtocol[H]): Option[Node[H]] = {
 
-    require(compressedTreeData.version == m.version, "Compressed data has different version from detected protocol")
+    require(compressedTreeData.mergeProtocolVersion == m.version, "Compressed data has different version from detected protocol")
 
     val uncompressed = compressedTreeData
       .leaves
@@ -442,7 +443,7 @@ object Chainer {
     */
   def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(m: MergeProtocol[H]): Boolean = {
 
-    require(compressed.forall(_.version == m.version), "Compressed data has different version from detected protocol")
+    require(compressed.forall(_.mergeProtocolVersion == m.version), "Compressed data has different version from detected protocol")
 
     @tailrec
     def go(check: Boolean, compressed: List[CompressedTreeData[H]]): Boolean = {
@@ -466,10 +467,18 @@ object Chainer {
 
 /**
   * Represents a data simplified data structure for a tree
-  *  @param version Represents the MergeProtocol version
+  * @param ver Represents the MergeProtocol version and the Balancing Protocol separated by point.
+  *            For example: 33.33
   * @param root Represents the root of the tree
   * @param leaves Represents the leaves of the tree
   * @tparam H Represents the type of the leaves
   */
-case class CompressedTreeData[H](version: Int, root: H, leaves: List[H])
+case class CompressedTreeData[H](ver: String, root: H, leaves: List[H]) {
+  val versions: List[Int] = ver.split("\\.", 2).map(_.toInt).toList
+  require(versions.size == 2, "Should have two version parts.")
+
+  def mergeProtocolVersion: Int = versions.head
+  def balancingProtocolVersion: Int = versions.last
+
+}
 
