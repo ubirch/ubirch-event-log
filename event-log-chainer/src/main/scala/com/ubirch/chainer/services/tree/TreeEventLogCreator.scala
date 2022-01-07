@@ -39,7 +39,7 @@ class TreeEventLogCreator @Inject() (
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
-  def upgradeLookups(key: String, value: String) = {
+  def upgradeLookups(key: String, value: String): List[LookupKey] = {
     val category = mode.category
     List(LookupKey(
       Mode.Fold(mode)
@@ -55,7 +55,7 @@ class TreeEventLogCreator @Inject() (
     ))
   }
 
-  def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]) = {
+  def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]): EventLog = {
 
     val category = mode.category
     val serviceClass = mode.serviceClass
