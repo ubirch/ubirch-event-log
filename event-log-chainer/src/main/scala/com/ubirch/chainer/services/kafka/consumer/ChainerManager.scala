@@ -28,7 +28,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 case class ChainerPipeData(
     consumerRecords: Vector[ConsumerRecord[String, String]],
     eventLogs: Vector[EventLog],
-    chainers: Vector[Chainer[EventLog]],
+    chainers: Vector[Chainer[EventLog, String, String]],
     treeEventLogs: Vector[EventLog],
     recordsMetadata: Vector[RecordMetadata]
 )

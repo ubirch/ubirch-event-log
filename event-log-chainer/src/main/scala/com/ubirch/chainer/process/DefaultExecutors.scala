@@ -6,7 +6,7 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.services.kafka.consumer.ChainerPipeData
-import com.ubirch.chainer.services.tree.TreeMonitor
+import com.ubirch.chainer.services.tree.{ TreeMonitor, TreePaths }
 import com.ubirch.chainer.util._
 import com.ubirch.kafka.util.Exceptions.NeedForPauseException
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
@@ -16,6 +16,7 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.util.Implicits.enrichedConfig
 import com.ubirch.util._
 import javax.inject._
+
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.duration._
@@ -34,7 +35,7 @@ class FilterEmpty @Inject() (treeMonitor: TreeMonitor, config: Config)(implicit 
   extends Executor[Vector[ConsumerRecord[String, String]], Future[ChainerPipeData]]
   with LazyLogging {
 
-  val pause: Int = config.getInt("eventLog.pause")
+  val pause: Int = config.getInt(TreePaths.TREE_EVERY)
 
   logger.info("Pause millis [{}]", pause)
 

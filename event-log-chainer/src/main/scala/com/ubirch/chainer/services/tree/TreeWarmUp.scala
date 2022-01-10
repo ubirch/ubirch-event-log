@@ -1,5 +1,6 @@
 package com.ubirch.chainer.services.tree
 
+import java.net.URL
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -9,6 +10,7 @@ import com.ubirch.chainer.services.httpClient.WebClient
 import com.ubirch.models.{ EventLog, Values }
 import com.ubirch.util.{ EventLogJsonSupport, TimeHelper, URLsHelper }
 import javax.inject._
+
 import org.asynchttpclient.Param
 import org.joda.time.DateTime
 
@@ -44,9 +46,9 @@ case object CreateGenesisTree extends WarmUpResult
 @Singleton
 class TreeWarmUp @Inject() (treeCache: TreeCache, webClient: WebClient, config: Config)(implicit ec: ExecutionContext) extends LazyLogging {
 
-  val logQueryEndpointAsString = config.getString("eventLog.logQueryEndpoint")
-  val logQueryEndpointAsURL = URLsHelper.toURL(logQueryEndpointAsString).get
-  val daysBack = config.getInt("eventLog.daysBack")
+  val logQueryEndpointAsString: String = config.getString(TreePaths.LOG_QUERY_ENDPOINT)
+  val logQueryEndpointAsURL: URL = URLsHelper.toURL(logQueryEndpointAsString).get
+  val daysBack: Int = config.getInt(TreePaths.DAYS_BACK)
 
   require(logQueryEndpointAsString.nonEmpty, "Log Query Endpoint not found. Please check \"eventLog.logQueryEndpoint\" ")
   require(daysBack > 1, "Days back has to be lt 1")

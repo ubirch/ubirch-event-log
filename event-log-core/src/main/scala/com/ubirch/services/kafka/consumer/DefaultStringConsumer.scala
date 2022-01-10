@@ -22,7 +22,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.postfixOps
 
 /**
   * Represents the ProcessResult implementation for a the string consumer.
@@ -116,6 +115,8 @@ class DefaultConsumerRecordsManager @Inject() (
   * @tparam V Represents the type of the Value for the consumer.
   */
 class DefaultConsumerRebalanceListener[K, V](consumer: Consumer[K, V]) extends ConsumerRebalanceListener with VersionedLazyLogging {
+
+  def getConsumer = consumer
 
   override val version: AtomicInteger = DefaultConsumerRebalanceListener.version
 

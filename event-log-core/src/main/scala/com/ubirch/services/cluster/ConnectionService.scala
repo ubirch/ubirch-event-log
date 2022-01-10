@@ -60,7 +60,7 @@ class DefaultConnectionService @Inject() (clusterService: ClusterService, config
     SnakeCase,
     clusterService.cluster,
     keyspace,
-    preparedStatementCacheSize
+    preparedStatementCacheSize.toLong
   )
 
   override val context = {

@@ -1,7 +1,5 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.util.BalancingList
-
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 

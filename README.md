@@ -1,9 +1,8 @@
 # UBIRCH EVENT LOG ECO-SYSTEM
 
-The Event Log System is a collection of services that allow the collection of merkle trees to be connected 
-with each other and that can be anchored in blockchains.
+<img src=".images/quick_snapshot.png" width="100">
 
-![Event Log Components](.images/event_log_pipeline_architecture.png)
+The Event Log System is a collection of services that allow the creation, collection and aggregation of Merkle Trees that are connected with each other and that can be persisted and anchored into blockchains.
 
 * [Event Log Service](./event-log-service)
 
@@ -21,11 +20,17 @@ with each other and that can be anchored in blockchains.
 
 * [Event Log Verification](./event-log-verification-service)
 
+* [Anchoring Manager](https://github.com/ubirch/ubirch-anchoring-manager)
+
+![Event Log Components](.images/event_log_pipeline_architecture.png)
+
 ## Helper Libs
 
 * [Event Log Core](./event-log-core)
 
 * [Kafka Express](https://github.com/ubirch/ubirch-kafka-express)
+
+* [Kafka Envelope](https://gitlab.com/ubirch/ubirch-kafka-envelope)
 
 ## Prerequisites 
 
@@ -51,7 +56,7 @@ particular project you may be interested in.
 
 ## Prometheus Metrics
 
-**Note**: If you're starting the multiple services on the same machine/jvm, the port might change and
+**Note**: If you're starting the multiple services on the same machine/jvm, the port might change, and
 you will have to change it accordingly. The port that is assigned to Prometheus is show on the console of 
 every service at boot.
 

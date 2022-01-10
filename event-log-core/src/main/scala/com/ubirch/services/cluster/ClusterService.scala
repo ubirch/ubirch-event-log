@@ -3,7 +3,7 @@ package com.ubirch.services.cluster
 import java.net.InetSocketAddress
 
 import com.datastax.driver.core._
-import com.datastax.driver.core.policies.{ DCAwareRoundRobinPolicy, RoundRobinPolicy }
+import com.datastax.driver.core.policies.RoundRobinPolicy
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.CassandraClusterConfPaths

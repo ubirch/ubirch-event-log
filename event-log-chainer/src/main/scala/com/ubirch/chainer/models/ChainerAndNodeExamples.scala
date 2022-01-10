@@ -1,7 +1,11 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.util.Hasher
+import com.ubirch.chainer.models.Hash.StringData
 import com.ubirch.util.JsonHelper
+
+import org.bouncycastle.util.encoders.Hex
+
+import java.nio.charset.StandardCharsets
 
 object ChainerService extends App {
 
@@ -13,7 +17,7 @@ object ChainerService extends App {
   // - nodes to later have a node of these nodes.
 
   val node = Node.seeds("a", "b", "c")
-    .balanceRightWithEmpty(Chainer.getEmptyNodeVal)
+    .balanceRightWithEmpty(BalancingProtocol.getRandomValue.rawValue)
     .join((a, b) => a + b)
 
   println(node)
@@ -27,9 +31,11 @@ object ChainerService2 extends App {
   case class SomeDataTypeFromKafka(id: String, data: String)
 
   object SomeDataTypeFromKafka {
-    implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka] = new Chainable(t.id, t) {
-      override def hash: String = Hasher.hash(t.data)
-    }
+    implicit def chainable(t: SomeDataTypeFromKafka): Chainable[SomeDataTypeFromKafka, String, String] =
+      new Chainable[SomeDataTypeFromKafka, String, String](t) {
+        override def groupId: String = source.id
+        override def hash: String = Hash(StringData(source.data)).toHexStringData.rawValue
+      }
   }
 
   val listOfData = List(
@@ -45,6 +51,7 @@ object ChainerService2 extends App {
 
   // We pass in the data from kafka that needs to be chainable.
   // See implicit conversion.
+  // We set our balancer func and our hashing func
   // We group the elems
   // We take the hashes
   // We then turn the seed hashes into seed nodes.
@@ -57,7 +64,9 @@ object ChainerService2 extends App {
   //    .getNode
 
   val nodes = Chainer(listOfData)
-    .createGroups
+    .withBalancingProtocol(BalancingProtocol.RandomHexString())
+    .withMergeProtocol(MergeProtocol.V2_HexString)
+    .withGeneralGrouping
     .createSeedHashes
     .createSeedNodes()
     .getNodes
@@ -80,5 +89,50 @@ object ChainerService3 extends App {
     .join2((a, b) => a + b)
 
   println(JsonHelper.ToJson(node).pretty)
+
+}
+
+object ChainerServiceBytes extends App {
+
+  import scala.language.implicitConversions
+
+  case class SomeDataTypeFromKafka(id: String, data: String)
+
+  object SomeDataTypeFromKafka {
+
+    implicit def chainable(t: SomeDataTypeFromKafka) =
+      new Chainable[SomeDataTypeFromKafka, Array[Byte], Array[Byte]](t) {
+        override def groupId: Array[Byte] = t.id.getBytes(StandardCharsets.UTF_8)
+        override def hash: Array[Byte] = Hash(StringData(t.data)).rawValue
+      }
+  }
+
+  val listOfData = List(
+    SomeDataTypeFromKafka("vegetables", "eggplant"),
+    SomeDataTypeFromKafka("vegetables", "artichoke")
+  )
+
+  // We pass in the data from kafka that needs to be chainable.
+  // See implicit conversion.
+  // We set our balancer func and our hashing func
+  // We group the elems
+  // We take the hashes
+  // We then turn the seed hashes into seed nodes.
+  // We then turn the seed nodes into joined node.
+  //  val nodes = Chainer(listOfData)
+  //    .createGroups
+  //    .createSeedHashes
+  //    .createSeedNodes()
+  //    .createNode
+  //    .getNode
+  val nodes = Chainer(listOfData)
+    .withBalancingProtocol(BalancingProtocol.RandomBytes)
+    .withMergeProtocol(MergeProtocol.V2_Bytes)
+    .withGeneralGrouping
+    .createSeedHashes
+    .createSeedNodes()
+    .getNodes
+
+  println(JsonHelper.ToJson(nodes.map(x => x.map(x => Hex.toHexString(x)))).pretty)
 
 }

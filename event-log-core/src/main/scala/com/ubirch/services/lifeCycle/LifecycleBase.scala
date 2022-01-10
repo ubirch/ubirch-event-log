@@ -73,7 +73,7 @@ trait JVMHook {
 @Singleton
 class DefaultJVMHook @Inject() (lifecycle: Lifecycle)(implicit ec: ExecutionContext) extends JVMHook with LazyLogging {
 
-  protected def registerShutdownHooks() {
+  protected def registerShutdownHooks(): Unit = {
 
     logger.info("Registering Shutdown Hooks")
 

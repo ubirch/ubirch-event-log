@@ -16,7 +16,7 @@ import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Future, Promise }
-import scala.language.{ implicitConversions, postfixOps }
+import scala.language.postfixOps
 
 class ExecutorSpec extends TestBase with MockitoSugar with ExecutionImpl {
 

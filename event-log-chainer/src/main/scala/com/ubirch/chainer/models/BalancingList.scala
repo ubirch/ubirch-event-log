@@ -1,4 +1,4 @@
-package com.ubirch.chainer.util
+package com.ubirch.chainer.models
 
 /**
   * Represents a simple helper for lists
@@ -20,4 +20,5 @@ object BalancingList {
   def balanceLeft[B](balanceWithF: => B)(values: List[B]): List[B] = {
     balance(balanceWithF)((v, b) => b ++ v)(values)
   }
+
 }

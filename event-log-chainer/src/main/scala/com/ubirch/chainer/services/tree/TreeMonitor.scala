@@ -8,8 +8,12 @@ import com.ubirch.kafka.util.FutureHelper
 import com.ubirch.models.EnrichedEventLog._
 import com.ubirch.models.{ EventLog, HeaderNames }
 import com.ubirch.util.UUIDHelper
+
+import monix.execution.{ Cancelable, Scheduler }
+
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.producer.RecordMetadata
 import org.json4s.JsonAST.JString
 
 import scala.concurrent.duration._
@@ -42,21 +46,21 @@ class TreeMonitor @Inject() (
 
   import TreeMonitor._
 
-  val modeFromConfig: String = config.getString("eventLog.mode")
+  val modeFromConfig: String = config.getString(TreePaths.MODE)
 
   val mode: Mode = Mode.getMode(modeFromConfig)
 
-  implicit val scheduler = monix.execution.Scheduler(ec)
+  implicit val scheduler: Scheduler = monix.execution.Scheduler(ec)
 
-  def headersNormalCreation = headersNormalCreationFromMode(mode)
+  def headersNormalCreation: (String, String) = headersNormalCreationFromMode(mode)
 
   require(treeCreationTrigger.every != treeUpgrade.every, "treeEvery & treeUpgrade can't be the same on master mode")
 
-  def start = {
+  def start: Cancelable = {
 
     def tick = {
       scheduler.scheduleWithFixedDelay(0.seconds, 1.second) {
-        treeBillOfMaterialsHook
+        treeBillOfMaterialsHook()
         treeUpgradeHook(forceUpgrade = false)
       }
     }
@@ -86,7 +90,7 @@ class TreeMonitor @Inject() (
 
   }
 
-  def treeBillOfMaterialsHook: Unit =
+  def treeBillOfMaterialsHook(): Unit =
     logger.debug("TreeCR_{}_{}", treeCreationTrigger.elapsedSeconds, treeCreationTrigger.lastTree)
 
   def treeUpgradeHook(forceUpgrade: Boolean): Unit = {
@@ -95,8 +99,8 @@ class TreeMonitor @Inject() (
     if (treeUpgrade.goodToUpgrade || forceUpgrade) {
       logger.debug("Upgrading Tree")
       val topic = config.getString(ProducerConfPaths.TOPIC_PATH)
-      val latestHash = treeCache.latestHash.getOrElse("")
-      val latestTree = treeCache.latestTreeEventLog
+      val latestHash = treeCache.getLatestHash.getOrElse("")
+      val latestTree = treeCache.getLatestTreeEventLog
 
       latestTree
         .map(_.removeHeader(HeaderNames.DISPATCHER))
@@ -120,7 +124,7 @@ class TreeMonitor @Inject() (
     }
   }
 
-  def createAndSendFilling(topic: String, latestHash: String, addBigBangProperties: Boolean) = {
+  def createAndSendFilling(topic: String, latestHash: String, addBigBangProperties: Boolean): Vector[Future[RecordMetadata]] = {
     //This is the event-log that will be used to create the tree
     val fillingEventLog = if (latestHash.isEmpty) {
       logger.debug("No RTREE found as EventLog ... creating filling ...")
@@ -151,29 +155,29 @@ class TreeMonitor @Inject() (
       .map(el => publishWithNoCache(topic, el))
   }
 
-  def createTrees(eventLogs: List[EventLog]) = synchronized {
-    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.latestHash)(treeCache.prefix)
+  def createTrees(eventLogs: List[EventLog]): List[Chainer[EventLog, String, String]] = synchronized {
+    val (chainers, latest) = treeCreator.create(eventLogs, treeCache.getLatestHash)(treeCache.prefix)
     treeCache.setLatestHash(latest)
     chainers
   }
 
-  def createEventLogs(chainers: Vector[Chainer[EventLog]], headers: (String, String)*) = synchronized {
+  def createEventLogs(chainers: Vector[Chainer[EventLog, String, String]], headers: (String, String)*): Vector[EventLog] = synchronized {
     treeEventLogCreator.create(chainers).map(_.addHeaders(headers: _*))
   }
 
-  def publishWithNoCache(topic: String, eventLog: EventLog) = synchronized {
+  def publishWithNoCache(topic: String, eventLog: EventLog): Future[RecordMetadata] = synchronized {
     //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
-    treeCache.deleteLatestTree
+    treeCache.resetLatestTree
     treePublisher.publish(topic, eventLog)
   }
 
-  def publishWithCache(topic: String, eventLog: EventLog) = synchronized {
+  def publishWithCache(topic: String, eventLog: EventLog): Future[RecordMetadata] = synchronized {
     //logger.debug("Tree sent to:" + topic + " " + eventLog.toJson)
     treeCache.setLatestTree(eventLog)
     treePublisher.publish(topic, eventLog)
   }
 
-  def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]) = {
+  def goodToCreate(consumerRecords: Vector[ConsumerRecord[String, String]]): Boolean = {
     val good = treeCreationTrigger.goodToCreate(consumerRecords)
     if (good) treeCreationTrigger.registerNewTreeInstant
     good
@@ -183,15 +187,15 @@ class TreeMonitor @Inject() (
 
 object TreeMonitor {
 
-  def headersNormalCreationFromMode(mode: Mode) = Mode.foldF(mode)
+  def headersNormalCreationFromMode(mode: Mode): (String, String) = Mode.foldF(mode)
     .onSlave(() => headerExcludeAggregation)
     .onMaster(() => headerExcludeBlockChain)
     .run
 
-  def headerExcludeBlockChain = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
+  def headerExcludeBlockChain: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
 
-  def headerExcludeAggregation = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
+  def headerExcludeAggregation: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
 
-  def headerExcludeStorage = HeaderNames.DISPATCHER -> "tags-exclude:storage"
+  def headerExcludeStorage: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:storage"
 
 }

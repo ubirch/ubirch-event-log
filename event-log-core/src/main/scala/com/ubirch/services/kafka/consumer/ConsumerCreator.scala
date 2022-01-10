@@ -29,9 +29,9 @@ trait ConsumerCreator extends ConsumerBasicConfigs {
 
   override def consumerMaxPartitionFetchBytesConfig: Int = config.getInt(ConsumerConfPaths.MAX_PARTITION_FETCH_BYTES_CONFIG)
 
-  override def consumerReconnectBackoffMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MS_CONFIG)
+  override def consumerReconnectBackoffMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MS_CONFIG).toLong
 
-  override def consumerReconnectBackoffMaxMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MAX_MS_CONFIG)
+  override def consumerReconnectBackoffMaxMsConfig: Long = config.getInt(ConsumerConfPaths.RECONNECT_BACKOFF_MAX_MS_CONFIG).toLong
 
   def consumerGroupIdOnEmpty: String
 

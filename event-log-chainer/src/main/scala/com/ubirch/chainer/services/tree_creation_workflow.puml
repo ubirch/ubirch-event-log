@@ -8,13 +8,12 @@ object EventLogsParser <<executor>> #DDDDDD
 object Commit <<executor>> #DDDDDD
 object TreeEventLogCreation <<executor>> #DDDDDD
 
-
 object TreeCreator #add8e6
 object TreeEventLogCreator #add8e6
 object TreeCache #add8e6
 object TreePublisher #add8e6
 object TreeCreationTrigger #add8e6
-object TreUpgrade #add8e6
+object TreeUpgrade #add8e6
 object TreeMonitor #ff4000
 object InstantMonitor
 object TreeWarmup #add8e6
@@ -23,7 +22,7 @@ Consumer -> FilterExecutor : sends CRs and filters
 TreeMonitor <-- FilterExecutor: checks basic tree
 FilterExecutor -> EventLogsParser
 EventLogsParser -> TreeCreatorExecutor
-TreeCreator --> TreeCache: stores latest root hash
+TreeMonitor --> TreeCache: stores the latest root hash
 TreeCreatorExecutor --> TreeMonitor: creates/splits trees
 TreeCreatorExecutor -> TreeEventLogCreation
 TreeMonitor --> TreeCreator: creates/splits trees
@@ -34,9 +33,10 @@ TreeMonitor --> TreeWarmup: makes sure BigBangTree and Latest Tree are properly 
 TreeMonitor --> TreeEventLogCreator: creates tree event logs
 TreeMonitor --> TreePublisher : publishes
 TreeMonitor --> TreeCreationTrigger: Checks treeMinSize and treeEvery
-TreeMonitor --> TreUpgrade : Upgrades trees
-TreUpgrade -->  InstantMonitor
+TreeMonitor --> TreeUpgrade : Upgrades trees
+TreeUpgrade -->  InstantMonitor
 TreeCreationTrigger -->  InstantMonitor
+TreeWarmup --> TreeCache : stores the latest root hash from previous runtimes
 
 @enduml
 

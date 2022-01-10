@@ -1,13 +1,13 @@
 package com.ubirch
 
 import java.util.concurrent.TimeoutException
-
 import com.typesafe.scalalogging.LazyLogging
 import net.manub.embeddedkafka.{ EmbeddedKafka, EmbeddedKafkaConfig, KafkaUnavailableException }
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, MustMatchers, WordSpec }
 
+import java.security.MessageDigest
 import scala.annotation.tailrec
 import scala.concurrent.duration.{ Duration, _ }
 import scala.concurrent.{ Await, Future }
@@ -25,7 +25,7 @@ trait TestBase
 
   def await[T](future: Future[T], atMost: Duration): T = Await.result(future, atMost)
 
-  def readMessage(topic: String, onStartWait: Int = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Int = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
+  def readMessage(topic: String, onStartWait: Long = 5000, maxRetries: Int = 10, maxToRead: Int = 1, sleepInBetween: Long = 500)(implicit kafkaConfig: EmbeddedKafkaConfig): List[String] = {
     @tailrec
     def go(acc: Int): List[String] = {
       try {
@@ -57,6 +57,12 @@ trait TestBase
     }
 
     go(maxRetries)
+  }
+
+  def getHash(data: Array[Byte], algo: String = "SHA-512"): Array[Byte] = {
+    val messageDigest = MessageDigest.getInstance(algo)
+    messageDigest.update(data)
+    messageDigest.digest()
   }
 
 }

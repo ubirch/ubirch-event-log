@@ -1,18 +1,7 @@
 package com.ubirch
 
-import java.io.ByteArrayInputStream
-import java.util.Date
-import java.util.concurrent.Executor
-
-import com.google.inject.Provider
-import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
-import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
 import com.ubirch.chainer.models.Chainables.eventLogChainable
 import com.ubirch.chainer.models._
-import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.chainer.services.httpClient.{ WebClient, WebclientResponse }
 import com.ubirch.chainer.services.tree.TreeMonitor
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
@@ -20,72 +9,25 @@ import com.ubirch.kafka.util.PortGiver
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
 import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
-import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
+
+import com.typesafe.config.Config
+import com.typesafe.scalalogging.LazyLogging
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.commons.codec.binary.Hex
-import org.asynchttpclient.Param
 import org.json4s.JsonAST._
 import org.scalatest.Tag
 
-import scala.concurrent.Future
+import java.nio.charset.StandardCharsets
+import java.util.Date
 
-class WebClientProvider extends Provider[WebClient] {
-  override def get(): WebClient = new WebClient {
-    override def get(url: String)(params: List[Param])(implicit exec: Executor): Future[WebclientResponse] = {
-      url match {
-        case "http://localhost:8081/v1/events" =>
-          val body = """{"success":true,"message":"Nothing Found","data":[]}"""
-          Future.successful(WebclientResponse("OK", 200, "application/json", body, new ByteArrayInputStream(body.getBytes())))
-      }
-    }
-  }
-}
+object ChainerTreeSpec {
 
-class InjectorHelperImpl(
-    bootstrapServers: String,
-    consumerTopic: String,
-    producerTopic: String,
-    minTreeRecords: Int = 10,
-    treeEvery: Int = 60,
-    treeUpgrade: Int = 120,
-    mode: Mode = Slave,
-    split: Boolean = false,
-    webClientProvider: Option[Provider[WebClient]] = None
-) extends InjectorHelper(List(new ChainerServiceBinder {
-
-  override def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(new ConfigProvider {
-    override def conf: Config = {
-      super.conf
-        .withValue("eventLog.daysBack", ConfigValueFactory.fromAnyRef(3))
-        .withValue("eventLog.split", ConfigValueFactory.fromAnyRef(split))
-        .withValue("eventLog.mode", ConfigValueFactory.fromAnyRef(mode.value))
-        .withValue("eventLog.minTreeRecords", ConfigValueFactory.fromAnyRef(minTreeRecords))
-        .withValue("eventLog.treeEvery", ConfigValueFactory.fromAnyRef(treeEvery))
-        .withValue("eventLog.treeUpgrade", ConfigValueFactory.fromAnyRef(treeUpgrade))
-        .withValue(ConsumerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
-        .withValue(ProducerConfPaths.BOOTSTRAP_SERVERS, ConfigValueFactory.fromAnyRef(bootstrapServers))
-        .withValue(ConsumerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(consumerTopic))
-        .withValue(ProducerConfPaths.TOPIC_PATH, ConfigValueFactory.fromAnyRef(producerTopic))
-    }
-  })
-
-  override def webClient: ScopedBindingBuilder = webClientProvider.map(x => bind(classOf[WebClient]).toProvider(x)).getOrElse(super.webClient)
-}))
-
-object ChainerSpec {
-
-  def getChainer(events: List[EventLog]): Chainer[EventLog] = {
-    new Chainer(events)
-      .withGeneralGrouping
-      .createSeedHashes
-      .createSeedNodes(keepOrder = true)
-      .createNode
-  }
-
-  def getChainerWithGeneral(events: List[EventLog]): Chainer[EventLog] = {
-    new Chainer(events)
+  def getChainer(events: List[EventLog]): Chainer[EventLog, String, String] = {
+    Chainer(events)
+      .withBalancingProtocol(BalancingProtocol.RandomHexString())
+      .withMergeProtocol(MergeProtocol.V2_HexString)
       .withGeneralGrouping
       .createSeedHashes
       .createSeedNodes(keepOrder = true)
@@ -94,14 +36,69 @@ object ChainerSpec {
 
 }
 
-class ChainerSpec extends TestBase with LazyLogging {
+class ChainerTreeSpec extends TestBase with LazyLogging {
 
   import LookupKey._
 
   val messageEnvelopeTopic = "com.ubirch.messageenvelope"
   val eventLogTopic = "com.ubirch.eventlog"
 
-  "Chainer Spec" must {
+  "Chainer Tree Spec" must {
+
+    "create expected tree" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(bootstrapServers, messageEnvelopeTopic, eventLogTopic, minTreeRecords = 2)
+      val config = InjectorHelper.get[Config]
+
+      val customerRange = 1 to 2
+
+      val events = customerRange.map(x =>
+
+        EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+          .withCurrentEventTime
+          .withNonce(x.toString)
+          .withNewId(x.toString)
+          .withCategory(Values.UPP_CATEGORY)
+          .sign(config))
+
+      withRunningKafka {
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        val messages: List[String] = readMessage(eventLogTopic)
+
+        logger.info("Messages Read:" + messages)
+
+        val treeEventLogAsString = messages.headOption.getOrElse("")
+        val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
+        val compressed = ChainerJsonSupport.FromJson[CompressedTreeData[String]](treeEventLog.event).get
+
+        val hexSeeds = events
+          .map(x => getHash((x.id + x.nonce)
+            .getBytes(StandardCharsets.UTF_8)))
+          .map(x => Hex.encodeHexString(x))
+          .toList
+
+        val root = Hex.encodeHexString(getHash(Array.concat(Hex.decodeHex(hexSeeds(0)), Hex.decodeHex(hexSeeds(1)))))
+        assert(compressed.root == root)
+        assert(hexSeeds == compressed.leaves)
+
+        assert("446e8158c1e6350977c45716ae683871674f90b34cf382cd84fc4795304916bdb5200ba06c830174aaf19ba9d36b4366b6c665ec87619fe0d1addd0dc416651d" == root)
+        assert("74a49c698dbd3c12e36b0b287447d833f74f3937ff132ebff7054baa18623c35a705bb18b82e2ac0384b5127db97016e63609f712bc90e3506cfbea97599f46f" == hexSeeds(0))
+        assert("6ad275d26c200e81534d9996183c8748ddfabc7b0a011a90f46301626d709923474703cacab0ff8b67cd846b6cb55b23a39b03fbdfb5218eec3373cf7010a166" == hexSeeds(1))
+      }
+
+    }
 
     "consume, process and publish tree and event logs in Slave mode with UPPs" in {
 
@@ -145,11 +142,11 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Slave
 
@@ -246,11 +243,11 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Slave
 
@@ -332,11 +329,11 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Master
 
@@ -416,11 +413,11 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -460,7 +457,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs after records threshold is reached" taggedAs (Tag("problem")) in {
+    "consume, process and publish tree and event logs after records threshold is reached" taggedAs Tag("problem") in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -513,11 +510,11 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val category = Values.SLAVE_TREE_CATEGORY
 
@@ -601,18 +598,18 @@ class ChainerSpec extends TestBase with LazyLogging {
 
         e2s.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
 
-        Thread.sleep(9000)
+        Thread.sleep(10000)
 
         val maxNumberToRead = 1 /* tree */
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
 
         val treeEventLogAsString = messages.headOption.getOrElse("")
         val treeEventLog = ChainerJsonSupport.FromString[EventLog](treeEventLogAsString).get
-        val chainer = ChainerSpec.getChainer(events)
-        val node = Chainer
-          .compress(chainer)
+        val chainer = ChainerTreeSpec.getChainer(events)
+        val node = chainer
+          .compress
           .map(x => ChainerJsonSupport.ToJson(x).get)
-          .getOrElse(JString("WHAT"))
+          .getOrElse(fail("No chainer compressed"))
 
         val mode = Master
 
@@ -735,6 +732,12 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxNumberToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
 
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
+
         val mode = Slave
         val expectedHeaders = Headers.create(
           HeaderNames.TRACE -> mode.value,
@@ -769,7 +772,7 @@ class ChainerSpec extends TestBase with LazyLogging {
 
     }
 
-    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" taggedAs (new Tag("problem2")) in {
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master" taggedAs new Tag("problem2") in {
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
 
@@ -826,6 +829,12 @@ class ChainerSpec extends TestBase with LazyLogging {
         val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
         val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
 
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
+
         val mode = Master
         val expectedHeadersBigBang = Headers.create(
           HeaderNames.TRACE -> mode.value,
@@ -842,12 +851,135 @@ class ChainerSpec extends TestBase with LazyLogging {
         val bigBang = messagesAsEventLogs.headOption
 
         //normal trees
-        val normalTrees =
-          messagesAsEventLogs
-            .tail
-            .reverse
-            .tail
-            .reverse
+        val normalTrees = messagesAsEventLogs
+          .tail
+          .reverse
+          .tail
+          .reverse
+
+        val upgradeTREE = messagesAsEventLogs
+          .tail
+          .reverse
+          .headOption
+
+        bigBang
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        normalTrees
+          .map { x =>
+            assert(x.headers == expectedHeaders)
+          }
+
+        upgradeTREE
+          .map { x =>
+            assert(x.headers == expectedHeadersBigBang)
+          }
+
+        //upgrade tree
+
+        assert(messages.size == maxToRead)
+
+        for {
+          l <- normalTrees.reverse.headOption
+          u <- upgradeTREE
+        } yield {
+          assert(l.id == u.id)
+          assert(l.headers != u.headers)
+          assert(l.lookupKeys != u.lookupKeys)
+        }
+
+      }
+
+    }
+
+    "consume, process and publish tree and event logs in Slave splitting and checking upgrade tree as Master 2" in {
+
+      implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
+
+      val bootstrapServers = "localhost:" + kafkaConfig.kafkaPort
+      val InjectorHelper = new InjectorHelperImpl(
+        bootstrapServers,
+        messageEnvelopeTopic,
+        eventLogTopic,
+        split = true,
+        minTreeRecords = 2,
+        treeEvery = 10,
+        treeUpgrade = 13,
+        mode = Master,
+        splitSize = 5,
+        webClientProvider = Option(new WebClientProvider)
+      )
+      val config = InjectorHelper.get[Config]
+
+      withRunningKafka {
+
+        val customerIds = List("Sun")
+        val customerRange = 0 to 40
+
+        val events = customerIds.flatMap { x =>
+          customerRange.map(_ =>
+
+            EventLog(ChainerJsonSupport.ToJson[ProtocolMessage](PMHelper.createPM).get)
+              .withEventTime(new Date())
+              .withRandomNonce
+              .withCustomerId(x)
+              .withNewId
+              .withCategory(Values.SLAVE_TREE_CATEGORY)
+              .sign(config))
+        }
+
+        events.foreach(x => publishStringMessageToKafka(messageEnvelopeTopic, x.toJson))
+
+        //Consumer
+        val treeMonitor = InjectorHelper.get[TreeMonitor]
+        treeMonitor.start
+
+        val consumer = InjectorHelper.get[StringConsumer]
+        consumer.setTopics(Set(messageEnvelopeTopic))
+        consumer.setConsumptionStrategy(All)
+        consumer.startPolling()
+        //Consumer
+
+        val bigBangTree = 1
+        val maxNumberToReadNormalMasters = events.sliding(5, 5).size /* tree */
+        val upgradeTree = 1
+
+        val maxToRead = bigBangTree + maxNumberToReadNormalMasters + upgradeTree
+
+        Thread.sleep(10000)
+
+        val messages = consumeNumberStringMessagesFrom(eventLogTopic, maxToRead)
+        val messagesAsEventLogs = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get)
+
+        val compressed = messages.map(x => ChainerJsonSupport.FromString[EventLog](x).get).map(_.event)
+          .map(x => ChainerJsonSupport.FromJson[CompressedTreeData[String]](x).get)
+        val nodes = compressed.map(x => Chainer.uncompress(x)(MergeProtocol.V2_HexString)).flatMap(_.toList)
+        assert(nodes.map(_.value) == messagesAsEventLogs.map(_.id))
+        assert(Chainer.checkConnectedness(compressed)(MergeProtocol.V2_HexString))
+
+        val mode = Master
+        val expectedHeadersBigBang = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category
+        )
+
+        val expectedHeaders = Headers.create(
+          HeaderNames.TRACE -> mode.value,
+          HeaderNames.ORIGIN -> mode.category,
+          TreeMonitor.headersNormalCreationFromMode(mode)
+        )
+
+        //big bang
+        val bigBang = messagesAsEventLogs.headOption
+
+        //normal trees
+        val normalTrees = messagesAsEventLogs
+          .tail
+          .reverse
+          .tail
+          .reverse
 
         val upgradeTREE = messagesAsEventLogs
           .tail

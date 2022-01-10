@@ -7,40 +7,45 @@ import com.ubirch.chainer.models.Mode
 import com.ubirch.models.EventLog
 import javax.inject._
 
-import scala.concurrent.ExecutionContext
-
 /**
   * Represents a cache for trees. It is designed to store the latest tree.
   * @param config Represents the configuration object
-  * @param ec Represents an execution context for this object
   */
 @Singleton
-class TreeCache @Inject() (config: Config)(implicit ec: ExecutionContext) {
+class TreeCache @Inject() (config: Config) {
 
-  val modeFromConfig: String = config.getString("eventLog.mode")
+  private val modeFromConfig: String = config.getString(TreePaths.MODE)
+  private val mode: Mode = Mode.getMode(modeFromConfig)
 
-  val mode: Mode = Mode.getMode(modeFromConfig)
+  private val latestHash = new AtomicReference[Option[String]](None)
+  private val latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
 
-  private val _latestHash = new AtomicReference[Option[String]](None)
+  def getLatestHash: Option[String] = latestHash.get()
 
-  private val _latestTreeEventLog = new AtomicReference[Option[EventLog]](None)
+  def setLatestHash(value: String): Unit = {
+    require(value.nonEmpty, "latest hash can't be empty")
+    latestHash.set(Some(prefix(value)))
+  }
 
-  def latestHash: Option[String] = _latestHash.get()
+  def setLatestHash(value: Option[String]): Unit = {
+    require(value.nonEmpty, "latest hash can't be empty")
+    value.foreach(setLatestHash)
+  }
 
-  def setLatestHash(value: String) = _latestHash.set(Some(prefix(value)))
+  def withPrefix = false
 
   def prefix(value: String): String = {
-    if (false) {
+    if (withPrefix) {
       val px = Mode.fold(mode)(() => "sl.")(() => "ml.")
       if (!value.startsWith(px)) px + value else value
     } else
       value
   }
 
-  def latestTreeEventLog: Option[EventLog] = _latestTreeEventLog.get()
+  def getLatestTreeEventLog: Option[EventLog] = latestTreeEventLog.get()
 
-  def setLatestTree(eventLog: EventLog) = _latestTreeEventLog.set(Option(eventLog))
+  def setLatestTree(eventLog: EventLog): Unit = latestTreeEventLog.set(Option(eventLog))
 
-  def deleteLatestTree = _latestTreeEventLog.set(None)
+  def resetLatestTree: Unit = latestTreeEventLog.set(None)
 
 }

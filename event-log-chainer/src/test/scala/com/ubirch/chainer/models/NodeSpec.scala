@@ -142,7 +142,8 @@ class NodeSpec extends TestBase {
 
     "create nodes from seeds" in {
 
-      assert(Node.seeds(Nil: _*).isEmpty)
+      val empty: List[String] = List()
+      assert(Node.seeds(empty: _*).isEmpty)
 
       assert(Node.seeds("a", "b", "c") ==
         List(Node.empty("a"), Node.empty("b"), Node.empty("c")))

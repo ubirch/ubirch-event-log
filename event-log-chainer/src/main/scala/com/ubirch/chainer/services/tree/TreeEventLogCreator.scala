@@ -12,7 +12,6 @@ import com.ubirch.services.metrics.Counter
 import javax.inject._
 import org.json4s.JsonAST.JValue
 
-import scala.concurrent.ExecutionContext
 import scala.util.{ Failure, Success, Try }
 
 /**
@@ -20,29 +19,27 @@ import scala.util.{ Failure, Success, Try }
   * @param config Represents the configuration object
   * @param treeCounter Represents a counter for trees
   * @param leavesCounter Represents a counter for leaves
-  * @param ec Represents an execution context for this object
   */
 @Singleton
 class TreeEventLogCreator @Inject() (
     config: Config,
     @Named(DefaultTreeCounter.name) treeCounter: Counter,
     @Named(DefaultLeavesCounter.name) leavesCounter: Counter
-)(implicit ec: ExecutionContext)
-  extends ProducerConfPaths
+) extends ProducerConfPaths
   with LazyLogging {
 
   import com.ubirch.models.LookupKey._
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
 
-  def modeFromConfig: String = config.getString("eventLog.mode")
+  def modeFromConfig: String = config.getString(TreePaths.MODE)
   def mode: Mode = Mode.getMode(modeFromConfig)
 
-  lazy val sign: Boolean = config.getBoolean("eventLog.sign")
+  lazy val sign: Boolean = config.getBoolean(TreePaths.SIGN)
 
   logger.info("Tree EventLog Creator Mode: [{}]", mode.value)
 
-  def upgradeLookups(key: String, value: String) = {
+  def upgradeLookups(key: String, value: String): List[LookupKey] = {
     val category = mode.category
     List(LookupKey(
       Mode.Fold(mode)
@@ -58,7 +55,7 @@ class TreeEventLogCreator @Inject() (
     ))
   }
 
-  def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]) = {
+  def createEventLog(rootHash: String, zero: String, data: JValue, leaves: Seq[EventLog]): EventLog = {
 
     val category = mode.category
     val serviceClass = mode.serviceClass
@@ -103,17 +100,18 @@ class TreeEventLogCreator @Inject() (
     else treeEl
   }
 
-  def createEventLog(chainer: Chainer[EventLog]): Option[EventLog] = {
+  def createEventLog(chainer: Chainer[EventLog, String, String]): Option[EventLog] = {
     for {
       node <- chainer.getNode
-      compressedData <- Chainer.compress(chainer)
+      compressedData <- chainer.compress
     } yield {
-      val data = ChainerJsonSupport.ToJson[CompressedTreeData](compressedData).get
-      createEventLog(node.value, chainer.getZero, data, chainer.seeds)
+      val data = ChainerJsonSupport.ToJson[CompressedTreeData[String]](compressedData).get
+      //TODO: CHECK THIS ZERO
+      createEventLog(node.value, chainer.getZero.getOrElse(""), data, chainer.seeds)
     }
   }
 
-  def create(chainers: Vector[Chainer[EventLog]]): Vector[EventLog] = {
+  def create(chainers: Vector[Chainer[EventLog, String, String]]): Vector[EventLog] = {
     chainers
       .map { x =>
         Try(createEventLog(x)) match {
@@ -121,7 +119,7 @@ class TreeEventLogCreator @Inject() (
             val leavesSize = x.seeds.size
             logger.info(s"New [${mode.value}] tree($leavesSize) created, root hash is: ${tree.id}")
             treeCounter.counter.labels(metricsSubNamespace, tree.category).inc()
-            leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize)
+            leavesCounter.counter.labels(metricsSubNamespace, tree.category + "_LEAVES").inc(leavesSize.toDouble)
             tree
           case Success(None) =>
             logger.error(s"Error creating EventLog from [${mode.value}] (2) ")

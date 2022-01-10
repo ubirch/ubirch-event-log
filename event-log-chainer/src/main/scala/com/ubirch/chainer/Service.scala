@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Master, Mode, Slave }
 import com.ubirch.chainer.services.ChainerServiceBinder
-import com.ubirch.chainer.services.tree.TreeMonitor
+import com.ubirch.chainer.services.tree.{ TreeMonitor, TreePaths }
 import com.ubirch.chainer.util.{ ChainerJsonSupport, PMHelper }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.producer.{ Configs, ProducerRunner }
@@ -45,18 +45,18 @@ object ServiceTest extends Boot(ChainerServiceBinder.modules) with ProducerConfP
 
   def lingerMs: Int = config.getInt(LINGER_MS)
 
-  def modeFromConfig: String = config.getString("eventLog.mode")
+  def modeFromConfig: String = config.getString(TreePaths.MODE)
 
   def mode: Mode = Mode.getMode(modeFromConfig)
 
-  val topic = "com.ubirch.chainer.master.onep"
+  val topic = "com.ubirch.chainer.slave.in"
 
   def main(args: Array[String]): Unit = {
     def configs = Configs(bootstrapServers, lingerMs = lingerMs)
 
     val producer = ProducerRunner[String, String](configs, Some(new StringSerializer()), Some(new StringSerializer()))
 
-    val range = 0 to 10000
+    val range = 0 to 1
 
     def data(index: Int) = mode match {
       case Slave =>

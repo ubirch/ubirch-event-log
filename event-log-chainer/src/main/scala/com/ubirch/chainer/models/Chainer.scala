@@ -1,54 +1,183 @@
 package com.ubirch.chainer.models
 
-import com.ubirch.chainer.util.Hasher
-import com.ubirch.util.UUIDHelper
-
 import scala.annotation.tailrec
 
 /**
+  * Represents a type with an id/field that is used for grouping purposes.
+  * @tparam G Represents the type G that will be groupable
+  */
+trait Groupable[+G] {
+  def groupId: G
+}
+
+/**
+  * Represents that a type H can be hashable.
+  * @tparam H Represents the type H that will be hashable
+  */
+trait Hashable[+H] {
+  def hash: H
+}
+
+/***
+ * Represents a type that allows a elem of type T to be chained.
+ * Basically we require that T has an id so that it is groupable and that
+ * it can be hashed.
+ * @param t Represents the type that will be chained
+ * @tparam T Represents the type that will be turned into chainable.
+ * @tparam G Represents the type G that will be groupable
+ * @tparam H Represents the type H that will be hashable
+ */
+abstract class Chainable[T, +G, +H](t: T) extends Groupable[G] with Hashable[H] {
+  def source: T = t
+  def hash: H
+}
+
+/**
   * Represents a class that allows chaining values of type T
+  *
+  * We pass in the data from kafka that needs to be chainable.
+  * See implicit conversion.
+  * We set our balancer func and our hashing func
+  * We group the elems
+  * We take the hashes
+  * We then turn the seed hashes into seed nodes.
+  * We then turn the seed nodes into joined node.
+  *  val nodes = Chainer(listOfData)
+  *    .createGroups
+  *    .createSeedHashes
+  *    .createSeedNodes()
+  *    .createNode
+  *    .getNode
   * @param es Represents the list of elements to chain
   * @param ev Represents a conversion expected. We need type T to be
   *           Chainable
   * @tparam T Represents the type T of the elements to chain.
+  * @tparam G Represents the type G that will be groupable
+  * @tparam H Represents the type H that will be hashable
   */
-class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
+abstract class Chainer[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]) {
 
-  private var zero: String = ""
+  /**
+    * Represents a root hash from another chainer process.
+    * It is intended to connect chainers together
+    */
+  private var zero: Option[H] = None
+  /**
+    * Represents a list of grouped leaves.
+    * They are possibly sorted by a balancer function
+    * List[H] => H.
+    */
   private var grouped: List[List[T]] = Nil
-  private var seedHashes: List[List[String]] = Nil
-  private var balancedSeedNodes: List[Node[String]] = Nil
-  private var seedNodes: List[Node[String]] = Nil
-  private var node: Option[Node[String]] = None
+  /**
+    * Represents the leaves that have been hashed as seeds for the
+    * chainer and tree creation processes.
+    */
+  private var seedHashes: List[List[H]] = Nil
+  /**
+    * Represents a Node-based tree of balanced seeds.
+    * That means that before creating the node objects, a possible
+    * balancing function might have been applied to its leaves.
+    */
+  private var balancedSeedNodes: List[Node[H]] = Nil
+  /**
+    * Represents a Node-based tree.
+    */
+  private var seedNodes: List[Node[H]] = Nil
+  /**
+    * Represents the whole tree.
+    * The final tree.
+    */
+  private var node: Option[Node[H]] = None
 
+  /**
+    * It is a function that is used to join to values of type H.
+    * A hash function is intended to be plugged in.
+    */
+  private var mergeProtocol: Option[MergeProtocol[H]] = None
+  /**
+    * It is a function that is used to balance the leaves in case they are not even.
+    * The leaves are passed in as parameters in the function so that interesting balancing
+    * options can be used.
+    */
+  private var balancingProtocol: Option[BalancingProtocol[H]] = None
+
+  /**
+    * Represents the list of seeds, that is, the incoming data of type T.
+    * Note that the incoming list gets implicitly transformed into chainable objects.
+    * @return List of T that represent the seeds to the chainer.
+    */
   def seeds: List[T] = es
 
-  def getZero: String = zero
+  /**
+    * Represents an initial hash from another process or chainer.
+    * @return Option of H
+    */
+  def getZero: Option[H] = zero
 
+  /**
+    * Gets the possible groups that may have been created if the
+    * creation of groups has been executed.
+    * This happens at the outer layer of the process. That's to say, before nodes or hashes
+    * have been introduced in the process
+    * @return List of Lists of T
+    */
   def getGroups: List[List[T]] = grouped
 
-  def getHashes: List[List[String]] = seedHashes
+  /**
+    * Gets the seed hashes calculated out of incoming data
+    * @return List of Lists of hashable data H
+    */
+  def getHashes: List[List[H]] = seedHashes
 
-  def getNodes: List[Node[String]] = seedNodes
+  /**
+    * Gets the Nodes of Hashable data.
+    * @return List of Nodes of hashable data H
+    */
+  def getNodes: List[Node[H]] = seedNodes
 
-  def getBalancedNodes: List[Node[String]] = balancedSeedNodes
+  /**
+    * Gets the balanced Nodes of Hashable data
+    * @return  List of balanced Nodes of hashable data H
+    */
+  def getBalancedNodes: List[Node[H]] = balancedSeedNodes
 
-  def getNode: Option[Node[String]] = node
+  /**
+    * Gets the most aggregated Node of hashable data H
+    * @return Option of Node of hashable data H
+    */
+  def getNode: Option[Node[H]] = node
 
-  def createGroups: Chainer[T] = {
-    grouped = es.groupBy(x => x.id).values.toList
+  /**
+    * Creates groups of related data based on the groupId
+    * provided by the chainable data type
+    * @return Chainer[T, G, H]
+    */
+  def createGroups: Chainer[T, G, H] = {
+    grouped = es.groupBy(x => x.groupId).values.toList
     this
   }
 
-  def withGeneralGrouping: Chainer[T] = {
+  /**
+    * Creates a general group. It doesn't use the groupId
+    * provided by the chainable data type.
+    * This is particularly useful if not grouping is required
+    * @return Chainer[T, G, H]
+    */
+  def withGeneralGrouping: Chainer[T, G, H] = {
     grouped = List(es)
     this
   }
 
-  def createSeedHashes: Chainer[T] = {
+  /**
+    * Creates the initial list of hashes that are actually used
+    * for the creation of node later on.
+    * It also takes into account if we know of an initial hash, a.k.a Zero.
+    * @return Chainer[T, G, H]
+    */
+  def createSeedHashes: Chainer[T, G, H] = {
     val gd = grouped.map(e => e.map(_.hash))
 
-    def addZero = {
+    def addZero(zero: H): List[List[H]] = {
       gd match {
         case Nil => gd
         case xs :: xss =>
@@ -57,49 +186,114 @@ class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
       }
     }
 
-    seedHashes = if (zero.isEmpty) gd else addZero
+    seedHashes = getZero.map(addZero).getOrElse(gd)
     this
   }
 
-  def withHashZero(zeroHash: String): Chainer[T] = {
-    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already beem created as it won't have any effect on the node.")
+  /**
+    * Sets the initial hash from a previos processing phase. This first
+    * hash is called Zero
+    * @param zeroHash represents a possible previous hash of type H
+    * @return Chainer[T, G, H]
+    */
+  def withHashZero(zeroHash: Option[H]): Chainer[T, G, H] = {
+    require(seedNodes.isEmpty && node.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer that has already been created as it won't have any effect on the node.")
     require(seedHashes.isEmpty, "Can't use 'createSeedHashesWithHashZero' on a chainer whose seed hashes have already been created")
     zero = zeroHash
     this
   }
 
-  def createSeedNodes(keepOrder: Boolean = false): Chainer[T] = {
+  /**
+    * Sets the merging strategy for types H.
+    * @param newMergeProtocol a data type that describes how to merge two types H and provide some
+    *                         extra information required for de/compress purposes.
+    * @return Chainer[T, G, H]
+    */
+  def withMergeProtocol(newMergeProtocol: MergeProtocol[H]): Chainer[T, G, H] = {
+    mergeProtocol = Option(newMergeProtocol)
+    this
+  }
+
+  /**
+    * Gets configured merge protocol
+    * @return Option of MergeProtocol of H
+    */
+  def getMergeProtocol: Option[MergeProtocol[H]] = {
+    mergeProtocol
+  }
+
+  /**
+    * Sets the balancing strategy for types H.
+    * It knows how to balance a set of hashes that are not even.
+    * @param newBalancingProtocol a data types that describes how to produce a new value H for balancing purposes.
+    *                    it takes the list of H, so that different strategies can be composed.
+    * @return Chainer[T, G, H]
+    */
+  def withBalancingProtocol(newBalancingProtocol: BalancingProtocol[H]): Chainer[T, G, H] = {
+    balancingProtocol = Option(newBalancingProtocol)
+    this
+  }
+
+  /**
+    * Gets configured balancing protocol
+    * @return Option of BalancingProtocol of H
+    */
+  def getBalancingProtocol: Option[BalancingProtocol[H]] = {
+    balancingProtocol
+  }
+
+  /**
+    * Creates the initial list of nodes of type H.
+    * This creates nodes objects out of the seed hashes.
+    * @param keepOrder Makes that the order of the nodes be guarantied
+    * @return Chainer[T, G, H]
+    */
+  def createSeedNodes(keepOrder: Boolean = false): Chainer[T, G, H] = {
     if (keepOrder) createSeedNodesF(hashesToNodesWithJoin2)
     else createSeedNodesF(hashesToNodesWithJoin)
 
     this
   }
 
-  private def createSeedNodesF(f: List[String] => List[Node[String]]): Chainer[T] = {
+  private def createSeedNodesF(f: List[H] => List[Node[H]]): Chainer[T, G, H] = {
     seedNodes = seedHashes.flatMap(x => f(x))
     this
   }
 
-  private def balance(hes: List[String]): List[Node[String]] = {
-    val balanced = Node.seeds(hes: _*).balanceRightWithEmpty(balancingHash)
+  private def balance(hes: List[H]): List[Node[H]] = {
+    require(hes.nonEmpty, "Cannot balance empty input")
+    require(balancingProtocol.isDefined, "Cannot balance with unset balancing protocol")
+    val maybeBalancingDatePoint = balancingProtocol.flatMap(x => x(hes))
+    require(maybeBalancingDatePoint.isDefined, "Cannot balance with unset balancer")
+    val balanced = maybeBalancingDatePoint.toList.flatMap(bh => Node.seeds(hes: _*).balanceRightWithEmpty(bh))
     balancedSeedNodes = balanced
     balanced
   }
 
-  private def hashesToNodesWithJoin(hes: List[String]): List[Node[String]] =
-    balance(hes).join((t1, t2) => Hasher.mergeAndHash(t1, t2))
+  private def hashesToNodesWithJoin(hes: List[H]): List[Node[H]] = {
+    mergeProtocol.toList.flatMap { m => balance(hes).join((t1, t2) => m(t1, t2)) }
+  }
 
-  private def hashesToNodesWithJoin2(hes: List[String]): List[Node[String]] =
-    balance(hes).join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+  private def hashesToNodesWithJoin2(hes: List[H]): List[Node[H]] = {
+    mergeProtocol.toList.flatMap { m => balance(hes).join2((t1, t2) => m(t1, t2)) }
+  }
 
-  def balancingHash: String = Chainer.getEmptyNodeVal
-
-  def createNode: Chainer[T] = {
-    node = seedNodes.join((t1, t2) => Hasher.mergeAndHash(t1, t2)).headOption
+  /**
+    * Creates a bottom-up node. It represents the
+    * ultimate aggregation of nodes into a single node.
+    * @return Chainer[T, G, H]
+    */
+  def createNode: Chainer[T, G, H] = {
+    node = mergeProtocol.flatMap { m => seedNodes.join((t1, t2) => m(t1, t2)).headOption }
     this
   }
 
-  def compress: Option[CompressedTreeData] = Chainer.compress(this)
+  /**
+    * It converts a node into a data type that has its minimum bill of materials for the
+    * creation of the node.
+    * @return Option of compressed tree data of type H
+    */
+  def compress: Option[CompressedTreeData[H]] = Chainer.compress(this)
 
 }
 
@@ -108,39 +302,71 @@ class Chainer[T](es: List[T])(implicit ev: T => Chainable[T]) {
   */
 object Chainer {
 
-  def getEmptyNodeVal: String = Hasher.hash(s"emptyNode_${UUIDHelper.randomUUID}")
+  /**
+    * Helper function to create a chainer
+    * @param es Represents the list of raw values from which nodes will be created
+    * @param ev Represents an implicit conversion from values of T into chainable data types
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return a chainer object that knows how to create connected nodes
+    */
+  def apply[T, G, H](es: List[T])(implicit ev: T => Chainable[T, G, H]): Chainer[T, G, H] = new Chainer[T, G, H](es) {}
 
-  def getNonce: String = Hasher.hash(s"Nonce_${UUIDHelper.randomUUID}")
-
-  def apply[T](es: List[T])(implicit ev: T => Chainable[T]): Chainer[T] = new Chainer[T](es) {}
-
-  case class CreateConfig(
-      maybeInitialTreeHash: Option[String],
-      outerBalancingHash: Option[String],
+  /**
+    * Represents a configuration object for easy creation of required objects
+    * @param maybeInitialTreeHash Represents a zero value from previous processes
+    * @param split It indicates if the the creation process should be split
+    * @param splitSize It indicates the size for the slits
+    * @param prefixer It is a function that prefixes the root hash.
+    * @param mergeProtocol It represents the merging protocol.
+    * @param balancingProtocol It represents the balancing protocol.
+    * @tparam H Represents the type H that will be hashable.
+    *
+    */
+  case class CreateConfig[H](
+      maybeInitialTreeHash: Option[H],
       split: Boolean,
-      splitSize: Int, prefixer: String => String
+      splitSize: Int,
+      prefixer: H => H,
+      mergeProtocol: MergeProtocol[H],
+      balancingProtocol: BalancingProtocol[H]
   )
 
-  def create[T](es: List[T], config: CreateConfig)(implicit ev: T => Chainable[T]): (List[Chainer[T]], String) = {
+  /**
+    * Helper function to create a full node
+    * @param es Represents the list of raw values from which nodes will be created
+    * @param config Represents a simple configuration object for the creation of the full node
+    * @param ev Represents an implicit conversion from values of T into chainable data types
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return A chainer object and the last root value of the node
+    */
+  def create[T, G, H](es: List[T], config: CreateConfig[H])(implicit ev: T => Chainable[T, G, H]): (List[Chainer[T, G, H]], Option[H]) = {
 
     @tailrec def go(
         splits: List[List[T]],
-        chainers: List[Chainer[T]],
-        latestHash: String
-    ): (List[Chainer[T]], String) = {
+        chainers: List[Chainer[T, G, H]],
+        latestHash: Option[H]
+    ): (List[Chainer[T, G, H]], Option[H]) = {
       splits match {
         case Nil => (chainers, latestHash)
         case xs :: xss =>
-          val chainer = new Chainer(xs) {
-            override def balancingHash: String = config.outerBalancingHash.getOrElse(super.balancingHash)
-          }
+          val chainer = Chainer(xs)
+            .withMergeProtocol(config.mergeProtocol)
+            .withBalancingProtocol(config.balancingProtocol)
             .withHashZero(latestHash)
             .withGeneralGrouping
             .createSeedHashes
             .createSeedNodes(keepOrder = true)
             .createNode
 
-          go(xss, chainers ++ List(chainer), chainer.getNode.map(x => config.prefixer(x.value)).getOrElse(""))
+          go(
+            splits = xss,
+            chainers = chainers ++ List(chainer),
+            latestHash = chainer.getNode.map(x => config.prefixer(x.value))
+          )
 
       }
     }
@@ -153,30 +379,105 @@ object Chainer {
     }
 
     val splits = split(es).toList
-    go(splits, Nil, config.maybeInitialTreeHash.getOrElse(""))
+    go(
+      splits = splits,
+      chainers = Nil,
+      latestHash = config.maybeInitialTreeHash
+    )
 
   }
 
-  def compress[T](chainer: Chainer[T]): Option[CompressedTreeData] =
-    chainer.getNode.map { root =>
+  /**
+    * Helper function that knows how to compress chainer objects into a smaller representation that is
+    * more convenient to storage or transport
+    * @param chainer a class that allows chaining values of type T
+    * @tparam T Represents the type T of the elements to chain.
+    * @tparam G Represents the type G that will be groupable
+    * @tparam H Represents the type H that will be hashable
+    * @return Simple representation of the full node value.
+    */
+  def compress[T, G, H](chainer: Chainer[T, G, H]): Option[CompressedTreeData[H]] = {
+    for {
+      mp <- chainer.getMergeProtocol
+      bp <- chainer.getBalancingProtocol
+      root <- chainer.getNode
+    } yield {
       val leaves = chainer.getBalancedNodes.map(_.value)
-      CompressedTreeData(root.value, leaves)
+      CompressedTreeData(mp.version + "." + bp.version, root.value, leaves)
     }
 
-  def uncompress(compressedTreeData: CompressedTreeData): Option[Node[String]] = {
+  }
+
+  /**
+    * Helper function that knows how to uncompress from a CompressedTreeData[H] into Node[H]
+    * @param compressedTreeData Compressed value of the representation of the Node of type H
+    * @param m Protocol for merging values of type H
+    * @tparam H Represents the type H that will be hashable
+    * @return Represents a node-based tree
+    */
+  def uncompress[H](compressedTreeData: CompressedTreeData[H])(m: MergeProtocol[H]): Option[Node[H]] = {
+
+    require(compressedTreeData.mergeProtocolVersion == m.version, "Compressed data has different version from detected protocol")
+
     val uncompressed = compressedTreeData
       .leaves
       .map(x => Node(x, None, None))
-      .join2((t1, t2) => Hasher.mergeAndHash(t1, t2))
+      .join2((t1, t2) => m(t1, t2))
       .headOption
 
     uncompressed match {
-      case c @ Some(value) if value.value == compressedTreeData.root => c
-      case Some(value) if value.value != compressedTreeData.root => throw new Exception("Root Hash doesn't match Compressed Root")
+      case c @ Some(value) if m.equals(value.value, compressedTreeData.root) => c
+      case Some(value) if !m.equals(value.value, compressedTreeData.root) => throw new Exception("Root Hash doesn't match Compressed Root")
       case None => None
     }
 
   }
+
+  /**
+    * Helper function that checks the connectedness of a list of compressed tree data of type H
+    * @param compressed Compressed value of the representation of the Node of type H
+    * @param m Protocol for merging values of type H
+    * @tparam H Represents the type H that will be hashable
+    * @return boolean value from the verification
+    */
+  def checkConnectedness[H](compressed: List[CompressedTreeData[H]])(m: MergeProtocol[H]): Boolean = {
+
+    require(compressed.forall(_.mergeProtocolVersion == m.version), "Compressed data has different version from detected protocol")
+
+    @tailrec
+    def go(check: Boolean, compressed: List[CompressedTreeData[H]]): Boolean = {
+      compressed match {
+        case Nil => check
+        case List(_) => check
+        case x :: y :: xs =>
+          val nextCheck = (Option(x.root), y.leaves.headOption) match {
+            case (Some(a), Some(b)) => m.equals(a, b)
+            case _ => false
+          }
+          go(nextCheck, xs)
+      }
+    }
+
+    go(check = false, compressed)
+
+  }
+
+}
+
+/**
+  * Represents a data simplified data structure for a tree
+  * @param ver Represents the MergeProtocol version and the Balancing Protocol separated by point.
+  *            For example: 33.33
+  * @param root Represents the root of the tree
+  * @param leaves Represents the leaves of the tree
+  * @tparam H Represents the type of the leaves
+  */
+case class CompressedTreeData[H](ver: String, root: H, leaves: List[H]) {
+  val versions: List[Int] = ver.split("\\.", 2).map(_.toInt).toList
+  require(versions.size == 2, "Should have two version parts.")
+
+  def mergeProtocolVersion: Int = versions.head
+  def balancingProtocolVersion: Int = versions.last
 
 }
 
