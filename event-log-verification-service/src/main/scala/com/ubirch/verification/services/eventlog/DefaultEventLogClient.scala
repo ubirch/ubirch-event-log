@@ -15,6 +15,7 @@ import org.json4s.JsonAST.JNull
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 import scala.language.postfixOps
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
@@ -128,7 +129,19 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
                 }
 
                 blockchainInfo
-                  .map(bi => vertex.addProperties(bi))
+                  .map(bi => {
+                    bi.getOrElse("public_chain", "") match {
+                      case "IOTA_MAINNET_IOTA_MAINNET_NETWORK" => {
+                        bi.get("hash") match {
+                          case Some(hash) => Try(Integer.parseInt(hash, 16)) match {
+                            case Success(_) => vertex.addProperties(Map("version" -> "1.5.0"))
+                            case Failure(_) => vertex.addProperties(Map("version" -> "1.0.0"))
+                          }
+                        }
+                      }
+                    }
+                    vertex.addProperties(bi)
+                  })
                   .orElse {
                     logger.debug("Defaulting to origin")
                     Option(vertex)
