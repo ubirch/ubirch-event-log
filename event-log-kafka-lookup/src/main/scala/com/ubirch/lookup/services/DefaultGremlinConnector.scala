@@ -1,8 +1,8 @@
 package com.ubirch.lookup.services
 
-import com.typesafe.config.{ Config, ConfigFactory }
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.services.lifeCycle.{ DefaultLifecycle, Lifecycle }
+import com.ubirch.services.lifeCycle.Lifecycle
 import gremlin.scala.{ ScalaGraph, TraversalSource, _ }
 
 import javax.inject._
