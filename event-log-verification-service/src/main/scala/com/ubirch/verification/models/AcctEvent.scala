@@ -7,9 +7,7 @@ case class AcctEvent(
     ownerId: UUID,
     identityId: Option[UUID],
     category: String,
-    description: Option[String],
+    subCategory: Option[String],
     token: Option[String],
     occurredAt: Date
-) {
-  def validate: Boolean = identityId.isDefined && description.isDefined
-}
+)

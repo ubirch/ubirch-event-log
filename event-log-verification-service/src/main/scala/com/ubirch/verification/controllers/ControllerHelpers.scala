@@ -71,7 +71,7 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
         ownerId = ownerId,
         identityId = Option(protocolMessage.getUUID),
         category = "verification",
-        description = Some(claims.purpose),
+        subCategory = None,
         token = Some(claims.token),
         occurredAt = new Date()
       ))

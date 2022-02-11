@@ -159,9 +159,9 @@ class EncoderExecutor @Inject() (
           payload <- Try(EncoderJsonSupport.ToJson[AcctEvent](AcctEvent(
             UUIDHelper.randomUUID,
             ownerId = UUID.fromString(customerId),
-            identityId = Some(messageEnvelope.ubirchPacket.getUUID),
+            identityId = messageEnvelope.ubirchPacket.getUUID,
             category = "anchoring",
-            description = Some("anchoring for " + messageEnvelope.ubirchPacket.getUUID.toString),
+            subCategory = None,
             token = encoderPipeData.consumerRecords.headOption.flatMap(cr => cr.findHeader("X-Ubirch-DeviceInfo-Token")),
             occurredAt = new Date()
           )).get)
