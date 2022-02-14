@@ -8,6 +8,9 @@ case class AcctEvent(
     identityId: Option[UUID],
     category: String,
     subCategory: Option[String],
+    externalId:  Option[String],
     token: Option[String],
     occurredAt: Date
-)
+) {
+  def validate: Boolean = category.nonEmpty && subCategory.forall(_.nonEmpty) && externalId.forall(_.length <= 36)
+}

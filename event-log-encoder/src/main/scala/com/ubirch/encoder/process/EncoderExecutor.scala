@@ -162,6 +162,7 @@ class EncoderExecutor @Inject() (
             identityId = messageEnvelope.ubirchPacket.getUUID,
             category = "anchoring",
             subCategory = None,
+            externalId = None,
             token = encoderPipeData.consumerRecords.headOption.flatMap(cr => cr.findHeader("X-Ubirch-DeviceInfo-Token")),
             occurredAt = new Date()
           )).get)
