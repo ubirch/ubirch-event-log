@@ -157,13 +157,12 @@ class EncoderExecutor @Inject() (
         (for {
           customerId <- _customerId
           payload <- Try(EncoderJsonSupport.ToJson[AcctEvent](AcctEvent(
-            UUIDHelper.randomUUID,
+            id = UUIDHelper.randomUUID,
             ownerId = UUID.fromString(customerId),
             identityId = messageEnvelope.ubirchPacket.getUUID,
             category = "anchoring",
             subCategory = None,
             externalId = None,
-            token = encoderPipeData.consumerRecords.headOption.flatMap(cr => cr.findHeader("X-Ubirch-DeviceInfo-Token")),
             occurredAt = new Date()
           )).get)
         } yield {
@@ -171,7 +170,8 @@ class EncoderExecutor @Inject() (
             .withCustomerId(customerId)
             .withRandomNonce
             .withNewId
-            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+            .addBlueMark
+            .addTraceHeader(Values.ENCODER_SYSTEM))
         }).get
       }
 

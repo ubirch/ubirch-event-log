@@ -64,16 +64,15 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
   }
 
-  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage, claims: Claims): Task[RecordMetadata] = {
+  private[controllers] def publishAcctEvent(ownerId: UUID, protocolMessage: ProtocolMessage): Task[RecordMetadata] = {
     accounting
       .publish(AcctEvent(
         id = UUID.randomUUID(),
         ownerId = ownerId,
-        identityId = Option(protocolMessage.getUUID),
-        category = "verification",
+        identityId = protocolMessage.getUUID,
+        category = "upp_verification",
         subCategory = None,
         externalId = None,
-        token = Some(claims.token),
         occurredAt = new Date()
       ))
   }
@@ -96,7 +95,7 @@ class ControllerHelpers(accounting: AcctEventPublishing)(implicit val ec: Execut
 
         (for {
           owner <- validateClaims(claims, upp, origin).timeout(5 seconds)
-          _ <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp, claims).map(x => Some(x)).timeout(5 seconds)
+          _ <- if (decoratedResponse.isSuccess) publishAcctEvent(owner, upp).map(x => Some(x)).timeout(5 seconds)
           else Task.delay(None)
         } yield decoratedResponse.response).onErrorRecover {
 
