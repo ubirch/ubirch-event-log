@@ -7,9 +7,10 @@ case class AcctEvent(
     ownerId: UUID,
     identityId: Option[UUID],
     category: String,
-    description: Option[String],
+    subCategory: Option[String],
+    externalId:  Option[String],
     token: Option[String],
     occurredAt: Date
 ) {
-  def validate: Boolean = identityId.isDefined && description.isDefined
+  def validate: Boolean = category.nonEmpty && subCategory.forall(_.nonEmpty) && externalId.forall(_.length <= 36)
 }
