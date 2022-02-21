@@ -11,6 +11,7 @@ import com.ubirch.verification.util.LookupJsonSupport.formats
 
 import javax.inject._
 import monix.execution.{ FutureUtils, Scheduler }
+import org.bouncycastle.util.encoders.Hex
 import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
@@ -121,34 +122,29 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
       }.getOrElse(Map.empty)
     }
 
-    def iotaVersion(value: Map[String, String]): Map[String, String] = {
+    def versions(hash: String, category: String): Map[String, String] = {
       //we search for iota, it can be mainnet or testnet
-      val maybeIota = value.collectFirst { case ("public_chain", v) => v.toLowerCase.contains("iota") }
-      lazy val maybeIotaVersion = value.get("hash").map { hash =>
-        Try(Integer.parseInt(hash, 16)) match {
-          case Success(_) => "1.5.0"
-          case Failure(_) => "1.0.0"
+      if (category.toLowerCase.contains("iota")) {
+        Try(Hex.decode(hash)) match {
+          case Success(_) => Map("version" -> "1.5.0")
+          case Failure(_) => Map("version" -> "1.0.0")
         }
-      }
-        .map(v => Map("version" -> v))
-        .getOrElse(Map.empty)
+      } else Map.empty
 
-      if (maybeIota.isDefined) value ++ maybeIotaVersion
-      else value
     }
 
     def extended: Future[Seq[VertexStruct]] = {
       val res = vertices
         .map(x => (x, x.getBoth(Values.HASH, Values.PUBLIC_CHAIN_CATEGORY.toLowerCase())))
         .map {
-          case (vertex, Some((hash, category))) if hash.isInstanceOf[String] && category.isInstanceOf[String] =>
+          case (vertex, Some((hash: String, category: String))) =>
             logger.debug(s"blockchain_info=${blockchainInfo.value} hash=$hash category=$category")
 
             finder
               .findEventLog(hash.toString, category.toString) //get eventlog
               .map(_.map(_.event)) //select the event
               .map(eventAsMap) //transform into map
-              .map(iotaVersion) //add extra iota version if iota
+              .map(data => data ++ versions(hash, category)) //add extra versions if needed
               .map(vertex.addProperties) //finally create new vertex
               .map(Option.apply)
 
