@@ -141,7 +141,7 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
             logger.debug(s"blockchain_info=${blockchainInfo.value} hash=$hash category=$category")
 
             finder
-              .findEventLog(hash.toString, category.toString) //get eventlog
+              .findEventLog(hash, category) //get eventlog
               .map(_.map(_.event)) //select the event
               .map(eventAsMap) //transform into map
               .map(data => data ++ versions(hash, category)) //add extra versions if needed
