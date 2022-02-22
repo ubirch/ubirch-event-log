@@ -8,13 +8,17 @@ import com.ubirch.verification.services.Finder
 import com.ubirch.verification.util.Exceptions.LookupExecutorException
 import com.ubirch.verification.util.HashHelper
 import com.ubirch.verification.util.LookupJsonSupport.formats
+
 import javax.inject._
 import monix.execution.{ FutureUtils, Scheduler }
+import org.bouncycastle.util.encoders.Hex
+import org.json4s.JValue
 import org.json4s.JsonAST.JNull
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future, TimeoutException }
 import scala.language.postfixOps
+import scala.util.{ Failure, Success, Try }
 
 @Singleton
 class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionContext) extends EventLogClient with LazyLogging {
@@ -110,31 +114,40 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
 
   private def decorateBlockchain(blockchainInfo: BlockchainInfo, vertices: Seq[VertexStruct]): Future[Seq[VertexStruct]] = {
 
-    def extended = {
+    def eventAsMap(value: Option[JValue]): Map[String, String] = {
+      value.map {
+        _.foldField(Map.empty[String, String]) { (acc, curr) =>
+          acc ++ Map(curr._1 -> curr._2.extractOpt[String].getOrElse("Nothing Extracted"))
+        }
+      }.getOrElse(Map.empty)
+    }
+
+    def versions(hash: String, category: String): Map[String, String] = {
+      //we search for iota, it can be mainnet or testnet
+      if (category.toLowerCase.contains("iota")) {
+        Try(Hex.decode(hash)) match {
+          case Success(_) => Map("version" -> "1.5.0")
+          case Failure(_) => Map("version" -> "1.0.0")
+        }
+      } else Map.empty
+
+    }
+
+    def extended: Future[Seq[VertexStruct]] = {
       val res = vertices
         .map(x => (x, x.getBoth(Values.HASH, Values.PUBLIC_CHAIN_CATEGORY.toLowerCase())))
         .map {
-          case (vertex, Some((hash, category))) if hash.isInstanceOf[String] && category.isInstanceOf[String] =>
+          case (vertex, Some((hash: String, category: String))) =>
             logger.debug(s"blockchain_info=${blockchainInfo.value} hash=$hash category=$category")
+
             finder
-              .findEventLog(hash.toString, category.toString)
-              .map(_.map(_.event))
-              .map { x =>
+              .findEventLog(hash, category) //get eventlog
+              .map(_.map(_.event)) //select the event
+              .map(eventAsMap) //transform into map
+              .map(data => data ++ versions(hash, category)) //add extra versions if needed
+              .map(vertex.addProperties) //finally create new vertex
+              .map(Option.apply)
 
-                val blockchainInfo = x.map {
-                  _.foldField(Map.empty[String, String]) { (acc, curr) =>
-                    acc ++ Map(curr._1 -> curr._2.extractOpt[String].getOrElse("Nothing Extracted"))
-                  }
-                }
-
-                blockchainInfo
-                  .map(bi => vertex.addProperties(bi))
-                  .orElse {
-                    logger.debug("Defaulting to origin")
-                    Option(vertex)
-                  }
-
-              }
           case other =>
             logger.debug("Nothing to decorate: " + other.toString())
             Future.successful(None)
