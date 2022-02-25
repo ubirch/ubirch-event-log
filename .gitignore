@@ -6,5 +6,4 @@ project/project
 project/target
 *.iml
 **/node_modules/
-**/package-lock.json
 ./dumps
