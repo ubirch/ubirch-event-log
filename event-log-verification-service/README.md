@@ -1,4 +1,4 @@
-# Verification
+# UPP Verification
 
 1. [Description](#verification-descriptions)
 2. [Verification Workflow](#verification-workflow)
@@ -8,18 +8,18 @@
 
 # Verification Descriptions
 
-There currently exists 4 layers of verifications that can be performed on a UPP(hash).
+There currently exists 4 layers of verifications that can be performed on a `UPP`(hash).
 
-1. `Initial verification`: It checks that the upp has been stored on our backend. No further checks are performed apart
-   from a structural check of the upp. You may think about this as a quick check.
-2. `Simple verification`: This verification checks the existence of the upp in our backend and additionally, it checks
-   the "chain" and the validity of the "keys". That's to say that the UPP can be cryptographically verified by one of
+1. `Initial verification`: It checks that the `UPP` has been stored on our backend. No further checks are performed apart
+   from a structural check of the `UPP`. You may think about this as a quick check.
+2. `Simple verification`: This verification checks the existence of the `UPP` in our backend and additionally, it checks
+   the "chain" and the validity of the "keys". That's to say that the `UPP` can be cryptographically verified by one of
    the available keys for the particular device/entity.
-3. `Upper verification`: This verification checks the existence of the upp in our backend, it checks the "chain"; and
-   the validity of the "keys" (That the UPP can be verified by one of the available keys for the particular
+3. `Upper verification`: This verification checks the existence of the `UPP` in our backend, it checks the "chain"; and
+   the validity of the "keys" (That the `UPP` can be verified by one of the available keys for the particular
    device/entity); and retrieves the upper bounds or the closet blockchains transactions in the near future.
-4. `Full verification`: This verification checks the existence of the upp in our backend, it checks the "chain"; and the
-   validity of the "keys" (That the UPP can be verified by one of the available keys for the particular device/entity);
+4. `Full verification`: This verification checks the existence of the `UPP` in our backend, it checks the "chain"; and the
+   validity of the "keys" (That the `UPP` can be verified by one of the available keys for the particular device/entity);
    and retrieves the upper and lower bounds or the closet blockchains transactions in the near future and past.
 
 # Verification Workflow
@@ -33,7 +33,7 @@ This diagram shows the 4 types of verifications that are currently supported.
 # Anchoring Workflow
 
 This workflow is a simplified version of the anchoring workflow. It shows the most important and relevant activities
-that are performed when a UPP is received. Note that since number 5 or 6, which are presented in the following diagram,
+that are performed when a `UPP` is received. Note that since number 5 or 6, which are presented in the following diagram,
 an initial verification is possible.
 
 ![Anchoring](../.images/Anchoring.svg)
