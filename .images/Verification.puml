@@ -1,7 +1,10 @@
 @startuml
 'https://plantuml.com/sequence-diagram
 
-participant Identity as identity
+participant identity [
+  <<Identity>>
+ Device|Thing|Person
+]
 participant trust_service_verification [
   <<Verification>>
   Ubirch Trust Service

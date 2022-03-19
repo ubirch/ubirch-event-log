@@ -2,9 +2,9 @@
 
 **Note**: For the following examples, you should take into account the environment you are working on. DEV, DEMO or PRO and change the URL accordingly.
 
-**Note**: Verifications 2, 3, and 4, check for the validity of the upp in terms of signature of the upp, chain and unpacking.
+**Note**: Verification 1 only check UPP existence and unpacking. Verifications 2, 3, and 4, check for the validity of the upp in terms of signature of the upp, chain and unpacking. 
 
-This system talks internally to the Identity Service: https://github.com/ubirch/ubirch-id-service to retrieve the available keys.
+This system talks internally to the Identity Service: https://github.com/ubirch/ubirch-id-service to retrieve the available keys, and to the cassandra storage, both for checking event logs, and paths to verifications.
 
 * [Endpoints V1](V1.md)
 * [Endpoints V2](V2.md)
@@ -12,8 +12,12 @@ This system talks internally to the Identity Service: https://github.com/ubirch/
 
 # Anchoring Workflow
 
+This workflow is a simplified version of the anchoring workflow. It shows the most important and relevant activities that are performed when a UPP is received.
+
 ![Anchoring](../.images/Anchoring.svg)
 
 # Verification Workflow
+
+This diagram shows the 4 types of verifications that are currently supported.
 
 ![Anchoring](../.images/Verification.svg)
