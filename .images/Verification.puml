@@ -1,0 +1,46 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+participant Identity as identity
+participant trust_service_verification [
+  <<Verification>>
+  Ubirch Trust Service
+]
+
+note across: Verification 1: /api/upp:
+identity -> trust_service_verification:/api/v2/upp (hash)
+trust_service_verification -> trust_service_verification: checks if UPP is known in cache or DB
+trust_service_verification -> trust_service_verification: checks if UPP is structurely valid
+identity <-- trust_service_verification: ok
+......
+note across: Verification 2: /api/upp/verify
+identity -> trust_service_verification:/api/v2/upp/verify (hash)
+trust_service_verification -> trust_service_verification: checks if UPP is known in cache or DB
+trust_service_verification -> trust_service_verification: checks if UPP is structurely valid
+trust_service_verification -> trust_service_verification: gets public key for identity
+trust_service_verification -> trust_service_verification: verifies signature of UPP
+trust_service_verification -> trust_service_verification: finds UPP chain (previous UPP)
+identity <-- trust_service_verification: ok
+......
+note across: Verification 3: /api/upp/verify/anchor
+identity -> trust_service_verification:/api/upp/verify/anchor  (hash)
+trust_service_verification -> trust_service_verification: checks if UPP is known in cache or DB
+trust_service_verification -> trust_service_verification: checks if UPP is structurely valid
+trust_service_verification -> trust_service_verification: finds the shortest path to upper-bound blockchains \n (blockchains.timestamps > upp.timestamp)
+trust_service_verification -> trust_service_verification: gets public key for identity
+trust_service_verification -> trust_service_verification: verifies signature of UPP
+trust_service_verification -> trust_service_verification: finds UPP chain (previous UPP)
+identity <-- trust_service_verification: ok
+......
+note across: Verification 4: /api/upp/verify/record
+trust_service_verification -> trust_service_verification: checks if UPP is known in cache or DB
+trust_service_verification -> trust_service_verification: checks if UPP is structurely valid
+trust_service_verification -> trust_service_verification: finds the shortest path to upper-bound blockchains \n (blockchains.timestamps > upp.timestamp)
+trust_service_verification -> trust_service_verification: finds the shortest path to lower-bound blockchains \n (blockchains.timestamps < upp.timestamp)
+trust_service_verification -> trust_service_verification: gets public key for identity
+trust_service_verification -> trust_service_verification: verifies signature of UPP
+trust_service_verification -> trust_service_verification: finds UPP chain (previous UPP)
+identity <-- trust_service_verification: ok
+......
+
+@enduml

@@ -10,4 +10,10 @@ This system talks internally to the Identity Service: https://github.com/ubirch/
 * [Endpoints V2](V2.md)
 * [Access Token For Endpoints V2](AccessToken.md)
 
+# Anchoring Workflow
 
+![Anchoring](../.images/Anchoring.svg)
+
+# Verification Workflow
+
+![Anchoring](../.images/Verification.svg)

@@ -1,0 +1,23 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+participant Identity as identity
+participant trust_service_anchoring [
+  <<Anchoring>>
+  Ubirch Trust Service
+]
+
+identity -> trust_service_anchoring: sends micro-certificate as UPP
+trust_service_anchoring -> trust_service_anchoring: authenticates
+trust_service_anchoring -> trust_service_anchoring: decodes and verifies UPP
+trust_service_anchoring -> trust_service_anchoring: applies filters to UPP
+trust_service_anchoring -> trust_service_anchoring: stores UPP
+identity <-- trust_service_anchoring: sends response
+trust_service_anchoring -> trust_service_anchoring: aggregates UPPs and creates side chain
+trust_service_anchoring -> blockchains: anchors root hashes from side chain
+... some delay: anchoring frequency & tx response ...
+
+
+@enduml
