@@ -1,5 +1,13 @@
 # Verification
 
+1. [Description](#verification-descriptions)
+2. [Verification Workflow](#verification-workflow)
+3. [Endpoints V1](V1.md)
+4. [Endpoints V2](V2.md)
+5. [Access Token For Endpoints V2](AccessToken.md)
+
+# Verification Descriptions
+
 There currently exists 4 layers of verifications that can be performed on a UPP(hash).
 
 1. `Initial verification`: It checks that it has been stored on our backend. No further checks are performed. You may
@@ -18,22 +26,15 @@ There currently exists 4 layers of verifications that can be performed on a UPP(
 
 This diagram shows the 4 types of verifications that are currently supported.
 
-![Anchoring](../.images/Verification.svg)
+![Verification](../.images/Verification.svg)
 
-**Note**: Verification 1 only check UPP existence and unpacking. Verifications 2, 3, and 4, check for the validity of
-the upp in terms of signature of the upp, chain and unpacking.
-
-This system talks internally to the Identity Service: https://github.com/ubirch/ubirch-id-service to retrieve the
+> This system talks internally to the Identity Service: https://github.com/ubirch/ubirch-id-service to retrieve the
 available keys, and to the cassandra storage, both for checking event logs, and paths to verifications.
-
-* [Endpoints V1](V1.md)
-* [Endpoints V2](V2.md)
-* [Access Token For Endpoints V2](AccessToken.md)
 
 # Anchoring Workflow
 
 This workflow is a simplified version of the anchoring workflow. It shows the most important and relevant activities
-that are performed when a UPP is received.
+that are performed when a UPP is received. Note that since number 5 or 6, which are presented in the following diagram, an initial verification is possible.
 
 ![Anchoring](../.images/Anchoring.svg)
 
