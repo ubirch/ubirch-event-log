@@ -35,13 +35,13 @@
         <build.number>${timestamp}-dev</build.number>
 
         <event-log-core.version>1.5.0</event-log-core.version>
-             
+
         <!-- Scalatra -->
         <scalatra.version>2.6.5</scalatra.version>
         <scalatra-scalatest.version>2.6.5</scalatra-scalatest.version>
         <scalactic.version>3.0.5</scalactic.version>
         <scalatraSwagger.version>2.6.5</scalatraSwagger.version>
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.45.v20220203</jetty.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
