@@ -8,11 +8,12 @@ import com.ubirch.dispatcher.services.kafka.consumer.DispatcherPipeData
 import com.ubirch.dispatcher.services.metrics.DefaultDispatchingCounter
 import com.ubirch.dispatcher.util.Exceptions._
 import com.ubirch.kafka.producer.StringProducer
-import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames }
+import com.ubirch.models.{ EventLog, EventLogSerializer, HeaderNames, TagExclusions }
 import com.ubirch.process.Executor
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.Exceptions.ExecutionException
 import com.ubirch.util._
+
 import javax.inject._
 import monix.eval.Task
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -33,6 +34,7 @@ class DispatchExecutor @Inject() (
     stringProducer: StringProducer
 )(implicit val ec: ExecutionContext)
   extends Executor[Vector[ConsumerRecord[String, String]], Future[DispatcherPipeData]]
+  with TagExclusions
   with LazyLogging {
 
   implicit val scheduler = monix.execution.Scheduler(ec)
@@ -56,7 +58,7 @@ class DispatchExecutor @Inject() (
             lazy val tagsToExclude = ((eventLogJValue \ EventLogSerializer.HEADERS) \ HeaderNames.DISPATCHER)
               .extractOpt[List[String]]
               .getOrElse(Nil)
-              .flatMap(_.split("tags-exclude:"))
+              .flatMap(_.split(`tags-exclude:`))
               .filter(_.nonEmpty)
               .distinct
 

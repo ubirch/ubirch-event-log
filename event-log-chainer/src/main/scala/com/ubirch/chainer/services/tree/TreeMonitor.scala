@@ -6,7 +6,7 @@ import com.ubirch.ConfPaths.ProducerConfPaths
 import com.ubirch.chainer.models.{ Chainer, Master, Mode, Slave }
 import com.ubirch.kafka.util.FutureHelper
 import com.ubirch.models.EnrichedEventLog._
-import com.ubirch.models.{ EventLog, HeaderNames }
+import com.ubirch.models.{ EventLog, HeaderNames, TagExclusions }
 import com.ubirch.util.UUIDHelper
 
 import monix.execution.{ Cancelable, Scheduler }
@@ -185,17 +185,11 @@ class TreeMonitor @Inject() (
 
 }
 
-object TreeMonitor {
+object TreeMonitor extends TagExclusions {
 
   def headersNormalCreationFromMode(mode: Mode): (String, String) = Mode.foldF(mode)
     .onSlave(() => headerExcludeAggregation)
     .onMaster(() => headerExcludeBlockChain)
     .run
-
-  def headerExcludeBlockChain: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:blockchain"
-
-  def headerExcludeAggregation: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:aggregation"
-
-  def headerExcludeStorage: (String, String) = HeaderNames.DISPATCHER -> "tags-exclude:storage"
 
 }

@@ -28,6 +28,8 @@ trait EventLogBase[T] {
 
   def addHeaders(headers: (String, String)*): EventLog
 
+  def addHeadersIf(predicate: => Boolean, headers: (String, String)*): EventLog
+
   def removeHeader(keys: String*): EventLog
 
   def replaceHeaders(headers: (String, String)*): EventLog
@@ -101,6 +103,8 @@ case class EventLog(
   override def withHeaders(headers: (String, String)*): EventLog = this.copy(headers = Headers.create(headers: _*))
 
   override def addHeaders(headers: (String, String)*): EventLog = this.copy(headers = this.headers.add(headers: _*))
+
+  override def addHeadersIf(predicate: => Boolean, headers: (String, String)*): EventLog = this.copy(headers = this.headers.add(headers: _*))
 
   override def removeHeader(keys: String*): EventLog = copy(headers = this.headers.remove(keys: _*))
 
