@@ -139,12 +139,17 @@ class EncoderExecutor @Inject() (
               case "false" => false
             }.getOrElse(true)
 
+          val requestId = encoderPipeData.consumerRecords
+            .headOption
+            .flatMap(_.requestIdHeader())
+
           Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
             .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
             .withCustomerId(customerId)
             .withRandomNonce
             .withNewId(payloadHash)
             .addHeadersIf(!fastChainEnabled, headerExcludeBlockChain)
+            .addRequestIdHeaderIf(requestId.isDefined, "this is a request id")
             .addBlueMark
             .addTraceHeader(Values.ENCODER_SYSTEM))
         }).get

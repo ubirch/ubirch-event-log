@@ -104,7 +104,10 @@ case class EventLog(
 
   override def addHeaders(headers: (String, String)*): EventLog = this.copy(headers = this.headers.add(headers: _*))
 
-  override def addHeadersIf(predicate: => Boolean, headers: (String, String)*): EventLog = this.copy(headers = this.headers.add(headers: _*))
+  override def addHeadersIf(predicate: => Boolean, headers: (String, String)*): EventLog = {
+    if (predicate) this.copy(headers = this.headers.add(headers: _*))
+    else this
+  }
 
   override def removeHeader(keys: String*): EventLog = copy(headers = this.headers.remove(keys: _*))
 
