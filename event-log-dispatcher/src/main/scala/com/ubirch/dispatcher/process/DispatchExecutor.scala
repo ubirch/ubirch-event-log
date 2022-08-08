@@ -81,7 +81,7 @@ class DispatchExecutor @Inject() (
 
           }
 
-        }.getOrElse(throw DispatcherProducerRecordException("Empty Materials 1: No Dispatching Info", eventLog.toJson))
+        }.getOrElse(throw DispatcherProducerRecordException(s"Empty Materials 1: No Dispatching Info for Cat(${eventLog.category})", eventLog.toJson))
 
     prs
 

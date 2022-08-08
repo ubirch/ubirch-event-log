@@ -5,14 +5,16 @@ import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, StoreConfPaths }
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ EventLog, EventsDAO, Values }
+import com.ubirch.models.{ EventLog, EventsDAO, HeaderNames, Values }
 import com.ubirch.services.kafka.consumer.PipeData
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, EventLogDatabaseException }
+import com.ubirch.util.Exceptions.{ EventLogDatabaseException, ParsingIntoEventLogException }
+
 import javax.inject._
 import monix.eval.Task
 import monix.execution.Scheduler
+import net.logstash.logback.argument.StructuredArguments.v
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import scala.concurrent.{ ExecutionContext, Future, Promise }
@@ -94,7 +96,10 @@ class LoggerExecutor @Inject() (
         // the target UPP that is deleted should have an UPP category
         events.deleteFromEventLog(eventLog.copy(category = Values.UPP_CATEGORY))
       case _ =>
-        logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
+        eventLog.headers.get(HeaderNames.REQUEST_ID) match {
+          case Some(requestId) => logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category} requestId: $requestId", v("requestId", requestId))
+          case None => logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
+        }
         if (storeLookups) events.insertFromEventLog(eventLog)
         else events.insertFromEventLogWithoutLookups(eventLog)
     }
