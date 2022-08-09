@@ -149,7 +149,7 @@ class EncoderExecutor @Inject() (
             .withRandomNonce
             .withNewId(payloadHash)
             .addHeadersIf(!fastChainEnabled, headerExcludeBlockChain)
-            .addRequestIdHeaderIf(requestId.isDefined, "this is a request id")
+            .addRequestIdHeaderIf(requestId.isDefined, requestId.getOrElse("none"))
             .addBlueMark
             .addTraceHeader(Values.ENCODER_SYSTEM))
         }).get
