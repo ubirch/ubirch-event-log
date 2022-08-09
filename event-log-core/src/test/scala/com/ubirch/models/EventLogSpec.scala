@@ -79,6 +79,22 @@ class EventLogSpec extends TestBase with MockitoSugar {
 
     }
 
+    "add header if" in {
+
+      val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)
+
+      val eventLog = EventLog(data)
+        .withNewId("this is my unique id")
+        .withHeaders("hola" -> "Hola", "adios" -> "goodbye")
+        .addHeaders("what" -> "siiiii")
+        .addHeadersIf(true, "dispatcher" -> "this is a header")
+        .addHeadersIf(false, "dispatcher two" -> "this is a header 2")
+
+      assert(eventLog.id == "this is my unique id")
+      assert(eventLog.headers == Headers.create("hola" -> "Hola", "adios" -> "goodbye", "what" -> "siiiii", "dispatcher" -> "this is a header"))
+
+    }
+
     "add header" in {
 
       val data: JValue = parse(""" { "numbers" : [1, 2, 3, 4] } """)

@@ -25,6 +25,8 @@ case class EnrichedConsumerRecord[K, V](cr: ConsumerRecord[K, V]) extends AnyVal
     .asScala
     .map(h => h.key() -> new String(h.value(), UTF_8))(breakOut)
 
+  def requestIdHeader(keyName: String = "request-id"): Option[String] = findHeader(keyName)
+
 }
 
 object EnrichedConsumerRecord {

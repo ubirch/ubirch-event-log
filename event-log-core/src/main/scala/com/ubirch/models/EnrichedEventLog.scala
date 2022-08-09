@@ -37,6 +37,14 @@ case class EnrichedEventLog(eventLog: EventLog) {
     eventLog.addHeaders(HeaderNames.TRACE -> trace)
   }
 
+  def addRequestIdHeader(requestId: String): EventLog = {
+    eventLog.addHeaders(HeaderNames.REQUEST_ID -> requestId)
+  }
+
+  def addRequestIdHeaderIf(predicate: => Boolean, requestId: String): EventLog = {
+    eventLog.addHeadersIf(predicate, HeaderNames.REQUEST_ID -> requestId)
+  }
+
   def addBlueMark: EventLog = {
     eventLog.addHeaders(HeaderNames.BLUE_MARK -> UUIDHelper.randomUUID.toString)
   }

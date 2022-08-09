@@ -439,3 +439,26 @@ A yml version is shown below:
 
 Note: The contents in this file might not represent the routes that are actually deployed.
 The file is deployed to kubernetes as a config map.
+
+## Tag Exclusion
+
+The event-log also supports tag exclusions, which allows an eventlog structure to be filtered out from a dispatching rule. You can configure it by creating or adding a tag-excludes header. Example of tag exclusions are:
+
+* tags-exclude:blockchain: Tag that won't anchor.
+* tags-exclude:aggregation: Tag that won't aggregate
+* tags-exclude:storage: Tag that won't store
+
+`Nomenclature: "tag-exclude:" + tag name`
+
+See example
+
+```
+           EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
+            .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
+            .withCustomerId(customerId)
+            .withRandomNonce
+            .withNewId(payloadHash)
+            .addHeadersIf(!fastChainEnabled, headerExcludeBlockChain)
+            .addBlueMark
+            .addTraceHeader(Values.ENCODER_SYSTEM)
+```

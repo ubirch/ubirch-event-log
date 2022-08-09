@@ -2,7 +2,6 @@ package com.ubirch.encoder.process
 
 import java.io.ByteArrayInputStream
 import java.util.{ Date, UUID }
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, ProducerConfPaths }
@@ -15,7 +14,7 @@ import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.ConsumerRecordsController
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey, Values }
+import com.ubirch.models.{ Error, EventLog, LookupKey, TagExclusions, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.kafka.EnrichedConsumerRecord.enrichedConsumerRecord
 import com.ubirch.services.kafka.producer.Reporter
@@ -53,6 +52,7 @@ class EncoderExecutor @Inject() (
     config: Config,
     stringProducer: StringProducer
 )(implicit ec: ExecutionContext) extends ConsumerRecordsController[String, Array[Byte]]
+  with TagExclusions
   with ProducerConfPaths
   with LazyLogging {
 
@@ -63,7 +63,7 @@ class EncoderExecutor @Inject() (
 
   lazy val metricsSubNamespace: String = config.getString(ConsumerConfPaths.METRICS_SUB_NAMESPACE)
   lazy val sign: Boolean = config.getBoolean("eventLog.sign")
-  lazy val topic = config.getStringAsOption(TOPIC_PATH).getOrElse(throw new Exception("No Publishing Topic configured"))
+  lazy val topic: String = config.getStringAsOption(TOPIC_PATH).getOrElse(throw new Exception("No Publishing Topic configured"))
   lazy val scheduler = monix.execution.Scheduler(ec)
 
   final val CUSTOMER_ID_FIELD = "customerId"
@@ -91,23 +91,23 @@ class EncoderExecutor @Inject() (
     Future.successful(EncoderPipeData(consumerRecords, Vector.empty))
   }
 
-  private def run(x: ConsumerRecord[String, Array[Byte]]): Task[List[RecordMetadata]] = {
+  private def run(cr: ConsumerRecord[String, Array[Byte]]): Task[List[RecordMetadata]] = {
     Task.defer {
       var jValue: JValue = JNull
       try {
-        val bytes = new ByteArrayInputStream(x.value())
+        val bytes = new ByteArrayInputStream(cr.value())
         jValue = parse(bytes)
-        val ldp = EncoderPipeData(Vector(x), Vector(jValue))
+        val ldp = EncoderPipeData(Vector(cr), Vector(jValue))
         encode(ldp).map { el =>
           val _el = if (sign) el.sign(config) else el
           ProducerRecordHelper.toRecord(topic, _el.id, _el.toJson, Map.empty)
         } match {
-          case Nil => throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(x), Vector(jValue)))
+          case Nil => throw EncodingException("Error in the Encoding Process: No PR to send", EncoderPipeData(Vector(cr), Vector(jValue)))
           case prs => Task.sequence(prs.map(pr => Task.fromFuture(stringProducer.send(pr))))
         }
       } catch {
         case e: Exception =>
-          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(x), Vector(jValue)))
+          throw EncodingException("Error in the Encoding Process: " + e.getMessage, EncoderPipeData(Vector(cr), Vector(jValue)))
       }
     }
   }
@@ -129,12 +129,29 @@ class EncoderExecutor @Inject() (
           deviceLookupKey <- UPPHelper.createDeviceLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
           chainLookupKey <- UPPHelper.createChainLookupKey(payloadHash, messageEnvelope, encoderPipeData, Values.UPP_CATEGORY)
         } yield {
+
+          val fastChainEnabled: Boolean = encoderPipeData.consumerRecords
+            .headOption
+            .flatMap(_.findHeader("x-event-log-fast-chain-enabled"))
+            .map(_.toLowerCase)
+            .collect {
+              case "true" => true
+              case "false" => false
+            }.getOrElse(true)
+
+          val requestId = encoderPipeData.consumerRecords
+            .headOption
+            .flatMap(_.requestIdHeader())
+
           Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
             .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
             .withCustomerId(customerId)
             .withRandomNonce
             .withNewId(payloadHash)
-            .addBlueMark.addTraceHeader(Values.ENCODER_SYSTEM))
+            .addHeadersIf(!fastChainEnabled, headerExcludeBlockChain)
+            .addRequestIdHeaderIf(requestId.isDefined, "this is a request id")
+            .addBlueMark
+            .addTraceHeader(Values.ENCODER_SYSTEM))
         }).get
       }
 

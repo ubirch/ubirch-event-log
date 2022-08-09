@@ -33,10 +33,10 @@ class DefaultEventLogSpec extends FlatSpec with Matchers with BeforeAndAfterAll 
       override def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] =
         Future.successful((
           List(VertexStruct(
-          id = "this is an id 1",
-          label = "this is a label 1",
-          properties = Map("a1" -> "b1")
-        )),
+            id = "this is an id 1",
+            label = "this is a label 1",
+            properties = Map("a1" -> "b1")
+          )),
           List(
             VertexStruct(
               "81948598504",
@@ -105,10 +105,10 @@ class DefaultEventLogSpec extends FlatSpec with Matchers with BeforeAndAfterAll 
       override def findAnchorsWithPathAsVertices(id: String): Future[(List[VertexStruct], List[VertexStruct])] =
         Future.successful((
           List(VertexStruct(
-          id = "this is an id 1",
-          label = "this is a label 1",
-          properties = Map("a1" -> "b1")
-        )),
+            id = "this is an id 1",
+            label = "this is a label 1",
+            properties = Map("a1" -> "b1")
+          )),
           List(
             VertexStruct(
               "81948598504",

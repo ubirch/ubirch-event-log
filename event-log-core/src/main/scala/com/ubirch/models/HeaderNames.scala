@@ -5,6 +5,7 @@ trait HeaderNames {
   val ORIGIN = "origin"
   val TRACE = "trace"
   val BLUE_MARK = "blue-mark"
+  val REQUEST_ID = "request-id"
   val DISPATCHER = "dispatcher"
 
 }

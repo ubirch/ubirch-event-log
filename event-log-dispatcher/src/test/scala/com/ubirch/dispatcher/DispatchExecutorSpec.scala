@@ -1,22 +1,21 @@
 package com.ubirch.dispatcher
 
-import java.util.UUID
-import java.util.concurrent.TimeoutException
-
-import com.google.inject.binder.ScopedBindingBuilder
-import com.typesafe.config.{ Config, ConfigValueFactory }
-import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.dispatcher.services.{ DispatchInfo, DispatcherServiceBinder }
 import com.ubirch.kafka.consumer.{ All, StringConsumer }
 import com.ubirch.kafka.util.PortGiver
-import com.ubirch.models.{ EventLog, HeaderNames, Values }
+import com.ubirch.models.{ EventLog, TagExclusions, Values }
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
+
+import com.google.inject.binder.ScopedBindingBuilder
+import com.typesafe.config.{ Config, ConfigValueFactory }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JInt
 import org.json4s.JsonAST.{ JObject, JString }
 
+import java.util.UUID
+import java.util.concurrent.TimeoutException
 import scala.util.Try
 
 class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(new DispatcherServiceBinder {
@@ -35,7 +34,7 @@ class InjectorHelperImpl(bootstrapServers: String) extends InjectorHelper(List(n
   })
 }))
 
-class DispatchExecutorSpec extends TestBase with LazyLogging {
+class DispatchExecutorSpec extends TestBase with TagExclusions {
 
   "Dispatch Spec" must {
 
@@ -171,7 +170,7 @@ class DispatchExecutorSpec extends TestBase with LazyLogging {
         EventLog(JString(UUIDHelper.randomUUID.toString))
           .withCategory(x.category)
           .withNewId
-          .addHeaders(HeaderNames.DISPATCHER -> "tags-exclude:aggregation")
+          .addHeaders(headerExcludeAggregation)
       }
 
       val messageEnvelopeTopic = "com.ubirch.eventlog.dispatch_request"
