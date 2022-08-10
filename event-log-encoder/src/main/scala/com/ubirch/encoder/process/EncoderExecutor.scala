@@ -149,7 +149,7 @@ class EncoderExecutor @Inject() (
             .withRandomNonce
             .withNewId(payloadHash)
             //We exclude the aggregation process, which turns into a blockchain anchoring
-            .addHeadersIf(!fastChainEnabled, headerExcludeAggregation)
+            .addHeadersIf(!fastChainEnabled, headerExcludeFoundation)
             .addRequestIdHeaderIf(requestId.isDefined, requestId.getOrElse("none"))
             .addBlueMark
             .addTraceHeader(Values.ENCODER_SYSTEM))
