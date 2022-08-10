@@ -97,7 +97,11 @@ class LoggerExecutor @Inject() (
         events.deleteFromEventLog(eventLog.copy(category = Values.UPP_CATEGORY))
       case _ =>
         eventLog.headers.get(HeaderNames.REQUEST_ID) match {
-          case Some(requestId) => logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category} requestId: $requestId", v("requestId", requestId))
+          case Some(requestId) => logger.info(s"store event log. " +
+            s"id: ${eventLog.id}, " +
+            s"category: ${eventLog.category}, " +
+            s"tags-excludes: ${eventLog.headers.get(HeaderNames.DISPATCHER).getOrElse("none")}, " +
+            s"requestId: $requestId ", v("requestId", requestId))
           case None => logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
         }
         if (storeLookups) events.insertFromEventLog(eventLog)

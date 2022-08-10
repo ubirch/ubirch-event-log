@@ -2,11 +2,11 @@ package com.ubirch.models
 
 trait HeaderNames {
 
-  val ORIGIN = "origin"
-  val TRACE = "trace"
-  val BLUE_MARK = "blue_mark"
-  val REQUEST_ID = "request_id"
-  val DISPATCHER = "dispatcher"
+  final val ORIGIN = "origin"
+  final val TRACE = "trace"
+  final val BLUE_MARK = "blue_mark"
+  final val REQUEST_ID = "request_id"
+  final val DISPATCHER = "dispatcher"
 
 }
 
