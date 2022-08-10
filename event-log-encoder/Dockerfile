@@ -1,4 +1,4 @@
-FROM ubirch/java
+FROM amazoncorretto:8u342
 ARG JAR_LIBS
 ARG JAR_FILE
 ARG VERSION
