@@ -152,7 +152,7 @@ class EncoderExecutor @Inject() (
             .withNewId(payloadHash)
             //We exclude the aggregation process, which turns into a blockchain anchoring
             .addHeadersIf(!fastChainEnabled, headerExcludeFoundation)
-            .addHeadersIf(maybeDeviceId.isDefined, HeaderNames.DEVICE_ID -> maybeRequestId.map(_.toString).getOrElse(""))
+            .addHeadersIf(maybeDeviceId.isDefined, HeaderNames.DEVICE_ID -> maybeDeviceId.map(_.toString).getOrElse(""))
             .addRequestIdHeaderIf(maybeRequestId.isDefined, maybeRequestId.getOrElse("none"))
             .addBlueMark
             .addTraceHeader(Values.ENCODER_SYSTEM))
