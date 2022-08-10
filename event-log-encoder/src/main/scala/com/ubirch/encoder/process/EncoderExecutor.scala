@@ -14,7 +14,7 @@ import com.ubirch.kafka.MessageEnvelope
 import com.ubirch.kafka.consumer.ConsumerRecordsController
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.models.EnrichedEventLog.enrichedEventLog
-import com.ubirch.models.{ Error, EventLog, LookupKey, TagExclusions, Values }
+import com.ubirch.models.{ Error, EventLog, HeaderNames, LookupKey, TagExclusions, Values }
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.kafka.EnrichedConsumerRecord.enrichedConsumerRecord
 import com.ubirch.services.kafka.producer.Reporter
@@ -139,9 +139,11 @@ class EncoderExecutor @Inject() (
               case "false" => false
             }.getOrElse(true)
 
-          val requestId = encoderPipeData.consumerRecords
+          val maybeRequestId = encoderPipeData.consumerRecords
             .headOption
             .flatMap(_.requestIdHeader())
+
+          val maybeDeviceId = Option(messageEnvelope).map(_.ubirchPacket).map(_.getUUID)
 
           Some(EventLog("upp-event-log-entry", Values.UPP_CATEGORY, payload)
             .withLookupKeys(signatureLookupKey ++ chainLookupKey ++ deviceLookupKey)
@@ -150,7 +152,8 @@ class EncoderExecutor @Inject() (
             .withNewId(payloadHash)
             //We exclude the aggregation process, which turns into a blockchain anchoring
             .addHeadersIf(!fastChainEnabled, headerExcludeFoundation)
-            .addRequestIdHeaderIf(requestId.isDefined, requestId.getOrElse("none"))
+            .addHeadersIf(maybeDeviceId.isDefined, HeaderNames.DEVICE_ID -> maybeRequestId.map(_.toString).getOrElse(""))
+            .addRequestIdHeaderIf(maybeRequestId.isDefined, maybeRequestId.getOrElse("none"))
             .addBlueMark
             .addTraceHeader(Values.ENCODER_SYSTEM))
         }).get

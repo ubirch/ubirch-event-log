@@ -100,7 +100,8 @@ class LoggerExecutor @Inject() (
           case Some(requestId) => logger.info(s"store event log. " +
             s"id: ${eventLog.id}, " +
             s"category: ${eventLog.category}, " +
-            s"tags-excludes: ${eventLog.headers.get(HeaderNames.DISPATCHER).getOrElse("none")}, " +
+            s"tags_excludes: ${eventLog.headers.get(HeaderNames.DISPATCHER).getOrElse("none")}, " +
+            s"upp_uuid: ${eventLog.headers.get(HeaderNames.DEVICE_ID).getOrElse("none")}, " +
             s"requestId: $requestId ", v("requestId", requestId))
           case None => logger.info(s"store event log. id: ${eventLog.id}, category: ${eventLog.category}")
         }
