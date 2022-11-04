@@ -22,8 +22,8 @@
         <!-- versions -->
 
         <event-log-core.version>1.5.0</event-log-core.version>
-        <gremlinScala.version>3.5.1.4</gremlinScala.version>
-        <janusGraph.version>0.6.1</janusGraph.version>
+        <gremlinScala.version>3.5.3.2</gremlinScala.version>
+        <janusGraph.version>0.6.2</janusGraph.version>
         <tinkerPopDriver.version>3.5.1</tinkerPopDriver.version>
         <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
