@@ -205,7 +205,7 @@ object GremlinFinder {
         .until(
           _.in(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addHasNotSteps(alreadyFoundBlockchains)
         )
-        .timeLimit(1000L) // 1 second time limit
+        .timeLimit(5000L) // 5 second time limit
         .limit(1)
         .in(Values.PUBLIC_CHAIN_CATEGORY + "->" + Values.MASTER_TREE_CATEGORY).addHasNotSteps(alreadyFoundBlockchains)
         .path()
