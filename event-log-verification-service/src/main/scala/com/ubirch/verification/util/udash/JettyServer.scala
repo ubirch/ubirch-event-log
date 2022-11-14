@@ -11,7 +11,7 @@ import org.eclipse.jetty
 import org.eclipse.jetty.server.{ HttpConnectionFactory, Server }
 import org.eclipse.jetty.servlet.{ DefaultServlet, ServletContextHandler, ServletHolder }
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{ DurationInt, FiniteDuration }
 
 class JettyServer(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
 
@@ -39,7 +39,7 @@ class JettyServer(api: Api, docs: OpenApi, port: Int) extends StrictLogging {
     new RestServlet(handler, handleTimeout, maxPayloadSize)
   }
 
-  private val userApiServlet = rest(api)
+  private val userApiServlet = rest(api, 60.seconds)
   private val server = new jetty.server.Server(port)
   private val servletHandler = new ServletContextHandler
 
