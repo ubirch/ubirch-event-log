@@ -22,9 +22,9 @@
         <!-- versions -->
 
         <event-log-core.version>1.5.0</event-log-core.version>
-        <gremlinScala.version>3.4.1.4</gremlinScala.version>
-        <janusGraph.version>0.3.1</janusGraph.version>
-        <tinkerPopDriver.version>3.3.3</tinkerPopDriver.version>
+        <gremlinScala.version>3.5.3.2</gremlinScala.version>
+        <janusGraph.version>0.6.2</janusGraph.version>
+        <tinkerPopDriver.version>3.5.1</tinkerPopDriver.version>
         <tinkerPopJava.version>2.6.0</tinkerPopJava.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
@@ -74,11 +74,20 @@
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-driver</artifactId>
             <version>${tinkerPopDriver.version}</version>
+            <classifier>shaded</classifier>
+            <!-- The shaded JAR uses the original POM, therefore conflicts may still need resolution -->
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.tinkerpop/gremlin-core -->
         <dependency>
-            <groupId>com.tinkerpop.gremlin</groupId>
-            <artifactId>gremlin-java</artifactId>
-            <version>${tinkerPopJava.version}</version>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-core</artifactId>
+            <version>${tinkerPopDriver.version}</version>
         </dependency>
         <dependency>
             <groupId>org.janusgraph</groupId>

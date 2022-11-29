@@ -1,23 +1,24 @@
 package com.ubirch.verification.services.janus
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ Config, ConfigFactory }
 import com.typesafe.scalalogging.LazyLogging
-import com.ubirch.services.lifeCycle.Lifecycle
+import com.ubirch.services.lifeCycle.{ DefaultLifecycle, Lifecycle }
 import gremlin.scala.{ ScalaGraph, TraversalSource, _ }
+
 import javax.inject._
-import org.apache.commons.configuration.PropertiesConfiguration
 import org.apache.tinkerpop.gremlin.driver.Cluster
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection
+import org.apache.tinkerpop.gremlin.driver.ser.Serializers
 import org.apache.tinkerpop.gremlin.process.traversal.Bindings
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory
 
+import java.util
 import scala.concurrent.Future
 
 trait GremlinConnectorPaths {
   val HOSTS = "eventLog.gremlin.hosts"
   val PORTS = "eventLog.gremlin.port"
-  val CLASS_NAME = "eventLog.gremlin.serializer.className"
   val MAX_WAIT_FOR_CONNECTION = "eventLog.gremlin.connectionPool.maxWaitForConnection"
   val RECONNECT_INTERVAL = "eventLog.gremlin.connectionPool.reconnectInterval"
   val IO_REGISTRIES = "eventLog.gremlin.serializer.config.ioRegistries"
@@ -29,27 +30,37 @@ class DefaultGremlinConnector @Inject() (lifecycle: Lifecycle, config: Config)
   with LazyLogging
   with GremlinConnectorPaths {
 
-  lazy val cluster: Cluster = Cluster.open(buildProperties(config))
+  lazy val cluster: Cluster = buildCluster(config)
 
   implicit val graph: ScalaGraph = EmptyGraph.instance.asScala.configure(_.withRemote(DriverRemoteConnection.using(cluster)))
-  val b: Bindings = Bindings.instance
   val g: TraversalSource = graph.traversal
+  val b: Bindings = Bindings.instance
 
   logger.info("[property] getNioPoolSize=" + cluster.getNioPoolSize)
   logger.info("[property] getWorkerPoolSize=" + cluster.getWorkerPoolSize)
 
-  def buildProperties(config: Config): PropertiesConfiguration = {
-    val conf = new PropertiesConfiguration()
-    conf.addProperty("hosts", config.getString(HOSTS))
-    conf.addProperty("port", config.getString(PORTS))
-    conf.addProperty("serializer.className", config.getString(CLASS_NAME))
-    conf.addProperty("connectionPool.maxWaitForConnection", config.getString(MAX_WAIT_FOR_CONNECTION))
-    conf.addProperty("connectionPool.reconnectInterval", config.getString(RECONNECT_INTERVAL))
-    // no idea why the following line needs to be duplicated. Doesn't work without
-    // cf https://stackoverflow.com/questions/45673861/how-can-i-remotely-connect-to-a-janusgraph-server first answer, second comment ¯\_ツ_/¯
-    conf.addProperty("serializer.config.ioRegistries", config.getAnyRef(IO_REGISTRIES).asInstanceOf[java.util.ArrayList[String]])
-    conf.addProperty("serializer.config.ioRegistries", config.getStringList(IO_REGISTRIES))
-    conf
+  def buildCluster(config: Config): Cluster = {
+    val cluster = Cluster.build()
+    val hosts: List[String] = config.getString(HOSTS)
+      .split(",")
+      .toList
+      .map(_.trim)
+      .filter(_.nonEmpty)
+
+    cluster.addContactPoints(hosts: _*)
+      .port(config.getInt(PORTS))
+    val maxWaitForConnection = config.getInt(MAX_WAIT_FOR_CONNECTION)
+    if (maxWaitForConnection > 0) cluster.maxWaitForConnection(maxWaitForConnection)
+
+    val reconnectInterval = config.getInt(RECONNECT_INTERVAL)
+    if (reconnectInterval > 0) cluster.reconnectInterval(reconnectInterval)
+
+    val conf = new util.HashMap[String, AnyRef]()
+    conf.put("ioRegistries", config.getAnyRef(IO_REGISTRIES).asInstanceOf[java.util.ArrayList[String]])
+    val serializer = Serializers.GRAPHBINARY_V1D0.simpleInstance()
+    serializer.configure(conf, null)
+
+    cluster.serializer(serializer).create()
   }
 
   def closeConnection(): Unit = {
@@ -69,4 +80,3 @@ class DefaultTestingGremlinConnector() extends Gremlin {
   override val b: Bindings = Bindings.instance
   override val g: TraversalSource = graph.traversal
 }
-
