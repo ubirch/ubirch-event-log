@@ -1,6 +1,7 @@
 package com.ubirch.process
 
-import com.datastax.driver.core.exceptions.{ InvalidQueryException, NoHostAvailableException }
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException
+import com.datastax.oss.driver.api.core.AllNodesFailedException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.{ ConsumerConfPaths, StoreConfPaths }
@@ -64,7 +65,7 @@ class LoggerExecutor @Inject() (
             case Some(_) => Task.delay(failureCounter.counter.labels(metricsSubNamespace).inc())
             case None => Task.delay(successCounter.counter.labels(metricsSubNamespace).inc())
           }.onErrorRecover {
-            case e: NoHostAvailableException =>
+            case e: AllNodesFailedException =>
               logger.error("Error connecting to host: " + e)
               throw e
             case e: InvalidQueryException =>

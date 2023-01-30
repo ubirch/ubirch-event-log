@@ -1,11 +1,11 @@
 package com.ubirch.models
 
 import java.util.Date
-
-import com.github.nosan.embedded.cassandra.cql.CqlScript
+import com.github.nosan.embedded.cassandra.cql.{ CqlScript, StringCqlScript }
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.util.{ InjectorHelper, UUIDHelper }
-import com.ubirch.{ EmbeddedCassandra, TestBase }
+import com.ubirch.TestBase
+import com.ubirch.util.cassandra.test.EmbeddedCassandraBase
 import io.prometheus.client.CollectorRegistry
 import org.json4s.JValue
 import org.json4s.jackson.JsonMethods.parse
@@ -13,8 +13,9 @@ import org.json4s.jackson.JsonMethods.parse
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
+class EventDAOLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
 
+  val cassandra = new CassandraTest
   import LookupKey._
 
   "Event Log Model" must {
@@ -357,18 +358,18 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
-    cassandra.executeScripts(CqlScript.statements("TRUNCATE events;", "TRUNCATE lookups;"))
+    cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
     Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {
     cassandra.start()
     cassandra.executeScripts(
-      CqlScript.statements(
-        "CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
-        "USE event_log;",
-        "drop table if exists events;",
-        """
+      List(
+        new StringCqlScript("CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };"),
+        new StringCqlScript("USE event_log;"),
+        new StringCqlScript("drop table if exists events;"),
+        new StringCqlScript("""
           |create table if not exists events (
           |    id text,
           |    customer_id text,
@@ -387,9 +388,9 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
-        """.stripMargin,
-        "drop table if exists lookups;",
-        """
+        """.stripMargin),
+        new StringCqlScript("drop table if exists lookups;"),
+        new StringCqlScript("""
           |create table if not exists lookups (
           |    key text,
           |    value text,
@@ -397,7 +398,7 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
           |    category text,
           |    PRIMARY KEY ((value, category), name)
           |);
-        """.stripMargin
+        """.stripMargin)
       )
     )
   }

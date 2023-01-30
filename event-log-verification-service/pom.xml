@@ -43,10 +43,11 @@
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
+        <ubirch-cassandra-utils.version>1.0-SNAPSHOT</ubirch-cassandra-utils.version>
 
         <build.number>${timestamp}-dev</build.number>
 
-        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <embedded-cassandra-test>4.0.7</embedded-cassandra-test>
         <!-- Lookup POM end -->
 
         <!-- Verification Microservice POM -->
@@ -95,6 +96,10 @@
             <id>ossrh</id>
             <name>sonotype-snapshots</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </repository>
+        <repository>
+            <id>gitlab-maven</id>
+            <url>https://gitlab.com/api/v4/projects/37429227/packages/maven</url>
         </repository>
     </repositories>
 
@@ -221,8 +226,13 @@
 
         <dependency>
             <groupId>com.github.nosan</groupId>
-            <artifactId>embedded-cassandra-test</artifactId>
+            <artifactId>embedded-cassandra</artifactId>
             <version>${embedded-cassandra-test}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-cassandra-utils_${scala.compat.version}</artifactId>
+            <version>${ubirch-cassandra-utils.version}</version>
         </dependency>
 
         <!-- Gremlin -->
