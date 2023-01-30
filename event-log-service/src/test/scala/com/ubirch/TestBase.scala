@@ -1,5 +1,6 @@
 package com.ubirch
 
+import com.ubirch.util.cassandra.test.EmbeddedCassandraBase
 import net.manub.embeddedkafka.EmbeddedKafka
 import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 import org.scalatra.test.scalatest.ScalatraWordSpec
@@ -12,7 +13,7 @@ trait TestBase
   with BeforeAndAfterEach
   with BeforeAndAfterAll
   with EmbeddedKafka
-  with EmbeddedCassandra {
+  with EmbeddedCassandraBase {
 
   def await[T](future: Future[T]): T = await(future, Duration.Inf)
 

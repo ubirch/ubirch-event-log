@@ -53,7 +53,7 @@
     <logger name="com.github.nosan.embedded.cassandra" level="WARN"/>
     <logger name="org.apache.tinkerpop.gremlin.driver.ConnectionPool" level="WARN"/>
     <logger name="org.apache.tinkerpop.gremlin.driver.Client" level="WARN"/>
-    <logger name="com.datastax.driver" level="WARN"/>
+    <logger name="com.datastax.oss.driver" level="WARN"/>
     <logger name="io.netty" level="WARN"/>
     <logger name="io.getquill.CassandraAsyncContext" level="WARN"/>
 

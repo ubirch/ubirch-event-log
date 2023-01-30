@@ -2,7 +2,7 @@ package com.ubirch.util
 
 import java.util.UUID
 
-import com.datastax.driver.core.utils.UUIDs
+import com.datastax.oss.driver.api.core.uuid.Uuids
 
 /**
   * UUID helper. It contains
@@ -14,7 +14,7 @@ trait UUIDHelper {
 
   def randomUUID = UUID.randomUUID()
 
-  def timeBasedUUID = UUIDs.timeBased()
+  def timeBasedUUID = Uuids.timeBased()
 
 }
 
