@@ -24,7 +24,7 @@ trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[Eve
   }
 
   def insertQ(eventLogRow: EventLogRow): Quoted[Insert[EventLogRow]] = quote {
-    query[EventLogRow].insertValue(lift(eventLogRow))
+    query[EventLogRow].insert(lift(eventLogRow))
   }
 
   def deleteQ(eventLogRow: EventLogRow): Quoted[Delete[EventLogRow]] = quote {

@@ -30,7 +30,7 @@ trait LookupKeyQueries extends TablePointer[LookupKeyRow] with CustomEncodings[L
   }
 
   def insertQ(lookupKeyRow: LookupKeyRow): Quoted[Insert[LookupKeyRow]] = quote {
-    query[LookupKeyRow].insertValue(lift(lookupKeyRow))
+    query[LookupKeyRow].insert(lift(lookupKeyRow))
   }
 
 }

@@ -35,7 +35,7 @@
         <event-log-kafka.version>1.2.12-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
-        <quill.cassandra.version>4.6.0</quill.cassandra.version>
+        <quill.cassandra.version>3.12.0</quill.cassandra.version>
         <joda-time.version>2.10</joda-time.version>
         <kafka-clients.version>2.3.0</kafka-clients.version>
         <json4s-native.version>3.6.0</json4s-native.version>
