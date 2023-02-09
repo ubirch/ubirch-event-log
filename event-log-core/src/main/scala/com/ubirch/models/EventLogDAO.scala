@@ -1,7 +1,7 @@
 package com.ubirch.models
 
 import com.ubirch.services.cluster.ConnectionService
-import io.getquill.{ CassandraAsyncContext, Delete, EntityQuery, Insert, Quoted, SnakeCase }
+import io.getquill.{ CassandraAsyncContext, SnakeCase }
 
 import javax.inject._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -9,26 +9,24 @@ import scala.concurrent.{ ExecutionContext, Future }
 /**
   * Represents the queries linked to the EventLogRow case class and to the Events Table
   */
-trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[EventLogRow] {
+trait EventLogQueries extends CassandraBase with CustomEncodings[EventLogRow] {
 
   import db._
 
   //These represent query descriptions only
 
-  implicit val eventSchemaMeta: db.SchemaMeta[EventLogRow] = schemaMeta[EventLogRow]("events")
-
-  def selectAllQ: Quoted[EntityQuery[EventLogRow]] = quote(query[EventLogRow])
+  def selectAllQ = quote(querySchema[EventLogRow]("events"))
 
   def byIdAndCatQ(id: String, category: String) = quote {
-    query[EventLogRow].filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
+    querySchema[EventLogRow]("events").filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
   }
 
-  def insertQ(eventLogRow: EventLogRow): Quoted[Insert[EventLogRow]] = quote {
-    query[EventLogRow].insert(lift(eventLogRow))
+  def insertQ(eventLogRow: EventLogRow) = quote {
+    querySchema[EventLogRow]("events").insert(lift(eventLogRow))
   }
 
-  def deleteQ(eventLogRow: EventLogRow): Quoted[Delete[EventLogRow]] = quote {
-    query[EventLogRow].filter(x => x.id == lift(eventLogRow.id) && x.category == lift(eventLogRow.category)).delete
+  def deleteQ(eventLogRow: EventLogRow) = quote {
+    querySchema[EventLogRow]("events").filter(x => x.id == lift(eventLogRow.id) && x.category == lift(eventLogRow.category)).delete
   }
 
 }

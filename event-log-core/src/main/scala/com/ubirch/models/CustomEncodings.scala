@@ -23,7 +23,7 @@ trait CustomEncodingsBase {
   * @tparam T Represent the value that holds the data for the database table.
   */
 trait CustomEncodings[T] extends CustomEncodingsBase {
-  _: TablePointer[T] =>
+  _: CassandraBase =>
 
   import db._
 
