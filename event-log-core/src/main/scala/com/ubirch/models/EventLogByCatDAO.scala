@@ -9,16 +9,14 @@ import scala.concurrent.{ ExecutionContext, Future }
 /**
   * Represents the queries linked to the EventLogRow case class and to the Events Table
   */
-trait EventLogByCatQueries extends TablePointer[EventLogRow] with CustomEncodings[EventLogRow] {
+trait EventLogByCatQueries extends CassandraBase with CustomEncodings[EventLogRow] {
 
   import db._
 
   //These represent query descriptions only
 
-  implicit val eventSchemaMeta: db.SchemaMeta[EventLogRow] = schemaMeta[EventLogRow]("events_by_cat")
-
   def byCatAndYearAndMonthAndDayQ(category: String, year: Int, month: Int, day: Int) = quote {
-    query[EventLogRow]
+    querySchema[EventLogRow]("events_by_cat")
       .filter(x => x.category == lift(category))
       .filter(x => x.year == lift(year))
       .filter(x => x.month == lift(month))
@@ -29,7 +27,7 @@ trait EventLogByCatQueries extends TablePointer[EventLogRow] with CustomEncoding
   def byCatAndTimeElemsQ(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int, limit: Int) = {
 
     val basicQuote = quote {
-      query[EventLogRow]
+      querySchema[EventLogRow]("events_by_cat")
         .filter(x => x.category == lift(category))
         .filter(x => x.year == lift(year))
         .filter(x => x.month == lift(month))
