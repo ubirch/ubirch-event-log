@@ -11,7 +11,7 @@ object Service extends Boot(LookupServiceBinder.modules) {
 
     getAsTry[JettyServer] match {
       case Failure(e) =>
-        logger.error("Error at system initialization", e.getMessage, e)
+        logger.error(s"Error at system initialization: ${e.getMessage}", e)
         sys.exit(1)
       case Success(value) => value.startAndJoin()
     }
