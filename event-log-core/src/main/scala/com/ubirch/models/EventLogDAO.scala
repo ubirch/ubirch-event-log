@@ -8,6 +8,11 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Represents the queries linked to the EventLogRow case class and to the Events Table
+  *
+  * @important
+  * Since at least quill 3.12, dynamic query might leads to OutOfMemory.
+  * Therefore, we need to avoid using it.
+  * @see [[https://github.com/zio/zio-quill/issues/2484]]
   */
 trait EventLogQueries extends CassandraBase with CustomEncodings[EventLogRow] {
 
@@ -22,7 +27,7 @@ trait EventLogQueries extends CassandraBase with CustomEncodings[EventLogRow] {
   }
 
   def insertQ(eventLogRow: EventLogRow) = quote {
-    querySchema[EventLogRow]("events").insert(lift(eventLogRow))
+    querySchema[EventLogRow]("events").insertValue(lift(eventLogRow))
   }
 
   def deleteQ(eventLogRow: EventLogRow) = quote {

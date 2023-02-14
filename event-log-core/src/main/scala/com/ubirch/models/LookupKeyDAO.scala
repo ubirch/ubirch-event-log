@@ -28,7 +28,7 @@ trait LookupKeyQueries extends CassandraBase with CustomEncodings[LookupKeyRow] 
   }
 
   def insertQ(lookupKeyRow: LookupKeyRow) = quote {
-    querySchema[LookupKeyRow]("lookups").insert(lift(lookupKeyRow))
+    querySchema[LookupKeyRow]("lookups").insertValue(lift(lookupKeyRow))
   }
 
 }
