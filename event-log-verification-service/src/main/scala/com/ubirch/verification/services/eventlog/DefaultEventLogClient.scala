@@ -123,13 +123,36 @@ class DefaultEventLogClient @Inject() (finder: Finder)(implicit ec: ExecutionCon
     }
 
     def versions(hash: String, category: String): Map[String, String] = {
-      //we search for iota, it can be mainnet or testnet
-      if (category.toLowerCase.contains("iota")) {
-        Try(Hex.decode(hash)) match {
-          case Success(_) => Map("version" -> "1.5.0")
-          case Failure(_) => Map("version" -> "1.0.0")
-        }
-      } else Map.empty
+
+      val version_1_5_0 = Map("version" -> "1.5.0")
+      val version_1_0_0 = Map("version" -> "1.0.0")
+      val iota = "iota"
+      val ethereum = "ethereum"
+      val sepolia = "sepolia"
+      val goerli = "goerli"
+
+      def decorateIota: PartialFunction[String, Map[String, String]] = {
+        case x if x.toLowerCase.contains(iota) =>
+          Try(Hex.decode(hash)) match {
+            case Success(_) => version_1_5_0
+            case Failure(_) => version_1_0_0
+          }
+      }
+
+      def decorateEthereum: PartialFunction[String, Map[String, String]] = {
+        case x if x.toLowerCase.contains(ethereum) =>
+          if (category.toLowerCase.contains(sepolia) || category.toLowerCase.contains(goerli))
+            version_1_5_0
+          else version_1_0_0
+      }
+
+      def decorateOther: PartialFunction[String, Map[String, String]] = {
+        case _ => Map.empty
+      }
+
+      val decorateBlockchainVersion = decorateIota orElse decorateEthereum orElse decorateOther
+
+      decorateBlockchainVersion(category)
 
     }
 
