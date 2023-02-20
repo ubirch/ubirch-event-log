@@ -1,6 +1,6 @@
 package com.ubirch.lookup.process
 
-import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException
+import com.datastax.driver.core.exceptions.InvalidQueryException
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ProducerConfPaths
@@ -12,7 +12,6 @@ import com.ubirch.lookup.util.LookupJsonSupport
 import com.ubirch.models.Values
 import com.ubirch.process.Executor
 import com.ubirch.util._
-
 import javax.inject._
 import monix.execution.FutureUtils
 import org.apache.kafka.clients.consumer.ConsumerRecord

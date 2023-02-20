@@ -1,20 +1,30 @@
 package com.ubirch.services.cluster
 
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.CassandraClusterConfPaths
 import com.ubirch.services.lifeCycle.Lifecycle
-import com.ubirch.util.cassandra.CQLSessionService
+import com.ubirch.util.Exceptions.NoKeyspaceException
 import io.getquill.{ CassandraAsyncContext, NamingStrategy, SnakeCase }
-
 import javax.inject._
+
 import scala.concurrent.Future
+
+/**
+  * Component that represent the basic configuration for the ConnectionService Component.
+  */
+trait ConnectionServiceConfig {
+  val keyspace: String
+  val preparedStatementCacheSize: Int
+}
 
 /**
   * Component that represents a Connection Service.
   * A Connection Service represents the connection established to the
   * Cassandra database.
   */
-trait ConnectionServiceBase[N <: NamingStrategy] {
+trait ConnectionServiceBase extends ConnectionServiceConfig {
+  type N <: NamingStrategy
   val context: CassandraAsyncContext[N]
 }
 
@@ -23,23 +33,41 @@ trait ConnectionServiceBase[N <: NamingStrategy] {
   * is ShakeCase.
   */
 
-trait ConnectionService extends ConnectionServiceBase[SnakeCase]
+trait ConnectionService extends ConnectionServiceBase {
+  type N = SnakeCase.type
+}
 
 /**
   * Default Implementation of the Connection Service Component.
   * It add shutdown hooks.
+  * @param clusterService Cluster Service Component.
+  * @param config Configuration injected component.
   * @param lifecycle Lifecycle injected component that allows for shutdown hooks.
   */
 
 @Singleton
-class DefaultConnectionService @Inject() (cqlSessionService: CQLSessionService, lifecycle: Lifecycle)
+class DefaultConnectionService @Inject() (clusterService: ClusterService, config: Config, lifecycle: Lifecycle)
   extends ConnectionService with CassandraClusterConfPaths with LazyLogging {
 
-  override val context = new CassandraAsyncContext(
+  val keyspace: String = config.getString(KEYSPACE)
+  val preparedStatementCacheSize: Int = config.getInt(PREPARED_STATEMENT_CACHE_SIZE)
+
+  if (keyspace.isEmpty) {
+    throw NoKeyspaceException("Keyspace must be provided.")
+  }
+
+  private def createContext() = new CassandraAsyncContext(
     SnakeCase,
-    cqlSessionService.cqlSession,
-    cqlSessionService.preparedStatementCacheSize
+    clusterService.cluster,
+    keyspace,
+    preparedStatementCacheSize.toLong
   )
+
+  override val context = {
+    val conn = createContext()
+    logger.info("Connected to keyspace: " + keyspace)
+    conn
+  }
 
   lifecycle.addStopHook { () =>
     logger.info("Shutting down Connection Service")

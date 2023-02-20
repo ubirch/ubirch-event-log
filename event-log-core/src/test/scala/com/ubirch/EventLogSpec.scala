@@ -1,7 +1,7 @@
 package com.ubirch
 
 import java.util.concurrent.{ CountDownLatch, TimeUnit }
-import com.github.nosan.embedded.cassandra.cql.{ CqlScript, StringCqlScript }
+import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
@@ -13,7 +13,6 @@ import com.ubirch.models._
 import com.ubirch.services.ServiceBinder
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
-import com.ubirch.util.cassandra.test.EmbeddedCassandraBase
 import com.ubirch.util.{ InjectorHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
@@ -44,9 +43,7 @@ class InjectorHelperImpl(bootstrapServers: String, storeLookups: Boolean = true)
   })
 }))
 
-class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
-
-  val cassandra = new CassandraTest
+class EventLogSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
   "EventLog components" must {
 
@@ -591,19 +588,18 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
-    cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
+    cassandra.executeScripts(CqlScript.statements("TRUNCATE events;", "TRUNCATE lookups;"))
     Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {
     cassandra.start()
-    cassandra.executeScripts(List(
-      new StringCqlScript(
-        "CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };"
-      ),
-      new StringCqlScript("USE event_log;"),
-      new StringCqlScript("drop table if exists events;"),
-      new StringCqlScript("""
+    cassandra.executeScripts(
+      CqlScript.statements(
+        "CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
+        "USE event_log;",
+        "drop table if exists events;",
+        """
           |create table if not exists events (
           |    id text,
           |    customer_id text,
@@ -622,9 +618,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
           |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
-        """.stripMargin),
-      new StringCqlScript("drop table if exists lookups;"),
-      new StringCqlScript("""
+        """.stripMargin,
+        "drop table if exists lookups;",
+        """
           |create table if not exists lookups (
           |    key text,
           |    value text,
@@ -632,8 +628,9 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
           |    category text,
           |    PRIMARY KEY ((value, category), name)
           |);
-        """.stripMargin)
-    ))
+        """.stripMargin
+      )
+    )
   }
 
   override protected def afterAll(): Unit = {

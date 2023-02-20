@@ -2,36 +2,33 @@ package com.ubirch.models
 
 import com.ubirch.services.cluster.ConnectionService
 import io.getquill.{ CassandraAsyncContext, SnakeCase }
-
 import javax.inject._
+
 import scala.concurrent.{ ExecutionContext, Future }
 
 /**
   * Represents the queries linked to the EventLogRow case class and to the Events Table
-  *
-  * @important
-  * Since at least quill 3.12, dynamic query might leads to OutOfMemory.
-  * Therefore, we need to avoid using it.
-  * @see [[https://github.com/zio/zio-quill/issues/2484]]
   */
-trait EventLogQueries extends CassandraBase with CustomEncodings[EventLogRow] {
+trait EventLogQueries extends TablePointer[EventLogRow] with CustomEncodings[EventLogRow] {
 
   import db._
 
   //These represent query descriptions only
 
-  def selectAllQ = quote(querySchema[EventLogRow]("events"))
+  implicit val eventSchemaMeta: db.SchemaMeta[EventLogRow] = schemaMeta[EventLogRow]("events")
+
+  def selectAllQ: db.Quoted[db.EntityQuery[EventLogRow]] = quote(query[EventLogRow])
 
   def byIdAndCatQ(id: String, category: String) = quote {
-    querySchema[EventLogRow]("events").filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
+    query[EventLogRow].filter(x => x.id == lift(id) && x.category == lift(category)).map(x => x)
   }
 
-  def insertQ(eventLogRow: EventLogRow) = quote {
-    querySchema[EventLogRow]("events").insertValue(lift(eventLogRow))
+  def insertQ(eventLogRow: EventLogRow): db.Quoted[db.Insert[EventLogRow]] = quote {
+    query[EventLogRow].insert(lift(eventLogRow))
   }
 
-  def deleteQ(eventLogRow: EventLogRow) = quote {
-    querySchema[EventLogRow]("events").filter(x => x.id == lift(eventLogRow.id) && x.category == lift(eventLogRow.category)).delete
+  def deleteQ(eventLogRow: EventLogRow): db.Quoted[Delete[EventLogRow]] = quote {
+    query[EventLogRow].filter(x => x.id == lift(eventLogRow.id) && x.category == lift(eventLogRow.category)).delete
   }
 
 }
@@ -45,7 +42,7 @@ trait EventLogQueries extends CassandraBase with CustomEncodings[EventLogRow] {
 @Singleton
 class Events @Inject() (val connectionService: ConnectionService)(implicit val ec: ExecutionContext) extends EventLogQueries {
 
-  val db: CassandraAsyncContext[SnakeCase] = connectionService.context
+  val db: CassandraAsyncContext[SnakeCase.type] = connectionService.context
 
   import db._
 

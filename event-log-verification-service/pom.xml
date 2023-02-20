@@ -43,11 +43,10 @@
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
-        <ubirch-cassandra-utils.version>1.0-SNAPSHOT</ubirch-cassandra-utils.version>
 
         <build.number>${timestamp}-dev</build.number>
 
-        <embedded-cassandra-test>4.0.7</embedded-cassandra-test>
+        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
         <!-- Lookup POM end -->
 
         <!-- Verification Microservice POM -->
@@ -68,7 +67,6 @@
         <scala.major.version>2.12</scala.major.version>
         <scala.minor.version>.8</scala.minor.version>
         <scala.version>${scala.major.version}${scala.minor.version}</scala.version>
-        <scala-collection-compat.version>2.1.2</scala-collection-compat.version>
 
         <typesafe.config.version>1.3.4</typesafe.config.version>
 
@@ -97,10 +95,6 @@
             <id>ossrh</id>
             <name>sonotype-snapshots</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-        <repository>
-            <id>gitlab-maven</id>
-            <url>https://gitlab.com/api/v4/projects/37429227/packages/maven</url>
         </repository>
     </repositories>
 
@@ -143,14 +137,6 @@
             <groupId>com.ubirch</groupId>
             <artifactId>ubirch-client-scala</artifactId>
             <version>1.2-SNAPSHOT</version>
-        </dependency>
-
-        <!-- somehow gets "java.lang.NoClassDefFoundError: scala/jdk/CollectionConverter" error -->
-        <!-- see https://github.com/scalameter/scalameter/issues/220 -->
-        <dependency>
-            <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-collection-compat_${scala.compat.version}</artifactId>
-            <version>${scala-collection-compat.version}</version>
         </dependency>
 
         <!-- caching -->
@@ -235,13 +221,8 @@
 
         <dependency>
             <groupId>com.github.nosan</groupId>
-            <artifactId>embedded-cassandra</artifactId>
+            <artifactId>embedded-cassandra-test</artifactId>
             <version>${embedded-cassandra-test}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.ubirch</groupId>
-            <artifactId>ubirch-cassandra-utils_${scala.compat.version}</artifactId>
-            <version>${ubirch-cassandra-utils.version}</version>
         </dependency>
 
         <!-- Gremlin -->
