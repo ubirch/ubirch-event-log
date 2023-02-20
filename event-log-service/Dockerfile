@@ -22,7 +22,6 @@ ENTRYPOINT [ \
   "-c", \
   "exec /usr/bin/java \
    -XX:MaxRAM=$(( $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes) - 254*1024*1024 )) \
-   -XX:+ExitOnOutOfMemoryError \
    -Djava.awt.headless=true \
    -Djava.security.egd=file:/dev/./urandom \
    -Djava.rmi.server.hostname=localhost \

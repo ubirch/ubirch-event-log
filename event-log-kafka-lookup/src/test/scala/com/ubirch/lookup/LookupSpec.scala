@@ -1,7 +1,8 @@
 package com.ubirch.lookup
 
 import java.util.UUID
-import com.github.nosan.embedded.cassandra.cql.{ CqlScript, StringCqlScript }
+
+import com.github.nosan.embedded.cassandra.cql.CqlScript
 import com.google.inject.Module
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
@@ -16,9 +17,7 @@ import com.ubirch.models._
 import com.ubirch.protocol.ProtocolMessage
 import com.ubirch.services.config.ConfigProvider
 import com.ubirch.util._
-import com.ubirch.util.cassandra.test.EmbeddedCassandraBase
 import io.prometheus.client.CollectorRegistry
-
 import javax.inject._
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.common.serialization.StringSerializer
@@ -176,12 +175,10 @@ object FakeFoundFinder {
   )
 }
 
-class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
+class LookupSpec extends TestBase with EmbeddedCassandra with LazyLogging {
 
-  val cassandra = new CassandraTest
-
-  val insertEventSql: StringCqlScript =
-    new StringCqlScript(s"""
+  val insertEventSql: String =
+    s"""
        |INSERT INTO events (id, customer_id, service_class, category, event, event_time, year, month, day, hour, minute, second, milli, signature, nonce)
        | VALUES ('c29tZSBieXRlcyEAAQIDnw==', 'customer_id', 'service_class', '${Values.UPP_CATEGORY}', '{
        |   "hint":0,
@@ -192,12 +189,12 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
        |   "version":34
        |}', '2019-01-29T17:00:28.333Z', 2019, 5, 2, 19, 439, 16, 0, '0681D35827B17104A2AACCE5A08C4CD1BC8A5EF5EFF4A471D15976693CC0D6D67392F1CACAE63565D6E521D2325A998CDE00A2FEF5B65D0707F4158000EB6D05',
        |'34376336396166392D336533382D343665652D393063332D616265313364383335353266');
-    """.stripMargin)
+    """.stripMargin
 
-  val insertLookupSql: StringCqlScript =
-    new StringCqlScript(s"""
+  val insertLookupSql: String =
+    s"""
        |INSERT INTO lookups (name, category, key, value) VALUES ('${Signature.value}', '${Values.UPP_CATEGORY}', 'c29tZSBieXRlcyEAAQIDnw==', '5aTelLQBerVT/vJiL2qjZCxWxqlfwT/BaID0zUVy7LyUC9nUdb02//aCiZ7xH1HglDqZ0Qqb7GyzF4jtBxfSBg==');
-    """.stripMargin)
+    """.stripMargin
 
   implicit val se: StringSerializer = new StringSerializer
 
@@ -206,7 +203,9 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
     "consume and process successfully when Found" in {
 
       cassandra.executeScripts(
-        List(insertEventSql)
+        CqlScript.statements(
+          insertEventSql
+        )
       )
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -424,7 +423,9 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
     "consume and process successfully when Found with Type Signature when no lookup found" in {
 
       cassandra.executeScripts(
-        List(insertEventSql)
+        CqlScript.statements(
+          insertEventSql
+        )
       )
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -487,7 +488,7 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
     "consume and process successfully when Found with Type Signature" in {
 
       cassandra.executeScripts(
-        List(
+        CqlScript.statements(
           insertEventSql,
           insertLookupSql
         )
@@ -781,7 +782,9 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
     "consume and process successfully when Found with UpperLower" in {
 
       cassandra.executeScripts(
-        List(insertEventSql)
+        CqlScript.statements(
+          insertEventSql
+        )
       )
 
       implicit val kafkaConfig: EmbeddedKafkaConfig = EmbeddedKafkaConfig(kafkaPort = PortGiver.giveMeKafkaPort, zooKeeperPort = PortGiver.giveMeZookeeperPort)
@@ -881,18 +884,18 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
-    cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
+    cassandra.executeScripts(CqlScript.statements("TRUNCATE events;", "TRUNCATE lookups;"))
     Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {
     cassandra.start()
     cassandra.executeScripts(
-      List(
-        new StringCqlScript("CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };"),
-        new StringCqlScript("USE event_log;"),
-        new StringCqlScript("drop table if exists events;"),
-        new StringCqlScript("""
+      CqlScript.statements(
+        "CREATE KEYSPACE IF NOT EXISTS event_log WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };",
+        "USE event_log;",
+        "drop table if exists events;",
+        """
           |create table if not exists events (
           |    id text,
           |    customer_id text,
@@ -911,9 +914,9 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
           |    nonce text,
           |    PRIMARY KEY ((id, category), year, month, day, hour)
           |) WITH CLUSTERING ORDER BY (year desc, month DESC, day DESC);
-        """.stripMargin),
-        new StringCqlScript("drop table if exists lookups;"),
-        new StringCqlScript("""
+        """.stripMargin,
+        "drop table if exists lookups;",
+        """
           |create table if not exists lookups (
           |    key text,
           |    value text,
@@ -921,7 +924,7 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
           |    category text,
           |    PRIMARY KEY ((value, category), name)
           |);
-        """.stripMargin)
+        """.stripMargin
       )
     )
   }

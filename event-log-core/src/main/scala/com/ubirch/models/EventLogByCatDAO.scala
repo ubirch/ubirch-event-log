@@ -9,35 +9,37 @@ import scala.concurrent.{ ExecutionContext, Future }
 /**
   * Represents the queries linked to the EventLogRow case class and to the Events Table
   */
-trait EventLogByCatQueries extends CassandraBase with CustomEncodings[EventLogRow] {
+trait EventLogByCatQueries extends TablePointer[EventLogRow] with CustomEncodings[EventLogRow] {
 
   import db._
 
   //These represent query descriptions only
 
+  implicit val eventSchemaMeta: db.SchemaMeta[EventLogRow] = schemaMeta[EventLogRow]("events_by_cat")
+
   def byCatAndYearAndMonthAndDayQ(category: String, year: Int, month: Int, day: Int) = quote {
-    querySchema[EventLogRow]("events_by_cat")
+    query[EventLogRow]
       .filter(x => x.category == lift(category))
-      .filter(x => x.year == lift(year))
-      .filter(x => x.month == lift(month))
-      .filter(x => x.day == lift(day))
+      .filter(x => x.eventTimeInfo.year == lift(year))
+      .filter(x => x.eventTimeInfo.month == lift(month))
+      .filter(x => x.eventTimeInfo.day == lift(day))
       .map(x => x)
   }
 
   def byCatAndTimeElemsQ(category: String, year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int, limit: Int) = {
 
     val basicQuote = quote {
-      querySchema[EventLogRow]("events_by_cat")
+      query[EventLogRow]
         .filter(x => x.category == lift(category))
-        .filter(x => x.year == lift(year))
-        .filter(x => x.month == lift(month))
-        .filter(x => x.day == lift(day))
+        .filter(x => x.eventTimeInfo.year == lift(year))
+        .filter(x => x.eventTimeInfo.month == lift(month))
+        .filter(x => x.eventTimeInfo.day == lift(day))
     }
 
-    val plusHour = if (hour > -1) quote(basicQuote.filter(_.hour == lift(hour))) else quote(basicQuote)
-    val plusMinute = if (minute > -1) quote(plusHour.filter(_.minute == lift(minute))) else quote(plusHour)
-    val plusSecond = if (second > -1) quote(plusMinute.filter(_.second == lift(second))) else quote(plusMinute)
-    val complete = if (milli > -1) quote(plusSecond.filter(_.milli == lift(milli))) else quote(plusSecond)
+    val plusHour = if (hour > -1) quote(basicQuote.filter(_.eventTimeInfo.hour == lift(hour))) else quote(basicQuote)
+    val plusMinute = if (minute > -1) quote(plusHour.filter(_.eventTimeInfo.minute == lift(minute))) else quote(plusHour)
+    val plusSecond = if (second > -1) quote(plusMinute.filter(_.eventTimeInfo.second == lift(second))) else quote(plusMinute)
+    val complete = if (milli > -1) quote(plusSecond.filter(_.eventTimeInfo.milli == lift(milli))) else quote(plusSecond)
 
     quote(complete.take(lift(limit)))
   }
@@ -53,7 +55,7 @@ trait EventLogByCatQueries extends CassandraBase with CustomEncodings[EventLogRo
 @Singleton
 class EventsByCat @Inject() (val connectionService: ConnectionService)(implicit val ec: ExecutionContext) extends EventLogByCatQueries {
 
-  val db: CassandraAsyncContext[SnakeCase] = connectionService.context
+  val db: CassandraAsyncContext[SnakeCase.type] = connectionService.context
 
   import db._
 
