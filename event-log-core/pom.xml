@@ -43,7 +43,7 @@
         <json4s-ext>3.6.0</json4s-ext>
         <embedded-kafka>2.3.0</embedded-kafka>
         <embedded-cassandra-test>4.0.7</embedded-cassandra-test>
-        <ubirch-cassandra-utils.version>1.0-SNAPSHOT</ubirch-cassandra-utils.version>
+        <ubirch-cassandra-utils.version>1.0</ubirch-cassandra-utils.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>

@@ -43,7 +43,7 @@
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
-        <ubirch-cassandra-utils.version>1.0-SNAPSHOT</ubirch-cassandra-utils.version>
+        <ubirch-cassandra-utils.version>1.0</ubirch-cassandra-utils.version>
 
         <build.number>${timestamp}-dev</build.number>
 
