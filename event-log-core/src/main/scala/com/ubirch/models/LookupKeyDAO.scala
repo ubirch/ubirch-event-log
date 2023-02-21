@@ -2,35 +2,33 @@ package com.ubirch.models
 
 import com.ubirch.services.cluster.ConnectionService
 import io.getquill.{ CassandraAsyncContext, SnakeCase }
-import javax.inject._
 
+import javax.inject._
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait LookupKeyQueries extends TablePointer[LookupKeyRow] with CustomEncodings[LookupKeyRow] {
+trait LookupKeyQueries extends CassandraBase with CustomEncodings[LookupKeyRow] {
 
   import db._
 
   //These represent query descriptions only
 
-  implicit val eventSchemaMeta: db.SchemaMeta[LookupKeyRow] = schemaMeta[LookupKeyRow]("lookups")
-
-  def selectAllQ: db.Quoted[db.EntityQuery[LookupKeyRow]] = quote(query[LookupKeyRow])
+  def selectAllQ = quote(querySchema[LookupKeyRow]("lookups"))
 
   def byValueAndNameAndCategoryQ(value: String, name: String, category: String) = quote {
-    query[LookupKeyRow]
+    querySchema[LookupKeyRow]("lookups")
       .filter(_.value == lift(value))
       .filter(_.category == lift(category))
       .filter(_.name == lift(name))
   }
 
   def byValueAndCategoryQ(value: String, category: String) = quote {
-    query[LookupKeyRow]
+    querySchema[LookupKeyRow]("lookups")
       .filter(_.value == lift(value))
       .filter(_.category == lift(category))
   }
 
-  def insertQ(lookupKeyRow: LookupKeyRow): db.Quoted[db.Insert[LookupKeyRow]] = quote {
-    query[LookupKeyRow].insert(lift(lookupKeyRow))
+  def insertQ(lookupKeyRow: LookupKeyRow) = quote {
+    querySchema[LookupKeyRow]("lookups").insertValue(lift(lookupKeyRow))
   }
 
 }
@@ -38,7 +36,7 @@ trait LookupKeyQueries extends TablePointer[LookupKeyRow] with CustomEncodings[L
 @Singleton
 class Lookups @Inject() (val connectionService: ConnectionService)(implicit val ec: ExecutionContext) extends LookupKeyQueries {
 
-  val db: CassandraAsyncContext[SnakeCase.type] = connectionService.context
+  val db: CassandraAsyncContext[SnakeCase] = connectionService.context
 
   import db._
 
