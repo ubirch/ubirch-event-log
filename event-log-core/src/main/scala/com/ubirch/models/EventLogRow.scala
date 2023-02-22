@@ -1,8 +1,10 @@
 package com.ubirch.models
 
-import java.util.Date
-
+import org.joda.time.DateTime
 import org.json4s.JValue
+
+import java.time.Instant
+import java.util.Date
 
 /**
   * Concrete type for the EventLogBase whose type T is JValue
@@ -29,22 +31,29 @@ case class EventLogRow(
     serviceClass: String,
     category: String,
     event: JValue,
-    eventTime: Date,
-    eventTimeInfo: TimeInfo,
+    eventTime: Instant,
+    year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int, milli: Int,
     signature: String,
     nonce: String
 )
 
 object EventLogRow {
   def fromEventLog(eventLog: EventLog): EventLogRow = {
+    val dateTime = new DateTime(eventLog.eventTime)
     EventLogRow(
       id = eventLog.id,
       customerId = eventLog.customerId,
       serviceClass = eventLog.serviceClass,
       category = eventLog.category,
       event = eventLog.event,
-      eventTime = eventLog.eventTime,
-      eventTimeInfo = TimeInfo.fromDate(eventLog.eventTime),
+      eventTime = eventLog.eventTime.toInstant,
+      year = dateTime.year().get(),
+      month = dateTime.monthOfYear().get(),
+      day = dateTime.dayOfMonth().get(),
+      hour = dateTime.hourOfDay().get(),
+      minute = dateTime.minuteOfHour().get(),
+      second = dateTime.secondOfMinute().get(),
+      milli = dateTime.millisOfSecond().get(),
       signature = eventLog.signature,
       nonce = eventLog.nonce
     )
@@ -53,7 +62,7 @@ object EventLogRow {
   def toEventLog(eventLogRow: EventLogRow): EventLog = {
     EventLog(eventLogRow.event)
       .withCategory(eventLogRow.category)
-      .withEventTime(eventLogRow.eventTime)
+      .withEventTime(Date.from(eventLogRow.eventTime))
       .withSignature(eventLogRow.signature)
       .withNonce(eventLogRow.nonce)
       .withServiceClass(eventLogRow.serviceClass)

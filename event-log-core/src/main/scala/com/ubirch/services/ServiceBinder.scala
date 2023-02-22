@@ -14,6 +14,7 @@ import com.ubirch.services.kafka.consumer._
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
+import com.ubirch.util.cassandra.{ CQLSessionService, CassandraConfig, DefaultCQLSessionServiceProvider, DefaultCassandraConfigProvider }
 
 import scala.concurrent.ExecutionContext
 
@@ -25,7 +26,8 @@ trait BasicServices {
 }
 
 trait CassandraServices {
-  def clusterService: ScopedBindingBuilder
+  def cassandraConfig: ScopedBindingBuilder
+  def cqlSessionService: ScopedBindingBuilder
   def connectionService: ScopedBindingBuilder
 }
 
@@ -69,7 +71,8 @@ class ServiceBinder
   //Basic Components
 
   //Cassandra Cluster
-  def clusterService: ScopedBindingBuilder = bind(classOf[ClusterService]).to(classOf[DefaultClusterService])
+  def cassandraConfig: ScopedBindingBuilder = bind(classOf[CassandraConfig]).toProvider(classOf[DefaultCassandraConfigProvider])
+  def cqlSessionService: ScopedBindingBuilder = bind(classOf[CQLSessionService]).toProvider(classOf[DefaultCQLSessionServiceProvider])
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
   //Cassandra Cluster
 
@@ -102,7 +105,8 @@ class ServiceBinder
     //Basic Components
 
     //Cassandra Cluster
-    clusterService
+    cassandraConfig
+    cqlSessionService
     connectionService
     //Cassandra Cluster
 

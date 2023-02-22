@@ -35,14 +35,15 @@
         <event-log-kafka.version>1.2.12-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
-        <quill.cassandra.version>3.4.1</quill.cassandra.version>
+        <quill.cassandra.version>4.6.0</quill.cassandra.version>
         <joda-time.version>2.10</joda-time.version>
         <kafka-clients.version>2.3.0</kafka-clients.version>
         <json4s-native.version>3.6.0</json4s-native.version>
         <json4s-jackson.version>3.6.1</json4s-jackson.version>
         <json4s-ext>3.6.0</json4s-ext>
         <embedded-kafka>2.3.0</embedded-kafka>
-        <embedded-cassandra-test>1.2.9</embedded-cassandra-test>
+        <embedded-cassandra-test>4.0.7</embedded-cassandra-test>
+        <ubirch-cassandra-utils.version>1.0</ubirch-cassandra-utils.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -78,6 +79,12 @@
             <groupId>io.getquill</groupId>
             <artifactId>quill-cassandra_${scala.compat.version}</artifactId>
             <version>${quill.cassandra.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ubirch</groupId>
+            <artifactId>ubirch-cassandra-utils_${scala.compat.version}</artifactId>
+            <version>${ubirch-cassandra-utils.version}</version>
         </dependency>
 
         <dependency>
@@ -122,7 +129,7 @@
 
         <dependency>
             <groupId>com.github.nosan</groupId>
-            <artifactId>embedded-cassandra-test</artifactId>
+            <artifactId>embedded-cassandra</artifactId>
             <version>${embedded-cassandra-test}</version>
         </dependency>
 
