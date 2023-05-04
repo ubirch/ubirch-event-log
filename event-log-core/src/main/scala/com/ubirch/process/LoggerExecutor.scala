@@ -14,7 +14,7 @@ import com.ubirch.util.Exceptions.{ EventLogDatabaseException, ParsingIntoEventL
 
 import javax.inject._
 import monix.eval.Task
-import monix.execution.Scheduler
+import monix.execution.{ Callback, Scheduler }
 import net.logstash.logback.argument.StructuredArguments.v
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
@@ -42,9 +42,11 @@ class LoggerExecutor @Inject() (
     val promise = Promise[PipeData]()
     Task
       .gather(v1.map(x => run(x)))
-      .runOnComplete {
-        case Success(_) => promise.success(PipeData(v1, None))
-        case Failure(exception) => promise.failure(exception)
+      .runAsync {
+        Callback.fromTry {
+          case Success(_) => promise.success(PipeData(v1, None))
+          case Failure(exception) => promise.failure(exception)
+        }
       }(scheduler)
     promise.future
   }

@@ -2,7 +2,6 @@ package com.ubirch.services.kafka.consumer
 
 import java.util.Date
 import java.util.concurrent.atomic.AtomicReference
-
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.kafka.consumer.{ Configs, StringConsumer }
@@ -14,9 +13,10 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.services.metrics.DefaultFailureCounter
 import com.ubirch.util.EventLogJsonSupport
-import com.ubirch.util.Exceptions.{ ParsingIntoEventLogException, EventLogDatabaseException }
+import com.ubirch.util.Exceptions.{ EventLogDatabaseException, ParsingIntoEventLogException }
 import com.ubirch.{ Entities, TestBase }
 import io.prometheus.client.CollectorRegistry
+import monix.execution.Scheduler
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecord, OffsetResetStrategy }
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -34,6 +34,7 @@ class StringConsumerSpec extends TestBase with MockitoSugar with LazyLogging wit
 
   val config = ConfigFactory.load()
   val counter = new DefaultFailureCounter(config)
+  implicit val scheduler: Scheduler = Scheduler(ec)
 
   def spawn(kafkaPort: Int): StringConsumer = {
     val lifeCycle = mock[DefaultLifecycle]

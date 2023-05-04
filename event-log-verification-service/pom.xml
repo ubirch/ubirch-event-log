@@ -23,7 +23,7 @@
         <!-- versions -->
         <build.number>${timestamp}-dev</build.number>
         <event-log-core.version>1.5.0</event-log-core.version>
-        <ubirch-kafka-express.version>1.2.12-SNAPSHOT</ubirch-kafka-express.version>
+        <ubirch-kafka-express.version>1.3.0-SNAPSHOT</ubirch-kafka-express.version>
 
         <!-- plugins -->
         <scala-maven-plugin.version>3.3.2</scala-maven-plugin.version>
@@ -223,6 +223,12 @@
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_${scala.compat.version}</artifactId>
             <version>${json4s-native.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-jackson_${scala.compat.version}</artifactId>
+            <version>${json4s-jackson.version}</version>
         </dependency>
 
         <dependency>

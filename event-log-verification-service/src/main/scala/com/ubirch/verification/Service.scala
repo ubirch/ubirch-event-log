@@ -3,7 +3,7 @@ package com.ubirch.verification
 import com.ubirch.util.Boot
 import com.ubirch.verification.util.udash.JettyServer
 
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object Service extends Boot(LookupServiceBinder.modules) {
 

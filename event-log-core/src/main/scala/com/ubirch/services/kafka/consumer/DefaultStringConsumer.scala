@@ -2,7 +2,6 @@ package com.ubirch.services.kafka.consumer
 
 import java.util
 import java.util.concurrent.atomic.AtomicInteger
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.ConfPaths.ConsumerConfPaths
@@ -15,6 +14,8 @@ import com.ubirch.services.kafka.producer.Reporter
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter }
 import com.ubirch.util.Exceptions._
+import monix.execution.Scheduler
+
 import javax.inject._
 import org.apache.kafka.clients.consumer._
 import org.apache.kafka.common.TopicPartition
@@ -162,6 +163,8 @@ class DefaultStringConsumer @Inject() (
   extends Provider[StringConsumer]
   with ConsumerCreator
   with WithConsumerShutdownHook {
+
+  private implicit val scheduler: Scheduler = Scheduler(ec)
 
   lazy val consumerConfigured = {
     val consumerImp = StringConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)

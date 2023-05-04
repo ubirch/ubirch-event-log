@@ -1,7 +1,6 @@
 package com.ubirch.encoder.services.kafka.consumer
 
 import java.util.UUID
-
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 import com.ubirch.encoder.process.EncoderExecutor
@@ -10,6 +9,8 @@ import com.ubirch.models.Values
 import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.UUIDHelper
+import monix.execution.Scheduler
+
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ ByteArrayDeserializer, StringDeserializer }
@@ -42,6 +43,8 @@ class DefaultEncoderConsumer @Inject() (
   with ConsumerCreator
   with WithConsumerShutdownHook
   with LazyLogging {
+
+  private implicit val scheduler: Scheduler = Scheduler(ec)
 
   lazy val consumerConfigured = {
     val consumerImp = BytesConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)

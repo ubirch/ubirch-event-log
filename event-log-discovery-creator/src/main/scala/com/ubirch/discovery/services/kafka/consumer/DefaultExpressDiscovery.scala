@@ -16,6 +16,8 @@ import com.ubirch.services.kafka.consumer.ConsumerCreator
 import com.ubirch.services.kafka.producer.ProducerCreator
 import com.ubirch.services.lifeCycle.Lifecycle
 import com.ubirch.util.UUIDHelper
+import monix.execution.Scheduler
+
 import javax.inject._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.serialization.{ Deserializer, Serializer, StringDeserializer, StringSerializer }
@@ -63,6 +65,8 @@ class DefaultExpressDiscovery @Inject() (
     lifecycle: Lifecycle
 )(implicit val ec: ExecutionContext)
   extends DefaultExpressDiscoveryBase(config, lifecycle) with LazyLogging {
+
+  implicit val scheduler: Scheduler = Scheduler(ec)
 
   final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
 
