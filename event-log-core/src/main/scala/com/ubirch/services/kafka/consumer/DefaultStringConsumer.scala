@@ -159,12 +159,10 @@ class DefaultStringConsumer @Inject() (
     val config: Config,
     lifecycle: Lifecycle,
     controller: StringConsumerRecordsManager
-)(implicit ec: ExecutionContext)
+)(implicit scheduler: Scheduler)
   extends Provider[StringConsumer]
   with ConsumerCreator
   with WithConsumerShutdownHook {
-
-  private implicit val scheduler: Scheduler = Scheduler(ec)
 
   lazy val consumerConfigured = {
     val consumerImp = StringConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)

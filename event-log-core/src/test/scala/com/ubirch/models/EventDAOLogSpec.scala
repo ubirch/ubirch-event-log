@@ -359,7 +359,6 @@ class EventDAOLogSpec extends TestBase with EmbeddedCassandraBase with LazyLoggi
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
     cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
-    Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {

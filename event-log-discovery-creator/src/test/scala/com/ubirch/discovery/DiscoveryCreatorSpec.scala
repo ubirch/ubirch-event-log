@@ -13,10 +13,13 @@ import com.ubirch.services.execution.ExecutionProvider
 import com.ubirch.services.lifeCycle.DefaultLifecycle
 import com.ubirch.util.UUIDHelper
 import io.prometheus.client.CollectorRegistry
+import monix.execution.Scheduler
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.json4s.JsonAST.{ JInt, JString }
 
 class DiscoveryCreatorSpec extends TestBase with LazyLogging {
+
+  implicit val scheduler: Scheduler = monix.execution.Scheduler.Implicits.global
 
   "DiscoveryCreator" must {
 

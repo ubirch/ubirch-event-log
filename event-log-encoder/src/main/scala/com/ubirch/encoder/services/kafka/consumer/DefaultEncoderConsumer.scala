@@ -38,13 +38,11 @@ class DefaultEncoderConsumer @Inject() (
     val config: Config,
     lifecycle: Lifecycle,
     controller: EncoderExecutor
-)(implicit val ec: ExecutionContext)
+)(implicit scheduler: Scheduler)
   extends Provider[BytesConsumer]
   with ConsumerCreator
   with WithConsumerShutdownHook
   with LazyLogging {
-
-  private implicit val scheduler: Scheduler = Scheduler(ec)
 
   lazy val consumerConfigured = {
     val consumerImp = BytesConsumer.emptyWithMetrics(Values.UBIRCH, metricsSubNamespace)

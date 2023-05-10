@@ -63,10 +63,8 @@ abstract class DefaultExpressDiscoveryBase(val config: Config, lifecycle: Lifecy
 class DefaultExpressDiscovery @Inject() (
     config: Config,
     lifecycle: Lifecycle
-)(implicit val ec: ExecutionContext)
+)(implicit val scheduler: Scheduler)
   extends DefaultExpressDiscoveryBase(config, lifecycle) with LazyLogging {
-
-  implicit val scheduler: Scheduler = Scheduler(ec)
 
   final val composed = getEventLog _ andThen getRelations andThen getRelationsAsJson
 

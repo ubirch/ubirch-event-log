@@ -9,7 +9,7 @@ import com.ubirch.niomon.healthcheck.HealthCheckServer
 import com.ubirch.services._
 import com.ubirch.services.cluster.{ ConnectionService, DefaultConnectionService }
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.ExecutionProvider
+import com.ubirch.services.execution.{ ExecutionProvider, SchedulerProvider }
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.util.cassandra.{ CQLSessionService, CassandraConfig, DefaultCQLSessionServiceProvider, DefaultCassandraConfigProvider }
 import com.ubirch.verification.controllers.{ Api, DefaultApi }
@@ -18,6 +18,7 @@ import com.ubirch.verification.services.eventlog.{ CachedEventLogClient, Default
 import com.ubirch.verification.services.janus.{ DefaultGremlinConnector, Gremlin, GremlinFinder, GremlinFinderRemote }
 import com.ubirch.verification.services.kafka.{ AcctEventPublishing, DefaultAcctEventPublishing }
 import com.ubirch.verification.util.udash.JettyServer
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContext
 
@@ -27,6 +28,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def scheduler: ScopedBindingBuilder = bind(classOf[Scheduler]).toProvider(classOf[SchedulerProvider])
   def cassandraConfig: ScopedBindingBuilder = bind(classOf[CassandraConfig]).toProvider(classOf[DefaultCassandraConfigProvider])
   def cqlSessionService: ScopedBindingBuilder = bind(classOf[CQLSessionService]).toProvider(classOf[DefaultCQLSessionServiceProvider])
   def connectionService: ScopedBindingBuilder = bind(classOf[ConnectionService]).to(classOf[DefaultConnectionService])
@@ -50,6 +52,7 @@ class LookupServiceBinder extends AbstractModule with BasicServices with Cassand
     cqlSessionService
     connectionService
     executionContext
+    scheduler
     gremlin
     finder
     eventLogClient
