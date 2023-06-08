@@ -11,12 +11,13 @@ import com.ubirch.chainer.services.metrics.{ DefaultLeavesCounter, DefaultTreeCo
 import com.ubirch.kafka.consumer.StringConsumer
 import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.ExecutionProvider
+import com.ubirch.services.execution.{ ExecutionProvider, SchedulerProvider }
 import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.services.{ BasicServices, ExecutionServices, Kafka }
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContext
 
@@ -36,6 +37,7 @@ class ChainerServiceBinder extends AbstractModule
   def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultChainerManager])
 
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def scheduler: ScopedBindingBuilder = bind(classOf[Scheduler]).toProvider(classOf[SchedulerProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
 
@@ -63,6 +65,7 @@ class ChainerServiceBinder extends AbstractModule
     jvmHook
     config
     executionContext
+    scheduler
     executorFamily
     consumer
     consumerRecordsManager

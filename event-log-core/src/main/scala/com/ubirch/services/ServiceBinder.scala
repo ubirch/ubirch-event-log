@@ -9,12 +9,13 @@ import com.ubirch.kafka.producer.StringProducer
 import com.ubirch.process.{ DefaultExecutorFamily, ExecutorFamily }
 import com.ubirch.services.cluster._
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.ExecutionProvider
+import com.ubirch.services.execution.{ ExecutionProvider, SchedulerProvider }
 import com.ubirch.services.kafka.consumer._
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.services.metrics.{ Counter, DefaultFailureCounter, DefaultSuccessCounter }
 import com.ubirch.util.cassandra.{ CQLSessionService, CassandraConfig, DefaultCQLSessionServiceProvider, DefaultCassandraConfigProvider }
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContext
 
@@ -23,6 +24,7 @@ trait BasicServices {
   def jvmHook: ScopedBindingBuilder
   def config: ScopedBindingBuilder
   def executionContext: ScopedBindingBuilder
+  def scheduler: ScopedBindingBuilder
 }
 
 trait CassandraServices {
@@ -68,6 +70,7 @@ class ServiceBinder
   def jvmHook: ScopedBindingBuilder = bind(classOf[JVMHook]).to(classOf[DefaultJVMHook])
   def config: ScopedBindingBuilder = bind(classOf[Config]).toProvider(classOf[ConfigProvider])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def scheduler: ScopedBindingBuilder = bind(classOf[Scheduler]).toProvider(classOf[SchedulerProvider])
   //Basic Components
 
   //Cassandra Cluster
@@ -102,6 +105,7 @@ class ServiceBinder
     jvmHook
     config
     executionContext
+    scheduler
     //Basic Components
 
     //Cassandra Cluster

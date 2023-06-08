@@ -32,7 +32,7 @@
 
         <!-- versions -->
 
-        <event-log-kafka.version>1.2.12-SNAPSHOT</event-log-kafka.version>
+        <event-log-kafka.version>1.3.0-SNAPSHOT</event-log-kafka.version>
         <guice.version>4.1.0</guice.version>
         <guice.ext.version>4.1.0</guice.ext.version>
         <quill.cassandra.version>4.6.0</quill.cassandra.version>

@@ -1,7 +1,7 @@
 package com.ubirch
 
 import java.util.concurrent.{ CountDownLatch, TimeUnit }
-import com.github.nosan.embedded.cassandra.cql.{ CqlScript, StringCqlScript }
+import com.github.nosan.embedded.cassandra.cql.StringCqlScript
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.config.{ Config, ConfigValueFactory }
 import com.typesafe.scalalogging.LazyLogging
@@ -16,6 +16,7 @@ import com.ubirch.services.kafka.consumer.DefaultConsumerRecordsManager
 import com.ubirch.util.cassandra.test.EmbeddedCassandraBase
 import com.ubirch.util.{ InjectorHelper, UUIDHelper }
 import io.prometheus.client.CollectorRegistry
+import monix.execution.Scheduler
 import net.manub.embeddedkafka.EmbeddedKafkaConfig
 import org.apache.kafka.clients.consumer.{ ConsumerRecords, OffsetResetStrategy }
 import org.apache.kafka.common.TopicPartition
@@ -426,7 +427,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
 
         val attempts = new CountDownLatch(3)
 
-        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
+        implicit val scheduler: Scheduler = Scheduler(InjectorHelper.get[ExecutionContext])
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -482,7 +483,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
 
         val attempts = new CountDownLatch(4)
 
-        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
+        implicit val scheduler: Scheduler = Scheduler(InjectorHelper.get[ExecutionContext])
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -546,7 +547,7 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
         val failedProcesses = new CountDownLatch(3)
         var committedN = 0
 
-        implicit val ec: ExecutionContext = InjectorHelper.get[ExecutionContext]
+        implicit val scheduler: Scheduler = Scheduler(InjectorHelper.get[ExecutionContext])
 
         //Consumer
         val consumer: StringConsumer = new StringConsumer {
@@ -592,7 +593,6 @@ class EventLogSpec extends TestBase with EmbeddedCassandraBase with LazyLogging 
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
     cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
-    Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {

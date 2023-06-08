@@ -1,7 +1,7 @@
 package com.ubirch.verification
 
 import java.util.UUID
-import com.github.nosan.embedded.cassandra.cql.{ CqlScript, StringCqlScript }
+import com.github.nosan.embedded.cassandra.cql.StringCqlScript
 import com.google.inject.Module
 import com.google.inject.binder.ScopedBindingBuilder
 import com.typesafe.scalalogging.LazyLogging
@@ -535,7 +535,6 @@ class LookupSpec extends TestBase with EmbeddedCassandraBase with LazyLogging {
   override protected def beforeEach(): Unit = {
     CollectorRegistry.defaultRegistry.clear()
     cassandra.executeScripts(List(new StringCqlScript("TRUNCATE events;"), new StringCqlScript("TRUNCATE lookups;")))
-    Thread.sleep(5000)
   }
 
   override protected def beforeAll(): Unit = {

@@ -11,11 +11,12 @@ import com.ubirch.lookup.services.kafka.consumer.DefaultRecordsManager
 import com.ubirch.services._
 import com.ubirch.services.cluster.{ ConnectionService, DefaultConnectionService }
 import com.ubirch.services.config.ConfigProvider
-import com.ubirch.services.execution.ExecutionProvider
+import com.ubirch.services.execution.{ ExecutionProvider, SchedulerProvider }
 import com.ubirch.services.kafka.consumer.{ DefaultStringConsumer, StringConsumerRecordsManager }
 import com.ubirch.services.kafka.producer.DefaultStringProducer
 import com.ubirch.services.lifeCycle.{ DefaultJVMHook, DefaultLifecycle, JVMHook, Lifecycle }
 import com.ubirch.util.cassandra.{ CQLSessionService, CassandraConfig, DefaultCQLSessionServiceProvider, DefaultCassandraConfigProvider }
+import monix.execution.Scheduler
 
 import scala.concurrent.ExecutionContext
 
@@ -32,6 +33,7 @@ class LookupServiceBinder
   def executorFamily: ScopedBindingBuilder = bind(classOf[ExecutorFamily]).to(classOf[DefaultExecutorFamily])
   def consumerRecordsManager: ScopedBindingBuilder = bind(classOf[StringConsumerRecordsManager]).to(classOf[DefaultRecordsManager])
   def executionContext: ScopedBindingBuilder = bind(classOf[ExecutionContext]).toProvider(classOf[ExecutionProvider])
+  def scheduler: ScopedBindingBuilder = bind(classOf[Scheduler]).toProvider(classOf[SchedulerProvider])
   def consumer: ScopedBindingBuilder = bind(classOf[StringConsumer]).toProvider(classOf[DefaultStringConsumer])
   def producer: ScopedBindingBuilder = bind(classOf[StringProducer]).toProvider(classOf[DefaultStringProducer])
 
@@ -53,6 +55,7 @@ class LookupServiceBinder
     cqlSessionService
     connectionService
     executionContext
+    scheduler
     executorFamily
     consumer
     consumerRecordsManager

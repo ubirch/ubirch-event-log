@@ -16,6 +16,7 @@ import com.ubirch.util._
 
 import javax.inject._
 import monix.eval.Task
+import monix.execution.Callback
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.KafkaException
@@ -118,18 +119,20 @@ class DispatchExecutor @Inject() (
         throw EmptyValueException("No Records Found to be processed", pipeData)
       }
 
-      v1.foreach(x => run(x).runOnComplete {
-        case Success(_) =>
-          successCounter.counter.labels(metricsSubNamespace).inc()
-        case Failure(e: ParsingIntoEventLogException) =>
-          logger.error("ParsingIntoEventLogException: " + e.getMessage)
-          failureCounter.counter.labels(metricsSubNamespace).inc()
-        case Failure(e: CreateProducerRecordException) =>
-          logger.error("CreateProducerRecordException: " + e.getMessage)
-          failureCounter.counter.labels(metricsSubNamespace).inc()
-        case Failure(e) =>
-          logger.error(s"Other=${e.getClass.getName}: " + e.getMessage)
-          failureCounter.counter.labels(metricsSubNamespace).inc()
+      v1.foreach(x => run(x).runAsync {
+        Callback.fromTry {
+          case Success(_) =>
+            successCounter.counter.labels(metricsSubNamespace).inc()
+          case Failure(e: ParsingIntoEventLogException) =>
+            logger.error("ParsingIntoEventLogException: " + e.getMessage)
+            failureCounter.counter.labels(metricsSubNamespace).inc()
+          case Failure(e: CreateProducerRecordException) =>
+            logger.error("CreateProducerRecordException: " + e.getMessage)
+            failureCounter.counter.labels(metricsSubNamespace).inc()
+          case Failure(e) =>
+            logger.error(s"Other=${e.getClass.getName}: " + e.getMessage)
+            failureCounter.counter.labels(metricsSubNamespace).inc()
+        }
       })
 
       DispatcherPipeData.empty.withConsumerRecords(v1)
