@@ -1,4 +1,4 @@
-FROM amazoncorretto:8u342
+FROM amazoncorretto:8u382
 ARG JAR_LIBS
 ARG JAR_FILE
 ARG VERSION
